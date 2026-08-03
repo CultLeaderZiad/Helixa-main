@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import Ferrofluid from "@/components/ui/ferrofluid"
+import Ferrofluid from "@/components/effects/ferrofluid"
 import TextPressure from "@/components/ui/text-pressure"
 import ScrollFloat from "@/components/ui/ScrollFloat"
 import ASCIIText from "@/components/ui/ASCIIText"
@@ -29,17 +29,11 @@ export function LandingPage() {
   }, [])
 
   const handleLogin = () => {
-    // Instagram Business Login (Instagram API with Instagram Login). client_id must be the
-    // Instagram app ID from the Instagram product page, not the parent Meta app ID.
-    const appId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID
-    const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI
+    router.push("/login")
+  }
 
-    if (!appId || !redirectUri) {
-      alert("Instagram login isn't configured yet")
-      return
-    }
-
-    window.location.href = `https://www.instagram.com/oauth/authorize?enable_fb_login=0&force_authentication=1&client_id=${appId}&redirect_uri=${redirectUri}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments`
+  const handleSignup = () => {
+    router.push("/signup")
   }
 
   const handleTestLogin = () => {
@@ -130,16 +124,37 @@ export function LandingPage() {
 
         {/* Hero */}
         <section className="relative overflow-hidden bg-transparent w-full">
-          <div className="absolute inset-0 bg-gradient-to-t from-[#03010A] via-black/35 to-black/15 pointer-events-none" />
+          {/* Ferrofluid background layer */}
+          <div className="absolute inset-0 pointer-events-none md:pointer-events-auto">
+            <Ferrofluid
+              colors={["#ffe14d", "#ffffff", "#ffb300"]}
+              speed={0.5}
+              scale={1.2}
+              turbulence={1}
+              fluidity={0.1}
+              rimWidth={0.2}
+              sharpness={3}
+              shimmer={1}
+              glow={2}
+              flowDirection="down"
+              opacity={0.15}
+              mouseInteraction={true}
+              mouseStrength={1}
+              mouseRadius={0.3}
+              dpr={1.5}
+            />
+          </div>
+          
+          <div className="absolute inset-0 bg-gradient-to-t from-[#03010A] via-[#03010A]/80 to-[#03010A]/30 pointer-events-none" />
 
-          <div className="relative px-5 md:px-10 pt-20 md:pt-32 pb-24 max-w-6xl mx-auto flex flex-col items-center text-center">
-            <div className="fade-up w-full flex justify-center" style={{ animationDelay: "0ms" }}>
-              <p className="font-mono-ui text-[11px] uppercase tracking-[0.25em] text-neutral-400 mb-6">
+          <div className="relative px-5 md:px-10 pt-20 md:pt-32 pb-24 max-w-6xl mx-auto flex flex-col items-center text-center pointer-events-none">
+            <div className="fade-up w-full flex justify-center pointer-events-auto" style={{ animationDelay: "0ms" }}>
+              <p className="font-mono-ui text-[11px] uppercase tracking-[0.25em] text-neutral-400 mb-6 bg-black/50 px-4 py-2 rounded-full border border-white/5 backdrop-blur-sm">
                 Instagram automation // self-hosted // no monthly fees
               </p>
             </div>
 
-            <div className="fade-up w-full h-[250px] md:h-[400px] relative mb-6" style={{ animationDelay: "40ms" }}>
+            <div className="fade-up w-full h-[250px] md:h-[400px] relative mb-6 pointer-events-none" style={{ animationDelay: "40ms" }}>
               <ASCIIText
                 text='HELIXA'
                 enableWaves={true}
@@ -153,40 +168,40 @@ export function LandingPage() {
               Your DMs,
               <br />
               <span className="italic text-[#ffe14d]">on autopilot.</span>
-            </h1>
+              </h1>
 
-            <div className="fade-up mt-10 flex flex-col items-center gap-8 md:gap-10 w-full" style={{ animationDelay: "160ms" }}>
-              <p className="text-neutral-400 text-base md:text-lg max-w-md leading-relaxed">
-                Comment-to-DM funnels, keyword triggers, story reactions, AI replies, a live inbox,
-                and Reels scheduling. The open-source ManyChat alternative — your data stays in your own Supabase.
-              </p>
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  onClick={handleLogin}
-                  className="group flex items-center gap-2 bg-[#ffe14d] text-black font-mono-ui text-sm font-bold px-7 py-4 rounded-full hover:scale-[1.03] active:scale-[0.98] transition-transform"
-                >
-                  Connect Instagram
-                  <ArrowUpRight className="w-4 h-4 group-hover:rotate-45 transition-transform" />
-                </button>
-                {process.env.NODE_ENV === "development" && (
+              <div className="fade-up mt-10 flex flex-col items-center gap-8 md:gap-10 w-full pointer-events-auto" style={{ animationDelay: "160ms" }}>
+                <p className="text-neutral-400 text-base md:text-lg max-w-md leading-relaxed bg-[#03010A]/40 p-4 rounded-xl backdrop-blur-sm border border-white/5">
+                  Comment-to-DM funnels, keyword triggers, story reactions, AI replies, a live inbox,
+                  and Reels scheduling. The open-source ManyChat alternative — your data stays in your own Supabase.
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
                   <button
-                    onClick={handleTestLogin}
-                    className="group flex items-center gap-2 font-mono-ui text-sm font-bold text-[#ffe14d] border border-[#ffe14d]/25 px-7 py-4 rounded-full hover:bg-[#ffe14d]/10 active:scale-[0.98] transition-all"
+                    onClick={handleSignup}
+                    className="group flex items-center gap-2 bg-[#ffe14d] text-black font-mono-ui text-sm font-bold px-7 py-4 rounded-full hover:scale-[1.03] active:scale-[0.98] transition-transform"
                   >
-                    <Terminal className="w-4 h-4" />
-                    Dev Login
+                    Start free trial
+                    <ArrowUpRight className="w-4 h-4 group-hover:rotate-45 transition-transform" />
                   </button>
-                )}
-                <a
-                  href={TELEGRAM_URL} target="_blank" rel="noreferrer"
-                  className="flex items-center gap-2 font-mono-ui text-sm text-neutral-300 border border-white/15 px-6 py-4 rounded-full hover:border-[#2AABEE]/60 hover:text-[#2AABEE] transition-colors"
-                >
-                  <Send className="w-4 h-4" />
-                  Telegram support
-                </a>
+                  {process.env.NODE_ENV === "development" && (
+                    <button
+                      onClick={handleTestLogin}
+                      className="group flex items-center gap-2 font-mono-ui text-sm font-bold text-[#ffe14d] border border-[#ffe14d]/25 bg-black/60 backdrop-blur-md px-7 py-4 rounded-full hover:bg-[#ffe14d]/10 active:scale-[0.98] transition-all"
+                    >
+                      <Terminal className="w-4 h-4" />
+                      Dev Login
+                    </button>
+                  )}
+                  <a
+                    href={TELEGRAM_URL} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-2 font-mono-ui text-sm text-neutral-300 border border-white/15 bg-black/60 backdrop-blur-md px-6 py-4 rounded-full hover:border-[#2AABEE]/60 hover:text-[#2AABEE] transition-colors"
+                  >
+                    <Send className="w-4 h-4" />
+                    Telegram support
+                  </a>
+                </div>
               </div>
             </div>
-          </div>
         </section>
 
         {/* Marquee */}

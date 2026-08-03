@@ -4,8 +4,9 @@ import { useEffect, useState, useCallback } from "react"
 import {
   Users, TrendingUp, AlertTriangle, Shield, RefreshCw,
   Search, ChevronLeft, ChevronRight, X, Check,
-  Activity, DollarSign, Clock, Flag
+  Activity, DollarSign, Clock, Flag, Zap, CreditCard, XCircle
 } from "lucide-react"
+import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 
 interface Stats {
   totalUsers: number
@@ -26,6 +27,8 @@ interface User {
   is_flagged: boolean
   flagged_reason: string | null
   signup_ip: string | null
+  ip_risk_score: number | null
+  vpn_suspected: boolean
   created_at: string
 }
 
@@ -36,6 +39,17 @@ interface AuditLog {
   created_at: string
   admin: { id: number; username: string } | null
   target: { id: number; username: string } | null
+}
+
+interface PaymentSubmission {
+  id: string
+  user_id: number
+  transaction_reference: string
+  note: string | null
+  amount: number
+  status: 'pending' | 'approved' | 'rejected'
+  created_at: string
+  users: { username: string, plan: string }
 }
 
 const PLAN_COLORS: Record<string, string> = {
@@ -54,6 +68,7 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [users, setUsers] = useState<User[]>([])
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
+  const [pendingPayments, setPendingPayments] = useState<PaymentSubmission[]>([])
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [search, setSearch] = useState("")
   const [filterPlan, setFilterPlan] = useState("")
@@ -62,8 +77,9 @@ export default function AdminPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
-  const [activeTab, setActiveTab] = useState<"users" | "audit">("users")
-
+  const [activeTab, setActiveTab] = useState<"users" | "audit" | "payments">("users")
+  const [trialsThisWeek, setTrialsThisWeek] = useState<number | null>(null)
+  
   // Edit state
   const [editPlan, setEditPlan] = useState("")
   const [editRole, setEditRole] = useState("")
@@ -98,14 +114,60 @@ export default function AdminPage() {
     if (data.logs) setAuditLogs(data.logs)
   }, [])
 
+  const fetchPendingPayments = useCallback(async () => {
+    const res = await fetch("/api/admin/payments?status=pending")
+    const data = await res.json()
+    if (data.payments) setPendingPayments(data.payments)
+  }, [])
+
+  const fetchTrialsThisWeek = useCallback(async () => {
+    try {
+      const supabase = getSupabaseBrowserClient()
+      const oneWeekAgo = new Date()
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+      
+      const { count } = await supabase
+        .from("users")
+        .select("*", { count: "exact", head: true })
+        .eq("plan", "trial")
+        .gte("created_at", oneWeekAgo.toISOString())
+      
+      if (count !== null) setTrialsThisWeek(count)
+    } catch (err) {
+      console.error("Failed to fetch trials this week count", err)
+    }
+  }, [])
+
   useEffect(() => {
     fetchStats()
     fetchAuditLogs()
-  }, [fetchStats, fetchAuditLogs])
+    fetchTrialsThisWeek()
+    fetchPendingPayments()
+  }, [fetchStats, fetchAuditLogs, fetchTrialsThisWeek, fetchPendingPayments])
 
   useEffect(() => {
     fetchUsers()
   }, [fetchUsers])
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient()
+    const adminChannel = supabase.channel('admin-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
+        fetchStats()
+        fetchTrialsThisWeek()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_audit_log' }, () => {
+        fetchAuditLogs()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_submissions' }, () => {
+        fetchPendingPayments()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(adminChannel)
+    }
+  }, [fetchStats, fetchAuditLogs, fetchTrialsThisWeek, fetchPendingPayments])
 
   const selectUser = (user: User) => {
     setSelectedUser(user)
@@ -140,6 +202,31 @@ export default function AdminPage() {
     }
   }
 
+  const handlePayment = async (paymentId: string, action: 'approve' | 'reject') => {
+    let rejection_reason = null
+    if (action === 'reject') {
+      rejection_reason = prompt("Enter rejection reason (optional):")
+      if (rejection_reason === null) return // Cancelled
+    }
+
+    try {
+      const res = await fetch(`/api/admin/payments/${paymentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, rejection_reason })
+      })
+      if (res.ok) {
+        fetchPendingPayments()
+        fetchUsers()
+        fetchStats()
+      } else {
+        alert("Failed to process payment")
+      }
+    } catch (err) {
+      alert("Error processing payment")
+    }
+  }
+
   const trialDaysLeft = (endsAt: string | null) => {
     if (!endsAt) return null
     const diff = new Date(endsAt).getTime() - Date.now()
@@ -149,6 +236,36 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Live Banner */}
+      {trialsThisWeek !== null && (
+        <div className="bg-[#ffe14d]/10 border border-[#ffe14d]/20 rounded-xl p-4 flex items-center gap-3 animate-in fade-in duration-500">
+          <Zap className="w-5 h-5 text-[#ffe14d]" />
+          <div>
+            <p className="text-white font-mono text-sm">
+              <span className="font-bold text-[#ffe14d]">{trialsThisWeek}</span> people started a trial this week.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Pending Payments Alert */}
+      {pendingPayments.length > 0 && (
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 flex items-center gap-3 animate-in fade-in duration-500">
+          <CreditCard className="w-5 h-5 text-blue-400" />
+          <div className="flex-1">
+            <p className="text-white font-mono text-sm">
+              <span className="font-bold text-blue-400">{pendingPayments.length}</span> pending payment{pendingPayments.length !== 1 ? 's' : ''} require your review.
+            </p>
+          </div>
+          <button 
+            onClick={() => setActiveTab('payments')}
+            className="text-xs font-mono font-bold bg-blue-500/20 text-blue-400 px-3 py-1 rounded hover:bg-blue-500/30 transition-colors"
+          >
+            Review Now
+          </button>
+        </div>
+      )}
+
       {/* Stats Panel */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -174,17 +291,20 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-white/[0.08]">
-        {(["users", "audit"] as const).map((tab) => (
+        {(["users", "audit", "payments"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 font-mono text-xs uppercase tracking-wider transition-colors ${
+            className={`px-4 py-2 font-mono text-xs uppercase tracking-wider transition-colors relative ${
               activeTab === tab
                 ? "text-[#ffe14d] border-b-2 border-[#ffe14d]"
                 : "text-neutral-500 hover:text-white"
             }`}
           >
-            {tab === "users" ? "Users" : "Audit Log"}
+            {tab === "users" ? "Users" : tab === "audit" ? "Audit Log" : "Payments"}
+            {tab === "payments" && pendingPayments.length > 0 && (
+              <span className="absolute top-1.5 right-1 w-2 h-2 rounded-full bg-blue-500" />
+            )}
           </button>
         ))}
       </div>
@@ -329,6 +449,25 @@ export default function AdminPage() {
                 <p>Joined: {new Date(selectedUser.created_at).toLocaleDateString()}</p>
               </div>
 
+              {/* IP / Fraud Risk Info */}
+              <div className="p-3 border border-white/10 rounded-lg bg-[#03010A] space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[10px] text-neutral-500 uppercase tracking-wider">IP Risk</span>
+                  <span className={`font-mono text-xs font-bold ${
+                    (selectedUser.ip_risk_score ?? 0) > 85 ? 'text-red-400' :
+                    (selectedUser.ip_risk_score ?? 0) > 50 ? 'text-orange-400' : 'text-green-400'
+                  }`}>
+                    {selectedUser.ip_risk_score !== null ? selectedUser.ip_risk_score : "N/A"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[10px] text-neutral-500 uppercase tracking-wider">VPN/Proxy</span>
+                  <span className={`font-mono text-xs font-bold ${selectedUser.vpn_suspected ? 'text-red-400' : 'text-neutral-400'}`}>
+                    {selectedUser.vpn_suspected ? "Yes" : "No"}
+                  </span>
+                </div>
+              </div>
+
               <div className="space-y-3">
                 <div>
                   <label className="font-mono text-[10px] text-neutral-500 uppercase tracking-wider">Plan</label>
@@ -412,6 +551,53 @@ export default function AdminPage() {
                   <td className="px-4 py-3 text-neutral-300">{log.target?.username || "—"}</td>
                   <td className="px-4 py-3 text-neutral-500 max-w-xs truncate">
                     {JSON.stringify(log.details?.after || {})}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {activeTab === "payments" && (
+        <div className="border border-white/[0.08] rounded-xl overflow-hidden">
+          <table className="w-full font-mono text-xs">
+            <thead>
+              <tr className="border-b border-white/[0.08] bg-white/[0.02]">
+                {["Time", "Username", "Transaction Ref", "Amount", "Note", "Actions"].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-neutral-500 uppercase tracking-wider text-[10px]">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {pendingPayments.length === 0 ? (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-neutral-600">No pending payments.</td></tr>
+              ) : pendingPayments.map(payment => (
+                <tr key={payment.id} className="border-b border-white/[0.04]">
+                  <td className="px-4 py-3 text-neutral-500">{new Date(payment.created_at).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-white font-bold">{payment.users?.username || `ID: ${payment.user_id}`}</td>
+                  <td className="px-4 py-3 text-[#ffe14d]">{payment.transaction_reference}</td>
+                  <td className="px-4 py-3 text-green-400">${payment.amount}</td>
+                  <td className="px-4 py-3 text-neutral-400 max-w-[200px] truncate" title={payment.note || ""}>
+                    {payment.note || "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => handlePayment(payment.id, 'approve')}
+                        className="p-1 rounded bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors"
+                        title="Approve"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handlePayment(payment.id, 'reject')}
+                        className="p-1 rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                        title="Reject"
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

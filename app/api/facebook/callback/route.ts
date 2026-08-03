@@ -22,9 +22,40 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/?error=not_logged_in", request.url))
   }
 
+  const supabase = await getSupabaseServerClient()
+
+  // IPQualityScore (IPQS) Graceful Lookup
+  const ipqsKey = process.env.IPQS_API_KEY
+  if (ipqsKey) {
+    const signupIp = request.headers.get("x-forwarded-for")?.split(",")[0].trim()
+      || request.headers.get("x-real-ip")
+    if (signupIp) {
+      try {
+        const ipqsRes = await fetch(`https://www.ipqualityscore.com/api/json/ip/${ipqsKey}/${signupIp}?strictness=1`)
+        if (ipqsRes.ok) {
+          const ipqsData = await ipqsRes.json()
+          if (ipqsData.success) {
+            const isVpn = ipqsData.vpn || ipqsData.proxy || ipqsData.tor
+            const updates: any = {
+              ip_risk_score: ipqsData.fraud_score,
+              vpn_suspected: isVpn,
+            }
+            if (ipqsData.fraud_score > 85 || isVpn) {
+              updates.is_flagged = true
+              updates.flagged_reason = `High IP Risk on FB connect (${ipqsData.fraud_score}) or VPN used`
+            }
+            await supabase.from("users").update(updates).eq("id", user.id)
+          }
+        }
+      } catch (err) {
+        console.error("[callback] FB IPQS lookup failed:", err)
+      }
+    }
+  }
+
   const clientId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || process.env.INSTAGRAM_APP_ID
   const clientSecret = process.env.FACEBOOK_APP_SECRET || process.env.INSTAGRAM_APP_SECRET
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
   const redirectUri = process.env.NEXT_PUBLIC_FACEBOOK_REDIRECT_URI || `${appUrl}/api/facebook/callback`
 
   if (!clientId || !clientSecret || !redirectUri) {
@@ -62,8 +93,6 @@ export async function GET(request: NextRequest) {
     if (!accountsData.data || accountsData.data.length === 0) {
       return NextResponse.redirect(new URL("/dashboard/settings?error=no_pages", request.url))
     }
-
-    const supabase = await getSupabaseServerClient()
 
     // 4. Save to platform_connections
     // We will save each page. Note that pages_messaging requires page access token, which is returned in /me/accounts

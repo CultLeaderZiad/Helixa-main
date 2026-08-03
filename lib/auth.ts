@@ -2,42 +2,32 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 
 /**
- * Reads the opaque `insta_session` cookie, looks up the matching row in the
- * `sessions` table (where token matches AND not expired), and returns the
- * full user record — including role, plan, trial_ends_at.
+ * Reads the Supabase Auth session, looks up the matching row in the
+ * `accounts` table, and returns the full account record — including role, plan, trial_ends_at.
  *
  * Returns `null` when there is no valid session (missing cookie, expired, or
- * no matching session row).
+ * no matching account row).
  *
  * IMPORTANT: This function is the ONLY source of identity for authenticated
  * routes. Never trust userId / user_id from request body or query params.
  */
-export async function getSessionUser(request: NextRequest) {
-  const token = request.cookies.get("insta_session")?.value
-  if (!token) return null
-
+export async function getSessionUser(request?: NextRequest) {
   const supabase = await getSupabaseServerClient()
 
-  // Look up session — must exist and not be expired
-  const { data: session, error: sessionError } = await supabase
-    .from("sessions")
-    .select("user_id")
-    .eq("session_token", token)
-    .gt("expires_at", new Date().toISOString())
-    .single()
+  // Fetch Supabase Auth user
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return null
 
-  if (sessionError || !session) return null
-
-  // Fetch full user record
-  const { data: user, error: userError } = await supabase
-    .from("users")
+  // Fetch full account record
+  const { data: account, error: accountError } = await supabase
+    .from("accounts")
     .select("*")
-    .eq("id", session.user_id)
+    .eq("user_id", user.id)
     .single()
 
-  if (userError || !user) return null
+  if (accountError || !account) return null
 
-  return user
+  return account
 }
 
 /**
@@ -48,18 +38,18 @@ export async function getSessionUser(request: NextRequest) {
  * ```ts
  * const result = await requireAdmin(request)
  * if (result.response) return result.response  // 401 or 403
- * const user = result.user
+ * const account = result.user
  * ```
  */
-export async function requireAdmin(request: NextRequest): Promise<
+export async function requireAdmin(request?: NextRequest): Promise<
   { user: any; response?: never } | { user?: never; response: NextResponse }
 > {
-  const user = await getSessionUser(request)
-  if (!user) {
+  const account = await getSessionUser(request)
+  if (!account) {
     return { response: NextResponse.json({ error: "Not authenticated" }, { status: 401 }) }
   }
-  if (user.role !== "admin") {
+  if (account.role !== "admin" || account.is_banned) {
     return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) }
   }
-  return { user }
+  return { user: account }
 }

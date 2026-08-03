@@ -8,7 +8,10 @@ import { cookies } from "next/headers"
 export async function getSupabaseServerClient() {
   const cookieStore = await cookies()
 
-  return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dummy.supabase.co", 
+    process.env.SUPABASE_SERVICE_ROLE_KEY || "dummy_service_key", 
+  {
     cookies: {
       getAll: async () => cookieStore.getAll(),
       setAll: async (cookiesToSet) => {

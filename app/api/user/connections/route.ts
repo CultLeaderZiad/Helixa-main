@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
   const { data: connections, error } = await supabase
     .from("platform_connections")
-    .select("*")
+    .select("id, platform, platform_account_id, platform_account_username, created_at, updated_at")
     .eq("user_id", user.id)
 
   if (error) {

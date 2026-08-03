@@ -127,8 +127,8 @@ export async function POST(request: NextRequest) {
       updates.trial_ends_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
       updates.signup_ip = signupIp
 
-      // IP-based signup rate limiting — flag but don't hard-block (agencies/shared offices)
       if (signupIp) {
+        // IP-based signup rate limiting — flag but don't hard-block (agencies/shared offices)
         const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
         const { count: ipSignupCount } = await supabase
           .from("users")
@@ -141,6 +141,31 @@ export async function POST(request: NextRequest) {
           updates.is_flagged = true
           updates.flagged_reason = `Signup IP rate limit: ${ipSignupCount} accounts from ${signupIp} in 24h`
           console.warn(`[callback] 🚩 IP rate limit hit for ${signupIp} — flagging new user ${username}`)
+        }
+
+        // IPQualityScore (IPQS) Graceful Lookup
+        const ipqsKey = process.env.IPQS_API_KEY
+        if (ipqsKey) {
+          try {
+            const ipqsRes = await fetch(`https://www.ipqualityscore.com/api/json/ip/${ipqsKey}/${signupIp}?strictness=1`)
+            if (ipqsRes.ok) {
+              const ipqsData = await ipqsRes.json()
+              if (ipqsData.success) {
+                updates.ip_risk_score = ipqsData.fraud_score
+                updates.vpn_suspected = ipqsData.vpn || ipqsData.proxy || ipqsData.tor
+                
+                // Flag if risk is high or VPN is used (flag-only, no block)
+                if (ipqsData.fraud_score > 85 || updates.vpn_suspected) {
+                  updates.is_flagged = true
+                  updates.flagged_reason = updates.flagged_reason 
+                    ? `${updates.flagged_reason} | High IP Risk (${ipqsData.fraud_score}) or VPN used`
+                    : `High IP Risk (${ipqsData.fraud_score}) or VPN used`
+                }
+              }
+            }
+          } catch (err) {
+            console.error("[callback] IPQS lookup failed:", err)
+          }
         }
       }
     }

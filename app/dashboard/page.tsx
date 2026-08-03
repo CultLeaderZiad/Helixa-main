@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import { Card } from "@/components/ui/card"
-import Ferrofluid from "@/components/ui/ferrofluid"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
-import { Activity, Users, MessageCircle, Zap, Loader2 } from "lucide-react"
+import { Activity, Users, MessageCircle, Zap, Loader2, AlertCircle } from "lucide-react"
+import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 
 interface DashboardStats {
     metrics: {
@@ -24,10 +24,17 @@ interface DashboardStats {
     }>
 }
 
+interface PaymentStatus {
+    hasPendingSubmission: boolean
+    needsManualRenewal: boolean
+    daysToRenew: number
+}
+
 export default function DashboardPage() {
     const { username, userId, isLoading: isSessionLoading } = useInstagramSession()
     const [stats, setStats] = useState<DashboardStats | null>(null)
     const [loading, setLoading] = useState(true)
+    const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null)
 
     useEffect(() => {
         if (!userId) return
@@ -39,6 +46,39 @@ export default function DashboardPage() {
                 if (data && !data.error) {
                     setStats(data)
                 }
+
+                // Check payment submission & subscription status
+                const supabase = getSupabaseBrowserClient()
+                const { data: pending } = await supabase
+                    .from("payment_submissions")
+                    .select("id")
+                    .eq("user_id", userId)
+                    .eq("status", "pending")
+                    .limit(1)
+
+                const { data: sub } = await supabase
+                    .from("subscriptions")
+                    .select("payment_method, current_period_end")
+                    .eq("user_id", userId)
+                    .single()
+
+                let needsManualRenewal = false
+                let daysToRenew = 0
+
+                if (sub && sub.payment_method === 'vodafone_cash' && sub.current_period_end) {
+                    const diff = new Date(sub.current_period_end).getTime() - new Date().getTime()
+                    daysToRenew = Math.ceil(diff / (1000 * 60 * 60 * 24))
+                    if (daysToRenew <= 3 && daysToRenew > 0) {
+                        needsManualRenewal = true
+                    }
+                }
+
+                setPaymentStatus({
+                    hasPendingSubmission: !!(pending && pending.length > 0),
+                    needsManualRenewal,
+                    daysToRenew
+                })
+
             } catch (err) {
                 console.error("Failed to load dashboard stats", err)
             } finally {
@@ -47,6 +87,46 @@ export default function DashboardPage() {
         }
 
         fetchStats()
+
+        // Realtime Subscription
+        const supabase = getSupabaseBrowserClient()
+        
+        const eventsSubscription = supabase.channel('dashboard-events')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'automation_events', filter: `user_id=eq.${userId}` }, (payload) => {
+                setStats(prev => {
+                    if (!prev) return prev
+                    const newEvent = {
+                        id: payload.new.id,
+                        content: `Triggered automation via ${payload.new.platform || 'instagram'}`,
+                        created_at: payload.new.created_at
+                    }
+                    return {
+                        ...prev,
+                        metrics: { ...prev.metrics, messagesSent: prev.metrics.messagesSent + 1 },
+                        recentActivity: [newEvent, ...prev.recentActivity].slice(0, 10)
+                    }
+                })
+            })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `user_id=eq.${userId}` }, (payload) => {
+                setStats(prev => {
+                    if (!prev) return prev
+                    const newMsg = {
+                        id: payload.new.id,
+                        content: payload.new.message_text || "Sent media/attachment",
+                        created_at: payload.new.created_at,
+                        recipient: { recipient_username: payload.new.sender_id || "user" }
+                    }
+                    return {
+                        ...prev,
+                        recentActivity: [newMsg, ...prev.recentActivity].slice(0, 10)
+                    }
+                })
+            })
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(eventsSubscription)
+        }
     }, [userId])
 
     if (isSessionLoading || loading) {
@@ -59,29 +139,33 @@ export default function DashboardPage() {
 
     return (
         <div className="p-8 space-y-8 animate-in fade-in duration-700">
-            {/* Brand Hero */}
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#03010A] h-[420px] md:h-[460px]">
-                <div className="absolute inset-0">
-                    <Ferrofluid
-                        colors={["#ffffff", "#ffffff", "#ffffff"]}
-                        speed={0.5}
-                        scale={1}
-                        turbulence={1}
-                        fluidity={0.1}
-                        rimWidth={0.2}
-                        sharpness={3}
-                        shimmer={1}
-                        glow={2}
-                        flowDirection="down"
-                        opacity={0.95}
-                        mouseInteraction
-                        mouseStrength={1}
-                        mouseRadius={0.3}
-                    />
+            {/* Payment Banners */}
+            {paymentStatus?.hasPendingSubmission && (
+                <div className="border border-blue-500/30 bg-blue-500/10 rounded-xl p-4 flex items-center gap-3">
+                    <Loader2 className="w-5 h-5 text-blue-400 animate-spin flex-shrink-0" />
+                    <p className="font-mono text-sm text-blue-400">Payment pending review. Your plan will be activated once approved by an admin.</p>
                 </div>
+            )}
+            
+            {paymentStatus?.needsManualRenewal && (
+                <div className="border border-red-500/30 bg-red-500/10 rounded-xl p-4 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                        <p className="font-mono text-sm text-red-400">Your Vodafone Cash subscription expires in {paymentStatus.daysToRenew} day(s). Renew soon to prevent interruption.</p>
+                    </div>
+                    <a href="/billing" className="font-mono text-xs bg-red-500/20 text-red-400 px-3 py-1 rounded hover:bg-red-500/30 transition-colors">
+                        Renew Now
+                    </a>
+                </div>
+            )}
 
+            {/* Brand Hero */}
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#0b0b0a] h-[420px] md:h-[460px]">
+                {/* Background styling for depth */}
+                <div className="absolute inset-0 bg-gradient-to-br from-[#ffe14d]/5 via-transparent to-transparent opacity-50" />
+                
                 {/* Legibility overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#03010A] via-[#03010A]/40 to-[#03010A]/15 pointer-events-none" />
+                <div className="absolute inset-0 pointer-events-none" />
 
                 <div className="absolute inset-0 flex flex-col justify-between p-6 md:p-8 pointer-events-none">
                     {/* Brand */}

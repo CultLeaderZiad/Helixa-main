@@ -3,7 +3,7 @@ import Stripe from "stripe"
 import { getSessionUser } from "@/lib/auth"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy", {
   apiVersion: "2026-07-29.dahlia",
 })
 
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         .eq("id", user.id)
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,

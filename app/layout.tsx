@@ -5,7 +5,6 @@ import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/components/theme-provider"
-import Ferrofluid from "@/components/ui/ferrofluid"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
@@ -40,29 +39,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans antialiased bg-[#03010A]`} suppressHydrationWarning>
-        <div className="fixed inset-0 z-[-1]">
-          <Ferrofluid
-            colors={["#ffffff", "#ffffff", "#ffffff"]}
-            speed={0.5}
-            scale={1}
-            turbulence={1}
-            fluidity={0.1}
-            rimWidth={0.2}
-            sharpness={3}
-            shimmer={1}
-            glow={2}
-            flowDirection="down"
-            opacity={0.95}
-            mouseInteraction
-            mouseStrength={1}
-            mouseRadius={0.3}
-          />
-        </div>
         <ThemeProvider>
           {children}
+          <Toaster />
         </ThemeProvider>
         <Analytics />
-        <Toaster />
       </body>
     </html>
   )
