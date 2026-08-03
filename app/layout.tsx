@@ -1,0 +1,69 @@
+import type React from "react"
+import type { Metadata } from "next"
+import { Geist, Geist_Mono } from "next/font/google"
+import { Analytics } from "@vercel/analytics/next"
+import "./globals.css"
+import { Toaster } from "@/components/ui/sonner"
+import { ThemeProvider } from "@/components/theme-provider"
+import Ferrofluid from "@/components/ui/ferrofluid"
+
+const _geist = Geist({ subsets: ["latin"] })
+const _geistMono = Geist_Mono({ subsets: ["latin"] })
+
+export const metadata: Metadata = {
+  title: "Helixa — Instagram Automation",
+  description: "Auto-reply to comments, DMs, and stories with keyword triggers.",
+  icons: {
+    icon: [
+      {
+        url: "/icon-light-32x32.png",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        url: "/icon-dark-32x32.png",
+        media: "(prefers-color-scheme: dark)",
+      },
+      {
+        url: "/icon.svg",
+        type: "image/svg+xml",
+      },
+    ],
+    apple: "/apple-icon.png",
+  },
+}
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>) {
+  return (
+    <html lang="en">
+      <body className={`font-sans antialiased bg-[#03010A]`} suppressHydrationWarning>
+        <div className="fixed inset-0 z-[-1]">
+          <Ferrofluid
+            colors={["#ffffff", "#ffffff", "#ffffff"]}
+            speed={0.5}
+            scale={1}
+            turbulence={1}
+            fluidity={0.1}
+            rimWidth={0.2}
+            sharpness={3}
+            shimmer={1}
+            glow={2}
+            flowDirection="down"
+            opacity={0.95}
+            mouseInteraction
+            mouseStrength={1}
+            mouseRadius={0.3}
+          />
+        </div>
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
+        <Analytics />
+        <Toaster />
+      </body>
+    </html>
+  )
+}
