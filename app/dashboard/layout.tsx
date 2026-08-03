@@ -5,15 +5,29 @@ import { MobileNav } from "@/components/layout/mobile-nav"
 import Image from "next/image"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { Loader2 } from "lucide-react"
+import { TrialBanner } from "@/components/layout/TrialBanner"
 
 export default function DashboardLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
-    const { username, profilePic, logout, isLoading } = useInstagramSession()
+    const { username, profilePic, logout, plan, trialEndsAt, isLoading, accountId } = useInstagramSession()
+
+    const router = require("next/navigation").useRouter()
 
     if (isLoading) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-[#03010A] text-white">
+                <Loader2 className="h-8 w-8 animate-spin text-white" />
+            </div>
+        )
+    }
+
+    if (!accountId) {
+        if (typeof window !== 'undefined') {
+            router.push('/login')
+        }
         return (
             <div className="flex h-screen items-center justify-center bg-[#03010A] text-white">
                 <Loader2 className="h-8 w-8 animate-spin text-white" />
@@ -48,6 +62,7 @@ export default function DashboardLayout({
                 </header>
 
                 <main className="flex-1 relative overflow-auto">
+                    <TrialBanner plan={plan || ""} trialEndsAt={trialEndsAt} />
                     {children}
                 </main>
             </div>

@@ -5,8 +5,11 @@ import { useSearchParams, useRouter } from "next/navigation"
 
 export function useInstagramSession() {
     const [username, setUsername] = useState<string | null>(null)
+    const [accountId, setAccountId] = useState<string | null>(null)
     const [userId, setUserId] = useState<string | null>(null)
     const [profilePic, setProfilePic] = useState<string | null>(null)
+    const [plan, setPlan] = useState<string | null>(null)
+    const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
 
     const searchParams = useSearchParams()
@@ -22,11 +25,15 @@ export function useInstagramSession() {
             if (res.ok) {
                 const data = await res.json()
                 if (data.authenticated) {
+                    setAccountId(data.accountId)
                     setUserId(data.userId)
                     setUsername(data.username)
                     setProfilePic(data.profilePic || null)
+                    setPlan(data.plan || null)
+                    setTrialEndsAt(data.trial_ends_at || null)
                     // Update localStorage cache for instant UI render on next load
-                    localStorage.setItem("ig_user_id", data.userId)
+                    localStorage.setItem("ig_account_id", data.accountId)
+                    if (data.userId) localStorage.setItem("ig_user_id", data.userId)
                     localStorage.setItem("ig_username", data.username)
                     if (data.profilePic) localStorage.setItem("ig_profile_pic", data.profilePic)
                     return true
@@ -54,11 +61,11 @@ export function useInstagramSession() {
                     if (data.success) {
                         // The httpOnly cookie was set by the server response.
                         // Store display data in localStorage for instant renders.
-                        localStorage.setItem("ig_user_id", data.userId)
+                        if (data.userId) localStorage.setItem("ig_user_id", data.userId)
                         localStorage.setItem("ig_username", data.username)
                         if (data.profilePic) localStorage.setItem("ig_profile_pic", data.profilePic)
 
-                        setUserId(data.userId)
+                        if (data.userId) setUserId(data.userId)
                         setUsername(data.username)
                         setProfilePic(data.profilePic || null)
                         // Remove code from URL
@@ -71,22 +78,24 @@ export function useInstagramSession() {
             // CASE B: Restore session — first show cached data, then verify with server
             else {
                 // Instant render from cache
+                const savedAccountId = localStorage.getItem("ig_account_id")
                 const savedId = localStorage.getItem("ig_user_id")
                 const savedName = localStorage.getItem("ig_username")
 
-                if (savedId && savedName) {
-                    setUserId(savedId)
-                    setUsername(savedName)
-                    setProfilePic(localStorage.getItem("ig_profile_pic"))
-                }
+                if (savedAccountId) setAccountId(savedAccountId)
+                if (savedId) setUserId(savedId)
+                if (savedName) setUsername(savedName)
+                setProfilePic(localStorage.getItem("ig_profile_pic"))
 
                 // Verify with server (the cookie is httpOnly, so we must ask the server)
                 const valid = await fetchMe()
-                if (!valid && savedId) {
+                if (!valid) {
                     // Session expired / invalid — clear stale cache
+                    localStorage.removeItem("ig_account_id")
                     localStorage.removeItem("ig_user_id")
                     localStorage.removeItem("ig_username")
                     localStorage.removeItem("ig_profile_pic")
+                    setAccountId(null)
                     setUserId(null)
                     setUsername(null)
                     setProfilePic(null)
@@ -105,14 +114,25 @@ export function useInstagramSession() {
         } catch (e) {
             console.error("Logout API failed:", e)
         }
+        localStorage.removeItem("ig_account_id")
         localStorage.removeItem("ig_user_id")
         localStorage.removeItem("ig_username")
         localStorage.removeItem("ig_profile_pic")
         setUsername(null)
+        setAccountId(null)
         setUserId(null)
         setProfilePic(null)
         router.push("/")
     }
 
-    return { userId, username, profilePic, isLoading, logout }
+    return {
+        username,
+        accountId,
+        userId,
+        profilePic,
+        plan,
+        trialEndsAt,
+        isLoading,
+        logout
+    }
 }

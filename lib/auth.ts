@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 
 /**
@@ -25,9 +26,58 @@ export async function getSessionUser(request?: NextRequest) {
     .eq("user_id", user.id)
     .single()
 
-  if (accountError || !account) return null
+  // Only auto-create when the lookup failed because no row exists (PGRST116).
+  // Any other error (missing table, RLS, network, etc.) should surface the real
+  // cause instead of being masked by a doomed insert attempt.
+  if (accountError && accountError.code !== "PGRST116") {
+    console.error("[auth] Failed to load account:", {
+      userId: user.id,
+      email: user.email,
+      code: accountError.code,
+      message: accountError.message,
+      details: accountError.details,
+      hint: accountError.hint,
+    })
+    return account ?? null
+  }
 
-  return account
+  if (account) return account
+
+  // Fallback: If trigger didn't run, auto-create the account row.
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceRoleKey) {
+    console.error("[auth] SUPABASE_SERVICE_ROLE_KEY is not set; cannot auto-create account for user:", user.id)
+    return null
+  }
+
+  const adminSupabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+    serviceRoleKey
+  )
+
+  const { data: newAccount, error: insertError } = await adminSupabase
+    .from("accounts")
+    .insert({
+      user_id: user.id,
+      email: user.email ?? "",
+      role: "user",
+      plan: "trial"
+    })
+    .select("*")
+    .single()
+
+  if (insertError || !newAccount) {
+    console.error("[auth] Failed to auto-create account:", {
+      userId: user.id,
+      email: user.email,
+      code: insertError?.code,
+      message: insertError?.message,
+      details: insertError?.details,
+      hint: insertError?.hint,
+    })
+    return null
+  }
+  return newAccount
 }
 
 /**

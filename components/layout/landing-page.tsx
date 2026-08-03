@@ -73,7 +73,7 @@ export function LandingPage() {
               priority
             />
           </div>
-          <div style={{ position: 'relative', height: '32px', width: '100px' }} className="md:h-[40px] md:w-[130px]">
+          <div style={{ position: 'relative', height: '16px', width: '50px' }} className="md:h-[20px] md:w-[65px]">
             <TextPressure
               text="HELIXA"
               flex={true}
@@ -84,11 +84,18 @@ export function LandingPage() {
               italic={true}
               textColor="#ffffff"
               strokeColor="#ff0000"
-              minFontSize={24}
+              minFontSize={12}
             />
           </div>
           <span className="hidden sm:inline-block font-mono-ui text-[10px] text-neutral-500 border border-white/10 rounded-full px-2 py-0.5 ml-1 md:ml-2">open source</span>
         </div>
+
+        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-8 font-mono-ui text-xs text-neutral-400">
+          <a href="/pricing" className="hover:text-white transition-colors">Pricing</a>
+          <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
+          <a href="/terms" className="hover:text-white transition-colors">Terms</a>
+        </div>
+
         <div className="flex items-center gap-2">
           <a
             href={GITHUB_URL} target="_blank" rel="noreferrer"
@@ -105,14 +112,6 @@ export function LandingPage() {
             <Linkedin className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Connect</span>
           </a>
-          {process.env.NODE_ENV === "development" && (
-            <button
-              onClick={handleTestLogin}
-              className="font-mono-ui text-xs font-bold text-[#ffe14d] border border-[#ffe14d]/30 rounded-full px-4 py-1.5 hover:bg-[#ffe14d]/10 transition-colors"
-            >
-              Dev Login
-            </button>
-          )}
           <button
             onClick={handleLogin}
             className="font-mono-ui text-xs font-bold bg-white text-black rounded-full px-4 py-1.5 hover:bg-[#ffe14d] transition-colors"
@@ -148,18 +147,14 @@ export function LandingPage() {
           <div className="absolute inset-0 bg-gradient-to-t from-[#03010A] via-[#03010A]/80 to-[#03010A]/30 pointer-events-none" />
 
           <div className="relative px-5 md:px-10 pt-20 md:pt-32 pb-24 max-w-6xl mx-auto flex flex-col items-center text-center pointer-events-none">
-            <div className="fade-up w-full flex justify-center pointer-events-auto" style={{ animationDelay: "0ms" }}>
-              <p className="font-mono-ui text-[11px] uppercase tracking-[0.25em] text-neutral-400 mb-6 bg-black/50 px-4 py-2 rounded-full border border-white/5 backdrop-blur-sm">
-                Instagram automation // self-hosted // no monthly fees
-              </p>
-            </div>
 
-            <div className="fade-up w-full h-[250px] md:h-[400px] relative mb-6 pointer-events-none" style={{ animationDelay: "40ms" }}>
+
+            <div className="fade-up w-full h-[120px] md:h-[200px] relative mb-6 pointer-events-none" style={{ animationDelay: "40ms" }}>
               <ASCIIText
                 text='HELIXA'
                 enableWaves={true}
                 asciiFontSize={12}
-                textFontSize={300}
+                textFontSize={150}
                 planeBaseHeight={16}
               />
             </div>
@@ -183,15 +178,6 @@ export function LandingPage() {
                     Start free trial
                     <ArrowUpRight className="w-4 h-4 group-hover:rotate-45 transition-transform" />
                   </button>
-                  {process.env.NODE_ENV === "development" && (
-                    <button
-                      onClick={handleTestLogin}
-                      className="group flex items-center gap-2 font-mono-ui text-sm font-bold text-[#ffe14d] border border-[#ffe14d]/25 bg-black/60 backdrop-blur-md px-7 py-4 rounded-full hover:bg-[#ffe14d]/10 active:scale-[0.98] transition-all"
-                    >
-                      <Terminal className="w-4 h-4" />
-                      Dev Login
-                    </button>
-                  )}
                   <a
                     href={TELEGRAM_URL} target="_blank" rel="noreferrer"
                     className="flex items-center gap-2 font-mono-ui text-sm text-neutral-300 border border-white/15 bg-black/60 backdrop-blur-md px-6 py-4 rounded-full hover:border-[#2AABEE]/60 hover:text-[#2AABEE] transition-colors"
@@ -300,6 +286,10 @@ export function LandingPage() {
           Helixa — open-source Instagram automation. MIT licensed.
         </span>
         <div className="flex items-center gap-5 font-mono-ui text-[11px] text-neutral-500">
+          <a href="/pricing" className="hover:text-white transition-colors">Pricing</a>
+          <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
+          <a href="/terms" className="hover:text-white transition-colors">Terms</a>
+          <span className="text-white/10">|</span>
           <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="hover:text-white transition-colors">GitHub</a>
           <a href={LINKEDIN_URL} target="_blank" rel="noreferrer" className="hover:text-[#0A66C2] transition-colors">LinkedIn</a>
           <a href={TELEGRAM_URL} target="_blank" rel="noreferrer" className="hover:text-[#2AABEE] transition-colors">Telegram support</a>

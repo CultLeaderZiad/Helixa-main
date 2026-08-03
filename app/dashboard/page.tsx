@@ -37,7 +37,10 @@ export default function DashboardPage() {
     const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null)
 
     useEffect(() => {
-        if (!userId) return
+        if (!userId) {
+            setLoading(false)
+            return
+        }
 
         const fetchStats = async () => {
             try {
@@ -133,6 +136,27 @@ export default function DashboardPage() {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
                 <Loader2 className="w-8 h-8 text-white/20 animate-spin" />
+            </div>
+        )
+    }
+
+    if (!userId) {
+        return (
+            <div className="min-h-[calc(100vh-64px)] bg-[#03010A] flex flex-col items-center justify-center p-4">
+                <div className="max-w-md w-full p-8 bg-white/[0.02] border border-white/10 rounded-2xl text-center space-y-4">
+                    <div className="w-12 h-12 bg-[#ffe14d]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Activity className="w-6 h-6 text-[#ffe14d]" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-white">Connect Instagram</h2>
+                    <p className="text-neutral-400 text-sm leading-relaxed">
+                        You need to connect your professional Instagram account to view your dashboard and metrics.
+                    </p>
+                    <div className="pt-4">
+                        <a href="/api/instagram/auth" className="inline-block px-8 py-3 bg-[#ffe14d] text-black font-semibold rounded-full hover:brightness-95 transition-all w-full">
+                            Connect Account
+                        </a>
+                    </div>
+                </div>
             </div>
         )
     }

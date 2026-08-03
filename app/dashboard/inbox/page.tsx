@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { ConversationList } from "@/components/inbox/ConversationList"
 import { ChatWindow } from "@/components/inbox/ChatWindow"
-import { Loader2 } from "lucide-react"
+import { Loader2, MessageSquare } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export default function InboxPage() {
@@ -28,7 +28,24 @@ export default function InboxPage() {
     }
 
     if (!userId) {
-        return null
+        return (
+            <div className="min-h-[calc(100vh-64px)] bg-[#03010A] flex flex-col items-center justify-center p-4">
+                <div className="max-w-md w-full p-8 bg-white/[0.02] border border-white/10 rounded-2xl text-center space-y-4">
+                    <div className="w-12 h-12 bg-[#ffe14d]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <MessageSquare className="w-6 h-6 text-[#ffe14d]" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-white">Connect Instagram</h2>
+                    <p className="text-neutral-400 text-sm leading-relaxed">
+                        You need to connect your professional Instagram account to use the inbox.
+                    </p>
+                    <div className="pt-4">
+                        <a href="/api/instagram/auth" className="inline-block px-8 py-3 bg-[#ffe14d] text-black font-semibold rounded-full hover:brightness-95 transition-all w-full">
+                            Connect Account
+                        </a>
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     return (

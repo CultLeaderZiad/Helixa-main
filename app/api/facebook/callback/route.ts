@@ -16,13 +16,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid callback" }, { status: 400 })
   }
 
-  // Get current user session
-  const user = await getSessionUser(request)
-  if (!user) {
+  // Get current user session (returns account)
+  const account = await getSessionUser(request)
+  if (!account) {
     return NextResponse.redirect(new URL("/?error=not_logged_in", request.url))
   }
 
   const supabase = await getSupabaseServerClient()
+
+  // Get the linked users row (Instagram profile)
+  const { data: userProfile } = await supabase.from("users").select("id").eq("account_id", account.id).single()
+  if (!userProfile) {
+    return NextResponse.redirect(new URL("/dashboard/settings?error=connect_ig_first", request.url))
+  }
 
   // IPQualityScore (IPQS) Graceful Lookup
   const ipqsKey = process.env.IPQS_API_KEY
@@ -44,7 +50,7 @@ export async function GET(request: NextRequest) {
               updates.is_flagged = true
               updates.flagged_reason = `High IP Risk on FB connect (${ipqsData.fraud_score}) or VPN used`
             }
-            await supabase.from("users").update(updates).eq("id", user.id)
+            await supabase.from("users").update(updates).eq("id", userProfile.id)
           }
         }
       } catch (err) {
@@ -101,7 +107,7 @@ export async function GET(request: NextRequest) {
       const pageId = page.id
       
       await supabase.from("platform_connections").upsert({
-        user_id: user.id,
+        user_id: userProfile.id,
         platform: "facebook",
         page_id: pageId,
         access_token: pageAccessToken,
@@ -109,7 +115,7 @@ export async function GET(request: NextRequest) {
       }, { onConflict: 'user_id, platform, page_id' })
 
       await supabase.from("platform_connections").upsert({
-        user_id: user.id,
+        user_id: userProfile.id,
         platform: "messenger",
         page_id: pageId,
         access_token: pageAccessToken,

@@ -1,17 +1,22 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createBrowserClient } from "@supabase/ssr"
-
-export default function SignupPage() {
+import { Suspense } from "react"
+import Ferrofluid from "@/components/effects/ferrofluid"
+import BackToHome from "@/components/ui/back-to-home"
+import { PasswordInput } from "@/components/ui/password-input"
+function SignupForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const planId = searchParams.get("plan_id")
   
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,7 +32,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/api/auth/callback${planId ? `?next=/checkout/${planId}` : ''}`,
       }
     })
 
@@ -46,7 +51,7 @@ export default function SignupPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/api/auth/callback`,
+        redirectTo: `${window.location.origin}/api/auth/callback${planId ? `?next=/checkout/${planId}` : ''}`,
       },
     })
     
@@ -75,13 +80,35 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 dark:bg-gray-900">
-      <div className="w-full max-w-md space-y-8">
+    <div className="flex min-h-screen items-center justify-center bg-[#03010A] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <BackToHome />
+      <div className="absolute inset-0 pointer-events-none md:pointer-events-auto opacity-30">
+        <Ferrofluid
+          colors={["#ffe14d", "#ffffff", "#ffb300"]}
+          speed={0.5}
+          scale={1.2}
+          turbulence={1}
+          fluidity={0.1}
+          rimWidth={0.2}
+          sharpness={3}
+          shimmer={1}
+          glow={2}
+          flowDirection="down"
+          opacity={1}
+          mouseInteraction={true}
+          mouseStrength={1}
+          mouseRadius={0.3}
+          dpr={1.5}
+        />
+      </div>
+      <div className="absolute inset-0 bg-gradient-to-t from-[#03010A] via-[#03010A]/80 to-[#03010A]/30 pointer-events-none" />
+
+      <div className="w-full max-w-md space-y-8 bg-[#03010A]/60 backdrop-blur-md p-8 rounded-2xl border border-white/10 relative z-10">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+          <h2 className="mt-2 text-center text-3xl font-bold tracking-tight text-white">
             Start your free trial
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+          <p className="mt-2 text-center text-sm text-gray-400">
             Get 7 days of full access. No credit card required.
           </p>
         </div>
@@ -102,7 +129,7 @@ export default function SignupPage() {
                 type="email"
                 autoComplete="email"
                 required
-                className="relative block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 dark:bg-gray-800 dark:text-white dark:ring-gray-700"
+                className="relative block w-full rounded-md border border-white/20 bg-white/5 py-1.5 px-3 text-white placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-[#ffe14d] sm:text-sm sm:leading-6"
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -112,14 +139,12 @@ export default function SignupPage() {
               <label htmlFor="password" className="sr-only">
                 Password
               </label>
-              <input
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
                 autoComplete="new-password"
                 required
                 minLength={6}
-                className="relative block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 dark:bg-gray-800 dark:text-white dark:ring-gray-700"
                 placeholder="Password (min 6 characters)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -131,7 +156,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50"
+              className="group relative flex w-full justify-center rounded-md bg-[#ffe14d] hover:bg-[#e6c738] py-2 px-3 text-sm font-semibold text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ffe14d] disabled:opacity-50"
             >
               {loading ? "Creating account..." : "Sign up with Email"}
             </button>
@@ -144,9 +169,7 @@ export default function SignupPage() {
               <div className="w-full border-t border-gray-300 dark:border-gray-700" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="bg-gray-50 px-2 text-gray-500 dark:bg-gray-900">
-                Or continue with
-              </span>
+              <span className="bg-[#03010A] px-2 text-sm text-gray-400">Or continue with</span>
             </div>
           </div>
 
@@ -154,7 +177,7 @@ export default function SignupPage() {
             <button
               onClick={handleGoogleSignup}
               disabled={loading}
-              className="flex w-full items-center justify-center gap-3 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50 dark:bg-gray-800 dark:text-white dark:ring-gray-700 dark:hover:bg-gray-700"
+              className="flex w-full items-center justify-center gap-3 rounded-md bg-white/5 border border-white/10 px-3 py-2 text-sm font-semibold text-white hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               <svg className="h-5 w-5" aria-hidden="true" viewBox="0 0 24 24">
                 <path
@@ -181,11 +204,19 @@ export default function SignupPage() {
 
         <p className="mt-10 text-center text-sm text-gray-500">
           Already have an account?{" "}
-          <Link href="/login" className="font-semibold leading-6 text-indigo-600 hover:text-indigo-500">
+          <Link href="/login" className="font-semibold text-[#ffe14d] hover:text-[#e6c738]">
             Log in
           </Link>
         </p>
       </div>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading...</div>}>
+      <SignupForm />
+    </Suspense>
   )
 }

@@ -229,22 +229,45 @@ export async function POST(request: NextRequest) {
 
       if (!automations?.length) continue
 
+      // Fetch the linked account to perform entitlement and ban checks
+      if (!user.account_id) {
+        console.log(`[webhook] ⚠️ User ${user.username} has no linked account. Skipping automations.`)
+        continue
+      }
+
+      const { data: account } = await supabase
+        .from("accounts")
+        .select("*")
+        .eq("id", user.account_id)
+        .single()
+
+      if (!account) {
+        console.log(`[webhook] ⚠️ Account not found for user ${user.username}. Skipping automations.`)
+        continue
+      }
+
+      if (account.is_banned) {
+        console.log(`[webhook] 🛑 Account ${account.id} is banned. Skipping automations.`)
+        continue
+      }
+
       // Plan enforcement: check expired OR trial-past-end
-      let effectivePlan = user.plan
-      if (user.plan === "trial" && user.trial_ends_at) {
-        const trialEnded = new Date(user.trial_ends_at) < new Date()
+      let effectivePlan = account.plan
+      if (account.plan === "trial" && account.trial_ends_at) {
+        const trialEnded = new Date(account.trial_ends_at) < new Date()
         if (trialEnded) {
           // On-the-fly: mark as expired so it's consistent in DB too
           effectivePlan = "expired"
           await supabase
-            .from("users")
+            .from("accounts")
             .update({ plan: "expired", updated_at: new Date().toISOString() })
-            .eq("id", user.id)
-          console.log(`[webhook] ⚠️ User ${user.username} trial expired. Set plan=expired, skipping automations.`)
+            .eq("id", account.id)
+          console.log(`[webhook] ⚠️ Account ${account.id} trial expired. Set plan=expired, skipping automations.`)
         }
       }
+      
       if (effectivePlan === "expired") {
-        console.log(`[webhook] ⚠️ User ${user.username} plan is expired. Skipping automations.`)
+        console.log(`[webhook] ⚠️ Account ${account.id} plan is expired. Skipping automations.`)
         continue
       }
 

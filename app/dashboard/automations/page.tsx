@@ -92,7 +92,27 @@ export default function AutomationsPage() {
     }
 
     if (isSessionLoading) return <div className="h-screen flex items-center justify-center bg-[#03010A]"><div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>
-    if (!userId) return <div className="h-screen flex items-center justify-center bg-[#03010A] text-neutral-500">Please log in</div>
+    
+    if (!userId) {
+        return (
+            <div className="min-h-[calc(100vh-64px)] bg-[#03010A] flex flex-col items-center justify-center p-4">
+                <div className="max-w-md w-full p-8 bg-white/[0.02] border border-white/10 rounded-2xl text-center space-y-4">
+                    <div className="w-12 h-12 bg-[#ffe14d]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <MessageCircle className="w-6 h-6 text-[#ffe14d]" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-white">Connect Instagram</h2>
+                    <p className="text-neutral-400 text-sm leading-relaxed">
+                        You need to connect your professional Instagram account to use automations.
+                    </p>
+                    <div className="pt-4">
+                        <a href="/api/instagram/auth" className="inline-block px-8 py-3 bg-[#ffe14d] text-black font-semibold rounded-full hover:brightness-95 transition-all w-full">
+                            Connect Account
+                        </a>
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     const filteredAutomations = automations.filter(a => a.trigger_source === activeTab)
     const counts = {

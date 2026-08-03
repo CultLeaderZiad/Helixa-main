@@ -108,6 +108,22 @@ export async function POST(request: NextRequest) {
       .eq("id", loginUserId)
       .single()
 
+    // 5a. Get Supabase Auth User & Account
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (!authUser) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    }
+
+    const { data: account } = await supabase
+      .from("accounts")
+      .select("id")
+      .eq("user_id", authUser.id)
+      .single()
+
+    if (!account) {
+      return NextResponse.json({ error: "Account not found" }, { status: 404 })
+    }
+
     const updates: any = {
       username,
       access_token: accessToken,
@@ -115,16 +131,15 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString(),
       business_account_id: businessAccountId,
       page_id: businessAccountId, // Always keep in sync
+      account_id: account.id,
     }
 
-    // Only set trial/plan/signup_ip on FIRST login (new user)
+    // Only set signup_ip on FIRST login (new user)
     if (!existingUser) {
       const signupIp = request.headers.get("x-forwarded-for")?.split(",")[0].trim()
         || request.headers.get("x-real-ip")
         || null
 
-      updates.plan = "trial"
-      updates.trial_ends_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
       updates.signup_ip = signupIp
 
       if (signupIp) {
@@ -178,32 +193,8 @@ export async function POST(request: NextRequest) {
 
     if (upsertError) throw upsertError
 
-    // 6. Create server-verified session token
-    const sessionToken = crypto.randomBytes(32).toString("hex")
-    const sessionExpiresAt = new Date(Date.now() + expiresIn * 1000).toISOString()
-
-    const { error: sessionError } = await supabase
-      .from("sessions")
-      .insert({
-        user_id: loginUserId,
-        session_token: sessionToken,
-        expires_at: sessionExpiresAt,
-      })
-
-    if (sessionError) {
-      console.error("[v0] Failed to create session:", sessionError)
-      throw sessionError
-    }
-
-    // 7. Set opaque, httpOnly session cookie
+    // 6. Return response (no need for insta_session cookie, we use Supabase Auth now)
     const response = NextResponse.json({ success: true, username, userId: loginUserId, profilePic })
-    response.cookies.set("insta_session", sessionToken, {
-      path: "/",
-      maxAge: expiresIn,
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-    })
     return response
 
   } catch (error: any) {

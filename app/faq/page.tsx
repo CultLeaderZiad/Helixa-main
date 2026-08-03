@@ -1,11 +1,12 @@
 "use client"
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import BackToHome from "@/components/ui/back-to-home"
 
 export default function FAQPage() {
   return (
-    <div className="min-h-screen bg-[#03010A] text-white">
-      
+    <div className="min-h-screen bg-[#03010A] text-white relative">
+      <BackToHome />
       <main className="max-w-3xl mx-auto px-4 py-24 space-y-12">
         <div className="space-y-4">
           <h1 className="text-4xl font-bold tracking-tight">Frequently Asked Questions</h1>
