@@ -1,30 +1,35 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { requireInstagramUser } from "@/lib/auth"
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const result = await requireInstagramUser(request)
+    if (result.response) return result.response
+    const { igUser } = result
+
     const supabase = await getSupabaseServerClient()
-    const { data: { session } } = await supabase.auth.getSession()
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const { transaction_reference, note, amount } = await req.json()
+    const { transaction_reference, amount, note, proof_note, plan_id, payment_method } = await request.json()
 
     if (!transaction_reference || !amount) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    // Insert payment submission
+    // plan_id is provided by the checkout flow; the new plans schema has no slug column
+    const resolvedPlanId: string | null = plan_id || null
+
+    // Insert payment submission (user_id is the Instagram users.id int64)
     const { error: insertError } = await supabase
       .from("payment_submissions")
       .insert({
-        user_id: session.user.id,
+        user_id: igUser.id,
         transaction_reference,
-        note: note || null,
+        proof_note: proof_note || note || null,
         amount,
-        status: "pending"
+        status: "pending",
+        payment_method: payment_method || "vodafone_cash",
+        plan_id: resolvedPlanId,
       })
 
     if (insertError) {

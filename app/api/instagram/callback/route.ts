@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     const { data: account } = await supabase
       .from("accounts")
       .select("id")
-      .eq("user_id", authUser.id)
+      .eq("id", authUser.id)
       .single()
 
     if (!account) {

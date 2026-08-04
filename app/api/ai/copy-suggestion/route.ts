@@ -1,12 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
-import { getSessionUser } from "@/lib/auth"
+import { requireInstagramUser } from "@/lib/auth"
 import { generateGroqCompletion } from "@/lib/groq-client"
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getSessionUser(request)
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const result = await requireInstagramUser(request)
+    if (result.response) return result.response
+    const { igUser } = result
 
     const { automationId, text, context } = await request.json()
     if (!text) {
@@ -26,7 +27,7 @@ Return ONLY a JSON array of 3 strings. Do not include markdown formatting or exp
       }
     ]
 
-    const completion = await generateGroqCompletion(user.id, "copy_suggestion", {
+    const completion = await generateGroqCompletion(igUser.id, "copy_suggestion", {
       messages: messages as any,
       temperature: 0.7,
       max_tokens: 300
@@ -54,13 +55,13 @@ Return ONLY a JSON array of 3 strings. Do not include markdown formatting or exp
     if (automationId && suggestions.length > 0) {
       const supabase = await getSupabaseServerClient()
       const rows = suggestions.map((s) => ({
-        user_id: user.id,
+        user_id: igUser.id,
         automation_id: automationId,
-        original_text: text,
+        prompt_context: text,
         suggested_text: s,
         accepted: null
       }))
-      
+
       const { data, error } = await supabase.from("ai_copy_suggestions").insert(rows).select("id")
       if (error) {
         console.error("[copy-suggestion] DB Error:", error)
@@ -89,8 +90,9 @@ Return ONLY a JSON array of 3 strings. Do not include markdown formatting or exp
 // Endpoint to mark a suggestion as accepted
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await getSessionUser(request)
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const result = await requireInstagramUser(request)
+    if (result.response) return result.response
+    const { igUser } = result
 
     const { suggestionId, accepted } = await request.json()
     if (!suggestionId) return NextResponse.json({ error: "Suggestion ID is required" }, { status: 400 })
@@ -100,7 +102,7 @@ export async function PATCH(request: NextRequest) {
       .from("ai_copy_suggestions")
       .update({ accepted })
       .eq("id", suggestionId)
-      .eq("user_id", user.id)
+      .eq("user_id", igUser.id)
 
     if (error) {
       console.error("[copy-suggestion] Patch error:", error)

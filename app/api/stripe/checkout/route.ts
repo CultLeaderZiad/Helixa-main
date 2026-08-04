@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
-import { getSessionUser } from "@/lib/auth"
+import { requireInstagramUser } from "@/lib/auth"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy", {
@@ -21,13 +21,13 @@ const PLANS = {
 /**
  * POST /api/stripe/checkout
  * Creates a Stripe Checkout session for monthly or one_time plan.
+ * Requires a connected Instagram account (users int64 row).
  * Body: { planType: "monthly" | "one_time" }
  */
 export async function POST(request: NextRequest) {
-  const user = await getSessionUser(request)
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-  }
+  const result = await requireInstagramUser(request)
+  if (result.response) return result.response
+  const { user: account, igUser } = result
 
   try {
     const { planType } = await request.json()
@@ -39,17 +39,22 @@ export async function POST(request: NextRequest) {
     const plan = PLANS[planType as keyof typeof PLANS]
     const supabase = await getSupabaseServerClient()
 
-    // Get or create Stripe customer
-    let customerId = user.stripe_customer_id
+    // Get or create Stripe customer. Source of truth is accounts; mirrored to users
+    // so webhook lookups (users.stripe_customer_id) keep working.
+    let customerId = account.stripe_customer_id || igUser.stripe_customer_id
     if (!customerId) {
       const customer = await stripe.customers.create({
-        metadata: { userId: String(user.id), username: user.username },
+        metadata: { userId: String(igUser.id), accountId: account.id, username: igUser.username },
       })
       customerId = customer.id
       await supabase
+        .from("accounts")
+        .update({ stripe_customer_id: customerId })
+        .eq("id", account.id)
+      await supabase
         .from("users")
         .update({ stripe_customer_id: customerId })
-        .eq("id", user.id)
+        .eq("id", igUser.id)
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL
@@ -61,7 +66,9 @@ export async function POST(request: NextRequest) {
       success_url: `${appUrl}/billing?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/billing?canceled=true`,
       metadata: {
-        userId: String(user.id),
+        userId: String(igUser.id),
+        accountId: account.id,
+        username: igUser.username,
         planType,
       },
     })

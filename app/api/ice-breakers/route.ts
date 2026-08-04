@@ -1,19 +1,19 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
-import { getSessionUser } from "@/lib/auth"
+import { requireInstagramUser } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
     try {
-        const sessionUser = await getSessionUser(request)
-        if (!sessionUser) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-        }
+        const result = await requireInstagramUser(request)
+        if (result.response) return result.response
+        const igUser = result.igUser
+        const igUserId = igUser.id
 
         const supabase = await getSupabaseServerClient()
         const { data, error } = await supabase
             .from("ice_breakers")
             .select("*")
-            .eq("user_id", sessionUser.id)
+            .eq("user_id", igUserId)
             .order("created_at", { ascending: true })
 
         if (error) throw error
@@ -27,10 +27,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const sessionUser = await getSessionUser(request)
-        if (!sessionUser) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-        }
+        const result = await requireInstagramUser(request)
+        if (result.response) return result.response
+        const igUser = result.igUser
+        const igUserId = igUser.id
 
         const body = await request.json()
         const { iceBreakers } = body // Array of ice breakers
@@ -45,14 +45,14 @@ export async function POST(request: NextRequest) {
         const { error: deleteError } = await supabase
             .from("ice_breakers")
             .delete()
-            .eq("user_id", sessionUser.id)
+            .eq("user_id", igUserId)
 
         if (deleteError) throw deleteError
 
         const { data: inserted, error: insertError } = await supabase
             .from("ice_breakers")
             .insert(iceBreakers.map((ib: any) => ({
-                user_id: sessionUser.id,
+                user_id: igUserId,
                 question: ib.question,
                 response: ib.response,
                 is_active: true
@@ -62,14 +62,14 @@ export async function POST(request: NextRequest) {
         if (insertError) throw insertError
 
         // Sync to Instagram
-        if (sessionUser.access_token && sessionUser.page_id) {
+        if (igUser.access_token && igUser.page_id) {
             const ice_breakers = inserted.map((ib: any) => ({
                 question: ib.question,
                 payload: `ICE_BREAKER_${ib.id}`
             }))
 
             const response = await fetch(
-                `https://graph.instagram.com/v21.0/me/messenger_profile?access_token=${sessionUser.access_token}`,
+                `https://graph.instagram.com/v21.0/me/messenger_profile?access_token=${igUser.access_token}`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },

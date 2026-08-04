@@ -1,12 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
-import { getSessionUser } from "@/lib/auth"
+import { requireInstagramUser } from "@/lib/auth"
 import { generateGroqCompletion } from "@/lib/groq-client"
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getSessionUser(request)
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const result = await requireInstagramUser(request)
+    if (result.response) return result.response
+    const { igUser } = result
 
     const { automationId, keywords, intent } = await request.json()
     if (!keywords) {
@@ -26,7 +27,7 @@ Return ONLY the comma-separated string. No markdown, no explanations.`
       }
     ]
 
-    const completion = await generateGroqCompletion(user.id, "keyword_suggestion", {
+    const completion = await generateGroqCompletion(igUser.id, "keyword_suggestion", {
       messages: messages as any,
       temperature: 0.6,
       max_tokens: 150
@@ -36,16 +37,19 @@ Return ONLY the comma-separated string. No markdown, no explanations.`
       return NextResponse.json({ error: "Failed to generate suggestions or rate limit exceeded" }, { status: 429 })
     }
 
-    // Clean up the output string just in case
-    const suggestedKeywords = completion.replace(/^["'`]|["'`]$/g, '').trim()
+    // Clean up the output string just in case, then split into an array
+    const cleaned = completion.replace(/^["'`]|["'`]$/g, '').trim()
+    const suggestedKeywords = cleaned
+      .split(",")
+      .map((s: string) => s.trim())
+      .filter(Boolean)
 
-    // Save suggestion to database
+    // Save suggestion to database (suggested_keywords is an array column)
     if (automationId) {
       const supabase = await getSupabaseServerClient()
       const { data, error } = await supabase.from("ai_keyword_suggestions").insert({
-        user_id: user.id,
+        user_id: igUser.id,
         automation_id: automationId,
-        original_keywords: keywords,
         suggested_keywords: suggestedKeywords,
         accepted: null
       }).select("id").single()
@@ -53,13 +57,13 @@ Return ONLY the comma-separated string. No markdown, no explanations.`
       if (error) {
         console.error("[keyword-suggestion] DB Error:", error)
       } else {
-        return NextResponse.json({ 
-          suggestion: { id: data.id, text: suggestedKeywords } 
+        return NextResponse.json({
+          suggestion: { id: data.id, text: cleaned }
         })
       }
     }
 
-    return NextResponse.json({ suggestion: { text: suggestedKeywords } })
+    return NextResponse.json({ suggestion: { text: cleaned } })
 
   } catch (error: any) {
     console.error("[keyword-suggestion] Server error:", error)
@@ -73,8 +77,9 @@ Return ONLY the comma-separated string. No markdown, no explanations.`
 // Endpoint to mark a keyword suggestion as accepted
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await getSessionUser(request)
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const result = await requireInstagramUser(request)
+    if (result.response) return result.response
+    const { igUser } = result
 
     const { suggestionId, accepted } = await request.json()
     if (!suggestionId) return NextResponse.json({ error: "Suggestion ID is required" }, { status: 400 })
@@ -84,7 +89,7 @@ export async function PATCH(request: NextRequest) {
       .from("ai_keyword_suggestions")
       .update({ accepted })
       .eq("id", suggestionId)
-      .eq("user_id", user.id)
+      .eq("user_id", igUser.id)
 
     if (error) {
       console.error("[keyword-suggestion] Patch error:", error)

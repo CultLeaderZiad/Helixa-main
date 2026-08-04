@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
-import { getSessionUser } from "@/lib/auth"
+import { requireInstagramUser } from "@/lib/auth"
 
 /**
  * POST /api/instagram/send-message
@@ -8,10 +8,10 @@ import { getSessionUser } from "@/lib/auth"
  */
 export async function POST(request: NextRequest) {
   try {
-    const sessionUser = await getSessionUser(request)
-    if (!sessionUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const result = await requireInstagramUser(request)
+    if (result.response) return result.response
+    const igUser = result.igUser
+    const igUserId = igUser.id
 
     const { recipient_id, message } = await request.json()
 
@@ -21,10 +21,10 @@ export async function POST(request: NextRequest) {
 
     const supabase = await getSupabaseServerClient()
 
-    console.log("[v0] Sending DM from", sessionUser.username, "to", recipient_id)
+    console.log("[v0] Sending DM from", igUser.username, "to", recipient_id)
 
     // Send message via Instagram API
-    const sendUrl = `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(sessionUser.access_token)}`
+    const sendUrl = `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(igUser.access_token)}`
 
     const response = await fetch(sendUrl, {
       method: "POST",
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     const { data: conversation } = await supabase
       .from("conversations")
       .select("id")
-      .eq("user_id", sessionUser.id)
+      .eq("user_id", igUserId)
       .eq("recipient_id", recipient_id)
       .single()
 
@@ -62,9 +62,9 @@ export async function POST(request: NextRequest) {
       await supabase.from("messages").insert({
         id: data.message_id,
         conversation_id: conversation.id,
-        user_id: sessionUser.id,
-        sender_id: sessionUser.id,
-        sender_username: sessionUser.username,
+        user_id: igUserId,
+        sender_id: igUserId,
+        sender_username: igUser.username,
         content: message,
         is_from_instagram: false,
       })

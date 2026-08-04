@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSessionUser } from "@/lib/auth"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSessionInstagramUser } from "@/lib/auth"
 
 /**
  * GET /api/auth/me
@@ -8,27 +7,23 @@ import { getSupabaseServerClient } from "@/lib/supabase-server"
  * Called by the frontend on mount (since the cookie is httpOnly).
  */
 export async function GET(request: NextRequest) {
-  const user = await getSessionUser(request)
-  if (!user) {
+  const session = await getSessionInstagramUser(request)
+  if (!session) {
     return NextResponse.json({ authenticated: false }, { status: 401 })
   }
 
-  const supabase = await getSupabaseServerClient()
-  
-  // Try to find a connected Instagram user for this account
-  const { data: igUser } = await supabase
-    .from("users")
-    .select("id, username, profile_picture_url")
-    .eq("account_id", user.id)
-    .single()
+  const { account, igUser } = session
 
   return NextResponse.json({
     authenticated: true,
-    accountId: user.id,
-    userId: igUser?.id?.toString() || null, // Instagram user ID
-    username: igUser?.username || user.email?.split('@')[0] || "User",
-    profilePic: igUser?.profile_picture_url || null,
-    plan: user.plan,
-    trial_ends_at: user.trial_ends_at,
+    accountId: account.id,
+    email: account.email || null,
+    role: account.role || "customer",
+    // The Instagram user id (int64) — this is the key for ALL business tables.
+    userId: igUser?.id?.toString() || null,
+    username: igUser?.username || account.email?.split("@")[0] || "User",
+    profilePic: null, // `users` has no profile_picture_url column
+    plan: igUser?.plan ?? account.plan,
+    trial_ends_at: igUser?.trial_ends_at ?? account.trial_ends_at,
   })
 }

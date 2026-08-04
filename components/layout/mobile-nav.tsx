@@ -9,10 +9,12 @@ import { useState } from "react"
 export interface MobileNavProps {
     username?: string
     profilePic?: string | null
+    email?: string | null
+    userRole?: string | null
     onLogout?: () => void
 }
 
-export function MobileNav({ username, profilePic, onLogout }: MobileNavProps) {
+export function MobileNav({ username, profilePic, email, userRole, onLogout }: MobileNavProps) {
     const [open, setOpen] = useState(false)
 
     return (
@@ -27,6 +29,8 @@ export function MobileNav({ username, profilePic, onLogout }: MobileNavProps) {
                     className="h-full border-none bg-transparent"
                     username={username}
                     profilePic={profilePic}
+                    email={email}
+                    userRole={userRole}
                     onLogout={onLogout}
                     onNavigate={() => setOpen(false)}
                 />

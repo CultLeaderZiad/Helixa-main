@@ -10,6 +10,8 @@ export function useInstagramSession() {
     const [profilePic, setProfilePic] = useState<string | null>(null)
     const [plan, setPlan] = useState<string | null>(null)
     const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null)
+    const [email, setEmail] = useState<string | null>(null)
+    const [role, setRole] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
 
     const searchParams = useSearchParams()
@@ -31,6 +33,8 @@ export function useInstagramSession() {
                     setProfilePic(data.profilePic || null)
                     setPlan(data.plan || null)
                     setTrialEndsAt(data.trial_ends_at || null)
+                    setEmail(data.email || null)
+                    setRole(data.role || null)
                     // Update localStorage cache for instant UI render on next load
                     localStorage.setItem("ig_account_id", data.accountId)
                     if (data.userId) localStorage.setItem("ig_user_id", data.userId)
@@ -122,7 +126,9 @@ export function useInstagramSession() {
         setAccountId(null)
         setUserId(null)
         setProfilePic(null)
-        router.push("/")
+        setEmail(null)
+        setRole(null)
+        router.push("/login")
     }
 
     return {
@@ -132,6 +138,8 @@ export function useInstagramSession() {
         profilePic,
         plan,
         trialEndsAt,
+        email,
+        role,
         isLoading,
         logout
     }

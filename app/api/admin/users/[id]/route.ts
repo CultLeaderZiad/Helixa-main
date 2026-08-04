@@ -4,8 +4,8 @@ import { getSupabaseServerClient } from "@/lib/supabase-server"
 
 /**
  * PATCH /api/admin/users/[id]
- * Admin-only: updates role, plan, is_flagged, flagged_reason for a user.
- * Logs every change to admin_audit_log.
+ * Admin-only: updates role, plan, is_flagged, flagged_reason for an account.
+ * Mirrors plan changes to users + subscriptions; logs to admin_audit_log (int64).
  */
 export async function PATCH(
   request: NextRequest,
@@ -13,10 +13,10 @@ export async function PATCH(
 ) {
   const result = await requireAdmin(request)
   if (result.response) return result.response
-  const adminUser = result.user
+  const adminAccount = result.user
 
-  const { id: targetUserId } = await params
-  if (!targetUserId) {
+  const { id: targetAccountId } = await params
+  if (!targetAccountId) {
     return NextResponse.json({ error: "User ID required" }, { status: 400 })
   }
 
@@ -24,7 +24,7 @@ export async function PATCH(
     const supabase = await getSupabaseServerClient()
     const body = await request.json()
 
-    const allowedFields = ["role", "plan", "is_flagged", "flagged_reason"]
+    const allowedFields = ["role", "plan", "is_flagged", "flagged_reason", "is_banned", "banned_reason"]
     const updates: Record<string, any> = {}
     for (const field of allowedFields) {
       if (field in body) updates[field] = body[field]
@@ -36,52 +36,83 @@ export async function PATCH(
 
     updates.updated_at = new Date().toISOString()
 
-    // Fetch current user state for audit diff
-    const { data: targetUser, error: fetchError } = await supabase
-      .from("users")
-      .select("id, username, role, plan, is_flagged, flagged_reason")
-      .eq("id", targetUserId)
+    // Fetch current account state for audit diff
+    const { data: targetAccount, error: fetchError } = await supabase
+      .from("accounts")
+      .select("id, email, role, plan, is_flagged, flagged_reason, is_banned, banned_reason")
+      .eq("id", targetAccountId)
       .single()
 
-    if (fetchError || !targetUser) {
+    if (fetchError || !targetAccount) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // Apply the update
+    // Apply the update to accounts (source of truth)
     const { error: updateError } = await supabase
-      .from("users")
+      .from("accounts")
       .update(updates)
-      .eq("id", targetUserId)
+      .eq("id", targetAccountId)
 
     if (updateError) throw updateError
 
-    // Also update subscriptions table if plan changed
-    if (updates.plan) {
-      await supabase.from("subscriptions").upsert(
-        {
-          user_id: Number(targetUserId),
+    // Resolve the linked users row (int64) for plan mirroring + audit log
+    let targetUserId: number | null = null
+    const { data: targetUser } = await supabase
+      .from("users")
+      .select("id")
+      .eq("account_id", targetAccountId)
+      .maybeSingle()
+    targetUserId = targetUser?.id ?? null
+
+    // Mirror plan to users + subscriptions when plan changed
+    if (updates.plan && targetUserId !== null) {
+      await supabase.from("users").update({ plan: updates.plan }).eq("id", targetUserId)
+
+      const { data: existingSub } = await supabase
+        .from("subscriptions")
+        .select("id")
+        .eq("user_id", targetUserId)
+        .maybeSingle()
+      if (existingSub) {
+        await supabase.from("subscriptions").update({
           plan_type: updates.plan,
           status: updates.plan === "expired" ? "canceled" : "active",
           updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id" }
-      )
+        }).eq("id", existingSub.id)
+      } else {
+        await supabase.from("subscriptions").insert({
+          user_id: targetUserId,
+          plan_type: updates.plan,
+          status: updates.plan === "expired" ? "canceled" : "active",
+        })
+      }
     }
+
+    // Resolve admin's int64 users.id for the audit log
+    let adminUserId: number | null = null
+    const { data: adminUser } = await supabase
+      .from("users")
+      .select("id")
+      .eq("account_id", adminAccount.id)
+      .maybeSingle()
+    adminUserId = adminUser?.id ?? null
 
     // Write to audit log
     const auditDetails: Record<string, any> = { before: {}, after: {} }
     for (const field of Object.keys(updates)) {
       if (field === "updated_at") continue
-      auditDetails.before[field] = (targetUser as any)[field]
+      auditDetails.before[field] = (targetAccount as any)[field]
       auditDetails.after[field] = updates[field]
     }
 
-    await supabase.from("admin_audit_log").insert({
-      admin_user_id: adminUser.id,
-      action: "update_user",
-      target_user_id: Number(targetUserId),
-      details: auditDetails,
-    })
+    if (adminUserId !== null && targetUserId !== null) {
+      await supabase.from("admin_audit_log").insert({
+        admin_user_id: adminUserId,
+        action: "update_user",
+        target_user_id: targetUserId,
+        details: auditDetails,
+      })
+    }
 
     return NextResponse.json({ success: true, updated: updates })
   } catch (error: any) {

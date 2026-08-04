@@ -12,7 +12,7 @@ export default function DashboardLayout({
 }: {
     children: React.ReactNode
 }) {
-    const { username, profilePic, logout, plan, trialEndsAt, isLoading, accountId } = useInstagramSession()
+    const { username, profilePic, logout, plan, trialEndsAt, isLoading, accountId, email, role } = useInstagramSession()
 
     const router = require("next/navigation").useRouter()
 
@@ -43,6 +43,8 @@ export default function DashboardLayout({
                     className="h-full border-r border-white/10 bg-[#03010A]/50 backdrop-blur-xl"
                     username={username || "User"}
                     profilePic={profilePic}
+                    email={email}
+                    userRole={role}
                     onLogout={logout}
                 />
             </div>
@@ -58,7 +60,7 @@ export default function DashboardLayout({
                         height={1536}
                         className="h-7 w-auto"
                     />
-                    <MobileNav username={username || "User"} profilePic={profilePic} onLogout={logout} />
+                    <MobileNav username={username || "User"} profilePic={profilePic} email={email} userRole={role} onLogout={logout} />
                 </header>
 
                 <main className="flex-1 relative overflow-auto">

@@ -73,7 +73,7 @@ export function LandingPage() {
               priority
             />
           </div>
-          <div style={{ position: 'relative', height: '16px', width: '50px' }} className="md:h-[20px] md:w-[65px]">
+          <div style={{ position: 'relative', height: '14px', width: '45px' }} className="md:h-[18px] md:w-[55px]">
             <TextPressure
               text="HELIXA"
               flex={true}
@@ -84,7 +84,7 @@ export function LandingPage() {
               italic={true}
               textColor="#ffffff"
               strokeColor="#ff0000"
-              minFontSize={12}
+              minFontSize={10}
             />
           </div>
           <span className="hidden sm:inline-block font-mono-ui text-[10px] text-neutral-500 border border-white/10 rounded-full px-2 py-0.5 ml-1 md:ml-2">open source</span>

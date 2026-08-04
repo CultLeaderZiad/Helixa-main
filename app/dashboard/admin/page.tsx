@@ -19,13 +19,15 @@ interface Stats {
 }
 
 interface User {
-  id: number
-  username: string
+  id: string
+  email: string
   role: string
   plan: string
   trial_ends_at: string | null
   is_flagged: boolean
   flagged_reason: string | null
+  is_banned: boolean
+  banned_reason: string | null
   signup_ip: string | null
   ip_risk_score: number | null
   vpn_suspected: boolean
@@ -37,8 +39,8 @@ interface AuditLog {
   action: string
   details: any
   created_at: string
-  admin: { id: number; username: string } | null
-  target: { id: number; username: string } | null
+  admin: { id: number; username: string; email?: string | null } | null
+  target: { id: number; username: string; email?: string | null } | null
 }
 
 interface PaymentSubmission {
@@ -49,6 +51,7 @@ interface PaymentSubmission {
   amount: number
   status: 'pending' | 'approved' | 'rejected'
   created_at: string
+  accounts: { email: string | null } | null
   users: { username: string, plan: string }
 }
 
@@ -319,7 +322,7 @@ export default function AdminPage() {
                 <Search className="w-3.5 h-3.5 text-neutral-500" />
                 <input
                   className="bg-transparent font-mono text-xs text-white outline-none placeholder:text-neutral-600 w-32"
-                  placeholder="Search username..."
+                  placeholder="Search email..."
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(1) }}
                 />
@@ -356,7 +359,7 @@ export default function AdminPage() {
               <table className="w-full font-mono text-xs">
                 <thead>
                   <tr className="border-b border-white/[0.08] bg-white/[0.02]">
-                    {["Username", "Plan", "Role", "Trial Left", "Flagged", "Joined"].map(h => (
+                    {["Email", "Plan", "Role", "Trial Left", "Flagged", "Joined"].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-neutral-500 uppercase tracking-wider text-[10px]">{h}</th>
                     ))}
                   </tr>
@@ -376,7 +379,7 @@ export default function AdminPage() {
                           selectedUser?.id === user.id ? "bg-white/[0.05]" : ""
                         }`}
                       >
-                        <td className="px-4 py-3 text-white">{user.username}</td>
+                        <td className="px-4 py-3 text-white">{user.email}</td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] border ${PLAN_COLORS[user.plan] || "text-neutral-400"}`}>
                             {user.plan}
@@ -437,9 +440,18 @@ export default function AdminPage() {
           {selectedUser && (
             <div className="w-72 flex-shrink-0 border border-white/[0.08] rounded-xl p-5 bg-white/[0.02] h-fit space-y-5">
               <div className="flex items-center justify-between">
-                <h3 className="font-mono text-sm font-bold text-white">@{selectedUser.username}</h3>
-                <button onClick={() => setSelectedUser(null)} className="text-neutral-600 hover:text-white">
+                <h3 className="font-mono text-sm font-bold text-white truncate max-w-[200px]" title={selectedUser.email}>{selectedUser.email}</h3>
+                <button onClick={() => setSelectedUser(null)} className="text-neutral-600 hover:text-white flex-shrink-0">
                   <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                <a href={`mailto:${selectedUser.email}`} className="flex items-center justify-center gap-2 bg-blue-500/10 text-blue-400 py-2 rounded-lg font-mono text-xs hover:bg-blue-500/20 transition-colors">
+                  Email
+                </a>
+                <button onClick={() => window.open(`/dashboard?view_as=${selectedUser.id}`, '_blank')} className="flex items-center justify-center gap-2 bg-purple-500/10 text-purple-400 py-2 rounded-lg font-mono text-xs hover:bg-purple-500/20 transition-colors">
+                  View As
                 </button>
               </div>
 
@@ -546,9 +558,9 @@ export default function AdminPage() {
               ) : auditLogs.map(log => (
                 <tr key={log.id} className="border-b border-white/[0.04]">
                   <td className="px-4 py-3 text-neutral-500">{new Date(log.created_at).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-[#ffe14d]">{log.admin?.username || "—"}</td>
+                  <td className="px-4 py-3 text-[#ffe14d]">{log.admin?.email || "—"}</td>
                   <td className="px-4 py-3 text-white">{log.action}</td>
-                  <td className="px-4 py-3 text-neutral-300">{log.target?.username || "—"}</td>
+                  <td className="px-4 py-3 text-neutral-300">{log.target?.email || "—"}</td>
                   <td className="px-4 py-3 text-neutral-500 max-w-xs truncate">
                     {JSON.stringify(log.details?.after || {})}
                   </td>
@@ -564,7 +576,7 @@ export default function AdminPage() {
           <table className="w-full font-mono text-xs">
             <thead>
               <tr className="border-b border-white/[0.08] bg-white/[0.02]">
-                {["Time", "Username", "Transaction Ref", "Amount", "Note", "Actions"].map(h => (
+                {["Time", "Email", "Transaction Ref", "Amount", "Note", "Actions"].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-neutral-500 uppercase tracking-wider text-[10px]">{h}</th>
                 ))}
               </tr>
@@ -575,7 +587,7 @@ export default function AdminPage() {
               ) : pendingPayments.map(payment => (
                 <tr key={payment.id} className="border-b border-white/[0.04]">
                   <td className="px-4 py-3 text-neutral-500">{new Date(payment.created_at).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-white font-bold">{payment.users?.username || `ID: ${payment.user_id}`}</td>
+                  <td className="px-4 py-3 text-white font-bold">{payment.accounts?.email || `ID: ${payment.user_id}`}</td>
                   <td className="px-4 py-3 text-[#ffe14d]">{payment.transaction_reference}</td>
                   <td className="px-4 py-3 text-green-400">${payment.amount}</td>
                   <td className="px-4 py-3 text-neutral-400 max-w-[200px] truncate" title={payment.note || ""}>

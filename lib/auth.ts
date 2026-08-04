@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 
 /**
@@ -19,65 +18,123 @@ export async function getSessionUser(request?: NextRequest) {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) return null
 
-  // Fetch full account record
-  const { data: account, error: accountError } = await supabase
+  // We MUST use a dedicated admin client to fetch the account record.
+  // The SSR client enforces RLS (it sends the user's JWT). If the live DB's RLS 
+  // policies are missing or broken, the user won't be able to read their own account.
+  const adminSupabase = await createAdminClient()
+
+  const { data: account, error: accountError } = await adminSupabase
     .from("accounts")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("id", user.id)
     .single()
 
-  // Only auto-create when the lookup failed because no row exists (PGRST116).
-  // Any other error (missing table, RLS, network, etc.) should surface the real
-  // cause instead of being masked by a doomed insert attempt.
-  if (accountError && accountError.code !== "PGRST116") {
-    console.error("[auth] Failed to load account:", {
-      userId: user.id,
-      email: user.email,
-      code: accountError.code,
-      message: accountError.message,
-      details: accountError.details,
-      hint: accountError.hint,
-    })
-    return account ?? null
-  }
+  if (accountError) {
+    if (accountError.code === "PGRST116") {
+      console.warn("[auth] No accounts row for user; auto-healing now.", {
+        userId: user.id,
+        email: user.email,
+      })
+      // Self-healing fallback: Create the account row manually if the DB trigger failed
+      const { data: newAccount, error: insertError } = await adminSupabase.from('accounts').insert({
+        id: user.id,
+        email: user.email,
+        role: 'customer',
+        plan: 'trial'
+      }).select().single()
 
-  if (account) return account
-
-  // Fallback: If trigger didn't run, auto-create the account row.
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!serviceRoleKey) {
-    console.error("[auth] SUPABASE_SERVICE_ROLE_KEY is not set; cannot auto-create account for user:", user.id)
+      if (insertError) {
+        console.error("[auth] Failed to self-heal account:", JSON.stringify(insertError, null, 2))
+        return null
+      }
+      return newAccount
+    } else {
+      console.error("[auth] Failed to load account:", {
+        userId: user.id,
+        email: user.email,
+        code: accountError.code,
+        message: accountError.message,
+      })
+    }
     return null
   }
 
-  const adminSupabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
-    serviceRoleKey
+  return account
+}
+
+/**
+ * Creates the Supabase admin (service-role) client used for identity lookups.
+ * The SSR client enforces RLS; if RLS policies are missing/broken the user
+ * couldn't read their own rows, so identity reads MUST go through this client.
+ */
+async function createAdminClient() {
+  const { createClient } = await import("@supabase/supabase-js")
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } }
   )
+}
 
-  const { data: newAccount, error: insertError } = await adminSupabase
-    .from("accounts")
-    .insert({
-      user_id: user.id,
-      email: user.email ?? "",
-      role: "user",
-      plan: "trial"
-    })
+/**
+ * Returns the authenticated session plus the connected Instagram `users` row.
+ *
+ * IMPORTANT: `accounts.id` is the Supabase Auth uuid; business tables
+ * (`automations`, `conversations`, `messages`, `ice_breakers`, `ai_usage_log`,
+ * `subscriptions`, `payment_submissions`, `automation_events`) all key by the
+ * int64 `users.id` (the Instagram user id). Callers MUST use `igUser.id` for
+ * `user_id` filters/inserts, and `igUser.access_token` for Instagram API calls.
+ *
+ * Returns `null` when there is no session or no `users` row is linked to the
+ * account (i.e. Instagram has not been connected yet).
+ */
+export async function getSessionInstagramUser(request?: NextRequest) {
+  const account = await getSessionUser(request)
+  if (!account) return null
+
+  const adminSupabase = await createAdminClient()
+  const { data: igUser, error } = await adminSupabase
+    .from("users")
     .select("*")
-    .single()
+    .eq("account_id", account.id)
+    .maybeSingle()
 
-  if (insertError || !newAccount) {
-    console.error("[auth] Failed to auto-create account:", {
-      userId: user.id,
-      email: user.email,
-      code: insertError?.code,
-      message: insertError?.message,
-      details: insertError?.details,
-      hint: insertError?.hint,
+  if (error) {
+    console.error("[auth] Failed to load instagram user:", {
+      accountId: account.id,
+      code: error.code,
+      message: error.message,
     })
     return null
   }
-  return newAccount
+
+  return { account, igUser }
+}
+
+/**
+ * Gate for Instagram-scoped routes. Calls `getSessionInstagramUser` and
+ * returns a 401 when unauthenticated or a 400 "Connect Instagram first" when
+ * the session has no linked `users` row.
+ *
+ * Usage:
+ * ```ts
+ * const result = await requireInstagramUser(request)
+ * if (result.response) return result.response
+ * const igUserId = result.igUser.id  // int64 — use for all business-table queries
+ * const accessToken = result.igUser.access_token
+ * ```
+ */
+export async function requireInstagramUser(request?: NextRequest): Promise<
+  { user: any; igUser: any; response?: never } | { user?: never; response: NextResponse }
+> {
+  const session = await getSessionInstagramUser(request)
+  if (!session) {
+    return { response: NextResponse.json({ error: "Not authenticated" }, { status: 401 }) }
+  }
+  if (!session.igUser) {
+    return { response: NextResponse.json({ error: "Connect Instagram first" }, { status: 400 }) }
+  }
+  return { user: session.account, igUser: session.igUser }
 }
 
 /**

@@ -16,16 +16,16 @@ export default async function CheckoutPage(props: { params: Promise<{ plan_id: s
     .from("plans")
     .select("*")
     .eq("id", params.plan_id)
-    .single()
-    
+    .maybeSingle()
+
   if (planError || !plan) {
     return <div className="p-12 text-center text-white">Plan not found.</div>
   }
 
   const { data: methods } = await supabase
-    .from("payment_methods")
+    .from("payment_method_settings")
     .select("*")
-    .eq("is_active", true)
+    .eq("is_enabled", true)
 
   return (
     <div className="min-h-screen bg-[#03010A] text-white py-24 px-6 relative">

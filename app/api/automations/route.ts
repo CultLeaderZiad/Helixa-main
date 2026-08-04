@@ -1,18 +1,19 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
-import { getSessionUser } from "@/lib/auth"
+import { requireInstagramUser } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getSessionUser(request)
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const result = await requireInstagramUser(request)
+    if (result.response) return result.response
+    const igUserId = result.igUser.id
 
     const supabase = await getSupabaseServerClient()
 
     const { data, error } = await supabase
       .from("automations")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", igUserId)
       .order("created_at", { ascending: false })
 
     if (error) throw error
@@ -25,8 +26,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getSessionUser(request)
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const result = await requireInstagramUser(request)
+    if (result.response) return result.response
+    const igUserId = result.igUser.id
 
     const { name, trigger_source, trigger_type, trigger_value, content, specific_media_id } = await request.json()
 
@@ -48,7 +50,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from("automations")
       .insert({
-        user_id: user.id,
+        user_id: igUserId,
         name,
         trigger_source,
         trigger_type: trigger_type || "keyword",
@@ -71,8 +73,9 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await getSessionUser(request)
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const result = await requireInstagramUser(request)
+    if (result.response) return result.response
+    const igUserId = result.igUser.id
 
     const id = request.nextUrl.searchParams.get("id")
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
@@ -84,7 +87,7 @@ export async function DELETE(request: NextRequest) {
       .from("automations")
       .delete()
       .eq("id", id)
-      .eq("user_id", user.id)
+      .eq("user_id", igUserId)
       .select()
 
     if (error) throw error
@@ -101,8 +104,9 @@ export async function DELETE(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const user = await getSessionUser(request)
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const result = await requireInstagramUser(request)
+    if (result.response) return result.response
+    const igUserId = result.igUser.id
 
     const { id, name, trigger_source, trigger_type, trigger_value, content, specific_media_id } = await request.json()
 
@@ -132,7 +136,7 @@ export async function PUT(request: NextRequest) {
       .from("automations")
       .update(updateData)
       .eq("id", id)
-      .eq("user_id", user.id)
+      .eq("user_id", igUserId)
       .select()
       .single()
 
@@ -146,8 +150,9 @@ export async function PUT(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await getSessionUser(request)
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const result = await requireInstagramUser(request)
+    if (result.response) return result.response
+    const igUserId = result.igUser.id
 
     const { id, is_active, action } = await request.json()
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
@@ -159,7 +164,7 @@ export async function PATCH(request: NextRequest) {
         .from("automations")
         .select("*")
         .eq("id", id)
-        .eq("user_id", user.id)
+        .eq("user_id", igUserId)
         .single()
       if (fetchError || !original) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
@@ -181,7 +186,7 @@ export async function PATCH(request: NextRequest) {
       .from("automations")
       .update({ is_active })
       .eq("id", id)
-      .eq("user_id", user.id)
+      .eq("user_id", igUserId)
       .select()
       .single()
 

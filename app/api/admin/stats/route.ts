@@ -26,24 +26,24 @@ export async function GET(request: NextRequest) {
       { count: totalUsers },
     ] = await Promise.all([
       supabase
-        .from("users")
+        .from("accounts")
         .select("*", { count: "exact", head: true })
         .eq("plan", "trial")
         .gt("trial_ends_at", now),
       supabase
-        .from("users")
+        .from("accounts")
         .select("*", { count: "exact", head: true })
         .eq("plan", "monthly"),
       supabase
-        .from("users")
+        .from("accounts")
         .select("*", { count: "exact", head: true })
         .eq("plan", "one_time"),
       supabase
-        .from("users")
+        .from("accounts")
         .select("*", { count: "exact", head: true })
         .eq("plan", "expired"),
       supabase
-        .from("users")
+        .from("accounts")
         .select("*", { count: "exact", head: true })
         .eq("is_flagged", true),
       supabase
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
         .select("*", { count: "exact", head: true })
         .gte("created_at", todayStart.toISOString()),
       supabase
-        .from("users")
+        .from("accounts")
         .select("*", { count: "exact", head: true }),
     ])
 

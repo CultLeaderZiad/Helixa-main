@@ -18,7 +18,7 @@ export interface GroqCompletionRequest {
   max_tokens?: number
 }
 
-export async function checkAILimit(userId: string): Promise<boolean> {
+export async function checkAILimit(userId: number | string): Promise<boolean> {
   const supabase = await getSupabaseServerClient()
   
   // Count usage for today
@@ -40,7 +40,7 @@ export async function checkAILimit(userId: string): Promise<boolean> {
 }
 
 export async function logAIUsage(
-  userId: string,
+  userId: number | string,
   feature: string,
   model: string,
   tokensUsed: number
@@ -59,7 +59,7 @@ export async function logAIUsage(
  * Automatically logs the usage to `ai_usage_log`.
  */
 export async function generateGroqCompletion(
-  userId: string,
+  userId: number | string,
   feature: string,
   options: GroqCompletionRequest
 ): Promise<string | null> {

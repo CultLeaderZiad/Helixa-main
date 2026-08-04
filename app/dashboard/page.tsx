@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { Activity, Users, MessageCircle, Zap, Loader2, AlertCircle } from "lucide-react"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
-
+import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
 interface DashboardStats {
     metrics: {
         totalAutomations: number
@@ -142,21 +142,8 @@ export default function DashboardPage() {
 
     if (!userId) {
         return (
-            <div className="min-h-[calc(100vh-64px)] bg-[#03010A] flex flex-col items-center justify-center p-4">
-                <div className="max-w-md w-full p-8 bg-white/[0.02] border border-white/10 rounded-2xl text-center space-y-4">
-                    <div className="w-12 h-12 bg-[#ffe14d]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <Activity className="w-6 h-6 text-[#ffe14d]" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-white">Connect Instagram</h2>
-                    <p className="text-neutral-400 text-sm leading-relaxed">
-                        You need to connect your professional Instagram account to view your dashboard and metrics.
-                    </p>
-                    <div className="pt-4">
-                        <a href="/api/instagram/auth" className="inline-block px-8 py-3 bg-[#ffe14d] text-black font-semibold rounded-full hover:brightness-95 transition-all w-full">
-                            Connect Account
-                        </a>
-                    </div>
-                </div>
+            <div className="min-h-[calc(100vh-64px)] bg-[#03010A] p-4 flex items-center justify-center">
+                <ConnectPlatformEmptyState description="You need to connect your professional Instagram account to view your dashboard and metrics." />
             </div>
         )
     }

@@ -1,18 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
-import { getSessionUser } from "@/lib/auth"
+import { requireInstagramUser } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
   try {
-    const sessionUser = await getSessionUser(request)
-    if (!sessionUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const result = await requireInstagramUser(request)
+    if (result.response) return result.response
+    const igUser = result.igUser
 
     // Fetch Media (Smart Method: /me/media)
-    const url = `https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&limit=24&access_token=${sessionUser.access_token}`
-    
-    console.log("[v0] Fetching Media from:", url) 
+    const url = `https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&limit=24&access_token=${igUser.access_token}`
 
     const res = await fetch(url, { cache: 'no-store' }) 
     const data = await res.json()

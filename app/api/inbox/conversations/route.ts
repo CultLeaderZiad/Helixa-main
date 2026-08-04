@@ -1,13 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
-import { getSessionUser } from "@/lib/auth"
+import { requireInstagramUser } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
     try {
-        const sessionUser = await getSessionUser(request)
-        if (!sessionUser) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-        }
+        const result = await requireInstagramUser(request)
+        if (result.response) return result.response
+        const igUserId = result.igUser.id
 
         const supabase = await getSupabaseServerClient()
 
@@ -15,7 +14,7 @@ export async function GET(request: NextRequest) {
         const { data: conversations, error } = await supabase
             .from("conversations")
             .select("*")
-            .eq("user_id", sessionUser.id)
+            .eq("user_id", igUserId)
             .order("last_message_at", { ascending: false })
 
         if (error) throw error

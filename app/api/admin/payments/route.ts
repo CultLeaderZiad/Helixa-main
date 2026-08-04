@@ -13,13 +13,19 @@ export async function GET(request: NextRequest) {
   const status = searchParams.get("status") || "pending"
 
   try {
+    // payment_submissions.user_id is users.id (int64) → users.account_id → accounts.email
     const { data: payments, error } = await supabase
       .from("payment_submissions")
       .select(`
         *,
         users (
+          id,
           username,
-          plan
+          account_id,
+          accounts (
+            email,
+            plan
+          )
         )
       `)
       .eq("status", status)
@@ -29,7 +35,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ payments })
+    // Map nested shape back to the frontend contract ({ accounts?.email, note })
+    const mapped = (payments || []).map((payment: any) => {
+      const { users: userRow, note, proof_note, ...rest } = payment
+      return {
+        ...rest,
+        note: proof_note ?? note ?? null,
+        accounts: userRow?.accounts ?? null,
+        users: userRow
+          ? { username: userRow.username, plan: userRow.accounts?.plan ?? null }
+          : null,
+      }
+    })
+
+    return NextResponse.json({ payments: mapped })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

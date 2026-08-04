@@ -1,13 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
-import { getSessionUser } from "@/lib/auth"
+import { requireInstagramUser } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
     try {
-        const sessionUser = await getSessionUser(request)
-        if (!sessionUser) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-        }
+        const result = await requireInstagramUser(request)
+        if (result.response) return result.response
+        const igUserId = result.igUser.id
 
         const conversationId = request.nextUrl.searchParams.get("conversationId")
         if (!conversationId) return NextResponse.json({ error: "Missing conversationId" }, { status: 400 })
@@ -19,7 +18,7 @@ export async function GET(request: NextRequest) {
             .from("conversations")
             .select("id")
             .eq("id", conversationId)
-            .eq("user_id", sessionUser.id)
+            .eq("user_id", igUserId)
             .single()
 
         if (convError || !conv) {

@@ -59,14 +59,15 @@ export default function BillingPage() {
         return
       }
 
-      const { data: profile } = await supabase
-        .from("users")
-        .select("id, username, plan, trial_ends_at")
-        .eq("id", session.user.id)
-        .single()
-
-      if (profile) {
-        setUser(profile)
+      const res = await fetch("/api/auth/me", { cache: "no-store" })
+      const data = await res.json()
+      if (data.authenticated) {
+        setUser({
+          id: data.userId || data.accountId,
+          username: data.username || "user",
+          plan: data.plan || "trial",
+          trial_ends_at: data.trial_ends_at || null,
+        })
       }
       setLoading(false)
     }
@@ -111,8 +112,10 @@ export default function BillingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           transaction_reference: vcRef,
-          note: vcNote,
-          amount
+          proof_note: vcNote,
+          amount,
+          payment_method: "vodafone_cash",
+          planType: showVCForm === "monthly" ? "monthly" : "one_time",
         })
       })
       if (res.ok) {

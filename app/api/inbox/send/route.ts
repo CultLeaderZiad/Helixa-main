@@ -1,13 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
-import { getSessionUser } from "@/lib/auth"
+import { requireInstagramUser } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
     try {
-        const sessionUser = await getSessionUser(request)
-        if (!sessionUser) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-        }
+        const result = await requireInstagramUser(request)
+        if (result.response) return result.response
+        const igUser = result.igUser
+        const igUserId = igUser.id
 
         const body = await request.json()
         const { recipientId, message, attachment } = body
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
         // Send to Instagram
         const res = await fetch(
-            `https://graph.instagram.com/v24.0/me/messages?access_token=${sessionUser.access_token}`,
+            `https://graph.instagram.com/v24.0/me/messages?access_token=${igUser.access_token}`,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
         let { data: conv } = await supabase
             .from("conversations")
             .select("id")
-            .eq("user_id", sessionUser.id)
+            .eq("user_id", igUserId)
             .eq("recipient_id", recipientId)
             .single()
 
@@ -56,9 +56,9 @@ export async function POST(request: NextRequest) {
             await supabase.from("messages").insert({
                 id: `mid_out_${Date.now()}_${Math.random()}`,
                 conversation_id: conv.id,
-                user_id: sessionUser.id,
-                sender_id: sessionUser.business_account_id,
-                sender_username: sessionUser.username,
+                user_id: igUserId,
+                sender_id: igUser.business_account_id,
+                sender_username: igUser.username,
                 content: message || "[Attachment]",
                 is_from_instagram: false
             })

@@ -6,9 +6,33 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy", {
   apiVersion: "2026-07-29.dahlia",
 })
 
+async function getAccountIdForUser(supabase: any, userId: number) {
+  const { data } = await supabase
+    .from("users")
+    .select("account_id")
+    .eq("id", userId)
+    .maybeSingle()
+  return data?.account_id ?? null
+}
+
+async function upsertSubscription(supabase: any, payload: any) {
+  const existing = await supabase
+    .from("subscriptions")
+    .select("id")
+    .eq("user_id", payload.user_id)
+    .maybeSingle()
+
+  if (existing.data) {
+    await supabase.from("subscriptions").update(payload).eq("id", existing.data.id)
+  } else {
+    await supabase.from("subscriptions").insert(payload)
+  }
+}
+
 /**
  * POST /api/stripe/webhook
  * Handles Stripe webhook events to update user plans and subscriptions.
+ * Plan/trial source of truth is `accounts`; mirrored to `users`.
  * This is a separate file from the Instagram webhook — DO NOT merge them.
  */
 export async function POST(request: NextRequest) {
@@ -24,12 +48,14 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = await getSupabaseServerClient()
+  const now = new Date().toISOString()
 
   try {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session
         const userId = session.metadata?.userId
+        const accountId = session.metadata?.accountId
         const planType = session.metadata?.planType as "monthly" | "one_time"
 
         if (!userId || !planType) {
@@ -37,34 +63,46 @@ export async function POST(request: NextRequest) {
           break
         }
 
-        // Update user plan and clear trial
+        const resolvedAccountId =
+          accountId || (await getAccountIdForUser(supabase, Number(userId)))
+
+        const customerId = session.customer as string | null
+        const stripeSubId =
+          planType === "monthly" ? ((session.subscription as string) ?? null) : null
+
+        // Source of truth: accounts
+        if (resolvedAccountId) {
+          await supabase
+            .from("accounts")
+            .update({
+              plan: planType,
+              trial_ends_at: null,
+              stripe_customer_id: customerId,
+              updated_at: now,
+            })
+            .eq("id", resolvedAccountId)
+        }
+
+        // Mirror to users
         await supabase
           .from("users")
           .update({
             plan: planType,
             trial_ends_at: null,
-            updated_at: new Date().toISOString(),
+            stripe_customer_id: customerId,
+            updated_at: now,
           })
-          .eq("id", userId)
+          .eq("id", Number(userId))
 
-        // Upsert subscription record
-        const subStatus = planType === "monthly" ? "active" : "active"
-        const stripeSubId =
-          planType === "monthly"
-            ? (session.subscription as string) ?? null
-            : null
-
-        await supabase.from("subscriptions").upsert(
-          {
-            user_id: Number(userId),
-            stripe_customer_id: session.customer as string,
-            stripe_subscription_id: stripeSubId,
-            plan_type: planType,
-            status: subStatus,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "user_id" }
-        )
+        await upsertSubscription(supabase, {
+          user_id: Number(userId),
+          stripe_subscription_id: stripeSubId,
+          plan_type: planType,
+          status: "active",
+          current_period_end: null,
+          payment_method: "stripe",
+          updated_at: now,
+        })
 
         console.log(`[stripe/webhook] ✅ Checkout complete — user ${userId} → plan ${planType}`)
         break
@@ -76,30 +114,39 @@ export async function POST(request: NextRequest) {
 
         const { data: user } = await supabase
           .from("users")
-          .select("id, plan")
+          .select("id, account_id")
           .eq("stripe_customer_id", customerId)
-          .single()
+          .maybeSingle()
 
         if (user) {
+          if (user.account_id) {
+            await supabase
+              .from("accounts")
+              .update({ plan: "monthly", trial_ends_at: null, updated_at: now })
+              .eq("id", user.account_id)
+          }
+
           await supabase
             .from("users")
             .update({
               plan: "monthly",
               trial_ends_at: null,
-              updated_at: new Date().toISOString(),
+              updated_at: now,
             })
             .eq("id", user.id)
 
-          await supabase.from("subscriptions").upsert(
-            {
-              user_id: user.id,
-              stripe_customer_id: customerId,
-              plan_type: "monthly",
-              status: "active",
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: "user_id" }
-          )
+          const currentPeriodEnd = invoice.period_end
+            ? new Date(invoice.period_end * 1000).toISOString()
+            : null
+
+          await upsertSubscription(supabase, {
+            user_id: user.id,
+            plan_type: "monthly",
+            status: "active",
+            current_period_end: currentPeriodEnd,
+            payment_method: "stripe",
+            updated_at: now,
+          })
 
           console.log(`[stripe/webhook] ✅ Invoice paid — user ${user.id} renewed`)
         }
@@ -112,30 +159,30 @@ export async function POST(request: NextRequest) {
 
         const { data: user } = await supabase
           .from("users")
-          .select("id")
+          .select("id, account_id")
           .eq("stripe_customer_id", customerId)
-          .single()
+          .maybeSingle()
 
         if (user) {
+          if (user.account_id) {
+            await supabase
+              .from("accounts")
+              .update({ plan: "expired", updated_at: now })
+              .eq("id", user.account_id)
+          }
+
           await supabase
             .from("users")
-            .update({
-              plan: "expired",
-              updated_at: new Date().toISOString(),
-            })
+            .update({ plan: "expired", updated_at: now })
             .eq("id", user.id)
 
-          await supabase.from("subscriptions").upsert(
-            {
-              user_id: user.id,
-              stripe_customer_id: customerId,
-              stripe_subscription_id: subscription.id,
-              plan_type: "expired",
-              status: "canceled",
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: "user_id" }
-          )
+          await upsertSubscription(supabase, {
+            user_id: user.id,
+            stripe_subscription_id: subscription.id,
+            plan_type: "expired",
+            status: "canceled",
+            updated_at: now,
+          })
 
           console.log(`[stripe/webhook] ⚠️ Subscription canceled — user ${user.id} → expired`)
         }

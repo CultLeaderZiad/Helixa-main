@@ -5,7 +5,7 @@ import Image from "next/image"
 import { cn } from "@/lib/utils"
 import {
   Zap, LayoutDashboard, LogOut, Settings, BarChart3,
-  MessageSquare, Snowflake, Send, Linkedin,
+  MessageSquare, Snowflake, Send, Linkedin, Share2, CreditCard
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -19,15 +19,17 @@ const NAV = [
   { href: "/dashboard/analytics", icon: BarChart3, label: "Analytics" },
 ]
 
-interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
+interface SidebarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "role"> {
   username?: string
   profilePic?: string | null
+  email?: string | null
+  userRole?: string | null
   className?: string
   onLogout?: () => void
   onNavigate?: () => void
 }
 
-export function Sidebar({ className, username = "creator", profilePic, onLogout, onNavigate, ...props }: SidebarProps) {
+export function Sidebar({ className, username = "creator", profilePic, email, userRole, onLogout, onNavigate, ...props }: SidebarProps) {
   const pathname = usePathname()
 
   return (
@@ -44,7 +46,7 @@ export function Sidebar({ className, username = "creator", profilePic, onLogout,
             priority
           />
         </div>
-        <div style={{ position: 'relative', height: '28px', width: '100px' }}>
+        <div style={{ position: 'relative', height: '22px', width: '80px' }}>
           <TextPressure
             text="HELIXA"
             flex={true}
@@ -55,7 +57,7 @@ export function Sidebar({ className, username = "creator", profilePic, onLogout,
             italic={true}
             textColor="#ffffff"
             strokeColor="#ff0000"
-            minFontSize={20}
+            minFontSize={16}
           />
         </div>
       </div>
@@ -90,6 +92,75 @@ export function Sidebar({ className, username = "creator", profilePic, onLogout,
         </div>
 
         <Link
+          href="/dashboard/connected-platforms"
+          onClick={onNavigate}
+          className={cn(
+            "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-colors relative",
+            pathname === "/dashboard/connected-platforms"
+              ? "text-white bg-white/[0.06]"
+              : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
+          )}
+        >
+          {pathname === "/dashboard/connected-platforms" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
+          <Share2 className="w-4 h-4 shrink-0" strokeWidth={1.8} />
+          <span>Connected Platforms</span>
+        </Link>
+
+            {userRole === "admin" && (
+          <>
+            <div className="pt-5 pb-1 px-3">
+              <div className="h-px bg-white/[0.06]" />
+            </div>
+            <div className="px-3 pb-1 pt-2 font-mono-ui text-[9px] uppercase tracking-widest text-neutral-600">
+              Admin
+            </div>
+            <Link
+              href="/dashboard/admin"
+              onClick={onNavigate}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-colors relative",
+                pathname === "/dashboard/admin"
+                  ? "text-white bg-white/[0.06]"
+                  : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
+              )}
+            >
+              {pathname === "/dashboard/admin" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
+              <BarChart3 className="w-4 h-4 shrink-0" strokeWidth={1.8} />
+              <span>Users & Stats</span>
+            </Link>
+            <Link
+              href="/dashboard/admin/plans"
+              onClick={onNavigate}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-colors relative",
+                pathname === "/dashboard/admin/plans"
+                  ? "text-white bg-white/[0.06]"
+                  : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
+              )}
+            >
+              {pathname === "/dashboard/admin/plans" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
+              <CreditCard className="w-4 h-4 shrink-0" strokeWidth={1.8} />
+              <span>Plans</span>
+            </Link>
+          </>
+        )}
+
+        <Link
+          href="/dashboard/billing"
+          onClick={onNavigate}
+          className={cn(
+            "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-colors relative",
+            pathname === "/dashboard/billing"
+              ? "text-white bg-white/[0.06]"
+              : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
+          )}
+        >
+          {pathname === "/dashboard/billing" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
+          <CreditCard className="w-4 h-4 shrink-0" strokeWidth={1.8} />
+          <span>Billing & Subscription</span>
+        </Link>
+
+        <Link
           href="/dashboard/settings"
           onClick={onNavigate}
           className={cn(
@@ -101,7 +172,7 @@ export function Sidebar({ className, username = "creator", profilePic, onLogout,
         >
           {pathname === "/dashboard/settings" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
           <Settings className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-          <span>Settings</span>
+          <span>Account Settings</span>
         </Link>
 
         <a
@@ -123,6 +194,16 @@ export function Sidebar({ className, username = "creator", profilePic, onLogout,
           <Linkedin className="w-4 h-4 shrink-0" strokeWidth={1.8} />
           <span>LinkedIn</span>
         </a>
+
+        <div className="pt-2">
+          <button
+            onClick={onLogout}
+            className="flex w-full items-center gap-3 px-3 py-2 rounded-md text-[13px] text-neutral-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+          >
+            <LogOut className="w-4 h-4 shrink-0" strokeWidth={1.8} />
+            <span>Log out</span>
+          </button>
+        </div>
       </nav>
 
       {/* Account */}
@@ -140,15 +221,30 @@ export function Sidebar({ className, username = "creator", profilePic, onLogout,
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs text-white truncate">@{username}</p>
-            <p className="font-mono-ui text-[9px] uppercase tracking-wider text-neutral-600">connected</p>
+            {email && (
+              <p className="text-[10px] text-neutral-500 truncate">{email}</p>
+            )}
+        {userRole === "admin" && (
+              <p className="font-mono-ui text-[8px] uppercase tracking-wider text-[#ffe14d]/80">admin</p>
+            )}
           </div>
-          <button
-            onClick={onLogout}
-            title="Log out"
-            className="p-1.5 rounded-md text-neutral-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <Link
+              href="/dashboard/settings"
+              onClick={onNavigate}
+              title="Account settings"
+              className="p-1.5 rounded-md text-neutral-600 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <Settings className="w-3.5 h-3.5" />
+            </Link>
+            <button
+              onClick={onLogout}
+              title="Log out"
+              className="p-1.5 rounded-md text-neutral-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </aside>

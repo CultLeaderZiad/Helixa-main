@@ -22,29 +22,30 @@ export async function GET() {
     })
     
     if (newUser?.user) {
-      // Small delay to ensure the database trigger creates the account row first
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      await supabase.from('accounts').update({ role: 'admin' }).eq('user_id', newUser.user.id)
+      // Upsert the account row to guarantee it exists and is an admin
+      await supabase.from('accounts').upsert({ 
+        id: newUser.user.id,
+        email: newUser.user.email,
+        role: 'admin',
+        plan: 'lifetime'
+      }, { onConflict: 'id' })
       return NextResponse.json({ success: true, created: true })
     } else {
       return NextResponse.json({ success: false, error: createError?.message })
     }
   }
 
-  // Ensure role is admin and account exists
+  // If user already existed in auth, guarantee they have an admin account row
+  // and force the password to be correct so they can log in.
   if (exists) {
-    const { data: existingAccount } = await supabase.from('accounts').select('id').eq('user_id', exists.id).single()
-    if (!existingAccount) {
-        await supabase.from('accounts').insert({
-            user_id: exists.id,
-            email: exists.email,
-            role: 'admin',
-            plan: 'one_time'
-        })
-    } else {
-        await supabase.from('accounts').update({ role: 'admin' }).eq('user_id', exists.id)
-    }
+    await supabase.auth.admin.updateUserById(exists.id, { password })
+
+    await supabase.from('accounts').upsert({
+      id: exists.id,
+      email: exists.email,
+      role: 'admin',
+      plan: 'lifetime'
+    }, { onConflict: 'id' })
   }
 
   return NextResponse.json({ success: true, created: false })

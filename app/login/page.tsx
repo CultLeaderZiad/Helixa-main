@@ -31,7 +31,7 @@ export default function LoginPage() {
         // Now try logging in
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (!error) {
-          router.push("/admin/plans")
+          router.push("/dashboard")
           router.refresh()
           return
         }

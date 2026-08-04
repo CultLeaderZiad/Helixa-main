@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Loader2, Plus, Trash2, Save, RefreshCw, Snowflake } from "lucide-react"
 import { toast } from "sonner"
 import type { IceBreaker } from "@/types/db"
-
+import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
 export function IceBreakersManager() {
     const { userId, isLoading } = useInstagramSession()
     const [breakers, setBreakers] = useState<Partial<IceBreaker>[]>([])
@@ -82,21 +82,8 @@ export function IceBreakersManager() {
 
     if (!userId) {
         return (
-            <div className="min-h-[calc(100vh-64px)] bg-[#03010A] flex flex-col items-center justify-center p-4">
-                <div className="max-w-md w-full p-8 bg-white/[0.02] border border-white/10 rounded-2xl text-center space-y-4">
-                    <div className="w-12 h-12 bg-[#ffe14d]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <Snowflake className="w-6 h-6 text-[#ffe14d]" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-white">Connect Instagram</h2>
-                    <p className="text-neutral-400 text-sm leading-relaxed">
-                        You need to connect your professional Instagram account to manage ice breakers.
-                    </p>
-                    <div className="pt-4">
-                        <a href="/api/instagram/auth" className="inline-block px-8 py-3 bg-[#ffe14d] text-black font-semibold rounded-full hover:brightness-95 transition-all w-full">
-                            Connect Account
-                        </a>
-                    </div>
-                </div>
+            <div className="min-h-[calc(100vh-64px)] bg-[#03010A] p-4 flex items-center justify-center">
+                <ConnectPlatformEmptyState description="You need to connect your professional Instagram account to manage ice breakers." />
             </div>
         )
     }

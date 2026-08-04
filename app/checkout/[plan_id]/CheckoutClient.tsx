@@ -4,22 +4,29 @@ import { useState } from "react"
 import { Loader2, ArrowRight } from "lucide-react"
 
 export default function CheckoutClient({ plan, methods, user }: { plan: any, methods: any[], user: any }) {
-  const [selectedMethodId, setSelectedMethodId] = useState<string | null>(methods.length > 0 ? methods[0].id : null)
+  const [selectedMethod, setSelectedMethod] = useState<string | null>(
+    methods.length > 0 ? methods[0].method : null
+  )
+  const [transactionRef, setTransactionRef] = useState("")
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
 
-  const selectedMethod = methods.find(m => m.id === selectedMethodId)
+  const selected = methods.find((m) => m.method === selectedMethod)
+  const isStripe = selectedMethod === "stripe"
+
+  // plans.billing_cycle: "monthly" | "yearly" | "lifetime" (one-time)
+  const planType = plan.billing_cycle === "monthly" ? "monthly" : "one_time"
 
   const handleCheckout = async () => {
     if (!selectedMethod) return
     setLoading(true)
 
     try {
-      if (selectedMethod.provider === "stripe") {
-        const res = await fetch("/api/stripe/create-checkout-session", {
+      if (isStripe) {
+        const res = await fetch("/api/stripe/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ planId: plan.id })
+          body: JSON.stringify({ planType })
         })
         const data = await res.json()
         if (data.url) {
@@ -27,8 +34,25 @@ export default function CheckoutClient({ plan, methods, user }: { plan: any, met
         } else {
           throw new Error(data.error || "Failed to create checkout session")
         }
-      } else if (selectedMethod.provider === "vodafone_cash" || selectedMethod.provider === "manual") {
-        // Handle manual flow or just show success screen indicating pending activation
+      } else {
+        // Manual / Vodafone Cash — submit proof for admin review
+        if (!transactionRef.trim()) {
+          throw new Error("Please enter your transaction reference")
+        }
+        const res = await fetch("/api/payments/submit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            transaction_reference: transactionRef.trim(),
+            amount: Number(plan.price_usd),
+            payment_method: selectedMethod,
+            plan_id: plan.id,
+          })
+        })
+        const data = await res.json()
+        if (!data.success) {
+          throw new Error(data.error || "Failed to submit payment")
+        }
         setSuccess(true)
       }
     } catch (err: any) {
@@ -45,10 +69,9 @@ export default function CheckoutClient({ plan, methods, user }: { plan: any, met
         <p className="text-neutral-300">
           We have received your payment request for the {plan.name}.
         </p>
-        {selectedMethod?.provider === "vodafone_cash" && (
+        {selected && (
           <div className="bg-black/50 p-4 rounded-lg mt-4 border border-white/10 text-sm text-left text-neutral-300 space-y-2">
-            <p><strong>Instructions:</strong> {selectedMethod.config?.instructions}</p>
-            <p><strong>Phone Number:</strong> <span className="text-[#ffe14d]">{selectedMethod.config?.phone_number}</span></p>
+            <p><strong>Instructions:</strong> {selected.instructions}</p>
             <p className="mt-4">Please upload your receipt to our support chat or wait 24h for manual activation.</p>
           </div>
         )}
@@ -70,28 +93,46 @@ export default function CheckoutClient({ plan, methods, user }: { plan: any, met
       <div className="space-y-4">
         <h3 className="text-lg font-bold">Select Payment Method</h3>
         <div className="grid gap-4">
-          {methods.map(m => (
-            <div 
-              key={m.id} 
-              onClick={() => setSelectedMethodId(m.id)}
+          {methods.map((m) => (
+            <div
+              key={m.method}
+              onClick={() => setSelectedMethod(m.method)}
               className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                selectedMethodId === m.id ? "border-[#ffe14d] bg-[#ffe14d]/10" : "border-white/10 bg-white/5 hover:border-white/30"
+                selectedMethod === m.method ? "border-[#ffe14d] bg-[#ffe14d]/10" : "border-white/10 bg-white/5 hover:border-white/30"
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="font-bold">{m.name}</span>
-                {m.provider === 'vodafone_cash' && (
+                <span className="font-bold">{m.display_name}</span>
+                {m.method === "vodafone_cash" && (
                   <img src="/vodafone-cash.svg" alt="Vodafone Cash" className="h-6" />
                 )}
               </div>
+              {m.instructions && (
+                <p className="text-xs text-neutral-400 mt-2">{m.instructions}</p>
+              )}
             </div>
           ))}
         </div>
       </div>
 
+      {!isStripe && (
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-neutral-300">
+            Transaction Reference
+          </label>
+          <input
+            type="text"
+            value={transactionRef}
+            onChange={(e) => setTransactionRef(e.target.value)}
+            placeholder="e.g. 1234 5678"
+            className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-neutral-500 outline-none focus:border-[#ffe14d]/50"
+          />
+        </div>
+      )}
+
       <button
         onClick={handleCheckout}
-        disabled={loading || !selectedMethodId}
+        disabled={loading || !selectedMethod}
         className="w-full flex items-center justify-center gap-2 bg-[#ffe14d] text-black font-bold py-4 rounded-xl hover:brightness-110 disabled:opacity-50 transition-all"
       >
         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Complete Purchase"}
