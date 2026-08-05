@@ -62,6 +62,8 @@ const TextPressure: React.FC<TextPressureProps> = ({
 
   const mouseRef = useRef({ x: 0, y: 0 });
   const cursorRef = useRef({ x: 0, y: 0 });
+  const charCentersRef = useRef<{ x: number; y: number }[]>([]);
+  const maxDistRef = useRef(1);
 
   const [fontSize, setFontSize] = useState(minFontSize);
   const [scaleY, setScaleY] = useState(1);
@@ -113,6 +115,16 @@ const TextPressure: React.FC<TextPressureProps> = ({
       if (!titleRef.current) return;
       const textRect = titleRef.current.getBoundingClientRect();
 
+      // Cache character anchor positions once so the animation loop never has
+      // to read the DOM (getBoundingClientRect) on every frame. This eliminates
+      // the layout thrash that made the whole app feel laggy.
+      maxDistRef.current = titleRef.current.getBoundingClientRect().width / 2;
+      charCentersRef.current = spansRef.current.map((span) => {
+        if (!span) return { x: 0, y: 0 };
+        const rect = span.getBoundingClientRect();
+        return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+      });
+
       if (scale && textRect.height > 0) {
         const yRatio = containerH / textRect.height;
         setScaleY(yRatio);
@@ -134,42 +146,69 @@ const TextPressure: React.FC<TextPressureProps> = ({
       mouseRef.current.x += (cursorRef.current.x - mouseRef.current.x) / 15;
       mouseRef.current.y += (cursorRef.current.y - mouseRef.current.y) / 15;
 
-      if (titleRef.current) {
-        const titleRect = titleRef.current.getBoundingClientRect();
-        const maxDist = titleRect.width / 2;
-
-        spansRef.current.forEach(span => {
-          if (!span) return;
-
+      // One-time synchronous measure until setSize caches the anchors.
+      if (charCentersRef.current.length !== spansRef.current.length && titleRef.current) {
+        maxDistRef.current = titleRef.current.getBoundingClientRect().width / 2;
+        charCentersRef.current = spansRef.current.map((span) => {
+          if (!span) return { x: 0, y: 0 };
           const rect = span.getBoundingClientRect();
-          const charCenter = {
-            x: rect.x + rect.width / 2,
-            y: rect.y + rect.height / 2
-          };
-
-          const d = dist(mouseRef.current, charCenter);
-
-          const wdth = width ? Math.floor(getAttr(d, maxDist, 5, 200)) : 100;
-          const wght = weight ? Math.floor(getAttr(d, maxDist, 100, 900)) : 400;
-          const italVal = italic ? getAttr(d, maxDist, 0, 1).toFixed(2) : '0';
-          const alphaVal = alpha ? getAttr(d, maxDist, 0, 1).toFixed(2) : '1';
-
-          const newFontVariationSettings = `'wght' ${wght}, 'wdth' ${wdth}, 'ital' ${italVal}`;
-
-          if (span.style.fontVariationSettings !== newFontVariationSettings) {
-            span.style.fontVariationSettings = newFontVariationSettings;
-          }
-          if (alpha && span.style.opacity !== alphaVal) {
-            span.style.opacity = alphaVal;
-          }
+          return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
         });
       }
+
+      const maxDist = maxDistRef.current;
+      const centers = charCentersRef.current;
+
+      spansRef.current.forEach((span, i) => {
+        if (!span) return;
+        const c = centers[i] || { x: 0, y: 0 };
+        const d = dist(mouseRef.current, c);
+
+        const wdth = width ? Math.floor(getAttr(d, maxDist, 5, 200)) : 100;
+        const wght = weight ? Math.floor(getAttr(d, maxDist, 100, 900)) : 400;
+        const italVal = italic ? getAttr(d, maxDist, 0, 1).toFixed(2) : '0';
+        const alphaVal = alpha ? getAttr(d, maxDist, 0, 1).toFixed(2) : '1';
+
+        const newFontVariationSettings = `'wght' ${wght}, 'wdth' ${wdth}, 'ital' ${italVal}`;
+
+        if (span.style.fontVariationSettings !== newFontVariationSettings) {
+          span.style.fontVariationSettings = newFontVariationSettings;
+        }
+        if (alpha && span.style.opacity !== alphaVal) {
+          span.style.opacity = alphaVal;
+        }
+      });
 
       rafId = requestAnimationFrame(animate);
     };
 
-    animate();
-    return () => cancelAnimationFrame(rafId);
+    const startLoop = () => {
+      cancelAnimationFrame(rafId);
+      animate();
+    };
+
+    startLoop();
+
+    // Pause the animation loop entirely when the element is not visible.
+    let observer: IntersectionObserver | undefined;
+    if (typeof IntersectionObserver !== 'undefined' && containerRef.current) {
+      observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            startLoop();
+          } else {
+            cancelAnimationFrame(rafId);
+          }
+        },
+        { threshold: 0 },
+      );
+      observer.observe(containerRef.current);
+    }
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      observer?.disconnect();
+    };
   }, [width, weight, italic, alpha]);
 
   const styleElement = useMemo(() => {

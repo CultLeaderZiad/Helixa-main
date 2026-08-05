@@ -43,7 +43,7 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
 
     const { data: automations } = await supabase
       .from("automations")
-      .select("*")
+      .select("*, automation_variants(*)")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .in("platform", ["facebook", "messenger"])
@@ -51,16 +51,27 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
     if (!automations?.length) continue
 
     // Plan enforcement
-    let effectivePlan = user.plan
-    if (user.plan === "trial" && user.trial_ends_at) {
-      const trialEnded = new Date(user.trial_ends_at) < new Date()
+    const { data: account } = await supabase
+      .from("accounts")
+      .select("plan, trial_ends_at, trial_exempt")
+      .eq("id", user.account_id)
+      .single()
+
+    if (!account) {
+      console.log(`[fb-webhook] ⚠️ Account not found for user ${user.username}. Skipping.`)
+      continue
+    }
+
+    let effectivePlan = account.plan
+    if (account.plan === "trial" && account.trial_ends_at && !account.trial_exempt) {
+      const trialEnded = new Date(account.trial_ends_at) < new Date()
       if (trialEnded) {
         effectivePlan = "expired"
         await supabase
-          .from("users")
+          .from("accounts")
           .update({ plan: "expired", updated_at: new Date().toISOString() })
-          .eq("id", user.id)
-        console.log(`[fb-webhook] ⚠️ User ${user.username} trial expired. Set plan=expired, skipping automations.`)
+          .eq("id", account.id)
+        console.log(`[fb-webhook] ⚠️ Account ${account.id} trial expired. Set plan=expired, skipping automations.`)
       }
     }
     if (effectivePlan === "expired") {
@@ -87,19 +98,41 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
           if (rule.trigger_type !== "keyword") continue
           if (!keywordMatches(rule.trigger_value, text)) continue
 
-          console.log(`[fb-webhook] ✅ Keyword match! rule=${rule.name} comment=${commentId}`)
+          console.log(`[fb-webhook] ✅ Comment match! rule=${rule.name} sender=${senderId}`)
+            
+            // A/B Testing selection
+            let responseContent = rule.response_content
+            let variantId = null
+            if (rule.automation_variants && rule.automation_variants.length > 0) {
+              const allOptions = [
+                { id: null, content: rule.response_content, weight: 100 - rule.automation_variants.reduce((sum: number, v: any) => sum + (v.traffic_weight || 0), 0) },
+                ...rule.automation_variants.map((v: any) => ({ id: v.id, content: v.response_config, weight: v.traffic_weight || 50 }))
+              ]
+              const random = Math.random() * 100
+              let sum = 0
+              for (const opt of allOptions) {
+                sum += Math.max(0, opt.weight)
+                if (random <= sum) {
+                  responseContent = opt.content
+                  variantId = opt.id
+                  break
+                }
+              }
+            }
 
-          const content = rule.response_content
-          if (content.reply_text) {
-            await replyToFacebookComment(fbToken, commentId, content.reply_text)
-          }
+            await sendAutomationResponse(fbToken, { id: senderId }, responseContent)
 
-          if (content.message || content.card || content.media?.url) {
-            await sendAutomationResponse(fbToken, { id: senderId }, content)
-          }
+            // 4. Send Public Reply if configured
+            const rc = responseContent as any
+            if (rc?.reply_mode === "both" || rc?.reply_mode === "public_only") {
+              if (rc.public_replies && rc.public_replies.length > 0) {
+                const replyText = rc.public_replies[Math.floor(Math.random() * rc.public_replies.length)]
+                await replyToFacebookComment(fbToken, commentId, replyText)
+              }
+            }
 
-          await logAutomationEvent(supabase, user.id, rule.id, "comment_dm", senderId, "facebook")
-          break
+            await logAutomationEvent(supabase, user.id, rule.id, "comment_dm", senderId, "facebook", variantId)
+            break
         }
       }
     }
@@ -125,8 +158,29 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
 
           if (matched) {
             console.log(`[fb-webhook] ✅ DM match! rule=${rule.name} sender=${senderId}`)
-            await sendAutomationResponse(fbToken, { id: senderId }, rule.response_content)
-            await logAutomationEvent(supabase, user.id, rule.id, "dm_reply", senderId, "messenger")
+
+            // A/B Testing selection
+            let responseContent = rule.response_content
+            let variantId = null
+            if (rule.automation_variants && rule.automation_variants.length > 0) {
+              const allOptions = [
+                { id: null, content: rule.response_content, weight: 100 - rule.automation_variants.reduce((sum: number, v: any) => sum + (v.traffic_weight || 0), 0) },
+                ...rule.automation_variants.map((v: any) => ({ id: v.id, content: v.response_config, weight: v.traffic_weight || 50 }))
+              ]
+              const random = Math.random() * 100
+              let sum = 0
+              for (const opt of allOptions) {
+                sum += Math.max(0, opt.weight)
+                if (random <= sum) {
+                  responseContent = opt.content
+                  variantId = opt.id
+                  break
+                }
+              }
+            }
+
+            await sendAutomationResponse(fbToken, { id: senderId }, responseContent)
+            await logAutomationEvent(supabase, user.id, rule.id, "dm_reply", senderId, "messenger", variantId)
             break
           }
         }
@@ -195,6 +249,7 @@ async function logAutomationEvent(
   eventType: string,
   recipientId: string,
   platform: string,
+  variantId?: string
 ) {
   try {
     await supabase.from("automation_events").insert({
@@ -203,8 +258,9 @@ async function logAutomationEvent(
       event_type: eventType,
       recipient_id: recipientId,
       platform,
+      ...(variantId ? { variant_id: variantId } : {})
     })
-  } catch (e) {
-    console.error("[fb-webhook] Failed to log automation_event:", e)
+  } catch (error) {
+    console.error("[fb-webhook] Failed to log automation_event:", error)
   }
 }

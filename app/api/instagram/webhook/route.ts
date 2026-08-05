@@ -66,6 +66,28 @@ function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
 }
 
+function pickVariant(rule: any): { content: any, variantId: string | null } {
+  let responseContent = rule.response_content
+  let variantId = null
+  if (rule.automation_variants && rule.automation_variants.length > 0) {
+    const allOptions = [
+      { id: null, content: rule.response_content, weight: 100 - rule.automation_variants.reduce((sum: number, v: any) => sum + (v.traffic_weight || 0), 0) },
+      ...rule.automation_variants.map((v: any) => ({ id: v.id, content: v.response_config, weight: v.traffic_weight || 50 }))
+    ]
+    const random = Math.random() * 100
+    let sum = 0
+    for (const opt of allOptions) {
+      sum += Math.max(0, opt.weight)
+      if (random <= sum) {
+        responseContent = opt.content
+        variantId = opt.id
+        break
+      }
+    }
+  }
+  return { content: responseContent, variantId }
+}
+
 function keywordMatches(triggerValue: string, text: string): boolean {
   return triggerValue
     .split(",")
@@ -223,7 +245,7 @@ export async function POST(request: NextRequest) {
 
       const { data: automations } = await supabase
         .from("automations")
-        .select("*")
+        .select("*, automation_variants(*)")
         .eq("user_id", user.id)
         .eq("is_active", true)
 
@@ -253,7 +275,7 @@ export async function POST(request: NextRequest) {
 
       // Plan enforcement: check expired OR trial-past-end
       let effectivePlan = account.plan
-      if (account.plan === "trial" && account.trial_ends_at) {
+      if (account.plan === "trial" && account.trial_ends_at && !account.trial_exempt) {
         const trialEnded = new Date(account.trial_ends_at) < new Date()
         if (trialEnded) {
           // On-the-fly: mark as expired so it's consistent in DB too
@@ -310,12 +332,13 @@ export async function POST(request: NextRequest) {
           }
           if (!match) continue
 
-          const content = parseContent(match.response_content)
+          const { content: rawContent, variantId } = pickVariant(match)
+          const content = parseContent(rawContent)
 
           // Skip nested replies unless user opted in
           if (parentId && content.include_replies !== true) continue
 
-          console.log(`[webhook] ✅ Comment match: "${match.name}"`)
+          console.log(`[webhook] ✅ Comment match: "${match.name}" (variant: ${variantId || "default"})`)
 
           // reply_mode: 'both' (default) | 'dm_only' | 'public_only'
           const replyMode = content.reply_mode || "both"
@@ -335,6 +358,19 @@ export async function POST(request: NextRequest) {
               content,
               { skipTyping: true },
             )
+          }
+
+          try {
+            await supabase.from("automation_events").insert({
+              user_id: user.id,
+              automation_id: match.id,
+              event_type: "comment_dm",
+              recipient_id: senderId,
+              platform: "instagram",
+              variant_id: variantId
+            })
+          } catch (e) {
+            console.error("[webhook] Failed to log event", e)
           }
         }
       }
@@ -392,8 +428,20 @@ export async function POST(request: NextRequest) {
 
           if (match) {
             console.log(`[webhook] ✨ Story match: "${match.name}"`)
-            const content = parseContent(match.response_content)
+            const { content: rawContent, variantId } = pickVariant(match)
+            const content = parseContent(rawContent)
             await sendAutomationResponse(user.access_token, { id: senderId }, content)
+
+            try {
+              await supabase.from("automation_events").insert({
+                user_id: user.id,
+                automation_id: match.id,
+                event_type: "story_reply",
+                recipient_id: senderId,
+                platform: "instagram",
+                variant_id: variantId
+              })
+            } catch (e) {}
           }
         }
       }
@@ -511,8 +559,9 @@ export async function POST(request: NextRequest) {
 
           if (!match) continue
 
-          console.log(`[webhook] ✅ DM match: "${match.name}"`)
-          const content = parseContent(match.response_content)
+          const { content: rawContent, variantId } = pickVariant(match)
+          console.log(`[webhook] ✅ DM match: "${match.name}" (variant: ${variantId || "default"})`)
+          const content = parseContent(rawContent)
 
           // Mark message as seen for human-like flow
           if (content.mark_seen !== false) {
@@ -536,6 +585,17 @@ export async function POST(request: NextRequest) {
             })
           } else {
             result = await sendAutomationResponse(user.access_token, { id: senderId }, content)
+            
+            try {
+              await supabase.from("automation_events").insert({
+                user_id: user.id,
+                automation_id: match.id,
+                event_type: "dm_reply",
+                recipient_id: senderId,
+                platform: "instagram",
+                variant_id: variantId
+              })
+            } catch (e) {}
           }
 
           if (result?.ok && conv) {

@@ -4,8 +4,10 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { createBrowserClient } from "@supabase/ssr"
-import Ferrofluid from "@/components/effects/ferrofluid"
+import dynamic from "next/dynamic"
 import BackToHome from "@/components/ui/back-to-home"
+
+const Ferrofluid = dynamic(() => import("@/components/effects/ferrofluid"), { ssr: true })
 import { PasswordInput } from "@/components/ui/password-input"
 export default function LoginPage() {
   const [email, setEmail] = useState("")

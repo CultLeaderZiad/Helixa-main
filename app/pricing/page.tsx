@@ -1,13 +1,13 @@
 import { CheckCircle, Zap, Star } from "lucide-react"
 import Link from "next/link"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import ElectricBorder from "@/components/ui/electric-border"
 import BackToHome from "@/components/ui/back-to-home"
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 export default async function PricingPage() {
-  const supabase = await getSupabaseServerClient()
+  const supabase = await getSupabaseBypassClient()
   const { data: dbPlans, error } = await supabase
     .from("plans")
     .select("*")

@@ -22,13 +22,20 @@ export async function GET() {
     })
     
     if (newUser?.user) {
-      // Upsert the account row to guarantee it exists and is an admin
-      await supabase.from('accounts').upsert({ 
+      // Upsert the account row to guarantee it exists and is an admin.
+      // NOTE: accounts.plan has a CHECK constraint allowing only
+      // ('trial','monthly','one_time','expired') — 'lifetime' is NOT allowed
+      // and would fail the whole upsert. 'one_time' is the lifetime-deal plan.
+      const { error: upsertError } = await supabase.from('accounts').upsert({
         id: newUser.user.id,
         email: newUser.user.email,
         role: 'admin',
-        plan: 'lifetime'
+        plan: 'one_time',
+        trial_ends_at: null
       }, { onConflict: 'id' })
+      if (upsertError) {
+        return NextResponse.json({ success: false, error: upsertError.message })
+      }
       return NextResponse.json({ success: true, created: true })
     } else {
       return NextResponse.json({ success: false, error: createError?.message })
@@ -40,12 +47,16 @@ export async function GET() {
   if (exists) {
     await supabase.auth.admin.updateUserById(exists.id, { password })
 
-    await supabase.from('accounts').upsert({
+    const { error: upsertError } = await supabase.from('accounts').upsert({
       id: exists.id,
       email: exists.email,
       role: 'admin',
-      plan: 'lifetime'
+      plan: 'one_time',
+      trial_ends_at: null
     }, { onConflict: 'id' })
+    if (upsertError) {
+      return NextResponse.json({ success: false, error: upsertError.message })
+    }
   }
 
   return NextResponse.json({ success: true, created: false })

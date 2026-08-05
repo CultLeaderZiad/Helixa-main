@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireInstagramUser } from "@/lib/auth"
 import { generateGroqCompletion } from "@/lib/groq-client"
 
@@ -53,7 +53,7 @@ Return ONLY a JSON array of 3 strings. Do not include markdown formatting or exp
 
     // Save suggestions to database
     if (automationId && suggestions.length > 0) {
-      const supabase = await getSupabaseServerClient()
+      const supabase = await getSupabaseBypassClient()
       const rows = suggestions.map((s) => ({
         user_id: igUser.id,
         automation_id: automationId,
@@ -97,7 +97,7 @@ export async function PATCH(request: NextRequest) {
     const { suggestionId, accepted } = await request.json()
     if (!suggestionId) return NextResponse.json({ error: "Suggestion ID is required" }, { status: 400 })
 
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
     const { error } = await supabase
       .from("ai_copy_suggestions")
       .update({ accepted })

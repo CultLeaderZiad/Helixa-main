@@ -15,11 +15,13 @@ interface AutomationListProps {
   automations: Automation[]
   onDelete: (id: string) => void
   onEdit: (rule: Automation) => void
+  onToggle: (rule: Automation, active: boolean) => void
   onChanged: () => void
   userId: string
+  userRole?: string
 }
 
-export function AutomationList({ automations, onDelete, onEdit, onChanged, userId }: AutomationListProps) {
+export function AutomationList({ automations, onDelete, onEdit, onToggle, onChanged, userId, userRole = "admin" }: AutomationListProps) {
   const [mediaMap, setMediaMap] = useState<Record<string, string>>({})
 
   const globalRules = automations.filter((rule) => !rule.specific_media_id)
@@ -41,19 +43,7 @@ export function AutomationList({ automations, onDelete, onEdit, onChanged, userI
     fetchMedia()
   }, [userId, automations.length])
 
-  const handleToggle = async (rule: Automation, active: boolean) => {
-    const res = await fetch("/api/automations", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: rule.id, is_active: active }),
-    })
-    if (res.ok) {
-      toast.success(active ? "Automation enabled" : "Automation paused")
-      onChanged()
-    } else {
-      toast.error("Failed to update")
-    }
-  }
+  const handleToggle = onToggle
 
   const handleDuplicate = async (rule: Automation) => {
     const res = await fetch("/api/automations", {
@@ -99,7 +89,7 @@ export function AutomationList({ automations, onDelete, onEdit, onChanged, userI
               <Globe className="w-3 h-3" /> Global
             </div>
             {globalRules.map((rule, idx) => (
-              <RuleCard key={rule.id} rule={rule} onDelete={onDelete} onEdit={onEdit} onToggle={handleToggle} onDuplicate={handleDuplicate} index={idx} />
+              <RuleCard key={rule.id} rule={rule} onDelete={onDelete} onEdit={onEdit} onToggle={handleToggle} onDuplicate={handleDuplicate} index={idx} userRole={userRole} />
             ))}
           </div>
         )}
@@ -110,7 +100,7 @@ export function AutomationList({ automations, onDelete, onEdit, onChanged, userI
               <Instagram className="w-3 h-3" /> Post Specific
             </div>
             {postSpecificRules.map((rule, idx) => (
-              <RuleCard key={rule.id} rule={rule} onDelete={onDelete} onEdit={onEdit} onToggle={handleToggle} onDuplicate={handleDuplicate} index={idx} mediaUrl={mediaMap[rule.specific_media_id || ""]} isSpecific />
+              <RuleCard key={rule.id} rule={rule} onDelete={onDelete} onEdit={onEdit} onToggle={handleToggle} onDuplicate={handleDuplicate} index={idx} mediaUrl={mediaMap[rule.specific_media_id || ""]} isSpecific userRole={userRole} />
             ))}
           </div>
         )}
@@ -119,7 +109,7 @@ export function AutomationList({ automations, onDelete, onEdit, onChanged, userI
   )
 }
 
-function RuleCard({ rule, onDelete, onEdit, onToggle, onDuplicate, index, isSpecific, mediaUrl }: {
+function RuleCard({ rule, onDelete, onEdit, onToggle, onDuplicate, index, isSpecific, mediaUrl, userRole = "admin" }: {
   rule: Automation
   onDelete: (id: string) => void
   onEdit: (rule: Automation) => void
@@ -128,6 +118,7 @@ function RuleCard({ rule, onDelete, onEdit, onToggle, onDuplicate, index, isSpec
   index: number
   isSpecific?: boolean
   mediaUrl?: string
+  userRole?: string
 }) {
   const [confirming, setConfirming] = useState(false)
   const keywords = rule.trigger_value.split(",").map(k => k.trim()).filter(Boolean)
@@ -173,36 +164,40 @@ function RuleCard({ rule, onDelete, onEdit, onToggle, onDuplicate, index, isSpec
           <div className="flex items-center justify-between gap-2">
             <h4 className="text-sm font-bold text-white truncate">{rule.name}</h4>
             <div className="flex items-center gap-1 shrink-0">
-              {confirming ? (
-                <div className="flex items-center gap-1 animate-in fade-in">
-                  <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} className="h-7 text-xs text-neutral-500">Cancel</Button>
-                  <Button size="sm" onClick={() => onDelete(rule.id)} className="h-7 text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/20">Delete</Button>
-                </div>
-              ) : (
+              {userRole !== "viewer" && (
                 <>
-                  <Button
-                    variant="ghost" size="icon" onClick={() => onEdit(rule)} title="Edit"
-                    className="h-7 w-7 text-neutral-600 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost" size="icon" onClick={() => onDuplicate(rule)} title="Duplicate"
-                    className="h-7 w-7 text-neutral-600 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost" size="icon" onClick={() => setConfirming(true)} title="Delete"
-                    className="h-7 w-7 text-neutral-600 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
-                  <Switch
-                    checked={!isPaused}
-                    onCheckedChange={(v) => onToggle(rule, v)}
-                    className="ml-1 scale-90"
-                  />
+                  {confirming ? (
+                    <div className="flex items-center gap-1 animate-in fade-in">
+                      <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} className="h-7 text-xs text-neutral-500">Cancel</Button>
+                      <Button size="sm" onClick={() => onDelete(rule.id)} className="h-7 text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/20">Delete</Button>
+                    </div>
+                  ) : (
+                    <>
+                      <Button
+                        variant="ghost" size="icon" onClick={() => onEdit(rule)} title="Edit"
+                        className="h-7 w-7 text-neutral-600 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost" size="icon" onClick={() => onDuplicate(rule)} title="Duplicate"
+                        className="h-7 w-7 text-neutral-600 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost" size="icon" onClick={() => setConfirming(true)} title="Delete"
+                        className="h-7 w-7 text-neutral-600 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                      <Switch
+                        checked={!isPaused}
+                        onCheckedChange={(v) => onToggle(rule, v)}
+                        className="ml-1 scale-90"
+                      />
+                    </>
+                  )}
                 </>
               )}
             </div>

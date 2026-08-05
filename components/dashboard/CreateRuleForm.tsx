@@ -59,6 +59,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
   const [includeReplies, setIncludeReplies] = useState(false)
 
   /* ---------- EXTRAS ---------- */
+  const [variants, setVariants] = useState<{ id: string, text: string, weight: number }[]>([])
   const [name, setName] = useState("")
   const [checkFollow, setCheckFollow] = useState(false)
   const [delaySeconds, setDelaySeconds] = useState(0)
@@ -196,6 +197,12 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
     } else {
       setHasSelectedReelOption(false)
     }
+
+    setVariants((editRule.automation_variants || []).map((v: any) => ({
+      id: v.id,
+      text: v.response_config?.message || v.response_config?.reply_text || "Variant message",
+      weight: v.traffic_weight || 50
+    })))
   }, [editRule])
 
   /* Auto name */
@@ -308,6 +315,11 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
             : triggers.length > 0 ? triggers.join(", ") : "ALL",
       content,
       specific_media_id: selectedReel?.id || null,
+      automation_variants: variants.map(v => ({
+        id: v.id.startsWith("new_") ? undefined : v.id,
+        response_config: { message: v.text },
+        traffic_weight: v.weight
+      }))
     }
 
     try {
@@ -810,6 +822,51 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
                       )}
                     </div>
                   )}
+                  
+                  {/* A/B Testing Variants */}
+                  <div className="space-y-3 pt-2 border-t border-white/5 mt-6">
+                    <div className="flex items-center justify-between pb-2">
+                      <FieldLabel>A/B Test Variants (Optional)</FieldLabel>
+                      <button type="button" onClick={() => setVariants([...variants, { id: "new_" + Date.now(), text: "", weight: 20 }])}
+                        className="font-mono-ui text-[11px] text-[#ffe14d] hover:text-[#ffe14d]/80 flex items-center gap-1 transition-colors">
+                        <Plus className="w-3 h-3" /> Add Variant
+                      </button>
+                    </div>
+                    {variants.length > 0 && (
+                      <div className="space-y-3">
+                        <p className="text-[11px] text-neutral-500">
+                          Default response receives {100 - variants.reduce((sum, v) => sum + (v.weight || 0), 0)}% of traffic.
+                        </p>
+                        {variants.map((v, i) => (
+                          <div key={v.id} className="flex gap-2 items-start bg-neutral-900/40 p-3 rounded-xl border border-white/5">
+                            <div className="flex-1 space-y-2">
+                              <textarea
+                                value={v.text}
+                                onChange={(e) => setVariants(variants.map(varnt => varnt.id === v.id ? { ...varnt, text: e.target.value } : varnt))}
+                                rows={2}
+                                className="w-full bg-white/[0.02] border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-neutral-600 resize-none focus:outline-none focus:border-[#ffe14d]/50"
+                                placeholder="Alternative message text..."
+                              />
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-neutral-500 font-mono-ui">Traffic Weight (%)</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={99}
+                                  value={v.weight}
+                                  onChange={(e) => setVariants(variants.map(varnt => varnt.id === v.id ? { ...varnt, weight: parseInt(e.target.value) || 0 } : varnt))}
+                                  className="w-16 bg-white/[0.02] border border-white/10 rounded px-2 py-1 text-xs text-white"
+                                />
+                              </div>
+                            </div>
+                            <button type="button" onClick={() => setVariants(variants.filter(varnt => varnt.id !== v.id))} className="text-neutral-500 hover:text-red-400 p-1 transition-colors mt-1">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

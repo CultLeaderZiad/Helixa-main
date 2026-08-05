@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
 import { requireInstagramUser } from "@/lib/auth"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy", {
   apiVersion: "2026-07-29.dahlia",
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const plan = PLANS[planType as keyof typeof PLANS]
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
 
     // Get or create Stripe customer. Source of truth is accounts; mirrored to users
     // so webhook lookups (users.stripe_customer_id) keep working.

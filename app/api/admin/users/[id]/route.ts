@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 /**
  * PATCH /api/admin/users/[id]
@@ -21,7 +21,7 @@ export async function PATCH(
   }
 
   try {
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
     const body = await request.json()
 
     const allowedFields = ["role", "plan", "is_flagged", "flagged_reason", "is_banned", "banned_reason"]

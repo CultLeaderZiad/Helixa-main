@@ -7,8 +7,11 @@ import { CreateRuleForm } from "@/components/dashboard/CreateRuleForm"
 import { MessageCircle, Send, Sparkles, Zap, Plus, Brain, Loader2 } from "lucide-react"
 import type { Automation } from "@/lib/types"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
+import { readCache, writeCache } from "@/lib/client-cache"
+import { toast } from "sonner"
 export default function AutomationsPage() {
     const { userId, isLoading: isSessionLoading } = useInstagramSession()
+    const [userRole, setUserRole] = useState("admin")
     const [automations, setAutomations] = useState<Automation[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<'comment' | 'dm' | 'story'>('comment')
@@ -32,6 +35,12 @@ export default function AutomationsPage() {
             })
             .catch(() => {})
             .finally(() => setAiLoading(false))
+            
+        // Fetch role from auth
+        fetch("/api/auth/me")
+            .then(res => res.json())
+            .then(data => setUserRole(data.permission_level || "admin"))
+            .catch(() => {})
     }, [userId])
 
     const handleSaveAiContext = async () => {
@@ -66,10 +75,20 @@ export default function AutomationsPage() {
 
     const fetchAutomations = useCallback(async () => {
         if (!userId) return
+        const cacheKey = `/api/automations?userId=${userId}`
+        const cached = readCache<Automation[]>(cacheKey)
+        if (cached) {
+            setAutomations(cached)
+            setIsLoading(false)
+        }
         try {
             const res = await fetch(`/api/automations?userId=${userId}`)
             const data = await res.json()
-            if (res.ok) setAutomations(Array.isArray(data) ? data : [])
+            if (res.ok) {
+                const list = Array.isArray(data) ? data : []
+                setAutomations(list)
+                writeCache(cacheKey, list)
+            }
         } catch (err) {
             console.error("Fetch error:", err)
         } finally {
@@ -89,6 +108,23 @@ export default function AutomationsPage() {
     const handleEditRule = (rule: Automation) => {
         setEditRule(rule)
         setShowCreateForm(true)
+    }
+
+    const handleToggleRule = async (rule: Automation, active: boolean) => {
+        const previous = rule.is_active
+        setAutomations(prev => prev.map(a => a.id === rule.id ? { ...a, is_active: active } : a))
+        try {
+            const res = await fetch("/api/automations", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: rule.id, is_active: active }),
+            })
+            if (!res.ok) throw new Error("PATCH failed")
+            toast.success(active ? "Automation enabled" : "Automation paused")
+        } catch (err) {
+            setAutomations(prev => prev.map(a => a.id === rule.id ? { ...a, is_active: previous } : a))
+            toast.error("Failed to update")
+        }
     }
 
     if (isSessionLoading) return <div className="h-screen flex items-center justify-center bg-[#03010A]"><div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>
@@ -150,20 +186,22 @@ export default function AutomationsPage() {
                                 </button>
                             </>
                         )}
-                        <button
-                            onClick={() => {
-                                if (showCreateForm) setEditRule(null)
-                                setShowCreateForm(!showCreateForm)
-                            }}
-                            className={`flex items-center gap-2 h-9 px-5 rounded-full font-mono-ui text-[11px] font-bold uppercase tracking-widest transition-all active:scale-95 ${
-                                showCreateForm
-                                    ? 'border border-white/20 text-white hover:border-white/40'
-                                    : 'bg-[#ffe14d] text-black hover:brightness-95'
-                            }`}
-                        >
-                            <Plus className={`w-4 h-4 transition-transform duration-200 ${showCreateForm ? 'rotate-45' : ''}`} />
-                            {showCreateForm ? 'Close' : 'New Rule'}
-                        </button>
+                        {userRole !== "viewer" && (
+                            <button
+                                onClick={() => {
+                                    if (showCreateForm) setEditRule(null)
+                                    setShowCreateForm(!showCreateForm)
+                                }}
+                                className={`flex items-center gap-2 h-9 px-5 rounded-full font-mono-ui text-[11px] font-bold uppercase tracking-widest transition-all active:scale-95 ${
+                                    showCreateForm
+                                        ? 'border border-white/20 text-white hover:border-white/40'
+                                        : 'bg-[#ffe14d] text-black hover:brightness-95'
+                                }`}
+                            >
+                                <Plus className={`w-4 h-4 transition-transform duration-200 ${showCreateForm ? 'rotate-45' : ''}`} />
+                                {showCreateForm ? 'Close' : 'New Rule'}
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -244,8 +282,10 @@ export default function AutomationsPage() {
                         automations={filteredAutomations}
                         onDelete={handleDeleteRule}
                         onEdit={handleEditRule}
+                        onToggle={handleToggleRule}
                         onChanged={fetchAutomations}
                         userId={userId}
+                        userRole={userRole}
                     />
                 )}
             </div>

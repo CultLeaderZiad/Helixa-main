@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireInstagramUser } from "@/lib/auth"
 import { generateGroqCompletion } from "@/lib/groq-client"
 
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     if (result.response) return result.response
     const { igUser } = result
 
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
 
     // Fetch automation events from the last 30 days
     const thirtyDaysAgo = new Date()

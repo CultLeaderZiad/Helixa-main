@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireInstagramUser } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
         const igUser = result.igUser
         const igUserId = igUser.id
 
-        const supabase = await getSupabaseServerClient()
+        const supabase = await getSupabaseBypassClient()
         const { data, error } = await supabase
             .from("ice_breakers")
             .select("*")
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
         }
 
-        const supabase = await getSupabaseServerClient()
+        const supabase = await getSupabaseBypassClient()
 
         // Update Database (Delete all for session user and re-insert)
         const { error: deleteError } = await supabase

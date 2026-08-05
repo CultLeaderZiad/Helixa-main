@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 /**
  * GET /api/admin/users
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   if (result.response) return result.response
 
   try {
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
     const { searchParams } = new URL(request.url)
 
     const role = searchParams.get("role")

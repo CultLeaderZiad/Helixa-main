@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 export async function POST(request: NextRequest) {
   const adminCheck = await requireAdmin(request)
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "userId and message are required" }, { status: 400 })
     }
 
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
     const { data: user } = await supabase.from("users").select("username").eq("id", userId).single()
 
     if (!user) {

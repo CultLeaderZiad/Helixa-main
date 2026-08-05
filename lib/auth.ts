@@ -93,22 +93,45 @@ export async function getSessionInstagramUser(request?: NextRequest) {
   if (!account) return null
 
   const adminSupabase = await createAdminClient()
+  
+  // Check if this user is acting as a team member for an agency
+  const { data: teamMember } = await adminSupabase
+    .from("agency_team_members")
+    .select("agency_account_id, permission_level")
+    .eq("member_account_id", account.id)
+    .eq("status", "active")
+    .maybeSingle()
+
+  const lookupAccountId = teamMember ? teamMember.agency_account_id : account.id
+
   const { data: igUser, error } = await adminSupabase
     .from("users")
     .select("*")
-    .eq("account_id", account.id)
+    .eq("account_id", lookupAccountId)
     .maybeSingle()
 
   if (error) {
     console.error("[auth] Failed to load instagram user:", {
-      accountId: account.id,
+      accountId: lookupAccountId,
       code: error.code,
       message: error.message,
     })
     return null
   }
 
-  return { account, igUser }
+  // Attach permission info to the account object for the frontend/API
+  // Clone the object first because Next.js fetch cache might freeze the Supabase response object
+  const clonedAccount = { ...account }
+  if (teamMember) {
+    clonedAccount.is_team_member = true
+    clonedAccount.agency_account_id = teamMember.agency_account_id
+    clonedAccount.permission_level = teamMember.permission_level
+  } else {
+    clonedAccount.is_team_member = false
+    clonedAccount.permission_level = "admin" // The owner of the account
+  }
+
+  return { account: clonedAccount, igUser }
 }
 
 /**

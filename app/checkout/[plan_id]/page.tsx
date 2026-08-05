@@ -1,5 +1,5 @@
 import { getSessionUser } from "@/lib/auth"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { redirect } from "next/navigation"
 import CheckoutClient from "./CheckoutClient"
 import BackToHome from "@/components/ui/back-to-home"
@@ -11,7 +11,7 @@ export default async function CheckoutPage(props: { params: Promise<{ plan_id: s
     redirect(`/signup?plan_id=${params.plan_id}`)
   }
 
-  const supabase = await getSupabaseServerClient()
+  const supabase = await getSupabaseBypassClient()
   const { data: plan, error: planError } = await supabase
     .from("plans")
     .select("*")

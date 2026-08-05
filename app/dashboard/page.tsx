@@ -5,6 +5,7 @@ import Image from "next/image"
 import { Card } from "@/components/ui/card"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { Activity, Users, MessageCircle, Zap, Loader2, AlertCircle } from "lucide-react"
+import Link from "next/link"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
 interface DashboardStats {
@@ -170,34 +171,11 @@ export default function DashboardPage() {
                 </div>
             )}
 
-            {/* Brand Hero */}
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#0b0b0a] h-[420px] md:h-[460px]">
-                {/* Background styling for depth */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#ffe14d]/5 via-transparent to-transparent opacity-50" />
-                
-                {/* Legibility overlay */}
-                <div className="absolute inset-0 pointer-events-none" />
-
-                <div className="absolute inset-0 flex flex-col justify-between p-6 md:p-8 pointer-events-none">
-                    {/* Brand */}
-                    <div className="pointer-events-auto">
-                        <Image
-                            src="/HELIXA-png.png"
-                            alt="Helixa"
-                            width={2816}
-                            height={1536}
-                            className="h-9 w-auto drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]"
-                            priority
-                        />
-                    </div>
-
-                    {/* Greeting */}
-                    <div>
-                        <p className="font-mono-ui text-[10px] uppercase tracking-[0.3em] text-neutral-300 mb-2">Overview</p>
-                        <h1 className="font-serif-display text-4xl md:text-6xl text-white leading-none">Hey, {username}.</h1>
-                        <p className="text-neutral-300 text-sm mt-3">Here's what your automations did while you were away.</p>
-                    </div>
-                </div>
+            {/* Greeting */}
+            <div className="mb-10 mt-4">
+                <p className="font-mono-ui text-[10px] uppercase tracking-[0.3em] text-[#ffe14d] mb-3 font-bold">Overview</p>
+                <h1 className="font-serif-display text-4xl md:text-5xl text-white leading-none mb-4">Hey, {username || "creator"}.</h1>
+                <p className="text-neutral-400 text-sm">Here's what your automations did while you were away.</p>
             </div>
 
             {/* Stats Grid */}
@@ -261,10 +239,10 @@ export default function DashboardPage() {
                 <Card className="p-6 bg-[#0b0b0a] border-white/10">
                     <h3 className="font-serif-display text-2xl text-white mb-5">Quick actions</h3>
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="h-24 rounded-xl border border-dashed border-white/20 flex flex-col items-center justify-center hover:bg-white/5 cursor-pointer transition-colors group">
+                        <Link href="/dashboard/automations" className="h-24 rounded-xl border border-dashed border-white/20 flex flex-col items-center justify-center hover:bg-white/5 cursor-pointer transition-colors group">
                             <Zap className="w-6 h-6 text-muted-foreground group-hover:text-[#ffe14d] mb-2" />
                             <span className="text-xs font-medium text-muted-foreground">New Rule</span>
-                        </div>
+                        </Link>
                         <div className="h-24 rounded-xl border border-dashed border-white/20 flex flex-col items-center justify-center hover:bg-white/5 cursor-pointer transition-colors group">
                             <Users className="w-6 h-6 text-muted-foreground group-hover:text-[#ffe14d] mb-2" />
                             <span className="text-xs font-medium text-muted-foreground">View Audience</span>

@@ -1,6 +1,6 @@
 import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 /**
  * POST /api/instagram/test-login
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const TEST_USERNAME = "test_creator"
     const EXPIRES_IN = 60 * 24 * 60 * 60 // 60 days in seconds
 
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
 
     const { error: upsertError } = await supabase
       .from("users")

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireInstagramUser } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
@@ -8,11 +8,11 @@ export async function GET(request: NextRequest) {
     if (result.response) return result.response
     const igUserId = result.igUser.id
 
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
 
     const { data, error } = await supabase
       .from("automations")
-      .select("*")
+      .select("*, automation_variants(*)")
       .eq("user_id", igUserId)
       .order("created_at", { ascending: false })
 
@@ -28,9 +28,12 @@ export async function POST(request: NextRequest) {
   try {
     const result = await requireInstagramUser(request)
     if (result.response) return result.response
+    if (result.user.permission_level === "viewer") {
+      return NextResponse.json({ error: "Viewers cannot create automations" }, { status: 403 })
+    }
     const igUserId = result.igUser.id
 
-    const { name, trigger_source, trigger_type, trigger_value, content, specific_media_id } = await request.json()
+    const { name, trigger_source, trigger_type, trigger_value, content, specific_media_id, variants } = await request.json()
 
     if (!name || !trigger_value || !content || !trigger_source) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 })
@@ -40,7 +43,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid trigger source" }, { status: 400 })
     }
 
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
 
     const finalTriggerValue =
       trigger_type === "postback"
@@ -64,6 +67,21 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) throw error
+
+    // Insert variants if provided
+    if (variants && Array.isArray(variants) && variants.length > 0) {
+      const variantInserts = variants.map((v: any) => ({
+        automation_id: data.id,
+        variant_name: v.variant_name,
+        traffic_weight: v.traffic_weight || 50,
+        response_config: v.response_config,
+      }))
+      const { error: variantError } = await supabase
+        .from("automation_variants")
+        .insert(variantInserts)
+      if (variantError) throw variantError
+    }
+
     return NextResponse.json(data)
   } catch (error) {
     console.error("[v0] Automations POST error:", error)
@@ -75,12 +93,15 @@ export async function DELETE(request: NextRequest) {
   try {
     const result = await requireInstagramUser(request)
     if (result.response) return result.response
+    if (result.user.permission_level === "viewer") {
+      return NextResponse.json({ error: "Viewers cannot delete automations" }, { status: 403 })
+    }
     const igUserId = result.igUser.id
 
     const id = request.nextUrl.searchParams.get("id")
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
 
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
 
     // Enforce ownership check: filter delete by both id and user_id
     const { data, error } = await supabase
@@ -106,9 +127,12 @@ export async function PUT(request: NextRequest) {
   try {
     const result = await requireInstagramUser(request)
     if (result.response) return result.response
+    if (result.user.permission_level === "viewer") {
+      return NextResponse.json({ error: "Viewers cannot update automations" }, { status: 403 })
+    }
     const igUserId = result.igUser.id
 
-    const { id, name, trigger_source, trigger_type, trigger_value, content, specific_media_id } = await request.json()
+    const { id, name, trigger_source, trigger_type, trigger_value, content, specific_media_id, variants } = await request.json()
 
     if (!id || !name || !trigger_value || !content) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 })
@@ -118,7 +142,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Invalid trigger source" }, { status: 400 })
     }
 
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
 
     const updateData: any = {
       name,
@@ -141,6 +165,26 @@ export async function PUT(request: NextRequest) {
       .single()
 
     if (error) throw error
+
+    // Update variants if provided
+    if (variants && Array.isArray(variants)) {
+      // For simplicity, delete old and insert new
+      await supabase.from("automation_variants").delete().eq("automation_id", data.id)
+      
+      if (variants.length > 0) {
+        const variantInserts = variants.map((v: any) => ({
+          automation_id: data.id,
+          variant_name: v.variant_name,
+          traffic_weight: v.traffic_weight || 50,
+          response_config: v.response_config,
+        }))
+        const { error: variantError } = await supabase
+          .from("automation_variants")
+          .insert(variantInserts)
+        if (variantError) throw variantError
+      }
+    }
+
     return NextResponse.json(data)
   } catch (error) {
     console.error("[v0] Automations PUT error:", error)
@@ -152,12 +196,15 @@ export async function PATCH(request: NextRequest) {
   try {
     const result = await requireInstagramUser(request)
     if (result.response) return result.response
+    if (result.user.permission_level === "viewer") {
+      return NextResponse.json({ error: "Viewers cannot modify automations" }, { status: 403 })
+    }
     const igUserId = result.igUser.id
 
     const { id, is_active, action } = await request.json()
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
 
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
 
     if (action === "duplicate") {
       const { data: original, error: fetchError } = await supabase

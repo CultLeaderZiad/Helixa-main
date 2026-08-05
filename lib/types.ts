@@ -42,6 +42,15 @@ export interface ResponseContent {
   mark_seen?: boolean
 }
 
+export interface AutomationVariant {
+  id: string
+  automation_id: string
+  variant_name: string
+  traffic_weight: number
+  response_config: any
+  created_at: string
+}
+
 export interface MediaItem {
   id: string
   media_id: string
@@ -71,4 +80,5 @@ export interface Automation {
   specific_media_id?: string | null
   media_selection?: MediaSelection | null
   selected_reel_id?: string | null
+  automation_variants?: AutomationVariant[]
 }

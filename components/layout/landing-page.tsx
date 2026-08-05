@@ -3,10 +3,13 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import Ferrofluid from "@/components/effects/ferrofluid"
+import dynamic from "next/dynamic"
 import TextPressure from "@/components/ui/text-pressure"
-import ScrollFloat from "@/components/ui/ScrollFloat"
-import ASCIIText from "@/components/ui/ASCIIText"
+import { DeferredMount, InViewMount } from "@/components/ui/mount-lazy"
+
+const Ferrofluid = dynamic(() => import("@/components/effects/ferrofluid"), { ssr: false })
+const ScrollFloat = dynamic(() => import("@/components/ui/ScrollFloat"), { ssr: false })
+const ASCIIText = dynamic(() => import("@/components/ui/ASCIIText"), { ssr: false })
 import {
   MessageCircle, Sparkles, ArrowUpRight, Github, Star,
   Send, AtSign, Brain, Inbox, Lock, Terminal,
@@ -45,7 +48,6 @@ export function LandingPage() {
   return (
     <div className="min-h-screen bg-transparent text-[#ededed] selection:bg-[#ffe14d] selection:text-black overflow-x-hidden antialiased">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;700&display=swap');
         .font-serif-display { font-family: 'Instrument Serif', Georgia, serif; }
         .font-mono-ui { font-family: 'JetBrains Mono', ui-monospace, monospace; }
         @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
@@ -125,23 +127,25 @@ export function LandingPage() {
         <section className="relative overflow-hidden bg-transparent w-full">
           {/* Ferrofluid background layer */}
           <div className="absolute inset-0 pointer-events-none md:pointer-events-auto">
-            <Ferrofluid
-              colors={["#ffe14d", "#ffffff", "#ffb300"]}
-              speed={0.5}
-              scale={1.2}
-              turbulence={1}
-              fluidity={0.1}
-              rimWidth={0.2}
-              sharpness={3}
-              shimmer={1}
-              glow={2}
-              flowDirection="down"
-              opacity={0.15}
-              mouseInteraction={true}
-              mouseStrength={1}
-              mouseRadius={0.3}
-              dpr={1.5}
-            />
+            <DeferredMount delay={1000}>
+              <Ferrofluid
+                colors={["#ffe14d", "#ffffff", "#ffb300"]}
+                speed={0.5}
+                scale={1.2}
+                turbulence={1}
+                fluidity={0.1}
+                rimWidth={0.2}
+                sharpness={3}
+                shimmer={1}
+                glow={2}
+                flowDirection="down"
+                opacity={0.15}
+                mouseInteraction={true}
+                mouseStrength={1}
+                mouseRadius={0.3}
+                dpr={1}
+              />
+            </DeferredMount>
           </div>
           
           <div className="absolute inset-0 bg-gradient-to-t from-[#03010A] via-[#03010A]/80 to-[#03010A]/30 pointer-events-none" />
@@ -150,13 +154,15 @@ export function LandingPage() {
 
 
             <div className="fade-up w-full h-[120px] md:h-[200px] relative mb-6 pointer-events-none" style={{ animationDelay: "40ms" }}>
-              <ASCIIText
-                text='HELIXA'
-                enableWaves={true}
-                asciiFontSize={12}
-                textFontSize={150}
-                planeBaseHeight={16}
-              />
+              <DeferredMount delay={1500}>
+                <ASCIIText
+                  text='HELIXA'
+                  enableWaves={true}
+                  asciiFontSize={12}
+                  textFontSize={150}
+                  planeBaseHeight={16}
+                />
+              </DeferredMount>
             </div>
 
             <h1 className="fade-up font-serif-display text-[15vw] md:text-[7.5rem] leading-[0.95] tracking-tight text-white relative z-20" style={{ animationDelay: "80ms" }}>
@@ -234,17 +240,19 @@ export function LandingPage() {
 
         {/* ScrollFloat App Name */}
         <section className="py-24 md:py-32 w-full flex flex-col items-center justify-center overflow-hidden">
-          <ScrollFloat
-            animationDuration={1}
-            ease='back.inOut(2)'
-            scrollStart='center bottom+=50%'
-            scrollEnd='bottom bottom-=40%'
-            stagger={0.03}
-            containerClassName="w-full flex justify-center text-center mx-auto"
-            textClassName="font-serif-display text-white tracking-widest uppercase text-center block mx-auto"
-          >
-            HELIXA
-          </ScrollFloat>
+          <InViewMount>
+            <ScrollFloat
+              animationDuration={1}
+              ease='back.inOut(2)'
+              scrollStart='center bottom+=50%'
+              scrollEnd='bottom bottom-=40%'
+              stagger={0.03}
+              containerClassName="w-full flex justify-center text-center mx-auto"
+              textClassName="font-serif-display text-white tracking-widest uppercase text-center block mx-auto"
+            >
+              HELIXA
+            </ScrollFloat>
+          </InViewMount>
         </section>
 
         {/* Community strip */}

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireInstagramUser } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
         const conversationId = request.nextUrl.searchParams.get("conversationId")
         if (!conversationId) return NextResponse.json({ error: "Missing conversationId" }, { status: 400 })
 
-        const supabase = await getSupabaseServerClient()
+        const supabase = await getSupabaseBypassClient()
 
         // Verify that the conversation belongs to the logged-in session user first
         const { data: conv, error: convError } = await supabase

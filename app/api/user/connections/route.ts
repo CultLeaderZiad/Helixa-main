@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireInstagramUser } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   if (result.response) return result.response
   const { user: account, igUser } = result
 
-  const supabase = await getSupabaseServerClient()
+  const supabase = await getSupabaseBypassClient()
 
   // Real platform_connections columns: id, user_id, platform, external_account_id,
   // access_token, is_active, connected_at, account_id

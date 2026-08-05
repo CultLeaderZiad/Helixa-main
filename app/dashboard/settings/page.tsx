@@ -1,47 +1,170 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Settings, User, Mail, AlertTriangle } from "lucide-react"
+import { useEffect, useState, useRef } from "react"
+import { Settings, User, Mail, AlertTriangle, Calendar, Shield, Share2, LifeBuoy, Check, Upload, Loader2, Camera } from "lucide-react"
+import { TeamPanel } from "@/components/dashboard/TeamPanel"
+import { getSupabaseBrowserClient } from "@/lib/supabase-client"
+import Image from "next/image"
 
 interface UserProfile {
     email: string
-    name?: string
+    name: string
+    profilePic: string | null
+    plan: string
+    trial_ends_at: string | null
+    created_at: string
 }
 
 export default function SettingsPage() {
     const [profile, setProfile] = useState<UserProfile | null>(null)
+    const [connectionsCount, setConnectionsCount] = useState(0)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
+    
+    const [isEditing, setIsEditing] = useState(false)
+    const [editName, setEditName] = useState("")
+    const [editPhotoUrl, setEditPhotoUrl] = useState("")
+    const [saving, setSaving] = useState(false)
+    const [uploadingPhoto, setUploadingPhoto] = useState(false)
+    const [successMsg, setSuccessMsg] = useState("")
+    
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
-        const fetchProfile = async () => {
+        const fetchAll = async () => {
             try {
-                const res = await fetch("/api/auth/me")
-                if (res.ok) {
-                    const data = await res.json()
-                    if (data.user) {
+                const [meRes, connRes] = await Promise.all([
+                    fetch("/api/auth/me"),
+                    fetch("/api/user/connections")
+                ])
+                
+                if (meRes.ok) {
+                    const data = await meRes.json()
+                    if (data.authenticated) {
                         setProfile({
-                            email: data.user.email,
-                            name: data.user.user_metadata?.name || ""
+                            email: data.email,
+                            name: data.username || "",
+                            profilePic: data.profilePic || null,
+                            plan: data.plan || "free",
+                            trial_ends_at: data.trial_ends_at,
+                            created_at: data.created_at || new Date().toISOString()
                         })
+                        setEditName(data.username || "")
+                        setEditPhotoUrl(data.profilePic || "")
+                    } else {
+                        setError("Could not load profile. User not found.")
+                    }
+                }
+                
+                if (connRes.ok) {
+                    const connData = await connRes.json()
+                    if (connData.connections) {
+                        setConnectionsCount(connData.connections.length)
                     }
                 }
             } catch (err) {
-                console.error("Failed to fetch profile", err)
+                console.error("Failed to fetch data", err)
+                setError("Failed to load settings.")
             } finally {
                 setLoading(false)
             }
         }
-        fetchProfile()
+        fetchAll()
     }, [])
+
+    const handleSaveProfile = async () => {
+        setSaving(true)
+        setError("")
+        setSuccessMsg("")
+        try {
+            const res = await fetch("/api/user/profile", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    full_name: editName,
+                    profile_picture_url: editPhotoUrl || null
+                })
+            })
+            
+            if (res.ok) {
+                setProfile(prev => prev ? { ...prev, name: editName, profilePic: editPhotoUrl || null } : null)
+                setSuccessMsg("Profile updated successfully!")
+                setIsEditing(false)
+                setTimeout(() => setSuccessMsg(""), 3000)
+            } else {
+                const data = await res.json()
+                setError(data.error || "Failed to update profile")
+            }
+        } catch (err) {
+            setError("Network error while saving profile.")
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        if (file.size > 5 * 1024 * 1024) {
+            setError("Image size must be less than 5MB")
+            return
+        }
+
+        setUploadingPhoto(true)
+        setError("")
+        try {
+            const supabase = getSupabaseBrowserClient()
+            const fileExt = file.name.split('.').pop()
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+            const filePath = `${profile?.email || 'unknown'}/${fileName}`
+
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file)
+
+            if (uploadError) {
+                console.error("Upload error:", uploadError)
+                throw new Error("Failed to upload image")
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath)
+
+            setEditPhotoUrl(publicUrl)
+        } catch (err: any) {
+            setError(err.message || "Failed to upload image")
+        } finally {
+            setUploadingPhoto(false)
+            if (fileInputRef.current) {
+                fileInputRef.current.value = ""
+            }
+        }
+    }
+
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString("en-US", { 
+            year: 'numeric', month: 'short', day: 'numeric' 
+        })
+    }
 
     return (
         <div className="p-8 space-y-8 animate-in fade-in duration-700">
-            <div>
-                <h1 className="font-serif-display text-4xl text-white mb-2">Account Settings</h1>
-                <p className="text-muted-foreground text-sm">
-                    Manage your account details and preferences.
-                </p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="font-serif-display text-4xl text-white mb-2">Account Settings</h1>
+                    <p className="text-muted-foreground text-sm">
+                        Manage your account details and preferences.
+                    </p>
+                </div>
+                <a 
+                    href="mailto:cultleaderzoz.dev@gmail.com?subject=Support Request"
+                    className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-medium transition-colors border border-white/10"
+                >
+                    <LifeBuoy className="w-4 h-4" />
+                    Contact Support
+                </a>
             </div>
 
             {error && (
@@ -50,10 +173,17 @@ export default function SettingsPage() {
                     <span>{error}</span>
                 </div>
             )}
+            
+            {successMsg && (
+                <div className="bg-green-500/10 border border-green-500/20 text-green-500 p-4 rounded-lg flex items-center gap-2">
+                    <Check className="w-5 h-5" />
+                    <span>{successMsg}</span>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Profile Details */}
-                <div className="p-6 rounded-2xl border border-white/10 bg-[#0b0b0a] hover:border-white/20 transition-colors">
+                <div className="p-6 rounded-2xl border border-white/10 bg-[#0b0b0a] transition-colors relative">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
@@ -64,33 +194,163 @@ export default function SettingsPage() {
                                 <p className="text-xs text-muted-foreground">Your personal details</p>
                             </div>
                         </div>
+                        {!isEditing && profile && (
+                            <button 
+                                onClick={() => setIsEditing(true)}
+                                className="text-sm text-blue-400 hover:text-blue-300 font-medium"
+                            >
+                                Edit
+                            </button>
+                        )}
                     </div>
                     
                     <div className="space-y-4 mb-6">
                         {loading ? (
-                            <div className="text-sm text-neutral-500">Loading...</div>
+                            <div className="text-sm text-neutral-500 flex items-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin" /> Loading...
+                            </div>
                         ) : profile ? (
-                            <div className="space-y-4">
+                            <div className="space-y-6">
+                                {/* Avatar */}
+                                <div className="flex items-center gap-4">
+                                    <div 
+                                        className={`relative w-16 h-16 rounded-full bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center ${isEditing ? 'cursor-pointer hover:border-white/30 transition-colors' : ''}`}
+                                        onClick={() => isEditing && !uploadingPhoto && fileInputRef.current?.click()}
+                                    >
+                                        {uploadingPhoto ? (
+                                            <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                                        ) : isEditing && editPhotoUrl ? (
+                                            <img src={editPhotoUrl} alt="Avatar" className="w-full h-full object-cover" />
+                                        ) : !isEditing && profile.profilePic ? (
+                                            <img src={profile.profilePic} alt="Avatar" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <User className="w-8 h-8 text-neutral-500" />
+                                        )}
+                                        {isEditing && !uploadingPhoto && (
+                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                                <Camera className="w-5 h-5 text-white/70" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    {isEditing && (
+                                        <div className="flex-1 space-y-1">
+                                            <p className="text-xs text-neutral-400 font-medium">Profile Photo</p>
+                                            <p className="text-[10px] text-neutral-500">Click the avatar to upload a new image. Max size 5MB.</p>
+                                            <input 
+                                                type="file" 
+                                                ref={fileInputRef}
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={handlePhotoUpload}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs text-neutral-400 font-medium">Full Name</label>
+                                    {isEditing ? (
+                                        <input 
+                                            type="text" 
+                                            value={editName}
+                                            onChange={e => setEditName(e.target.value)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                                        />
+                                    ) : (
+                                        <div className="flex items-center gap-2 bg-white/5 p-3 rounded-lg border border-white/5 text-sm text-white">
+                                            <User className="w-4 h-4 text-neutral-500" />
+                                            {profile.name || "Not set"}
+                                        </div>
+                                    )}
+                                </div>
                                 <div className="space-y-2">
                                     <label className="text-xs text-neutral-400 font-medium">Email Address</label>
-                                    <div className="flex items-center gap-2 bg-white/5 p-3 rounded-lg border border-white/5 text-sm text-white">
+                                    <div className="flex items-center gap-2 bg-white/5 p-3 rounded-lg border border-white/5 text-sm text-white opacity-70">
                                         <Mail className="w-4 h-4 text-neutral-500" />
                                         {profile.email}
                                     </div>
+                                    {isEditing && <p className="text-[10px] text-neutral-500">Email cannot be changed here.</p>}
                                 </div>
                             </div>
                         ) : (
                             <div className="text-sm text-neutral-500">Could not load profile.</div>
                         )}
                     </div>
-                    <button 
-                        disabled
-                        className="w-full py-2 bg-white/5 text-white/50 cursor-not-allowed rounded-lg text-sm font-medium transition-colors border border-white/10"
-                    >
-                        Update Profile (Coming Soon)
-                    </button>
+                    
+                    {isEditing && (
+                        <div className="flex items-center gap-3">
+                            <button 
+                                onClick={handleSaveProfile}
+                                disabled={saving}
+                                className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                            >
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                                Save Changes
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    setIsEditing(false)
+                                    setEditName(profile?.name || "")
+                                    setEditPhotoUrl(profile?.profilePic || "")
+                                }}
+                                disabled={saving}
+                                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-medium transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    )}
                 </div>
                 
+                {/* Account Details & Team */}
+                <div className="space-y-6">
+                    {/* Account Stats / Info */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="p-5 rounded-xl border border-white/10 bg-[#0b0b0a] space-y-3">
+                            <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center mb-2">
+                                <Shield className="w-4 h-4 text-purple-500" />
+                            </div>
+                            <div>
+                                <p className="text-xs text-neutral-400">Current Plan</p>
+                                <p className="text-white font-medium capitalize">{profile?.plan || "Free"}</p>
+                            </div>
+                        </div>
+                        
+                        <div className="p-5 rounded-xl border border-white/10 bg-[#0b0b0a] space-y-3">
+                            <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2">
+                                <Calendar className="w-4 h-4 text-emerald-500" />
+                            </div>
+                            <div>
+                                <p className="text-xs text-neutral-400">Joined Date</p>
+                                <p className="text-white font-medium">{profile?.created_at ? formatDate(profile.created_at) : "-"}</p>
+                            </div>
+                        </div>
+                        
+                        <div className="col-span-2 p-5 rounded-xl border border-white/10 bg-[#0b0b0a] flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-pink-500/10 flex items-center justify-center">
+                                    <Share2 className="w-5 h-5 text-pink-500" />
+                                </div>
+                                <div>
+                                    <h4 className="text-white font-medium">Connected Platforms</h4>
+                                    <p className="text-xs text-neutral-400">Manage your connected social accounts</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <span className="text-2xl font-serif-display text-white">{connectionsCount}</span>
+                                <a 
+                                    href="/dashboard/connected-platforms"
+                                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-medium transition-colors border border-white/10"
+                                >
+                                    Manage
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Team Panel */}
+                    <TeamPanel />
+                </div>
             </div>
         </div>
     )

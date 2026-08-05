@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 export async function PUT(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const adminCheck = await requireAdmin()
@@ -11,7 +11,7 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
 
   try {
     const body = await request.json()
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
 
     const { data, error } = await supabase
       .from("plans")
@@ -34,7 +34,7 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
   const params = await props.params
   const id = params.id
 
-  const supabase = await getSupabaseServerClient()
+  const supabase = await getSupabaseBypassClient()
   const { error } = await supabase
     .from("plans")
     .delete()

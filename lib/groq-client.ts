@@ -1,4 +1,4 @@
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
@@ -19,7 +19,7 @@ export interface GroqCompletionRequest {
 }
 
 export async function checkAILimit(userId: number | string): Promise<boolean> {
-  const supabase = await getSupabaseServerClient()
+  const supabase = await getSupabaseBypassClient()
   
   // Count usage for today
   const today = new Date()
@@ -45,7 +45,7 @@ export async function logAIUsage(
   model: string,
   tokensUsed: number
 ) {
-  const supabase = await getSupabaseServerClient()
+  const supabase = await getSupabaseBypassClient()
   await supabase.from("ai_usage_log").insert({
     user_id: userId,
     feature,

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 export async function GET() {
-  const supabase = await getSupabaseServerClient()
+  const supabase = await getSupabaseBypassClient()
   const { data, error } = await supabase
     .from("plans")
     .select("*")

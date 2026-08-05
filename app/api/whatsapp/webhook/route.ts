@@ -95,25 +95,36 @@ export async function POST(request: NextRequest) {
         if (!user) continue
 
         const { data: automations } = await supabase
-          .from("automations")
-          .select("*")
-          .eq("user_id", user.id)
+        .from("automations")
+        .select("*, automation_variants(*)")
+        .eq("user_id", user.id)
           .eq("is_active", true)
           .eq("platform", "whatsapp")
 
         if (!automations?.length) continue
 
         // Plan enforcement
-        let effectivePlan = user.plan
-        if (user.plan === "trial" && user.trial_ends_at) {
-          const trialEnded = new Date(user.trial_ends_at) < new Date()
+        const { data: account } = await supabase
+          .from("accounts")
+          .select("id, plan, trial_ends_at, trial_exempt")
+          .eq("id", user.account_id)
+          .single()
+
+        if (!account) {
+          console.log(`[wa-webhook] ⚠️ Account not found for user ${user.username}. Skipping.`)
+          continue
+        }
+
+        let effectivePlan = account.plan
+        if (account.plan === "trial" && account.trial_ends_at && !account.trial_exempt) {
+          const trialEnded = new Date(account.trial_ends_at) < new Date()
           if (trialEnded) {
             effectivePlan = "expired"
             await supabase
-              .from("users")
+              .from("accounts")
               .update({ plan: "expired", updated_at: new Date().toISOString() })
-              .eq("id", user.id)
-            console.log(`[wa-webhook] ⚠️ User ${user.username} trial expired. Set plan=expired, skipping automations.`)
+              .eq("id", account.id)
+            console.log(`[wa-webhook] ⚠️ Account ${account.id} trial expired. Set plan=expired, skipping automations.`)
           }
         }
         if (effectivePlan === "expired") {
@@ -155,8 +166,27 @@ export async function POST(request: NextRequest) {
 
             if (matched) {
               console.log(`[wa-webhook] ✅ Match! rule=${rule.name} sender=${senderPhone}`)
-              const content = rule.response_content
               
+              // A/B Testing selection
+              let content = rule.response_content
+              let variantId = null
+              if (rule.automation_variants && rule.automation_variants.length > 0) {
+                const allOptions = [
+                  { id: null, content: rule.response_content, weight: 100 - rule.automation_variants.reduce((sum: number, v: any) => sum + (v.traffic_weight || 0), 0) },
+                  ...rule.automation_variants.map((v: any) => ({ id: v.id, content: v.response_config, weight: v.traffic_weight || 50 }))
+                ]
+                const random = Math.random() * 100
+                let sum = 0
+                for (const opt of allOptions) {
+                  sum += Math.max(0, opt.weight)
+                  if (random <= sum) {
+                    content = opt.content
+                    variantId = opt.id
+                    break
+                  }
+                }
+              }
+
               const quickReplies = Array.isArray(content.quick_replies)
                 ? content.quick_replies
                     .filter((q: any) => q?.title)
@@ -181,6 +211,7 @@ export async function POST(request: NextRequest) {
                   event_type: "wa_reply",
                   recipient_id: senderPhone,
                   platform: "whatsapp",
+                  variant_id: variantId
                 })
               } catch (e) {
                 console.error("[wa-webhook] Failed to log automation_event:", e)

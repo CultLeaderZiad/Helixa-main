@@ -1,12 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 export async function GET(request: NextRequest) {
   const adminCheck = await requireAdmin()
   if (adminCheck.response) return adminCheck.response
 
-  const supabase = await getSupabaseServerClient()
+  const supabase = await getSupabaseBypassClient()
   const { data, error } = await supabase
     .from("plans")
     .select("*")
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { name, description, price_usd, billing_cycle, features, stripe_price_id } = body
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
 
     const { data, error } = await supabase
       .from("plans")

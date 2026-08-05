@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 export async function GET(request: NextRequest) {
   const result = await requireAdmin(request)
@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     return result.response
   }
 
-  const supabase = await getSupabaseServerClient()
+  const supabase = await getSupabaseBypassClient()
   const { searchParams } = new URL(request.url)
   const status = searchParams.get("status") || "pending"
 
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       .from("payment_submissions")
       .select(`
         *,
-        users (
+        users!payment_submissions_user_id_fkey (
           id,
           username,
           account_id,

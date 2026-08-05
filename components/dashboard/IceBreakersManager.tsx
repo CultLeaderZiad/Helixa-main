@@ -9,6 +9,7 @@ import { Loader2, Plus, Trash2, Save, RefreshCw, Snowflake } from "lucide-react"
 import { toast } from "sonner"
 import type { IceBreaker } from "@/types/db"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
+import { readCache, cachedFetch, clearCache } from "@/lib/client-cache"
 export function IceBreakersManager() {
     const { userId, isLoading } = useInstagramSession()
     const [breakers, setBreakers] = useState<Partial<IceBreaker>[]>([])
@@ -17,10 +18,19 @@ export function IceBreakersManager() {
 
     useEffect(() => {
         if (!userId) return
-        fetch(`/api/ice-breakers?userId=${userId}`)
-            .then(res => res.json())
+        const cacheKey = `/api/ice-breakers?userId=${userId}`
+        const cached = readCache<IceBreaker[]>(cacheKey)
+        if (cached) {
+            setBreakers(cached)
+            setFetching(false)
+        }
+        cachedFetch(cacheKey, async () => {
+            const res = await fetch(`/api/ice-breakers?userId=${userId}`)
+            const data = await res.json()
+            return Array.isArray(data) ? data : []
+        })
             .then(data => {
-                if (Array.isArray(data)) setBreakers(data)
+                setBreakers(data)
                 setFetching(false)
             })
             .catch(err => {
@@ -65,6 +75,7 @@ export function IceBreakersManager() {
             })
             const data = await res.json()
             if (data.success) {
+                clearCache(`/api/ice-breakers?userId=${userId}`)
                 toast.success("Ice Breakers saved & synced usually!")
             } else {
                 toast.error("Failed to save")

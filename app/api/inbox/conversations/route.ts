@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireInstagramUser } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
         if (result.response) return result.response
         const igUserId = result.igUser.id
 
-        const supabase = await getSupabaseServerClient()
+        const supabase = await getSupabaseBypassClient()
 
         // Fetch conversations sorted by last message, filtering strictly by the session user's ID
         const { data: conversations, error } = await supabase

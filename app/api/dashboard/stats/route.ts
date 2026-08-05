@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireInstagramUser } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
         const igUser = result.igUser
         const igUserId = igUser.id
 
-        const supabase = await getSupabaseServerClient()
+        const supabase = await getSupabaseBypassClient()
 
         // 1. Total Automations
         const { count: automationsCount } = await supabase

@@ -195,9 +195,7 @@ export default function AdminPage() {
         }),
       })
       if (res.ok) {
-        await fetchUsers()
-        await fetchStats()
-        await fetchAuditLogs()
+        await Promise.all([fetchUsers(), fetchStats(), fetchAuditLogs()])
         setSelectedUser(null)
       }
     } finally {
@@ -212,6 +210,10 @@ export default function AdminPage() {
       if (rejection_reason === null) return // Cancelled
     }
 
+    // Optimistic: remove the row immediately so the UI reflects the action.
+    const removed = pendingPayments.filter(p => p.id !== paymentId)
+    setPendingPayments(removed)
+
     try {
       const res = await fetch(`/api/admin/payments/${paymentId}`, {
         method: "PATCH",
@@ -223,9 +225,11 @@ export default function AdminPage() {
         fetchUsers()
         fetchStats()
       } else {
+        setPendingPayments(pendingPayments) // rollback
         alert("Failed to process payment")
       }
     } catch (err) {
+      setPendingPayments(pendingPayments) // rollback
       alert("Error processing payment")
     }
   }

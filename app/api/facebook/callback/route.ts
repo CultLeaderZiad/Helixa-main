@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { getSessionUser } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/?error=not_logged_in", request.url))
   }
 
-  const supabase = await getSupabaseServerClient()
+  const supabase = await getSupabaseBypassClient()
 
   // Get the linked users row (Instagram profile)
   const { data: userProfile } = await supabase.from("users").select("id").eq("account_id", account.id).single()

@@ -1,6 +1,6 @@
 import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseServerClient, getSupabaseBypassClient } from "@/lib/supabase-server"
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -99,10 +99,13 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Save/Update User — check if new vs returning user
+    // DB reads/writes go through the RLS-bypass client (the session client below
+    // is used only for auth.getUser()).
+    const db = await getSupabaseBypassClient()
     const supabase = await getSupabaseServerClient()
 
     // Check if user already exists (for conditional trial field setting)
-    const { data: existingUser } = await supabase
+    const { data: existingUser } = await db
       .from("users")
       .select("id")
       .eq("id", loginUserId)
@@ -114,7 +117,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
-    const { data: account } = await supabase
+    const { data: account } = await db
       .from("accounts")
       .select("id")
       .eq("id", authUser.id)
@@ -145,7 +148,7 @@ export async function POST(request: NextRequest) {
       if (signupIp) {
         // IP-based signup rate limiting — flag but don't hard-block (agencies/shared offices)
         const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-        const { count: ipSignupCount } = await supabase
+        const { count: ipSignupCount } = await db
           .from("users")
           .select("*", { count: "exact", head: true })
           .eq("signup_ip", signupIp)
@@ -187,7 +190,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`[v0] 💾 Saving user: ${username} | id=${loginUserId} | biz_id=${businessAccountId}`)
 
-    const { error: upsertError } = await supabase
+    const { error: upsertError } = await db
       .from("users")
       .upsert({ id: loginUserId, ...updates }, { onConflict: "id" })
 

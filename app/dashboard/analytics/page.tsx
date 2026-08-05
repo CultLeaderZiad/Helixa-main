@@ -1,15 +1,36 @@
 "use client"
 
-import { Activity, Sparkles, Loader2 } from "lucide-react"
-import { useState } from "react"
+import { Activity, Sparkles, Loader2, GitMerge, Filter } from "lucide-react"
+import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
+
 export default function AnalyticsPage() {
     const [summary, setSummary] = useState<string>("")
     const [loading, setLoading] = useState<boolean>(false)
     const [hasLoaded, setHasLoaded] = useState<boolean>(false)
+    const [funnelData, setFunnelData] = useState<any>(null)
+    const [funnelLoading, setFunnelLoading] = useState<boolean>(true)
     const { userId, isLoading: isSessionLoading } = useInstagramSession()
+
+    useEffect(() => {
+        if (!userId) return
+        const fetchFunnel = async () => {
+            try {
+                const res = await fetch(`/api/analytics/funnel?userId=${userId}`)
+                if (res.ok) {
+                    const data = await res.json()
+                    setFunnelData(data)
+                }
+            } catch (err) {
+                console.error(err)
+            } finally {
+                setFunnelLoading(false)
+            }
+        }
+        fetchFunnel()
+    }, [userId])
 
     const generateInsight = async () => {
         setLoading(true)
@@ -84,13 +105,90 @@ export default function AnalyticsPage() {
                     </div>
                 </div>
 
-                <div className="flex flex-col items-center justify-center min-h-[30vh] text-center p-8 bg-white/[0.02] border border-white/5 rounded-2xl">
-                    <h3 className="text-xl text-white mb-2">Deep Analytics</h3>
-                    <p className="text-muted-foreground max-w-sm mx-auto mb-6 text-sm">
-                        Detailed charts and performance metrics are currently in development.
-                    </p>
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 text-neutral-400 text-[10px] font-bold uppercase tracking-widest ring-1 ring-white/10">
-                        Coming Soon
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Funnel Analytics */}
+                    <div className="bg-neutral-900/40 border border-white/10 rounded-2xl p-6">
+                        <div className="flex items-center gap-2 text-white mb-6">
+                            <Filter className="w-5 h-5 text-blue-400" />
+                            <h2 className="font-bold text-lg">Conversion Funnel</h2>
+                        </div>
+                        {funnelLoading ? (
+                            <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-neutral-500" /></div>
+                        ) : funnelData?.funnel ? (
+                            <div className="space-y-4 relative">
+                                <div className="absolute left-6 top-6 bottom-6 w-px bg-white/10" />
+                                {[
+                                    { key: "triggered", label: "Triggered (Matched)", color: "text-neutral-400" },
+                                    { key: "sent", label: "Sent Payload", color: "text-blue-400" },
+                                    { key: "replied", label: "User Replied", color: "text-purple-400" },
+                                    { key: "link_clicked", label: "Link Clicked", color: "text-pink-400" },
+                                    { key: "converted", label: "Converted", color: "text-green-400" }
+                                ].map((stage, i) => {
+                                    const count = funnelData.funnel[stage.key] || 0;
+                                    const maxCount = Math.max(funnelData.funnel.triggered || 1, 1);
+                                    const pct = Math.round((count / maxCount) * 100);
+                                    return (
+                                        <div key={stage.key} className="flex items-center gap-4 relative z-10">
+                                            <div className="w-12 h-12 rounded-full bg-black border border-white/10 flex items-center justify-center shrink-0 text-xs font-mono-ui font-bold text-white">
+                                                {count}
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between text-xs mb-1">
+                                                    <span className={`font-semibold ${stage.color}`}>{stage.label}</span>
+                                                    <span className="text-neutral-500">{pct}%</span>
+                                                </div>
+                                                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                                    <div className={`h-full bg-current ${stage.color}`} style={{ width: `${pct}%` }} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-neutral-500">No funnel data available yet.</p>
+                        )}
+                    </div>
+
+                    {/* A/B Testing Variants */}
+                    <div className="bg-neutral-900/40 border border-white/10 rounded-2xl p-6">
+                        <div className="flex items-center gap-2 text-white mb-6">
+                            <GitMerge className="w-5 h-5 text-pink-400" />
+                            <h2 className="font-bold text-lg">A/B Test Performance</h2>
+                        </div>
+                        {funnelLoading ? (
+                            <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-neutral-500" /></div>
+                        ) : funnelData?.variants && funnelData.variants.length > 0 ? (
+                            <div className="space-y-4">
+                                {funnelData.variants.map((v: any) => {
+                                    const rate = v.sent > 0 ? Math.round((v.converted / v.sent) * 100) : 0;
+                                    return (
+                                        <div key={v.id} className="bg-black/40 border border-white/5 rounded-xl p-4">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <span className="font-semibold text-sm text-white">{v.name}</span>
+                                                <span className="text-xs text-green-400 font-mono-ui font-bold">{rate}% CVR</span>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-2 text-center">
+                                                <div className="bg-white/5 rounded-lg py-2">
+                                                    <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1">Sent</div>
+                                                    <div className="text-sm text-white font-mono-ui">{v.sent}</div>
+                                                </div>
+                                                <div className="bg-white/5 rounded-lg py-2">
+                                                    <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1">Replied</div>
+                                                    <div className="text-sm text-white font-mono-ui">{v.replied}</div>
+                                                </div>
+                                                <div className="bg-white/5 rounded-lg py-2">
+                                                    <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1">Conv.</div>
+                                                    <div className="text-sm text-white font-mono-ui">{v.converted}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-neutral-500">No active variants tracking data.</p>
+                        )}
                     </div>
                 </div>
             </div>

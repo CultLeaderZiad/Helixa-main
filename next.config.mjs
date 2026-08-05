@@ -3,6 +3,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    cpus: 4,
+  },
   async headers() {
     return [
       {

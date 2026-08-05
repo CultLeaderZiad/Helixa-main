@@ -1,5 +1,7 @@
 "use client"
 
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Sidebar } from "@/components/layout/sidebar"
 import { MobileNav } from "@/components/layout/mobile-nav"
 import Image from "next/image"
@@ -12,9 +14,18 @@ export default function DashboardLayout({
 }: {
     children: React.ReactNode
 }) {
-    const { username, profilePic, logout, plan, trialEndsAt, isLoading, accountId, email, role } = useInstagramSession()
+    const { username, profilePic, logout, plan, trialEndsAt, trialExempt, isLoading, accountId, email, role } = useInstagramSession()
 
-    const router = require("next/navigation").useRouter()
+    const router = useRouter()
+
+    // Redirect to /login once we know the session is fully loaded and there is
+    // no authenticated account. Doing this in an effect (instead of during
+    // render) avoids "Cannot update a component while rendering another".
+    useEffect(() => {
+        if (!isLoading && !accountId) {
+            router.replace('/login')
+        }
+    }, [isLoading, accountId, router])
 
     if (isLoading) {
         return (
@@ -25,9 +36,6 @@ export default function DashboardLayout({
     }
 
     if (!accountId) {
-        if (typeof window !== 'undefined') {
-            router.push('/login')
-        }
         return (
             <div className="flex h-screen items-center justify-center bg-[#03010A] text-white">
                 <Loader2 className="h-8 w-8 animate-spin text-white" />
@@ -64,7 +72,7 @@ export default function DashboardLayout({
                 </header>
 
                 <main className="flex-1 relative overflow-auto">
-                    <TrialBanner plan={plan || ""} trialEndsAt={trialEndsAt} />
+                    {!trialExempt && <TrialBanner plan={plan || ""} trialEndsAt={trialEndsAt} />}
                     {children}
                 </main>
             </div>
