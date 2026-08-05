@@ -10,7 +10,7 @@ export async function getSupabaseServerClient() {
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dummy.supabase.co", 
-    process.env.SUPABASE_SERVICE_ROLE_KEY || "dummy_service_key", 
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "dummy_anon_key", 
   {
     cookies: {
       getAll: async () => cookieStore.getAll(),
