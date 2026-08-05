@@ -8,13 +8,13 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get("error")
 
   if (error) {
-    const redirectUrl = new URL("/", request.url)
+    const redirectUrl = new URL("/dashboard/connected-platforms", request.url)
     redirectUrl.searchParams.set("error", error)
     return NextResponse.redirect(redirectUrl)
   }
 
   if (code) {
-    const redirectUrl = new URL("/", request.url)
+    const redirectUrl = new URL("/dashboard/connected-platforms", request.url)
     redirectUrl.searchParams.set("code", code)
     return NextResponse.redirect(redirectUrl)
   }
@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
     // 1. Env Vars
     const clientId = process.env.INSTAGRAM_APP_ID
     const clientSecret = process.env.INSTAGRAM_APP_SECRET
-    const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.headers.get("origin") || "https://helixa-main-ecru.vercel.app"
+    const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI || `${appUrl}/api/instagram/callback`
 
     if (!clientId || !clientSecret || !redirectUri) {
       throw new Error("Missing Env Vars: Check INSTAGRAM_APP_ID")
