@@ -13,6 +13,9 @@ export interface SessionState {
     trialExempt: boolean
     email: string | null
     role: string | null
+    hasValidPayment: boolean
+    isTrialExpired: boolean
+    isPastDeadline: boolean
     isLoading: boolean
 }
 
@@ -38,6 +41,9 @@ const initialState: SessionState = {
     trialExempt: false,
     email: null,
     role: null,
+    hasValidPayment: false,
+    isTrialExpired: false,
+    isPastDeadline: false,
     isLoading: true,
 }
 
@@ -84,6 +90,9 @@ async function fetchMe(): Promise<boolean> {
                     trialExempt: data.trial_exempt || false,
                     email: data.email || null,
                     role: data.role || null,
+                    hasValidPayment: data.has_valid_payment || false,
+                    isTrialExpired: data.is_trial_expired || false,
+                    isPastDeadline: data.is_past_deadline || false,
                 })
                 try {
                     localStorage.setItem("ig_account_id", data.accountId)

@@ -14,7 +14,7 @@ export default function DashboardLayout({
 }: {
     children: React.ReactNode
 }) {
-    const { username, profilePic, logout, plan, trialEndsAt, trialExempt, isLoading, accountId, email, role } = useInstagramSession()
+    const { username, profilePic, logout, plan, trialEndsAt, trialExempt, isLoading, accountId, email, role, hasValidPayment, isTrialExpired, isPastDeadline } = useInstagramSession()
 
     const router = useRouter()
 
@@ -22,10 +22,24 @@ export default function DashboardLayout({
     // no authenticated account. Doing this in an effect (instead of during
     // render) avoids "Cannot update a component while rendering another".
     useEffect(() => {
-        if (!isLoading && !accountId) {
-            router.replace('/login')
+        if (!isLoading) {
+            if (!accountId) {
+                router.replace('/login')
+                return
+            }
+            if (role === 'admin' || email === 'cultleaderzoz.dev@gmail.com') {
+                return
+            }
+            if (!trialExempt && plan === 'trial' && isTrialExpired && isPastDeadline) {
+                router.replace('/pricing')
+                return
+            }
+            if (plan && plan !== 'trial' && !hasValidPayment && isPastDeadline) {
+                router.replace('/pricing')
+                return
+            }
         }
-    }, [isLoading, accountId, router])
+    }, [isLoading, accountId, plan, trialExempt, isTrialExpired, isPastDeadline, hasValidPayment, role, email, router])
 
     if (isLoading) {
         return (

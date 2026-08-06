@@ -33,7 +33,9 @@ export async function POST(request: NextRequest) {
     }
     const igUserId = result.igUser.id
 
-    const { name, trigger_source, trigger_type, trigger_value, content, specific_media_id, variants } = await request.json()
+    const requestBody = await request.json()
+    const { name, trigger_source, trigger_type, trigger_value, content, specific_media_id, variants, platform } = requestBody
+
 
     if (!name || !trigger_value || !content || !trigger_source) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 })
@@ -62,6 +64,10 @@ export async function POST(request: NextRequest) {
         response_content: content,
         is_active: true,
         specific_media_id: specific_media_id || null,
+        platform: platform || 'instagram',
+        check_follow: requestBody.check_follow || false,
+        typing_indicator: requestBody.typing_indicator || false,
+        delay_seconds: requestBody.delay_seconds || 0,
       })
       .select()
       .single()
@@ -132,7 +138,8 @@ export async function PUT(request: NextRequest) {
     }
     const igUserId = result.igUser.id
 
-    const { id, name, trigger_source, trigger_type, trigger_value, content, specific_media_id, variants } = await request.json()
+    const requestBody = await request.json()
+    const { id, name, trigger_source, trigger_type, trigger_value, content, specific_media_id, variants, platform } = requestBody
 
     if (!id || !name || !trigger_value || !content) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 })
@@ -150,6 +157,10 @@ export async function PUT(request: NextRequest) {
       trigger_value: trigger_value.toLowerCase(),
       response_content: content,
       specific_media_id: specific_media_id || null,
+      platform: platform || 'instagram',
+      check_follow: requestBody.check_follow ?? false,
+      typing_indicator: requestBody.typing_indicator ?? false,
+      delay_seconds: requestBody.delay_seconds ?? 0,
     }
 
     if (trigger_source) {

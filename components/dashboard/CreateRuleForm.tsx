@@ -75,6 +75,51 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
   const [keywordSuggestions, setKeywordSuggestions] = useState<{id?: string, text: string}[]>([])
   const [generatingKeywords, setGeneratingKeywords] = useState(false)
 
+  /* ---------- PROMPT 16 ADDITIONS ---------- */
+  const [cardStyle, setCardStyle] = useState<"modern" | "classic" | "minimal">("modern")
+  const [specificMediaUrl, setSpecificMediaUrl] = useState("")
+  const [resolvingUrl, setResolvingUrl] = useState(false)
+  const [platform, setPlatform] = useState<"instagram" | "messenger" | "facebook">("instagram")
+  const [availablePlatforms, setAvailablePlatforms] = useState<string[]>(["instagram"])
+
+  useEffect(() => {
+    fetch("/api/user/connections")
+      .then(res => res.json())
+      .then(data => {
+        if (data.connections && data.connections.length > 0) {
+          const platforms = data.connections.map((c: any) => c.platform)
+          const available = new Set<string>(["instagram"])
+          if (platforms.includes("messenger")) available.add("messenger")
+          if (platforms.includes("facebook") && platforms.length > 1) available.add("facebook")
+          setAvailablePlatforms(Array.from(available))
+        }
+      })
+      .catch(console.error)
+  }, [])
+
+  const handleResolveMediaUrl = async () => {
+    if (!specificMediaUrl.trim()) return
+    setResolvingUrl(true)
+    try {
+      const res = await fetch("/api/instagram/media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: specificMediaUrl, userId })
+      })
+      const data = await res.json()
+      if (data.id) {
+        setSelectedReel({ id: data.id, caption: "Post from URL", image_url: data.image_url || null, media_type: data.media_type || "POST" })
+        setHasSelectedReelOption(true)
+        toast.success("Post linked!")
+      } else {
+        toast.error("Could not find post. Make sure the URL is public.")
+      }
+    } catch {
+      toast.error("Failed to resolve URL")
+    }
+    setResolvingUrl(false)
+  }
+
   const handleGenerateKeywords = async () => {
     if (!triggers.length || generatingKeywords) return
     setGeneratingKeywords(true)
@@ -179,6 +224,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
       setType("media"); setMediaUrl(content.media.url); setMediaType(content.media.type || "image"); setMessageText(content.message || "")
     } else if (content.card) {
       setType("card"); setCardTitle(content.card.title || ""); setCardSubtitle(content.card.subtitle || ""); setCardImage(content.card.image_url || "")
+      setCardStyle(content.card.card_style || "modern")
       setButtons((content.card.buttons || []).map((b: any, i: number) => ({ id: `${Date.now()}_${i}`, ...b })))
     } else {
       setType("text"); setMessageText(content.message || "")
@@ -203,6 +249,10 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
       text: v.response_config?.message || v.response_config?.reply_text || "Variant message",
       weight: v.traffic_weight || 50
     })))
+    
+    if ((editRule as any).platform) {
+      setPlatform((editRule as any).platform)
+    }
   }, [editRule])
 
   /* Auto name */
@@ -288,9 +338,19 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
     if (type === "text") {
       content.message = messageText
     } else if (type === "media") {
+      if (mediaUrl && !mediaUrl.startsWith("https://")) {
+        toast.error("Media URL must use a secure HTTPS link.")
+        setSaving(false)
+        return
+      }
       content.media = { type: mediaType, url: mediaUrl.trim() }
       if (messageText.trim()) content.message = messageText
     } else {
+      if (cardImage && !cardImage.startsWith("https://")) {
+        toast.error("Card cover image must use a secure HTTPS link.")
+        setSaving(false)
+        return
+      }
       const cleanButtons = buttons
         .map((b) => {
           if (b.type === "web_url") {
@@ -301,7 +361,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
           return { type: "postback" as const, title: b.title, payload: b.payload }
         })
         .filter((b) => b.title)
-      content.card = { title: cardTitle, subtitle: cardSubtitle || undefined, image_url: cardImage || undefined, buttons: cleanButtons }
+      content.card = { title: cardTitle, subtitle: cardSubtitle || undefined, image_url: cardImage || undefined, buttons: cleanButtons, card_style: cardStyle }
     }
 
     const payload = {
@@ -315,6 +375,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
             : triggers.length > 0 ? triggers.join(", ") : "ALL",
       content,
       specific_media_id: selectedReel?.id || null,
+      platform,
       automation_variants: variants.map(v => ({
         id: v.id.startsWith("new_") ? undefined : v.id,
         response_config: { message: v.text },
@@ -431,6 +492,24 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
               {triggerSource === "comment" && (
                 <div className="space-y-4">
                   <FieldLabel>Automate which post or reel?</FieldLabel>
+                  
+                  {/* Platform Selector */}
+                  {availablePlatforms.length > 1 && (
+                    <div className="flex gap-2 mb-4 bg-white/[0.02] p-1 rounded-xl w-max border border-white/10">
+                      {availablePlatforms.map(p => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setPlatform(p as any)}
+                          className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
+                            platform === p ? "bg-white text-black" : "text-neutral-500 hover:text-white"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {loadingReels ? (
                     <div className="p-8 flex flex-col items-center justify-center gap-3 border border-white/5 rounded-2xl bg-white/[0.01]">
                       <Loader2 className="w-6 h-6 animate-spin text-[#ffe14d]" />
@@ -503,6 +582,24 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
                       })}
                     </div>
                   )}
+
+                  {/* Specific URL Fallback */}
+                  <div className="flex gap-2 items-center">
+                    <input
+                      value={specificMediaUrl}
+                      onChange={(e) => setSpecificMediaUrl(e.target.value)}
+                      placeholder="Or paste post URL if missing..."
+                      className="flex-1 h-9 bg-white/[0.02] border border-white/10 rounded-xl px-3 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#ffe14d]/50 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleResolveMediaUrl}
+                      disabled={!specificMediaUrl.trim() || resolvingUrl}
+                      className="h-9 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition-all disabled:opacity-50"
+                    >
+                      {resolvingUrl ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Link"}
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -726,6 +823,20 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
                     <div className="space-y-4">
                       <div className="space-y-3">
                         <FieldLabel>Card configuration</FieldLabel>
+                        <div className="flex gap-2 bg-white/[0.02] p-1 rounded-xl w-max border border-white/10 mb-2">
+                          {(["modern", "classic", "minimal"] as const).map(style => (
+                            <button
+                              key={style}
+                              type="button"
+                              onClick={() => setCardStyle(style)}
+                              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${
+                                cardStyle === style ? "bg-[#ffe14d] text-black" : "text-neutral-500 hover:text-white"
+                              }`}
+                            >
+                              {style}
+                            </button>
+                          ))}
+                        </div>
                         <TextField value={cardTitle} onChange={setCardTitle} placeholder="Card main title" />
                         <TextField value={cardSubtitle} onChange={setCardSubtitle} placeholder="Subtitle description (optional)" />
                         <TextField value={cardImage} onChange={setCardImage} placeholder="Cover image URL (optional)" />
@@ -773,8 +884,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <FieldLabel>Select File Type</FieldLabel>
-                        <div className="grid grid-cols-3 gap-2">
-                          {(["image", "video", "audio"] as const).map((m) => (
+                        <div className="grid grid-cols-2 gap-2">
+                          {(["image", "video"] as const).map((m) => (
                             <button
                               key={m}
                               type="button"
@@ -783,7 +894,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
                                 mediaType === m ? "border-[#ffe14d] bg-[#ffe14d]/10 text-[#ffe14d]" : "border-white/10 text-neutral-400 hover:text-white"
                               }`}
                             >
-                              {m === "image" ? "Photo" : m === "video" ? "Video" : "Audio"}
+                              {m === "image" ? "Photo" : "Video"}
                             </button>
                           ))}
                         </div>
@@ -922,7 +1033,11 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
                   <span className="text-xs font-mono-ui uppercase tracking-widest text-[#ffe14d] font-bold">Rule Logic Summary</span>
                 </div>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  When <span className="text-white font-semibold underline decoration-[#ffe14d]/40 decoration-2">{summary.who}</span>, we will <span className="text-[#ffe14d] font-semibold">{summary.what}</span>.
+                  When <span className="text-white font-semibold underline decoration-[#ffe14d]/40 decoration-2">{summary.who}</span>, 
+                  {delaySeconds > 0 ? ` after a ${delaySeconds}s delay` : ""}
+                  {typingIndicator ? ` (with typing indicator)` : ""}
+                  {checkFollow ? ` if they follow you` : ""}
+                  , we will <span className="text-[#ffe14d] font-semibold">{summary.what}</span>.
                 </p>
               </div>
             </div>
@@ -1040,16 +1155,22 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
                         </div>
                       )}
                       {type === "card" && (
-                        <div className="bg-neutral-900 border border-white/10 rounded-2xl overflow-hidden w-48 shadow-2xl">
+                        <div className={`border rounded-2xl overflow-hidden shadow-2xl transition-all ${
+                          cardStyle === "modern" ? "bg-neutral-900 border-white/10 w-48" : 
+                          cardStyle === "classic" ? "bg-white border-white/20 w-52 text-black" : 
+                          "bg-black border-white/5 w-44"
+                        }`}>
                           {cardImage && cardImage.startsWith("http") && (
                             <img src={cardImage} alt="" className="w-full h-24 object-cover" loading="lazy" />
                           )}
                           <div className="p-3">
-                            <p className="text-xs font-bold text-white line-clamp-1">{cardTitle || "Card Title"}</p>
-                            {cardSubtitle && <p className="text-[10px] text-neutral-400 mt-1 line-clamp-2 leading-tight">{cardSubtitle}</p>}
+                            <p className={`text-xs font-bold line-clamp-1 ${cardStyle === 'classic' ? 'text-black' : 'text-white'}`}>{cardTitle || "Card Title"}</p>
+                            {cardSubtitle && <p className={`text-[10px] mt-1 line-clamp-2 leading-tight ${cardStyle === 'classic' ? 'text-neutral-600' : 'text-neutral-400'}`}>{cardSubtitle}</p>}
                           </div>
                           {buttons.filter((b) => b.title).map((b) => (
-                            <div key={b.id} className="border-t border-white/5 py-2 text-center text-[10px] font-bold text-[#3797f0] bg-white/[0.01] cursor-pointer hover:bg-white/[0.03] transition-colors">
+                            <div key={b.id} className={`border-t py-2 text-center text-[10px] font-bold cursor-pointer transition-colors ${
+                              cardStyle === 'classic' ? 'border-neutral-200 text-[#0064e0] hover:bg-neutral-100' : 'border-white/5 text-[#3797f0] hover:bg-white/[0.03]'
+                            }`}>
                               {b.title}
                             </div>
                           ))}

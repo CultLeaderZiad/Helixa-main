@@ -3,7 +3,7 @@ import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireInstagramUser } from "@/lib/auth"
 import { generateGroqCompletion } from "@/lib/groq-client"
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     const result = await requireInstagramUser(request)
     if (result.response) return result.response

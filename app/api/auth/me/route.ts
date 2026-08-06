@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSessionInstagramUser } from "@/lib/auth"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 /**
  * GET /api/auth/me
@@ -22,6 +23,58 @@ export async function GET(request: NextRequest) {
     defaultProfilePic = "/admin-avatar.png";
   }
 
+  let hasValidPayment = false;
+  let isTrialExpired = false;
+  let isPastDeadline = false;
+
+  const currentPlan = igUser?.plan ?? account.plan;
+  const trialEnds = igUser?.trial_ends_at ?? account.trial_ends_at;
+
+  if (trialEnds) {
+    const trialDate = new Date(trialEnds);
+    const now = new Date();
+    if (trialDate < now) {
+      isTrialExpired = true;
+      // 24 hour deadline after expiration
+      if (now.getTime() - trialDate.getTime() > 24 * 60 * 60 * 1000) {
+        isPastDeadline = true;
+      }
+    }
+  }
+
+  // Admin bypass
+  if (userRole === "admin" || account.email === "cultleaderzoz.dev@gmail.com") {
+    hasValidPayment = true;
+    isTrialExpired = false;
+    isPastDeadline = false;
+  } else if (currentPlan && currentPlan !== "trial" && igUser) {
+    const supabase = await getSupabaseBypassClient();
+    // Check manual payments
+    const { data: payment } = await supabase
+      .from("payment_submissions")
+      .select("id")
+      .eq("user_id", igUser.id)
+      .eq("status", "approved")
+      .limit(1)
+      .maybeSingle();
+
+    if (payment) {
+      hasValidPayment = true;
+    } else {
+      // Check Stripe subscriptions fallback
+      const { data: sub } = await supabase
+        .from("subscriptions")
+        .select("id")
+        .eq("user_id", igUser.id)
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle();
+      if (sub) {
+        hasValidPayment = true;
+      }
+    }
+  }
+
   return NextResponse.json({
     authenticated: true,
     accountId: account.id,
@@ -37,5 +90,8 @@ export async function GET(request: NextRequest) {
     trial_exempt: account.trial_exempt,
     permission_level: account.permission_level,
     is_team_member: account.is_team_member,
+    has_valid_payment: hasValidPayment,
+    is_trial_expired: isTrialExpired,
+    is_past_deadline: isPastDeadline,
   })
 }

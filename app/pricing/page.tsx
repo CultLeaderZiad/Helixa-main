@@ -4,7 +4,8 @@ import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import ElectricBorder from "@/components/ui/electric-border"
 import BackToHome from "@/components/ui/back-to-home"
 
-export const revalidate = 3600;
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
 export default async function PricingPage() {
   const supabase = await getSupabaseBypassClient()

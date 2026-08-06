@@ -63,6 +63,8 @@ export async function generateGroqCompletion(
   feature: string,
   options: GroqCompletionRequest
 ): Promise<string | null> {
+  console.log("[groq-client] API Key present:", !!GROQ_API_KEY)
+
   if (!GROQ_API_KEY) {
     console.error("[groq-client] GROQ_API_KEY is missing.")
     return null
@@ -74,7 +76,7 @@ export async function generateGroqCompletion(
     throw new Error("AI limit exceeded for today.")
   }
 
-  const model = options.model || "llama3-8b-8192"
+  const model = options.model || "llama-3.1-8b-instant"
 
   try {
     const res = await fetch(GROQ_API_URL, {

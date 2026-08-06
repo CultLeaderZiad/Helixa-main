@@ -33,8 +33,7 @@ export default function LoginPage() {
         // Now try logging in
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (!error) {
-          router.push("/dashboard")
-          router.refresh()
+          window.location.href = "/dashboard"
           return
         }
       }
@@ -49,8 +48,7 @@ export default function LoginPage() {
       setError(error.message)
       setLoading(false)
     } else {
-      router.push("/dashboard")
-      router.refresh()
+      window.location.href = "/dashboard"
     }
   }
 
