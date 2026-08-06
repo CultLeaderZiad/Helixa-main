@@ -346,11 +346,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
       content.media = { type: mediaType, url: mediaUrl.trim() }
       if (messageText.trim()) content.message = messageText
     } else {
-      if (cardImage && !cardImage.startsWith("https://")) {
-        toast.error("Card cover image must use a secure HTTPS link.")
-        setSaving(false)
-        return
-      }
+
       const cleanButtons = buttons
         .map((b) => {
           if (b.type === "web_url") {
@@ -361,7 +357,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
           return { type: "postback" as const, title: b.title, payload: b.payload }
         })
         .filter((b) => b.title)
-      content.card = { title: cardTitle, subtitle: cardSubtitle || undefined, image_url: cardImage || undefined, buttons: cleanButtons, card_style: cardStyle }
+      content.card = { title: cardTitle, subtitle: cardSubtitle || undefined, image_url: undefined, buttons: cleanButtons, card_style: cardStyle }
     }
 
     const payload = {
@@ -839,7 +835,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
                         </div>
                         <TextField value={cardTitle} onChange={setCardTitle} placeholder="Card main title" />
                         <TextField value={cardSubtitle} onChange={setCardSubtitle} placeholder="Subtitle description (optional)" />
-                        <TextField value={cardImage} onChange={setCardImage} placeholder="Cover image URL (optional)" />
+
                       </div>
                       <div className="space-y-2.5">
                         <div className="flex items-center justify-between border-b border-white/5 pb-2">
@@ -885,7 +881,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
                       <div className="space-y-2">
                         <FieldLabel>Select File Type</FieldLabel>
                         <div className="grid grid-cols-2 gap-2">
-                          {(["image", "video"] as const).map((m) => (
+                          {(["image", "video", "audio"] as const).map((m) => (
                             <button
                               key={m}
                               type="button"
@@ -894,7 +890,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
                                 mediaType === m ? "border-[#ffe14d] bg-[#ffe14d]/10 text-[#ffe14d]" : "border-white/10 text-neutral-400 hover:text-white"
                               }`}
                             >
-                              {m === "image" ? "Photo" : "Video"}
+                              {m === "image" ? "Photo" : m === "video" ? "Video" : "Audio"}
                             </button>
                           ))}
                         </div>
@@ -1160,9 +1156,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
                           cardStyle === "classic" ? "bg-white border-white/20 w-52 text-black" : 
                           "bg-black border-white/5 w-44"
                         }`}>
-                          {cardImage && cardImage.startsWith("http") && (
-                            <img src={cardImage} alt="" className="w-full h-24 object-cover" loading="lazy" />
-                          )}
+
                           <div className="p-3">
                             <p className={`text-xs font-bold line-clamp-1 ${cardStyle === 'classic' ? 'text-black' : 'text-white'}`}>{cardTitle || "Card Title"}</p>
                             {cardSubtitle && <p className={`text-[10px] mt-1 line-clamp-2 leading-tight ${cardStyle === 'classic' ? 'text-neutral-600' : 'text-neutral-400'}`}>{cardSubtitle}</p>}
