@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Image from "next/image"
 import { Card } from "@/components/ui/card"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
-import { Activity, Users, MessageCircle, Zap, Loader2, AlertCircle } from "lucide-react"
+import { Activity, Users, MessageCircle, Zap, Loader2, AlertCircle, Sparkles, RefreshCcw, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
@@ -36,12 +36,29 @@ export default function DashboardPage() {
     const [stats, setStats] = useState<DashboardStats | null>(null)
     const [loading, setLoading] = useState(true)
     const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null)
+    
+    const [themes, setThemes] = useState<any[]>([])
+    const [loadingThemes, setLoadingThemes] = useState(false)
+
+    const fetchThemes = async (force = false) => {
+        if (!userId) return
+        setLoadingThemes(true)
+        try {
+            const res = await fetch(`/api/ai/analyze-comment-themes${force ? "?force=true" : ""}`, { method: "POST" })
+            const data = await res.json()
+            if (data.themes) setThemes(data.themes)
+        } catch (e) {
+            console.error("Failed to fetch themes", e)
+        }
+        setLoadingThemes(false)
+    }
 
     useEffect(() => {
         if (!userId) {
             setLoading(false)
             return
         }
+        fetchThemes()
 
         const fetchStats = async () => {
             try {
@@ -250,6 +267,62 @@ export default function DashboardPage() {
                     </div>
                 </Card>
             </div>
+
+            {/* Comment Themes Card */}
+            <Card className="p-6 bg-[#0b0b0a] border-white/10 mt-8">
+                <div className="flex items-center justify-between mb-5">
+                    <div>
+                        <h3 className="font-serif-display text-2xl text-white flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 text-[#ffe14d]" />
+                            What people are asking
+                        </h3>
+                        <p className="text-xs text-neutral-400 mt-1">AI analysis of your recent comments to find automation opportunities.</p>
+                    </div>
+                    <button 
+                        onClick={() => fetchThemes(true)} 
+                        disabled={loadingThemes}
+                        className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-400 transition-colors disabled:opacity-50"
+                        title="Force refresh (uses AI credits)"
+                    >
+                        <RefreshCcw className={`w-4 h-4 ${loadingThemes ? "animate-spin" : ""}`} />
+                    </button>
+                </div>
+                
+                {loadingThemes && themes.length === 0 ? (
+                    <div className="py-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-neutral-500" /></div>
+                ) : themes.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {themes.map((theme: any) => (
+                            <div key={theme.id} className="bg-white/[0.02] border border-white/5 rounded-xl p-4 flex flex-col justify-between">
+                                <div>
+                                    <div className="flex items-start justify-between mb-2">
+                                        <h4 className="text-sm font-bold text-white capitalize">{theme.theme}</h4>
+                                        <span className="text-[10px] font-mono-ui bg-white/10 px-2 py-0.5 rounded-full text-neutral-300">{theme.count}x</span>
+                                    </div>
+                                    <p className="text-xs text-neutral-400 mb-3 line-clamp-2">"{theme.examples}"</p>
+                                    <div className="flex flex-wrap gap-1 mb-4">
+                                        {theme.keywords?.split(",").map((k: string, i: number) => (
+                                            <span key={i} className="text-[9px] uppercase tracking-wider bg-[#ffe14d]/10 text-[#ffe14d] px-1.5 py-0.5 rounded">
+                                                {k.trim()}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                                <Link 
+                                    href={`/dashboard/automations?intent=${encodeURIComponent("Reply to comments about " + theme.theme + " matching keywords: " + theme.keywords)}`}
+                                    className="text-xs font-bold text-black bg-[#ffe14d] hover:bg-[#ffe14d]/90 py-2 rounded-lg flex items-center justify-center gap-1 transition-colors"
+                                >
+                                    Turn into automation <ArrowRight className="w-3.5 h-3.5" />
+                                </Link>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="py-8 text-center text-neutral-500 text-sm">
+                        Not enough comments recently to detect themes. Check back later!
+                    </div>
+                )}
+            </Card>
         </div>
     )
 }

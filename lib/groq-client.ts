@@ -16,6 +16,7 @@ export interface GroqCompletionRequest {
   messages: GroqMessage[]
   temperature?: number
   max_tokens?: number
+  response_format?: { type: "json_object" }
 }
 
 export async function checkAILimit(userId: number | string): Promise<boolean> {
