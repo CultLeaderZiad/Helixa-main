@@ -64,16 +64,21 @@ Review the provided data and return a compact, plain-language summary followed b
     })
 
     if (!completion) {
-      return NextResponse.json({ error: "Failed to generate AI summary or rate limit exceeded" }, { status: 429 })
+      return NextResponse.json({ error: "Failed to generate AI summary" }, { status: 500 })
     }
 
     return NextResponse.json({ summary: completion })
 
   } catch (error: any) {
     console.error("[analytics-summary] Server error:", error)
-    if (error.message === "AI limit exceeded for today.") {
-      return NextResponse.json({ error: error.message }, { status: 429 })
+    
+    if (error.name === "GroqRateLimitError") {
+      return NextResponse.json({ error: "Rate limit reached — try again in a minute" }, { status: 429 })
     }
+    if (error.name === "GroqAPIError") {
+      return NextResponse.json({ error: `AI request failed: ${error.message}` }, { status: error.status || 500 })
+    }
+    
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

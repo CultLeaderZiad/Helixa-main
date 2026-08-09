@@ -36,15 +36,22 @@ export async function getSessionUser(request?: NextRequest) {
         email: user.email,
       })
       // Self-healing fallback: Create the account row manually if the DB trigger failed
+      const fallbackEmail = user.email || `no-email-${user.id}@helixa.app`
       const { data: newAccount, error: insertError } = await adminSupabase.from('accounts').insert({
         id: user.id,
-        email: user.email,
+        email: fallbackEmail,
         role: 'customer',
         plan: 'trial'
       }).select().single()
 
       if (insertError) {
-        console.error("[auth] Failed to self-heal account:", JSON.stringify(insertError, null, 2))
+        console.error("[auth] Failed to self-heal account for user:", user.id)
+        console.error("[auth] Insert Error Details:", {
+          code: insertError.code,
+          message: insertError.message,
+          details: insertError.details,
+          hint: insertError.hint
+        })
         return null
       }
       return newAccount

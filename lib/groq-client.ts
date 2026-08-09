@@ -6,6 +6,22 @@ const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 // Defaulting to 30 requests per user per day to protect Groq rate limits.
 const MAX_AI_CALLS_PER_DAY = 30
 
+export class GroqRateLimitError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "GroqRateLimitError"
+  }
+}
+
+export class GroqAPIError extends Error {
+  status: number
+  constructor(status: number, message: string) {
+    super(message)
+    this.name = "GroqAPIError"
+    this.status = status
+  }
+}
+
 export interface GroqMessage {
   role: "system" | "user" | "assistant"
   content: string
@@ -33,7 +49,7 @@ export async function checkAILimit(userId: number | string): Promise<boolean> {
 
   if (error) {
     console.error("[groq-client] Error checking AI limit:", error)
-    return false // Deny on error for safety
+    throw new GroqAPIError(500, `Database error checking AI limit: ${error.message}`)
   }
 
   return (count || 0) < MAX_AI_CALLS_PER_DAY
@@ -67,13 +83,13 @@ export async function generateGroqCompletion(
 
   if (!GROQ_API_KEY) {
     console.error("[groq-client] GROQ_API_KEY is missing.")
-    return null
+    throw new GroqAPIError(500, "GROQ_API_KEY is not configured.")
   }
 
   const isWithinLimit = await checkAILimit(userId)
   if (!isWithinLimit) {
     console.error(`[groq-client] User ${userId} exceeded daily AI limit.`)
-    throw new Error("AI limit exceeded for today.")
+    throw new GroqRateLimitError("AI limit exceeded for today.")
   }
 
   const model = options.model || "llama-3.1-8b-instant"
@@ -96,7 +112,10 @@ export async function generateGroqCompletion(
     if (!res.ok) {
       const errorText = await res.text()
       console.error(`[groq-client] API error (${res.status}):`, errorText)
-      return null
+      if (res.status === 429) {
+        throw new GroqRateLimitError(`Groq API rate limit reached: ${errorText}`)
+      }
+      throw new GroqAPIError(res.status, `Groq API returned ${res.status}: ${errorText}`)
     }
 
     const data = await res.json()
@@ -107,8 +126,11 @@ export async function generateGroqCompletion(
     await logAIUsage(userId, feature, model, tokensUsed)
 
     return content
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof GroqRateLimitError || error instanceof GroqAPIError) {
+      throw error;
+    }
     console.error("[groq-client] Network/Fetch error:", error)
-    return null
+    throw new GroqAPIError(500, `Network/Fetch error: ${error.message || "Unknown error"}`)
   }
 }
