@@ -89,9 +89,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(data)
-  } catch (error) {
+  } catch (error: any) {
     console.error("[v0] Automations POST error:", error)
-    return NextResponse.json({ error: "Failed to create" }, { status: 500 })
+    return NextResponse.json({ error: error.message || "Failed to create" }, { status: 500 })
   }
 }
 
@@ -197,9 +197,9 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json(data)
-  } catch (error) {
+  } catch (error: any) {
     console.error("[v0] Automations PUT error:", error)
-    return NextResponse.json({ error: "Failed to update" }, { status: 500 })
+    return NextResponse.json({ error: error.message || "Failed to update" }, { status: 500 })
   }
 }
 

@@ -436,7 +436,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
         toast.success(isEditing ? "Automation updated" : "Automation is live")
         onSuccess()
       } else {
-        toast.error("Could not save — try again")
+        const errorData = await res.json().catch(() => ({}))
+        toast.error(errorData.error || "Could not save — try again")
       }
     } catch {
       toast.error("Network error")
