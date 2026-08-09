@@ -53,6 +53,23 @@ export function buildCardAttachment(card: IGCard) {
       url: b.type === "web_url" ? b.url : undefined,
       payload: b.type === "postback" ? b.payload : undefined,
     }))
+
+  // If there's no image and no subtitle, use the Button Template
+  // which renders beautifully in Instagram DMs (normal text + gray button)
+  if (!card.subtitle && !card.image_url) {
+    return {
+      attachment: {
+        type: "template",
+        payload: {
+          template_type: "button",
+          text: card.title,
+          buttons: buttons.length > 0 ? buttons : undefined,
+        },
+      },
+    }
+  }
+
+  // Otherwise, use the Generic Template (renders as bold title + blue links if no image)
   const element: any = { title: card.title, buttons }
   if (card.subtitle) element.subtitle = card.subtitle
   if (card.image_url?.startsWith("http")) element.image_url = card.image_url
