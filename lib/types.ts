@@ -87,4 +87,5 @@ export interface Automation {
   media_selection?: MediaSelection | null
   selected_reel_id?: string | null
   automation_variants?: AutomationVariant[]
+  platform?: "instagram" | "facebook" | "messenger"
 }

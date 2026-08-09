@@ -500,11 +500,11 @@ export async function POST(request: NextRequest) {
           console.log(`[webhook] 📩 DM from ${senderId}: "${triggerValue}"`)
 
           // ---------- Persist conversation + incoming message ----------
-          let conv = null
+          let conv: any = null
           try {
             const { data: existing } = await supabase
               .from("conversations")
-              .select("id")
+              .select("id, recipient_username")
               .eq("user_id", user.id)
               .eq("recipient_id", senderId)
               .single()
@@ -522,7 +522,7 @@ export async function POST(request: NextRequest) {
                   recipient_username: realUsername,
                   last_message_at: new Date().toISOString(),
                 })
-                .select("id")
+                .select("id, recipient_username")
                 .single()
               conv = newConv
             } else {
