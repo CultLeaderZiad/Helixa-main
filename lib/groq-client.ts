@@ -4,7 +4,7 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 // Defaulting to 30 requests per user per day to protect Groq rate limits.
-const MAX_AI_CALLS_PER_DAY = 30
+const MAX_AI_CALLS_PER_DAY = 300
 
 export interface GroqMessage {
   role: "system" | "user" | "assistant"
