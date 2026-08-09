@@ -55,9 +55,16 @@ export async function GET(req: Request) {
     variants["default"] = { id: "default", name: "Default Variant", sent: 0, replied: 0, converted: 0 }
 
     for (const event of events || []) {
-      const type = event.event_type || "sent"
-      if (funnelStages[type as keyof typeof funnelStages] !== undefined) {
-        funnelStages[type as keyof typeof funnelStages]++
+      const type = event.event_type || "unknown"
+      
+      // Map webhook events to funnel stages
+      let mappedType = type
+      if (["story_reply", "comment_dm", "keyword_dm", "postback_dm"].includes(type)) {
+        mappedType = "sent"
+      }
+      
+      if (funnelStages[mappedType as keyof typeof funnelStages] !== undefined) {
+        funnelStages[mappedType as keyof typeof funnelStages]++
       }
 
       const vId = event.variant_id || "default"

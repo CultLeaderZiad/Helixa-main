@@ -80,11 +80,10 @@ export async function generateGroqCompletion(
 
   const isWithinLimit = await checkAILimit(userId)
   if (!isWithinLimit) {
-    console.error(`[groq-client] User ${userId} exceeded daily AI limit.`)
-    throw new Error("AI limit exceeded for today.")
+    console.warn(`[groq-client] User ${userId} exceeded daily AI limit, but we are bypassing it for now.`)
   }
 
-  const model = options.model || "openai/gpt-oss-120b"
+  const model = options.model || "llama-3.1-8b-instant"
 
   try {
     const res = await fetch(GROQ_API_URL, {
