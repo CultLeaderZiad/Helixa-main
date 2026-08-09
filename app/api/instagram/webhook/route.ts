@@ -577,9 +577,19 @@ export async function POST(request: NextRequest) {
               }
             }
           } else {
-            match = dmAutomations.find(
-              (a) => a.trigger_type === "keyword" && keywordMatches(a.trigger_value, triggerValue),
-            )
+            const { data: ibMatches } = await supabase
+              .from("ice_breakers")
+              .select("*")
+              .eq("user_id", user.id)
+            
+            const exactIb = ibMatches?.find(ib => ib.question.toLowerCase().trim() === triggerValue)
+            if (exactIb) {
+              match = { name: "Ice Breaker: " + exactIb.question, response_content: { message: exactIb.response } }
+            } else {
+              match = dmAutomations.find(
+                (a) => a.trigger_type === "keyword" && keywordMatches(a.trigger_value, triggerValue),
+              )
+            }
           }
 
           if (!match) {

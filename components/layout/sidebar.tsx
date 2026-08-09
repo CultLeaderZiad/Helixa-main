@@ -36,16 +36,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
     <aside className={cn("flex flex-col bg-[#0a0a09]", className)} {...props}>
       {/* Brand */}
       <div className="px-5 pt-6 pb-5 flex items-center gap-3">
-        <div className="relative h-8 w-8 overflow-hidden flex-shrink-0">
-          <Image
-            src="/HELIXA-png.png"
-            alt="Helixa"
-            width={2816}
-            height={1536}
-            className="h-full w-auto max-w-none object-cover object-left mix-blend-screen filter grayscale invert brightness-200"
-            priority
-          />
-        </div>
+        {/* Image removed */}
         <div style={{ position: 'relative', height: '22px', width: '80px' }}>
           <TextPressure
             text="HELIXA"

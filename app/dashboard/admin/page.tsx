@@ -50,6 +50,7 @@ interface PaymentSubmission {
   note: string | null
   amount: number
   status: 'pending' | 'approved' | 'rejected'
+  plan_id?: string | null
   created_at: string
   accounts: { email: string | null } | null
   users: { username: string, plan: string }
@@ -580,20 +581,21 @@ export default function AdminPage() {
           <table className="w-full font-mono text-xs">
             <thead>
               <tr className="border-b border-white/[0.08] bg-white/[0.02]">
-                {["Time", "Email", "Transaction Ref", "Amount", "Note", "Actions"].map(h => (
+                {["Time", "Email", "Transaction Ref", "Amount", "Ordered Plan", "Note (Client Name)", "Actions"].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-neutral-500 uppercase tracking-wider text-[10px]">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {pendingPayments.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-neutral-600">No pending payments.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-neutral-600">No pending payments.</td></tr>
               ) : pendingPayments.map(payment => (
                 <tr key={payment.id} className="border-b border-white/[0.04]">
                   <td className="px-4 py-3 text-neutral-500">{new Date(payment.created_at).toLocaleString()}</td>
                   <td className="px-4 py-3 text-white font-bold">{payment.accounts?.email || `ID: ${payment.user_id}`}</td>
                   <td className="px-4 py-3 text-[#ffe14d]">{payment.transaction_reference}</td>
                   <td className="px-4 py-3 text-green-400">${payment.amount}</td>
+                  <td className="px-4 py-3 text-blue-400 capitalize">{payment.plan_id || payment.users?.plan || "monthly"}</td>
                   <td className="px-4 py-3 text-neutral-400 max-w-[200px] truncate" title={payment.note || ""}>
                     {payment.note || "—"}
                   </td>

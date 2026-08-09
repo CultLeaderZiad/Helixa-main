@@ -8,6 +8,7 @@ export default function CheckoutClient({ plan, methods, user }: { plan: any, met
     methods.length > 0 ? methods[0].method : null
   )
   const [transactionRef, setTransactionRef] = useState("")
+  const [clientName, setClientName] = useState("")
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
 
@@ -47,6 +48,7 @@ export default function CheckoutClient({ plan, methods, user }: { plan: any, met
             amount: Number(plan.price_usd),
             payment_method: selectedMethod,
             plan_id: plan.id,
+            note: clientName.trim(),
           })
         })
         const data = await res.json()
@@ -120,11 +122,24 @@ export default function CheckoutClient({ plan, methods, user }: { plan: any, met
           <div className="p-4 bg-white/5 border border-[#ffe14d]/30 rounded-xl">
             <h4 className="font-bold text-[#ffe14d] mb-2">Payment Instructions</h4>
             <p className="text-sm text-neutral-300 mb-2">
-              Please transfer exactly <strong className="text-white text-base">${plan.price_usd}</strong> to the following number/account:
+              Please transfer exactly <strong className="text-white text-base">${plan.price_usd}</strong> to the following Vodafone Cash number:
             </p>
-            <div className="bg-black/50 p-3 rounded-lg text-white font-mono text-lg border border-white/10">
-              {selected.instructions || "Contact support for the Vodafone Cash number"}
+            <div className="bg-black/50 p-3 rounded-lg text-[#ffe14d] font-mono text-xl text-center border border-white/10 font-bold tracking-wider">
+              {selectedMethod === "vodafone_cash" ? "+01037312994" : selected.instructions || "+01037312994"}
             </div>
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-neutral-300">
+              Client Name
+            </label>
+            <input
+              type="text"
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              placeholder="e.g. John Doe"
+              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-neutral-500 outline-none focus:border-[#ffe14d]/50"
+              required
+            />
           </div>
           <div className="space-y-2">
             <label className="block text-sm font-medium text-neutral-300">

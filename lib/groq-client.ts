@@ -33,8 +33,8 @@ export async function checkAILimit(userId: number | string): Promise<boolean> {
     .gte("created_at", today.toISOString())
 
   if (error) {
-    console.error("[groq-client] Error checking AI limit:", error)
-    return false // Deny on error for safety
+    console.error("[groq-client] Error checking AI limit (failing open):", error)
+    return true // Fail open to not block user features
   }
 
   return (count || 0) < MAX_AI_CALLS_PER_DAY
@@ -46,13 +46,20 @@ export async function logAIUsage(
   model: string,
   tokensUsed: number
 ) {
-  const supabase = await getSupabaseBypassClient()
-  await supabase.from("ai_usage_log").insert({
-    user_id: userId,
-    feature,
-    model,
-    tokens_used: tokensUsed,
-  })
+  try {
+    const supabase = await getSupabaseBypassClient()
+    const { error } = await supabase.from("ai_usage_log").insert({
+      user_id: userId,
+      feature,
+      model,
+      tokens_used: tokensUsed,
+    })
+    if (error) {
+      console.error("[groq-client] Error logging AI usage:", error)
+    }
+  } catch (err) {
+    console.error("[groq-client] Exception logging AI usage:", err)
+  }
 }
 
 /**
