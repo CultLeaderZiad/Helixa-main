@@ -3,6 +3,7 @@
 import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { processLeadCapture } from "@/lib/lead-capture"
 import {
   sendTextDM,
   sendCardDM,
@@ -581,11 +582,58 @@ export async function POST(request: NextRequest) {
             )
           }
 
+          if (!match) {
+            // Check if user is in an active lead capture state even if there's no match
+            const { data: leadState } = await supabase
+              .from("conversation_state")
+              .select("*")
+              .eq("user_id", user.id)
+              .eq("ig_user_id", senderId)
+              .single()
+            if (leadState) {
+              const activeAuto = automations.find((a: any) => a.id === leadState.automation_id)
+              if (activeAuto) match = activeAuto
+            }
+          }
+
           if (!match) continue
 
           const { content: rawContent, variantId } = pickVariant(match)
           console.log(`[webhook] ✅ DM match: "${match.name}" (variant: ${variantId || "default"})`)
           const content = parseContent(rawContent)
+
+          // ---------- Process Lead Capture State Machine ----------
+          let realUsername = "User"
+          if (conv && conv.recipient_username) realUsername = conv.recipient_username
+
+          const leadCaptureResult = await processLeadCapture(
+            supabase,
+            user.id,
+            senderId,
+            realUsername,
+            user.access_token,
+            triggerValue,
+            match,
+            content
+          )
+
+          if (!leadCaptureResult.shouldContinue) {
+             // We just prompted them for lead capture info. Save this outbound prompt to messages!
+             if (conv && leadCaptureResult.replyTextLog) {
+               try {
+                 await supabase.from("messages").insert({
+                   id: `mid_lead_${Date.now()}_${Math.random()}`,
+                   conversation_id: conv.id,
+                   user_id: user.id,
+                   sender_id: user.business_account_id,
+                   sender_username: user.username,
+                   content: leadCaptureResult.replyTextLog,
+                   is_from_instagram: false,
+                 })
+               } catch (e) {}
+             }
+             continue // Stop processing this match until they reply
+          }
 
           // Mark message as seen for human-like flow
           if (content.mark_seen !== false) {

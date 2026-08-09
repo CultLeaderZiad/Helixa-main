@@ -40,6 +40,12 @@ export interface ResponseContent {
   delay_seconds?: number
   typing_indicator?: boolean
   mark_seen?: boolean
+  // Lead Capture options
+  lead_capture?: {
+    require_email?: boolean
+    require_name?: boolean
+    require_phone?: boolean
+  }
 }
 
 export interface AutomationVariant {

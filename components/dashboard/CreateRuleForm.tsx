@@ -65,6 +65,11 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
   const [checkFollow, setCheckFollow] = useState(false)
   const [delaySeconds, setDelaySeconds] = useState(0)
   const [typingIndicator, setTypingIndicator] = useState(false)
+  
+  /* ---------- LEAD CAPTURE ---------- */
+  const [captureEmail, setCaptureEmail] = useState(false)
+  const [capturePhone, setCapturePhone] = useState(false)
+  const [captureName, setCaptureName] = useState(false)
 
   const [saving, setSaving] = useState(false)
   const [reels, setReels] = useState<any[]>([])
@@ -279,10 +284,18 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
     setQuickReplies((content.quick_replies || []).map((q: any, i: number) => ({ id: `${Date.now()}_qr${i}`, title: q.title, payload: q.payload })))
     setReplyMode(content.reply_mode || "both")
     setPublicReplies(content.public_replies || [])
-    setIncludeReplies(content.include_replies === true)
-    setCheckFollow(content.check_follow === true)
-    setDelaySeconds(Number(content.delay_seconds) || 0)
-    setTypingIndicator(content.typing_indicator === true)
+    setIncludeReplies(!!content.include_replies)
+    setCheckFollow(!!content.check_follow)
+    setDelaySeconds(content.delay_seconds || 0)
+    setTypingIndicator(!!content.typing_indicator)
+    
+    if (content.lead_capture) {
+      setCaptureEmail(!!content.lead_capture.require_email)
+      setCaptureName(!!content.lead_capture.require_name)
+      setCapturePhone(!!content.lead_capture.require_phone)
+    }
+    
+    setPlatform(editRule.platform || "instagram")
     
     if (editRule.specific_media_id) {
       setSelectedReel({ id: editRule.specific_media_id, caption: "Selected post" })
@@ -373,6 +386,15 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
     const content: any = { check_follow: checkFollow }
     if (delaySeconds > 0) content.delay_seconds = delaySeconds
     if (typingIndicator) content.typing_indicator = true
+    
+    if (captureEmail || captureName || capturePhone) {
+      content.lead_capture = {
+        require_email: captureEmail,
+        require_name: captureName,
+        require_phone: capturePhone
+      }
+    }
+
     if (triggerSource === "comment") {
       content.reply_mode = replyMode
       if (publicReplies.length > 0) content.public_replies = publicReplies
@@ -1074,6 +1096,11 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                 <FieldLabel>Delivery options</FieldLabel>
                 <ToggleRow icon={<Lock className="w-5 h-5" />} title="Follow gate required" sub="Only followers get the payload. Non-followers get follow prompt first." on={checkFollow} onToggle={() => setCheckFollow(!checkFollow)} />
                 <ToggleRow icon={<Eye className="w-5 h-5" />} title="Mimic active typing status" sub="Displays typing bubble indicators to look completely organic." on={typingIndicator} onToggle={() => setTypingIndicator(!typingIndicator)} />
+                
+                <FieldLabel>Lead Capture Sequence (Pre-Delivery)</FieldLabel>
+                <ToggleRow icon={<AtSign className="w-5 h-5" />} title="Ask for Email" sub="Capture the user's email address before sending the payload." on={captureEmail} onToggle={() => setCaptureEmail(!captureEmail)} />
+                <ToggleRow icon={<Phone className="w-5 h-5" />} title="Ask for Phone Number" sub="Capture the user's phone number before sending the payload." on={capturePhone} onToggle={() => setCapturePhone(!capturePhone)} />
+                <ToggleRow icon={<Smile className="w-5 h-5" />} title="Ask for Name" sub="Capture the user's name before sending the payload." on={captureName} onToggle={() => setCaptureName(!captureName)} />
                 
                 <div className="flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/[0.01]">
                   <div className="flex items-center gap-3">
