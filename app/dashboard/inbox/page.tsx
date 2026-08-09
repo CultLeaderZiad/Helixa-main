@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { ConversationList } from "@/components/inbox/ConversationList"
 import { ChatWindow } from "@/components/inbox/ChatWindow"
+import { FaqSuggestionsPanel } from "@/components/inbox/FaqSuggestionsPanel"
 import { Loader2, MessageSquare } from "lucide-react"
 import { cn } from "@/lib/utils"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
@@ -61,6 +62,11 @@ export default function InboxPage() {
                     userId={userId}
                     onBack={() => setSelectedConversationId(null)}
                 />
+            </div>
+            
+            {/* Right Sidebar: FAQ Suggestions (hidden on small screens) */}
+            <div className="hidden lg:block h-full">
+                <FaqSuggestionsPanel userId={userId} />
             </div>
         </div>
     )

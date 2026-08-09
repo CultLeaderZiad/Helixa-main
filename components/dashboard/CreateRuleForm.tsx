@@ -24,6 +24,7 @@ interface CreateRuleFormProps {
   triggerSource: "comment" | "dm" | "story"
   onSuccess: () => void
   editRule?: Automation | null
+  initialIntent?: string
 }
 
 const STEPS = [
@@ -32,7 +33,7 @@ const STEPS = [
   { key: "settings", label: "Final Settings", sub: "Speed & restrictions" },
 ] as const
 
-export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: CreateRuleFormProps) {
+export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, initialIntent }: CreateRuleFormProps) {
   const isEditing = !!editRule
   const [step, setStep] = useState(0)
 
@@ -81,6 +82,52 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
   const [resolvingUrl, setResolvingUrl] = useState(false)
   const [platform, setPlatform] = useState<"instagram" | "messenger" | "facebook">("instagram")
   const [availablePlatforms, setAvailablePlatforms] = useState<string[]>(["instagram"])
+
+  const [intentDescription, setIntentDescription] = useState(initialIntent || "")
+  const [parsingIntent, setParsingIntent] = useState(false)
+  const [hasParsedInitialIntent, setHasParsedInitialIntent] = useState(false)
+
+  const handleParseIntent = async (overrideDescription?: string) => {
+    const descToParse = overrideDescription ?? intentDescription
+    if (!descToParse.trim() || parsingIntent) return
+    setParsingIntent(true)
+    try {
+      const res = await fetch("/api/ai/parse-automation-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: descToParse })
+      })
+      const data = await res.json()
+      if (data.error) {
+        toast.error(data.error)
+      } else {
+        // Pre-fill wizard based on AI response
+        if (data.trigger_value) {
+           const parsedTriggers = data.trigger_value === "ALL" || data.trigger_value === "ALL_COMMENTS" 
+             ? [] 
+             : data.trigger_value.split(",").map((t: string) => t.trim()).filter(Boolean)
+           setTriggers(parsedTriggers)
+        }
+        if (data.response_type && ["text", "card", "media"].includes(data.response_type)) {
+           setType(data.response_type)
+        }
+        if (data.draft_response_content) {
+           setMessageText(data.draft_response_content)
+        }
+        toast.success("Form pre-filled based on your description!")
+      }
+    } catch {
+      toast.error("Failed to parse your description")
+    }
+    setParsingIntent(false)
+  }
+
+  useEffect(() => {
+    if (initialIntent && !hasParsedInitialIntent) {
+      setHasParsedInitialIntent(true)
+      handleParseIntent(initialIntent)
+    }
+  }, [initialIntent, hasParsedInitialIntent])
 
   useEffect(() => {
     fetch("/api/user/connections")
@@ -400,6 +447,35 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule }: C
 
   return (
     <div className="space-y-8">
+      {/* ── AI Intent Builder ── */}
+      <div className="bg-neutral-900/60 border border-white/5 rounded-2xl p-4 md:px-8">
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-bold text-white flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-[#ffe14d]" /> Describe what you want
+          </label>
+          <p className="text-xs text-neutral-400">
+            Tell our AI what you want to automate (e.g., "when people comment 'price', send them my price list") and we'll set up the form for you.
+          </p>
+          <div className="flex gap-2 mt-2">
+            <input
+              value={intentDescription}
+              onChange={(e) => setIntentDescription(e.target.value)}
+              placeholder="Describe your automation..."
+              className="flex-1 h-10 bg-white/[0.02] border border-white/10 rounded-xl px-4 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#ffe14d]/50 transition-all"
+              onKeyDown={(e) => e.key === "Enter" && handleParseIntent()}
+            />
+            <button
+              type="button"
+              onClick={() => handleParseIntent()}
+              disabled={!intentDescription.trim() || parsingIntent}
+              className="h-10 px-6 rounded-xl bg-[#ffe14d]/10 hover:bg-[#ffe14d]/20 text-[#ffe14d] text-sm font-bold transition-all disabled:opacity-50 flex items-center justify-center min-w-[120px]"
+            >
+              {parsingIntent ? <Loader2 className="w-4 h-4 animate-spin" /> : "Auto-fill"}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* ── Sexy Stepper Timeline ── */}
       <div className="relative bg-neutral-900/60 border border-white/5 rounded-2xl p-4 md:px-8">
         <div className="flex items-center justify-between gap-4 relative">

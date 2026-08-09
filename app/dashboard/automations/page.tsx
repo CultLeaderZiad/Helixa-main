@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { AutomationList } from "@/components/dashboard/AutomationList"
 import { CreateRuleForm } from "@/components/dashboard/CreateRuleForm"
@@ -9,7 +10,9 @@ import type { Automation } from "@/lib/types"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
 import { readCache, writeCache } from "@/lib/client-cache"
 import { toast } from "sonner"
-export default function AutomationsPage() {
+
+function AutomationsPageContent() {
+    const searchParams = useSearchParams()
     const { userId, isLoading: isSessionLoading } = useInstagramSession()
     const [userRole, setUserRole] = useState("admin")
     const [automations, setAutomations] = useState<Automation[]>([])
@@ -41,7 +44,13 @@ export default function AutomationsPage() {
             .then(res => res.json())
             .then(data => setUserRole(data.permission_level || "admin"))
             .catch(() => {})
-    }, [userId])
+
+        // Check for intent query param to open form
+        const intent = searchParams?.get("intent")
+        if (intent) {
+            setShowCreateForm(true)
+        }
+    }, [userId, searchParams])
 
     const handleSaveAiContext = async () => {
         if (aiContextSaving) return
@@ -262,6 +271,7 @@ export default function AutomationsPage() {
                             userId={userId}
                             triggerSource={editRule ? editRule.trigger_source : activeTab}
                             editRule={editRule}
+                            initialIntent={searchParams?.get("intent") || undefined}
                             onSuccess={() => {
                                 fetchAutomations()
                                 setShowCreateForm(false)
@@ -290,5 +300,13 @@ export default function AutomationsPage() {
                 )}
             </div>
         </div>
+    )
+}
+
+export default function AutomationsPage() {
+    return (
+        <Suspense fallback={<div className="h-screen flex items-center justify-center bg-[#03010A]"><div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>}>
+            <AutomationsPageContent />
+        </Suspense>
     )
 }
