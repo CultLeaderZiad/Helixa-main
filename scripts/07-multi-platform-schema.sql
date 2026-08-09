@@ -16,8 +16,17 @@ CREATE TABLE IF NOT EXISTS public.platform_connections (
   UNIQUE(user_id, platform, page_id)
 );
 
+
+ALTER TABLE public.platform_connections ADD COLUMN IF NOT EXISTS platform TEXT NOT NULL DEFAULT 'facebook';
+ALTER TABLE public.platform_connections ADD COLUMN IF NOT EXISTS page_id TEXT;
+ALTER TABLE public.platform_connections ADD COLUMN IF NOT EXISTS access_token TEXT;
+ALTER TABLE public.platform_connections ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
+
+
+
 CREATE INDEX IF NOT EXISTS idx_platform_connections_user ON public.platform_connections(user_id);
 CREATE INDEX IF NOT EXISTS idx_platform_connections_page ON public.platform_connections(page_id);
+
 
 -- 2. Add platform to automations
 ALTER TABLE public.automations ADD COLUMN IF NOT EXISTS platform TEXT NOT NULL DEFAULT 'instagram';
