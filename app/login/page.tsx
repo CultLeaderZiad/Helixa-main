@@ -35,19 +35,6 @@ export default function LoginPage() {
     }
     setLoading(true)
     setError(null)
-    
-    const isAdmin = email === "cultleaderzoz.dev@gmail.com" && password === "HELIXA-2027!"
-    if (isAdmin) {
-      const res = await fetch("/api/auth/seed-admin")
-      if (res.ok) {
-        // Now try logging in
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
-        if (!error) {
-          window.location.href = "/dashboard"
-          return
-        }
-      }
-    }
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
