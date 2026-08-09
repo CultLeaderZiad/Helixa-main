@@ -66,14 +66,6 @@ export function LandingPage() {
       <nav className="relative z-50 flex items-center justify-between px-5 md:px-10 h-16 border-b border-white/[0.08]">
         <div className="flex items-center gap-2 md:gap-3">
           <div className="relative h-9 w-9 md:h-12 md:w-12 overflow-hidden flex-shrink-0">
-            <Image
-              src="/HELIXA-png.png"
-              alt="Helixa"
-              width={2816}
-              height={1536}
-              className="h-full w-auto max-w-none object-cover object-left mix-blend-screen filter grayscale invert brightness-200"
-              priority
-            />
           </div>
           <div style={{ position: 'relative', height: '14px', width: '45px' }} className="md:h-[18px] md:w-[55px]">
             <TextPressure

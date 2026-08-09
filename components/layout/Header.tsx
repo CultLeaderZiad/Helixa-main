@@ -11,13 +11,7 @@ export function Header() {
   return (
     <header className="border-b border-white/[0.08] px-5 md:px-10 py-4 flex items-center justify-between">
       <Link href="/" className="flex items-center gap-2">
-        <Image
-          src="/HELIXA-png.png"
-          alt="Helixa"
-          width={2816}
-          height={1536}
-          className="h-7 w-auto"
-        />
+        {/* Image removed */}
         <span className="font-mono-ui text-sm font-bold tracking-widest text-white">HELIXA</span>
       </Link>
       <nav className="hidden md:flex items-center gap-6 font-mono-ui text-xs text-neutral-400">

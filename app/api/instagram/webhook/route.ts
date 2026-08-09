@@ -125,10 +125,10 @@ async function sendAutomationResponse(
     let text = content.message || (content.card ? content.card.title : "[Automated Reply]")
     
     if (content.card && Array.isArray(content.card.buttons)) {
-      const links = content.card.buttons
-        .filter((b: any) => b.type === "web_url" && b.url)
-        .map((b: any) => `${b.title}: ${b.url}`)
-        .join("\n")
+        const links = content.card.buttons
+          .filter((b: any) => b.type === "web_url" && b.url)
+          .map((b: any) => `${b.title}:\n${b.url}`)
+          .join("\n\n")
       if (links) {
         text += "\n\n" + links
       }
