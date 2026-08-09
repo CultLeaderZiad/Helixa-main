@@ -118,6 +118,7 @@ async function sendAutomationResponse(
   if (useTyping) await sendSenderAction(token, recipient.id!, "typing_on")
   if (delaySeconds > 0) await sleep(delaySeconds * 1000)
 
+  let result
   if (recipient.comment_id) {
     // Private replies via comment_id only support plain text
     const text = content.message || (content.card ? content.card.title : "[Automated Reply]")
