@@ -121,7 +121,18 @@ async function sendAutomationResponse(
   let result
   if (recipient.comment_id) {
     // Private replies via comment_id only support plain text
-    const text = content.message || (content.card ? content.card.title : "[Automated Reply]")
+    let text = content.message || (content.card ? content.card.title : "[Automated Reply]")
+    
+    if (content.card && Array.isArray(content.card.buttons)) {
+      const links = content.card.buttons
+        .filter((b: any) => b.type === "web_url" && b.url)
+        .map((b: any) => `${b.title}: ${b.url}`)
+        .join("\n")
+      if (links) {
+        text += "\n\n" + links
+      }
+    }
+    
     result = await sendTextDM(token, recipient, text)
   } else {
     const quickReplies = Array.isArray(content.quick_replies)
