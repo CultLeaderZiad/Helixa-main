@@ -2,9 +2,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { getSessionInstagramUser } from "@/lib/auth"
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+const getSupabase = () => createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-key"
 )
 
 // Limit max members
@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
 
   const agencyId = session.account.id
 
+  const supabase = getSupabase()
   const { data, error } = await supabase
     .from("agency_team_members")
     .select("*")
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid email" }, { status: 400 })
     }
 
+    const supabase = getSupabase()
     // Check seat limit
     const { count, error: countError } = await supabase
       .from("agency_team_members")
@@ -102,6 +104,7 @@ export async function DELETE(request: NextRequest) {
 
     if (!memberId) return NextResponse.json({ error: "Missing member ID" }, { status: 400 })
 
+    const supabase = getSupabase()
     const { error } = await supabase
       .from("agency_team_members")
       .delete()
