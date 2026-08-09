@@ -2,7 +2,7 @@
 
 import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import {
   sendTextDM,
   sendCardDM,
@@ -118,24 +118,29 @@ async function sendAutomationResponse(
   if (useTyping) await sendSenderAction(token, recipient.id!, "typing_on")
   if (delaySeconds > 0) await sleep(delaySeconds * 1000)
 
-  const quickReplies = Array.isArray(content.quick_replies)
-    ? content.quick_replies
-        .filter((q: any) => q?.title)
-        .map((q: any) => ({ title: q.title, payload: q.payload || `QR_${q.title.toUpperCase().replace(/\s+/g, "_")}` }))
-    : undefined
-
-  let result
-  if (content.media?.url) {
-    result = await sendMediaDM(token, recipient, content.media.type || "image", content.media.url)
-    if (result.ok && content.message) {
-      result = await sendTextDM(token, recipient, content.message, quickReplies)
-    }
-  } else if (content.card) {
-    result = await sendCardDM(token, recipient, content.card)
-  } else if (content.message) {
-    result = await sendTextDM(token, recipient, content.message, quickReplies)
+  if (recipient.comment_id) {
+    // Private replies via comment_id only support plain text
+    const text = content.message || (content.card ? content.card.title : "[Automated Reply]")
+    result = await sendTextDM(token, recipient, text)
   } else {
-    result = { ok: false, error: "empty content" }
+    const quickReplies = Array.isArray(content.quick_replies)
+      ? content.quick_replies
+          .filter((q: any) => q?.title)
+          .map((q: any) => ({ title: q.title, payload: q.payload || `QR_${q.title.toUpperCase().replace(/\s+/g, "_")}` }))
+      : undefined
+
+    if (content.media?.url) {
+      result = await sendMediaDM(token, recipient, content.media.type || "image", content.media.url)
+      if (result.ok && content.message) {
+        result = await sendTextDM(token, recipient, content.message, quickReplies)
+      }
+    } else if (content.card) {
+      result = await sendCardDM(token, recipient, content.card)
+    } else if (content.message) {
+      result = await sendTextDM(token, recipient, content.message, quickReplies)
+    } else {
+      result = { ok: false, error: "empty content" }
+    }
   }
 
   if (useTyping) await sendSenderAction(token, recipient.id!, "typing_off")
@@ -171,7 +176,7 @@ export async function POST(request: NextRequest) {
     }
     const body = JSON.parse(rawBody)
     if (!body.entry) return NextResponse.json({ ok: true })
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
 
     if (body.object === "page") {
       const { handleFacebookWebhook } = await import("@/lib/facebook-webhook")
@@ -328,6 +333,13 @@ export async function POST(request: NextRequest) {
                 !a.specific_media_id &&
                 a.trigger_type === "keyword" &&
                 keywordMatches(a.trigger_value, commentText),
+            )
+          }
+          if (!match) {
+            match = commentAutomations.find(
+              (a: any) =>
+                !a.specific_media_id &&
+                a.trigger_type === "reply_all",
             )
           }
           if (!match) continue
