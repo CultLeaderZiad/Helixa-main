@@ -222,23 +222,26 @@ export function LandingPage() {
             <span className="hidden md:block font-mono-ui text-xs text-neutral-600">$0/month</span>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-px bg-white/[0.08] border border-white/[0.08]">
+          <div className="grid md:grid-cols-3 gap-px bg-white/[0.04] border border-white/[0.08] rounded-2xl overflow-hidden shadow-2xl shadow-black/50">
             <Feature icon={<MessageCircle className="w-4 h-4" />} title="Comment → DM funnels"
-              desc="Keyword or reply-all triggers on any post. Choose DM only, public reply only, or both — with your own rotating public replies." />
+              desc="Keyword or reply-all triggers on any post. Choose DM only, public reply only, or both — with your own rotating public replies." delay="0ms" />
             <Feature icon={<Send className="w-4 h-4" />} title="DM keyword automation"
-              desc="Auto-respond to DMs with text, media, or rich cards with buttons. Quick-reply chips guide people through your funnel." />
+              desc="Auto-respond to DMs with text, media, or rich cards with buttons. Quick-reply chips guide people through your funnel." delay="100ms" />
             <Feature icon={<AtSign className="w-4 h-4" />} title="Story triggers"
-              desc="React to story mentions, emoji reactions, and story replies. Filter by emoji or keyword." />
+              desc="React to story mentions, emoji reactions, and story replies. Filter by emoji or keyword." delay="200ms" />
             <Feature icon={<Brain className="w-4 h-4" />} title="AI auto-reply"
-              desc="Feed it your account context — niche, products, tone — and let AI handle unmatched DMs like a human." />
+              desc="Feed it your account context — niche, products, tone — and let AI handle unmatched DMs like a human." delay="300ms" />
             <Feature icon={<Inbox className="w-4 h-4" />} title="Live inbox"
-              desc="Every conversation in one dashboard. Jump in manually anytime, fire quick responses from your saved automations." />
+              desc="Every conversation in one dashboard. Jump in manually anytime, fire quick responses from your saved automations." delay="400ms" />
             <Feature icon={<Lock className="w-4 h-4" />} title="Follow gate"
-              desc="Lock content behind a follow. Non-followers get a follow prompt; one tap later they unlock the goods." />
+              desc="Lock content behind a follow. Non-followers get a follow prompt; one tap later they unlock the goods." delay="500ms" />
             <Feature icon={<Sparkles className="w-4 h-4" />} title="Human-like sending"
-              desc="Optional typing indicators and randomized delays so replies land natural, not botty." />
+              desc="Optional typing indicators and randomized delays so replies land natural, not botty." delay="600ms" />
             <Feature icon={<Terminal className="w-4 h-4" />} title="Self-hosted & hackable"
-              desc="Next.js + Supabase. Deploy on free tiers. Read every line, fork it, own your data and your tokens." />
+              desc="Next.js + Supabase. Deploy on free tiers. Read every line, fork it, own your data and your tokens." delay="700ms" />
+            <div className="bg-[#03010A] p-7 border-b border-r border-white/[0.05] hidden md:flex items-center justify-center text-center">
+              <span className="text-xs font-mono text-neutral-600 uppercase tracking-wider">Helixa Enterprise Platform</span>
+            </div>
           </div>
         </section>
 
@@ -311,14 +314,25 @@ export function LandingPage() {
   )
 }
 
-function Feature({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
+function Feature({ icon, title, desc, delay }: { icon: React.ReactNode; title: string; desc: string; delay?: string }) {
   return (
-    <div className="bg-[#03010A] p-7 group hover:bg-[#0d0a18] transition-colors">
-      <div className="w-9 h-9 rounded-lg border border-white/10 flex items-center justify-center text-neutral-500 group-hover:text-[#ffe14d] group-hover:border-[#ffe14d]/30 transition-colors mb-5">
+    <div 
+      className="bg-[#03010A] p-7 group hover:bg-[#0d0a18]/70 hover:shadow-2xl hover:shadow-[#ffe14d]/5 hover:-translate-y-1 transition-all duration-300 ease-out border-b border-r border-white/[0.05] relative overflow-hidden"
+      style={{ animationDelay: delay }}
+    >
+      {/* Dynamic highlight glow */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#ffe14d]/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      
+      {/* Icon with scaling, rotation, and color transition */}
+      <div className="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center text-neutral-400 group-hover:text-black group-hover:bg-[#ffe14d] group-hover:border-[#ffe14d] transition-all duration-300 transform group-hover:rotate-6 group-hover:scale-110 mb-6">
         {icon}
       </div>
-      <h3 className="font-mono-ui text-sm font-bold text-white mb-2">{title}</h3>
-      <p className="text-[13px] text-neutral-500 leading-relaxed">{desc}</p>
+      
+      <h3 className="font-mono-ui text-sm font-bold text-white mb-2 group-hover:text-[#ffe14d] transition-colors duration-300 flex items-center gap-1">
+        {title}
+        <span className="opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300 text-xs">→</span>
+      </h3>
+      <p className="text-[13px] text-neutral-500 leading-relaxed group-hover:text-neutral-400 transition-colors duration-300">{desc}</p>
     </div>
   )
 }
