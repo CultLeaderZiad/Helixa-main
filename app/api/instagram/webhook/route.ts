@@ -624,15 +624,17 @@ Provide a very short, friendly response.`
                   await sendAutomationResponse(user.access_token, { id: senderId }, content)
                   
                   if (conv) {
-                    await supabase.from("messages").insert({
-                      id: `mid_ai_${Date.now()}_${Math.random()}`,
-                      conversation_id: conv.id,
-                      user_id: user.id,
-                      sender_id: user.business_account_id,
-                      sender_username: user.username,
-                      content: aiReply,
-                      is_from_instagram: false,
-                    }).catch(() => {})
+                    try {
+                      await supabase.from("messages").insert({
+                        id: `mid_ai_${Date.now()}_${Math.random()}`,
+                        conversation_id: conv.id,
+                        user_id: user.id,
+                        sender_id: user.business_account_id,
+                        sender_username: user.username,
+                        content: aiReply,
+                        is_from_instagram: false,
+                      })
+                    } catch (e) {}
                   }
                   
                   try {
