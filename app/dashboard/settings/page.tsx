@@ -90,6 +90,15 @@ export default function SettingsPage() {
                 setProfile(prev => prev ? { ...prev, name: editName, profilePic: editPhotoUrl || null } : null)
                 setSuccessMsg("Profile updated successfully!")
                 setIsEditing(false)
+                
+                // Update local storage so session hook picks it up across reloads without delay
+                if (editPhotoUrl) {
+                    localStorage.setItem("ig_profile_pic", editPhotoUrl)
+                } else {
+                    localStorage.removeItem("ig_profile_pic")
+                }
+                localStorage.setItem("ig_username", editName)
+                
                 setTimeout(() => setSuccessMsg(""), 3000)
             } else {
                 const data = await res.json()

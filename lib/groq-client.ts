@@ -49,8 +49,8 @@ export async function checkAILimit(userId: number | string): Promise<boolean> {
     .gte("created_at", today.toISOString())
 
   if (error) {
-    console.error("[groq-client] Error checking AI limit:", error)
-    throw new GroqAPIError(500, `Database error checking AI limit: ${error.message}`)
+    console.error("[groq-client] Error checking AI limit (gracefully continuing):", error)
+    return true // Assume within limit if table is missing or DB errors
   }
 
   return (count || 0) < MAX_AI_CALLS_PER_DAY
@@ -71,7 +71,7 @@ export async function logAIUsage(
       tokens_used: tokensUsed,
     })
     if (error) {
-      console.error("[groq-client] Error logging AI usage:", error)
+      console.debug("[groq-client] Skipping AI usage log (table might not exist):", error.message)
     }
   } catch (err) {
     console.error("[groq-client] Exception logging AI usage:", err)

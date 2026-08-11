@@ -51,8 +51,12 @@ export function FaqSuggestionsPanel({ userId }: { userId: string }) {
                 {loading && faqs.length === 0 ? (
                     <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-neutral-500" /></div>
                 ) : faqs.length > 0 ? (
-                    faqs.map((faq: any) => (
-                        <div key={faq.id} className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex flex-col gap-3">
+                    faqs.map((faq: any, index: number) => (
+                        <div 
+                            key={faq.id} 
+                            className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex flex-col gap-3 animate-in fade-in slide-in-from-right-4"
+                            style={{ animationFillMode: 'both', animationDelay: `${index * 75}ms`, animationDuration: '400ms' }}
+                        >
                             <div>
                                 <div className="flex items-start justify-between mb-1">
                                     <h4 className="text-xs font-bold text-white capitalize flex items-center gap-1.5">

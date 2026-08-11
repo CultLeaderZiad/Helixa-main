@@ -15,8 +15,22 @@ export default async function PricingPage() {
     .eq("is_active", true)
     .order("created_at", { ascending: true })
 
-  // Use fallback plans if the table doesn't exist yet (SQL not run) or is empty
-  const plans = (!error && dbPlans && dbPlans.length > 0) ? dbPlans : [
+  const { data: planAgents } = await supabase
+    .from("plan_agents")
+    .select("plan_id, is_enabled, agents(name)")
+    .eq("is_enabled", true)
+
+  const plans = (!error && dbPlans && dbPlans.length > 0) ? dbPlans.map((p: any) => {
+    const agentsForPlan = planAgents
+      ?.filter((pa: any) => pa.plan_id === p.id)
+      .map((pa: any) => pa.agents?.name)
+      .filter(Boolean) || []
+    
+    return {
+      ...p,
+      features: [...(p.features || []), ...agentsForPlan]
+    }
+  }) : [
     {
       id: "fallback-1",
       name: "Monthly Plan",

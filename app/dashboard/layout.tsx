@@ -32,11 +32,11 @@ export default function DashboardLayout({
                 return
             }
             if (!trialExempt && plan === 'trial' && isTrialExpired && isPastDeadline) {
-                router.replace('/pricing')
+                router.replace('/dashboard/billing')
                 return
             }
             if (plan && plan !== 'trial' && !hasValidPayment && isPastDeadline) {
-                router.replace('/pricing')
+                router.replace('/dashboard/billing')
                 return
             }
         }

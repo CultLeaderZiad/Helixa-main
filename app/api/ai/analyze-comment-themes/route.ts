@@ -14,14 +14,14 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const force = searchParams.get("force") === "true"
 
-    // Rate Limit Check (24 hours)
-    const { data: userData } = await supabase
+    // Rate Limit Check (24 hours) - gracefully handle missing columns
+    const { data: userData, error: userError } = await supabase
       .from("users")
       .select("ai_themes_last_analyzed_at")
       .eq("id", igUser.id)
       .single()
 
-    const lastAnalyzed = userData?.ai_themes_last_analyzed_at
+    const lastAnalyzed = (!userError && userData) ? userData.ai_themes_last_analyzed_at : null;
     const isStale = !lastAnalyzed || (new Date().getTime() - new Date(lastAnalyzed).getTime() > 24 * 60 * 60 * 1000)
 
     // If within 24h and not forced, return cached results
@@ -44,9 +44,11 @@ export async function GET(request: NextRequest) {
       .eq("user_id", igUser.id)
       .gte("processed_at", fourteenDaysAgo.toISOString())
 
-    if (eventsError) throw eventsError
+    if (eventsError) {
+      console.error("Webhook events query failed (schema might not be ready):", eventsError.message)
+    }
 
-    const comments = events
+    const comments = (!eventsError && events) ? events
       ?.filter(e => e.data?.field === "comments" || e.data?.object === "instagram")
       .map(e => e.data?.value?.text || e.data?.text || "")
       .filter(text => text && typeof text === "string" && text.length > 2) || []

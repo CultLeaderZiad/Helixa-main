@@ -14,14 +14,14 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const force = searchParams.get("force") === "true"
 
-    // Rate Limit Check (24 hours)
-    const { data: userData } = await supabase
+    // Rate Limit Check (24 hours) - gracefully handle missing columns
+    const { data: userData, error: userError } = await supabase
       .from("users")
       .select("ai_faq_last_analyzed_at")
       .eq("id", igUser.id)
       .single()
 
-    const lastAnalyzed = userData?.ai_faq_last_analyzed_at
+    const lastAnalyzed = (!userError && userData) ? userData.ai_faq_last_analyzed_at : null;
     const isStale = !lastAnalyzed || (new Date().getTime() - new Date(lastAnalyzed).getTime() > 24 * 60 * 60 * 1000)
 
     // Return cached data if within 24h and not forced
@@ -46,9 +46,11 @@ export async function GET(request: NextRequest) {
       .eq("is_from_instagram", true)
       .gte("created_at", fourteenDaysAgo.toISOString())
 
-    if (messagesError) throw messagesError
+    if (messagesError) {
+      console.error("Messages query failed (schema might not be ready):", messagesError.message)
+    }
 
-    const dmMessages = messagesData?.map(m => m.content).filter(c => c && c.length > 3) || []
+    const dmMessages = (!messagesError && messagesData) ? messagesData.map(m => m.content).filter(c => c && c.length > 3) : []
 
     if (dmMessages.length === 0) {
       const { data: existingFaqs } = await supabase

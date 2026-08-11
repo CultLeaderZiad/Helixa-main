@@ -142,12 +142,76 @@ export default function AdminPage() {
     }
   }, [])
 
+  const [bannerState, setBannerState] = useState({ isActive: false, message: "", link: "" })
+  const [savingBanner, setSavingBanner] = useState(false)
+
+  // Plan-Agent Matrix state
+  const [agents, setAgents] = useState<any[]>([])
+  const [planAgentsMap, setPlanAgentsMap] = useState<Record<string, boolean>>({})
+  const [matrixDirty, setMatrixDirty] = useState(false)
+  const [savingMatrix, setSavingMatrix] = useState(false)
+
+  const fetchBanner = useCallback(async () => {
+    try {
+      const res = await fetch("/api/settings/banner")
+      const data = await res.json()
+      if (data) setBannerState(data)
+    } catch (err) {}
+  }, [])
+
+  const fetchMatrixData = useCallback(async () => {
+      try {
+          const agentsRes = await fetch("/api/admin/agents")
+          const agentsData = await agentsRes.json()
+          if (Array.isArray(agentsData)) setAgents(agentsData)
+
+          const mappingRes = await fetch("/api/admin/plan_agents")
+          const mappingData = await mappingRes.json()
+          
+          if (Array.isArray(mappingData)) {
+              const newMap: Record<string, boolean> = {}
+              mappingData.forEach((row: any) => {
+                  newMap[`${row.plan_id}-${row.agent_id}`] = row.is_enabled
+              })
+              setPlanAgentsMap(newMap)
+          }
+      } catch(err) {
+          console.error("Failed to fetch matrix data", err)
+      }
+  }, [])
+
+  const savePlanAgents = async () => {
+      setSavingMatrix(true)
+      try {
+          // Send each dirty mapping (or all for simplicity)
+          const promises = Object.entries(planAgentsMap).map(([key, is_enabled]) => {
+              const parts = key.split('-')
+              const plan_id = parts[0]
+              const agent_id = parts.slice(1).join('-')
+              return fetch("/api/admin/plan_agents", {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ plan_id, agent_id, is_enabled })
+              })
+          })
+          await Promise.all(promises)
+          setMatrixDirty(false)
+          alert("Plan-Agent Matrix saved!")
+      } catch (err) {
+          alert("Failed to save Plan-Agent Matrix")
+      } finally {
+          setSavingMatrix(false)
+      }
+  }
+
   useEffect(() => {
     fetchStats()
     fetchAuditLogs()
     fetchTrialsThisWeek()
     fetchPendingPayments()
-  }, [fetchStats, fetchAuditLogs, fetchTrialsThisWeek, fetchPendingPayments])
+    fetchBanner()
+    fetchMatrixData()
+  }, [fetchStats, fetchAuditLogs, fetchTrialsThisWeek, fetchPendingPayments, fetchBanner, fetchMatrixData])
 
   useEffect(() => {
     fetchUsers()
@@ -201,6 +265,22 @@ export default function AdminPage() {
       }
     } finally {
       setUpdating(false)
+    }
+  }
+
+  const saveBanner = async () => {
+    setSavingBanner(true)
+    try {
+      await fetch("/api/admin/settings/banner", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bannerState)
+      })
+      alert("Banner updated!")
+    } catch (err) {
+      alert("Failed to save banner")
+    } finally {
+      setSavingBanner(false)
     }
   }
 
@@ -266,7 +346,7 @@ export default function AdminPage() {
             </p>
           </div>
           <button 
-            onClick={() => setActiveTab('payments')}
+            onClick={() => setActiveTab('payments' as any)}
             className="text-xs font-mono font-bold bg-blue-500/20 text-blue-400 px-3 py-1 rounded hover:bg-blue-500/30 transition-colors"
           >
             Review Now
@@ -298,18 +378,18 @@ export default function AdminPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-white/[0.08]">
-        {(["users", "audit", "payments"] as const).map((tab) => (
+      <div className="flex gap-1 border-b border-white/[0.08] overflow-x-auto scrollbar-none">
+        {(["users", "audit", "payments", "matrix", "banner"] as const).map((tab) => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 font-mono text-xs uppercase tracking-wider transition-colors relative ${
+            onClick={() => setActiveTab(tab as any)}
+            className={`px-4 py-2 font-mono text-xs uppercase tracking-wider transition-colors relative whitespace-nowrap ${
               activeTab === tab
                 ? "text-[#ffe14d] border-b-2 border-[#ffe14d]"
                 : "text-neutral-500 hover:text-white"
             }`}
           >
-            {tab === "users" ? "Users" : tab === "audit" ? "Audit Log" : "Payments"}
+            {tab === "users" ? "Users" : tab === "audit" ? "Audit Log" : tab === "payments" ? "Payments" : tab === "matrix" ? "Plan Matrix" : "Banner"}
             {tab === "payments" && pendingPayments.length > 0 && (
               <span className="absolute top-1.5 right-1 w-2 h-2 rounded-full bg-blue-500" />
             )}
@@ -621,6 +701,154 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      {activeTab === "banner" && (
+        <div className="border border-white/[0.08] rounded-xl overflow-hidden p-6 bg-white/[0.02] space-y-6 max-w-2xl">
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-white font-mono">Global Announcement Banner</h2>
+            <p className="text-neutral-400 font-mono text-xs">Update the banner shown at the top of every page across the app.</p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider w-24">Active</label>
+              <button
+                onClick={() => setBannerState(s => ({ ...s, isActive: !s.isActive }))}
+                className={`relative w-12 h-6 rounded-full transition-colors ${bannerState.isActive ? "bg-green-500" : "bg-white/10"}`}
+              >
+                <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${bannerState.isActive ? "translate-x-6" : ""}`} />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider w-24">Message</label>
+              <input
+                className="flex-1 border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
+                placeholder="e.g. Helixa v2.0 is now live!"
+                value={bannerState.message}
+                onChange={e => setBannerState(s => ({ ...s, message: e.target.value }))}
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider w-24">Link URL</label>
+              <input
+                className="flex-1 border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
+                placeholder="e.g. /dashboard/agents"
+                value={bannerState.link}
+                onChange={e => setBannerState(s => ({ ...s, link: e.target.value }))}
+              />
+            </div>
+
+            <div className="pt-4 flex justify-end">
+              <button
+                onClick={saveBanner}
+                disabled={savingBanner}
+                className="bg-[#ffe14d] text-black font-mono text-sm font-bold px-6 py-2 rounded-lg hover:brightness-110 transition-all disabled:opacity-50"
+              >
+                {savingBanner ? "Saving..." : "Save Banner"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "matrix" && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-white font-mono">Plan-Agent Matrix</h2>
+              <p className="text-neutral-400 font-mono text-xs">Configure which agents are available in each plan.</p>
+            </div>
+            <button
+                onClick={savePlanAgents}
+                disabled={savingMatrix}
+                className="bg-[#ffe14d] text-black font-mono text-sm font-bold px-6 py-2 rounded-lg hover:brightness-110 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {savingMatrix ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                {savingMatrix ? "Saving..." : "Save Matrix"}
+            </button>
+          </div>
+
+          <div className="border border-white/[0.08] rounded-xl overflow-x-auto">
+            <table className="w-full font-mono text-sm text-left">
+              <thead>
+                <tr className="border-b border-white/[0.08] bg-white/[0.02]">
+                  <th className="px-6 py-4 text-neutral-400 font-medium">Agent</th>
+                  {["trial", "monthly", "one_time"].map(plan => (
+                    <th key={plan} className="px-6 py-4 font-medium text-center capitalize text-white">
+                      {plan.replace('_', '-')}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.04]">
+                {agents.map(agent => (
+                  <tr key={agent.id} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-white/[0.05] border border-white/10 flex items-center justify-center shrink-0">
+                          {agent.icon && <span className="text-lg">{agent.icon}</span>}
+                        </div>
+                        <div>
+                          <p className="text-white font-bold">{agent.name}</p>
+                          <p className="text-xs text-neutral-500 max-w-xs truncate">{agent.description}</p>
+                        </div>
+                        {!agent.is_active && (
+                          <span className="text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded uppercase tracking-wider ml-2">
+                            Inactive
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    {["trial", "monthly", "one_time"].map(plan => {
+                      const mappingKey = `${plan}-${agent.id}`
+                      const isEnabled = !!planAgentsMap[mappingKey]
+                      
+                      return (
+                        <td key={plan} className="px-6 py-4 text-center">
+                          <button
+                            onClick={() => {
+                                setPlanAgentsMap(prev => ({
+                                    ...prev,
+                                    [mappingKey]: !isEnabled
+                                }))
+                                setMatrixDirty(true)
+                            }}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                              isEnabled ? 'bg-green-500' : 'bg-white/10'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                isEnabled ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+                {agents.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-10 text-center text-neutral-500">
+                      No agents found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          
+          {matrixDirty && (
+              <div className="flex justify-end">
+                <p className="text-orange-400 text-xs font-mono flex items-center gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    You have unsaved changes
+                </p>
+              </div>
+          )}
         </div>
       )}
     </div>

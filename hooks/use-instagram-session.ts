@@ -76,7 +76,14 @@ function getServerSnapshot() {
 
 async function fetchMe(): Promise<boolean> {
     try {
-        const res = await fetch("/api/auth/me", { credentials: "same-origin" })
+        const res = await fetch("/api/auth/me", { 
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: {
+                "Pragma": "no-cache",
+                "Cache-Control": "no-cache"
+            }
+        })
         if (res.ok) {
             const data = await res.json()
             if (data.authenticated) {
@@ -170,12 +177,12 @@ function initSession(code: string | null, router: ReturnType<typeof useRouter>) 
             try {
                 localStorage.removeItem("ig_account_id")
                 localStorage.removeItem("ig_user_id")
-                localStorage.removeItem("ig_username")
-                localStorage.removeItem("ig_profile_pic")
+                // We preserve ig_username and ig_profile_pic so avatar remains visible when logged out
             } catch {
                 // localStorage unavailable - non-fatal
             }
-            setSnapshot({ accountId: null, userId: null, username: null, profilePic: null })
+            // Preserve username and profilePic in state to keep the avatar visible
+            setSnapshot({ accountId: null, userId: null, email: null, role: null })
         }
         setSnapshot({ isLoading: false })
     })
@@ -199,18 +206,19 @@ export function useInstagramSession() {
         try {
             localStorage.removeItem("ig_account_id")
             localStorage.removeItem("ig_user_id")
-            localStorage.removeItem("ig_username")
-            localStorage.removeItem("ig_profile_pic")
+            // We preserve ig_username and ig_profile_pic as requested so the avatar remains visible
+            // localStorage.removeItem("ig_username")
+            // localStorage.removeItem("ig_profile_pic")
         } catch {
             // localStorage unavailable - non-fatal
         }
         setSnapshot({
-            username: null,
             accountId: null,
             userId: null,
-            profilePic: null,
             email: null,
             role: null,
+            // We intentionally leave username and profilePic out of this patch
+            // so they retain their last known values in the UI
         })
         router.push("/login")
     }

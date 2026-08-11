@@ -138,26 +138,13 @@ export function LandingPage() {
           <div className="relative px-5 md:px-10 pt-20 md:pt-32 pb-24 max-w-6xl mx-auto">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-10 md:gap-16">
 
-              {/* Left — TextPressure Logo */}
-              <div className="fade-up w-full md:w-1/2 flex items-center justify-center pointer-events-auto" style={{ animationDelay: "40ms" }}>
-                <div className="w-full h-[160px] md:h-[280px] relative">
-                  <TextPressure
-                    text="HELIXA"
-                    flex={true}
-                    alpha={false}
-                    stroke={true}
-                    width={true}
-                    weight={true}
-                    italic={true}
-                    textColor="#ffe14d"
-                    strokeColor="#ffffff"
-                    minFontSize={36}
-                  />
-                </div>
+              {/* Left — Empty space or we can just make the right side take up more space or keep it as is */}
+              <div className="hidden md:flex w-full md:w-1/2 flex-col justify-center pointer-events-none">
+                {/* Empty left side as requested */}
               </div>
 
               {/* Right — Copy + CTAs */}
-              <div className="fade-up w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left pointer-events-none" style={{ animationDelay: "120ms" }}>
+              <div className="fade-up w-full md:w-1/2 flex flex-col items-center md:items-end text-center md:text-right pointer-events-none" style={{ animationDelay: "120ms" }}>
                 <h1 className="font-serif-display text-[13vw] md:text-7xl lg:text-[5.5rem] leading-[0.95] tracking-tight text-white relative z-20 mb-8">
                   Your DMs,
                   <br />

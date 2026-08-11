@@ -15,12 +15,12 @@ export function TrialBanner({ plan, trialEndsAt }: { plan: string; trialEndsAt: 
       const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
 
       if (days <= 0) {
-        router.push("/pricing")
+        router.push("/dashboard/billing")
       } else {
         setDaysLeft(days)
       }
     } else if (plan === "expired") {
-      router.push("/pricing")
+      router.push("/dashboard/billing")
     }
   }, [plan, trialEndsAt, router])
 
@@ -31,7 +31,7 @@ export function TrialBanner({ plan, trialEndsAt }: { plan: string; trialEndsAt: 
   return (
     <div className="bg-[#ffe14d] text-black text-center py-2 px-4 text-sm font-bold font-mono-ui z-50 relative">
       Trial expires in {daysLeft} {daysLeft === 1 ? "day" : "days"}.{" "}
-      <a href="/pricing" className="underline hover:no-underline ml-2">
+      <a href="/dashboard/billing" className="underline hover:no-underline ml-2">
         Upgrade now
       </a>
     </div>
