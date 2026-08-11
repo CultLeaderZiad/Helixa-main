@@ -3,13 +3,16 @@ import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireInstagramUser } from "@/lib/auth"
 import { generateGroqCompletion } from "@/lib/groq-client"
 
-export async function POST(request: NextRequest) {
+// GET: fetch current themes (and re-analyze if 24h+ old or ?force=true)
+export async function GET(request: NextRequest) {
   try {
     const result = await requireInstagramUser(request)
     if (result.response) return result.response
     const { igUser } = result
 
     const supabase = await getSupabaseBypassClient()
+    const { searchParams } = new URL(request.url)
+    const force = searchParams.get("force") === "true"
 
     // Rate Limit Check (24 hours)
     const { data: userData } = await supabase
@@ -19,17 +22,19 @@ export async function POST(request: NextRequest) {
       .single()
 
     const lastAnalyzed = userData?.ai_themes_last_analyzed_at
-    if (lastAnalyzed && new Date().getTime() - new Date(lastAnalyzed).getTime() < 24 * 60 * 60 * 1000) {
-       // Return current themes instead of generating new ones if within 24h limit, unless forced
-       const { searchParams } = new URL(request.url)
-       const force = searchParams.get("force") === "true"
-       if (!force) {
-           const { data: themes } = await supabase.from("ai_comment_themes").select("*").eq("user_id", igUser.id).order('count', { ascending: false })
-           return NextResponse.json({ themes })
-       }
+    const isStale = !lastAnalyzed || (new Date().getTime() - new Date(lastAnalyzed).getTime() > 24 * 60 * 60 * 1000)
+
+    // If within 24h and not forced, return cached results
+    if (!isStale && !force) {
+      const { data: themes } = await supabase
+        .from("ai_comment_themes")
+        .select("*")
+        .eq("user_id", igUser.id)
+        .order("count", { ascending: false })
+      return NextResponse.json({ themes: themes || [], last_analyzed_at: lastAnalyzed, is_stale: false })
     }
 
-    // Fetch recent comment webhooks (last 14 days)
+    // Otherwise do full analysis
     const fourteenDaysAgo = new Date()
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
 
@@ -43,15 +48,21 @@ export async function POST(request: NextRequest) {
 
     const comments = events
       ?.filter(e => e.data?.field === "comments" || e.data?.object === "instagram")
-      .map(e => {
-        // Extract comment text from payload depending on exactly how it's shaped.
-        // E.g., for Instagram comment webhook: data.value.text
-        return e.data?.value?.text || e.data?.text || ""
-      })
+      .map(e => e.data?.value?.text || e.data?.text || "")
       .filter(text => text && typeof text === "string" && text.length > 2) || []
 
     if (comments.length === 0) {
-      return NextResponse.json({ themes: [], message: "Not enough comment data to analyze." })
+      const { data: existingThemes } = await supabase
+        .from("ai_comment_themes")
+        .select("*")
+        .eq("user_id", igUser.id)
+        .order("count", { ascending: false })
+      return NextResponse.json({
+        themes: existingThemes || [],
+        last_analyzed_at: lastAnalyzed,
+        is_stale: isStale,
+        message: "Not enough comment data to analyze."
+      })
     }
 
     const messages = [
@@ -64,7 +75,7 @@ For each theme provide:
 3. "examples": A representative quote or short summary of the comments in this theme
 4. "count": Estimated number of comments in this theme
 
-Return ONLY a JSON array of these objects.`
+Return ONLY a valid JSON object with a "themes" array.`
       },
       {
         role: "user",
@@ -75,26 +86,28 @@ Return ONLY a JSON array of these objects.`
     const completion = await generateGroqCompletion(igUser.id, "analyze_themes", {
       messages: messages as any,
       temperature: 0.2,
-      max_tokens: 500,
-      response_format: { type: "json_object" } // Using json object wrapping an array if needed, or rely on prompt
+      max_tokens: 600,
+      response_format: { type: "json_object" }
     })
 
     if (!completion) {
-      return NextResponse.json({ error: "Failed to generate themes or rate limit exceeded" }, { status: 429 })
+      const { data: existingThemes } = await supabase
+        .from("ai_comment_themes")
+        .select("*")
+        .eq("user_id", igUser.id)
+        .order("count", { ascending: false })
+      return NextResponse.json({ themes: existingThemes || [], last_analyzed_at: lastAnalyzed, is_stale: true, error: "Rate limit or AI unavailable" })
     }
 
-    let parsed = []
+    let parsed: any[] = []
     try {
       const maybeParsed = JSON.parse(completion)
-      parsed = Array.isArray(maybeParsed) ? maybeParsed : (maybeParsed.themes || Object.values(maybeParsed)[0])
+      parsed = Array.isArray(maybeParsed) ? maybeParsed : (maybeParsed.themes || Object.values(maybeParsed)[0] as any[])
     } catch {
-      // Fallback
       return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 })
     }
 
-    // Save to DB
     if (parsed && Array.isArray(parsed) && parsed.length > 0) {
-      // Delete old themes
       await supabase.from("ai_comment_themes").delete().eq("user_id", igUser.id)
 
       const rows = parsed.map(t => ({
@@ -106,19 +119,29 @@ Return ONLY a JSON array of these objects.`
       }))
 
       await supabase.from("ai_comment_themes").insert(rows)
-      await supabase.from("users").update({ ai_themes_last_analyzed_at: new Date().toISOString() }).eq("id", igUser.id)
+      const now = new Date().toISOString()
+      await supabase.from("users").update({ ai_themes_last_analyzed_at: now }).eq("id", igUser.id)
 
-      const { data: themes } = await supabase.from("ai_comment_themes").select("*").eq("user_id", igUser.id).order('count', { ascending: false })
-      return NextResponse.json({ themes })
+      const { data: themes } = await supabase
+        .from("ai_comment_themes")
+        .select("*")
+        .eq("user_id", igUser.id)
+        .order("count", { ascending: false })
+      return NextResponse.json({ themes: themes || [], last_analyzed_at: now, is_stale: false })
     }
 
-    return NextResponse.json({ themes: [] })
+    return NextResponse.json({ themes: [], last_analyzed_at: lastAnalyzed, is_stale: isStale })
 
   } catch (error: any) {
-    console.error("[analyze-comment-themes] Server error:", error)
-    if (error.message === "AI limit exceeded for today.") {
-      return NextResponse.json({ error: error.message }, { status: 429 })
-    }
+    console.error("[analyze-comment-themes] GET error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
+}
+
+// POST: force re-analyze
+export async function POST(request: NextRequest) {
+  // Delegate to GET with force=true
+  const url = new URL(request.url)
+  url.searchParams.set("force", "true")
+  return GET(new Request(url.toString(), { headers: request.headers }) as NextRequest)
 }

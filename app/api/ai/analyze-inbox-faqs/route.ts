@@ -3,13 +3,16 @@ import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireInstagramUser } from "@/lib/auth"
 import { generateGroqCompletion } from "@/lib/groq-client"
 
-export async function POST(request: NextRequest) {
+// GET: fetch current FAQ suggestions (re-analyze if stale or ?force=true)
+export async function GET(request: NextRequest) {
   try {
     const result = await requireInstagramUser(request)
     if (result.response) return result.response
     const { igUser } = result
 
     const supabase = await getSupabaseBypassClient()
+    const { searchParams } = new URL(request.url)
+    const force = searchParams.get("force") === "true"
 
     // Rate Limit Check (24 hours)
     const { data: userData } = await supabase
@@ -19,16 +22,20 @@ export async function POST(request: NextRequest) {
       .single()
 
     const lastAnalyzed = userData?.ai_faq_last_analyzed_at
-    if (lastAnalyzed && new Date().getTime() - new Date(lastAnalyzed).getTime() < 24 * 60 * 60 * 1000) {
-       const { searchParams } = new URL(request.url)
-       const force = searchParams.get("force") === "true"
-       if (!force) {
-           const { data: faqs } = await supabase.from("ai_faq_suggestions").select("*").eq("user_id", igUser.id).eq("is_dismissed", false).order('count', { ascending: false })
-           return NextResponse.json({ faqs })
-       }
+    const isStale = !lastAnalyzed || (new Date().getTime() - new Date(lastAnalyzed).getTime() > 24 * 60 * 60 * 1000)
+
+    // Return cached data if within 24h and not forced
+    if (!isStale && !force) {
+      const { data: faqs } = await supabase
+        .from("ai_faq_suggestions")
+        .select("*")
+        .eq("user_id", igUser.id)
+        .eq("is_dismissed", false)
+        .order("count", { ascending: false })
+      return NextResponse.json({ faqs: faqs || [], last_analyzed_at: lastAnalyzed, is_stale: false })
     }
 
-    // Fetch recent DMs
+    // Fetch recent DMs (last 14 days)
     const fourteenDaysAgo = new Date()
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
 
@@ -44,7 +51,18 @@ export async function POST(request: NextRequest) {
     const dmMessages = messagesData?.map(m => m.content).filter(c => c && c.length > 3) || []
 
     if (dmMessages.length === 0) {
-      return NextResponse.json({ faqs: [], message: "Not enough DM data to analyze." })
+      const { data: existingFaqs } = await supabase
+        .from("ai_faq_suggestions")
+        .select("*")
+        .eq("user_id", igUser.id)
+        .eq("is_dismissed", false)
+        .order("count", { ascending: false })
+      return NextResponse.json({
+        faqs: existingFaqs || [],
+        last_analyzed_at: lastAnalyzed,
+        is_stale: isStale,
+        message: "Not enough DM data to analyze."
+      })
     }
 
     const messages = [
@@ -56,7 +74,7 @@ For each FAQ provide:
 2. "suggested_answer": A friendly, helpful drafted response
 3. "count": Estimated number of similar messages
 
-Return ONLY a JSON array of these objects.`
+Return ONLY a valid JSON object with a "faqs" array.`
       },
       {
         role: "user",
@@ -67,23 +85,28 @@ Return ONLY a JSON array of these objects.`
     const completion = await generateGroqCompletion(igUser.id, "analyze_faqs", {
       messages: messages as any,
       temperature: 0.2,
-      max_tokens: 500,
+      max_tokens: 600,
       response_format: { type: "json_object" }
     })
 
     if (!completion) {
-      return NextResponse.json({ error: "Failed to generate FAQs or rate limit exceeded" }, { status: 429 })
+      const { data: existingFaqs } = await supabase
+        .from("ai_faq_suggestions")
+        .select("*")
+        .eq("user_id", igUser.id)
+        .eq("is_dismissed", false)
+        .order("count", { ascending: false })
+      return NextResponse.json({ faqs: existingFaqs || [], last_analyzed_at: lastAnalyzed, is_stale: true, error: "Rate limit or AI unavailable" })
     }
 
-    let parsed = []
+    let parsed: any[] = []
     try {
       const maybeParsed = JSON.parse(completion)
-      parsed = Array.isArray(maybeParsed) ? maybeParsed : (maybeParsed.faqs || Object.values(maybeParsed)[0])
+      parsed = Array.isArray(maybeParsed) ? maybeParsed : (maybeParsed.faqs || Object.values(maybeParsed)[0] as any[])
     } catch {
       return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 })
     }
 
-    // Save to DB
     if (parsed && Array.isArray(parsed) && parsed.length > 0) {
       await supabase.from("ai_faq_suggestions").delete().eq("user_id", igUser.id)
 
@@ -96,45 +119,55 @@ Return ONLY a JSON array of these objects.`
       }))
 
       await supabase.from("ai_faq_suggestions").insert(rows)
-      await supabase.from("users").update({ ai_faq_last_analyzed_at: new Date().toISOString() }).eq("id", igUser.id)
+      const now = new Date().toISOString()
+      await supabase.from("users").update({ ai_faq_last_analyzed_at: now }).eq("id", igUser.id)
 
-      const { data: faqs } = await supabase.from("ai_faq_suggestions").select("*").eq("user_id", igUser.id).eq("is_dismissed", false).order('count', { ascending: false })
-      return NextResponse.json({ faqs })
+      const { data: faqs } = await supabase
+        .from("ai_faq_suggestions")
+        .select("*")
+        .eq("user_id", igUser.id)
+        .eq("is_dismissed", false)
+        .order("count", { ascending: false })
+      return NextResponse.json({ faqs: faqs || [], last_analyzed_at: now, is_stale: false })
     }
 
-    return NextResponse.json({ faqs: [] })
+    return NextResponse.json({ faqs: [], last_analyzed_at: lastAnalyzed, is_stale: isStale })
 
   } catch (error: any) {
-    console.error("[analyze-inbox-faqs] Server error:", error)
-    if (error.message === "AI limit exceeded for today.") {
-      return NextResponse.json({ error: error.message }, { status: 429 })
-    }
+    console.error("[analyze-inbox-faqs] GET error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
-// PATCH to dismiss an FAQ
+// POST: force re-analyze
+export async function POST(request: NextRequest) {
+  const url = new URL(request.url)
+  url.searchParams.set("force", "true")
+  return GET(new Request(url.toString(), { headers: request.headers }) as NextRequest)
+}
+
+// PATCH: dismiss an FAQ
 export async function PATCH(request: NextRequest) {
-    try {
-      const result = await requireInstagramUser(request)
-      if (result.response) return result.response
-      const { igUser } = result
-  
-      const { faqId, dismiss } = await request.json()
-      if (!faqId) return NextResponse.json({ error: "FAQ ID is required" }, { status: 400 })
-  
-      const supabase = await getSupabaseBypassClient()
-      const { error } = await supabase
-        .from("ai_faq_suggestions")
-        .update({ is_dismissed: dismiss })
-        .eq("id", faqId)
-        .eq("user_id", igUser.id)
-  
-      if (error) throw error
-  
-      return NextResponse.json({ ok: true })
-    } catch (error) {
-      console.error("[analyze-inbox-faqs] Patch server error:", error)
-      return NextResponse.json({ error: "Internal server error" }, { status: 500 })
-    }
+  try {
+    const result = await requireInstagramUser(request)
+    if (result.response) return result.response
+    const { igUser } = result
+
+    const { faqId, dismiss } = await request.json()
+    if (!faqId) return NextResponse.json({ error: "FAQ ID is required" }, { status: 400 })
+
+    const supabase = await getSupabaseBypassClient()
+    const { error } = await supabase
+      .from("ai_faq_suggestions")
+      .update({ is_dismissed: dismiss ?? true })
+      .eq("id", faqId)
+      .eq("user_id", igUser.id)
+
+    if (error) throw error
+
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error("[analyze-inbox-faqs] PATCH error:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
+}
