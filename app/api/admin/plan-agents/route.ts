@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/auth"
 export async function GET(req: NextRequest) {
   try {
     const adminCheck = await requireAdmin(req)
-    if (adminCheck) return adminCheck
+    if (adminCheck.response) return adminCheck.response
 
     const supabase = await getSupabaseBypassClient()
     const { data: planAgents, error } = await supabase
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const adminCheck = await requireAdmin(req)
-    if (adminCheck) return adminCheck
+    if (adminCheck.response) return adminCheck.response
 
     const { plan_id, agent_id, enable } = await req.json()
     if (!plan_id || !agent_id) return NextResponse.json({ error: "Missing ids" }, { status: 400 })
