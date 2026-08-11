@@ -30,11 +30,13 @@ export async function GET(req: NextRequest) {
       throw new Error(agentsError.message)
     }
 
-    // 2. Get user's plan and plan_agents mapping
-    const { data: account } = await supabase.from("accounts").select("plan").eq("id", accId).maybeSingle()
+    // 2. Get user's plan, role, and plan_agents mapping
+    const { data: account } = await supabase.from("accounts").select("plan, role").eq("id", accId).maybeSingle()
     let planAgents: string[] = []
     
-    if (account?.plan) {
+    if (account?.role === 'admin') {
+      planAgents = agents?.map((a: any) => a.id) || []
+    } else if (account?.plan) {
       const { data: pa, error: paError } = await supabase.from("plan_agents").select("agent_id").eq("plan_id", account.plan)
       if (pa && !paError) planAgents = pa.map((p: any) => p.agent_id)
     }

@@ -86,7 +86,7 @@ export default function CampaignsPage() {
         </div>
         <Button 
           onClick={() => router.push("/dashboard/admin/campaigns/create")}
-          className="bg-brand-500 hover:bg-brand-600 text-black font-semibold"
+          className="bg-[#ccff00] hover:bg-[#b3e600] text-black font-semibold"
         >
           <Plus className="w-4 h-4 mr-2" />
           New Campaign
@@ -159,7 +159,7 @@ export default function CampaignsPage() {
               <p className="text-zinc-400 max-w-sm mb-6">Create your first email campaign to announce new features, product updates, or promotions to your customers.</p>
               <Button 
                 onClick={() => router.push("/dashboard/admin/campaigns/create")}
-                className="bg-brand-500 hover:bg-brand-600 text-black"
+                className="bg-[#ccff00] hover:bg-[#b3e600] text-black font-semibold"
               >
                 Create Campaign
               </Button>

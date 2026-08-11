@@ -138,11 +138,8 @@ export default function BillingPage() {
                             {/* Vodafone Cash */}
                             <div className="flex items-center justify-between p-4 bg-gradient-to-r from-red-600/10 to-transparent rounded-2xl border border-red-500/20">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-[#E60000] rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                                        <svg viewBox="0 0 200 200" className="w-6 h-6 text-white" fill="currentColor">
-                                            <path d="M100,0C44.8,0,0,44.8,0,100s44.8,100,100,100s100-44.8,100-100S155.2,0,100,0z M144.3,124.9c-2.3,16-16.1,28-32.3,28 c-17.7,0-32-14.3-32-32c0-11,5.6-20.7,14-26.6c-4.4-4.8-13.9-9.1-24-10.4V70c18.5,2.1,34.7,12.7,43.3,28.2 C125.7,90,135.5,88.4,142,94.2c6.2,5.5,7.9,14.6,4.6,22L144.3,124.9z"/>
-                                            <circle cx="112" cy="120" r="16" fill="#E60000"/>
-                                        </svg>
+                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden p-1">
+                                        <img src="/vodafone-cash-logo.png" alt="Vodafone Cash" className="w-full h-full object-contain" />
                                     </div>
                                     <div>
                                         <p className="text-sm font-bold text-white">Vodafone Cash</p>
@@ -153,15 +150,13 @@ export default function BillingPage() {
                             </div>
                             <div className="px-4 py-4 bg-[#E60000]/5 border border-[#E60000]/20 rounded-xl relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-2 opacity-10 pointer-events-none">
-                                    <svg viewBox="0 0 200 200" className="w-32 h-32 text-[#E60000]" fill="currentColor">
-                                        <path d="M100,0C44.8,0,0,44.8,0,100s44.8,100,100,100s100-44.8,100-100S155.2,0,100,0z M144.3,124.9c-2.3,16-16.1,28-32.3,28 c-17.7,0-32-14.3-32-32c0-11,5.6-20.7,14-26.6c-4.4-4.8-13.9-9.1-24-10.4V70c18.5,2.1,34.7,12.7,43.3,28.2 C125.7,90,135.5,88.4,142,94.2c6.2,5.5,7.9,14.6,4.6,22L144.3,124.9z"/>
-                                    </svg>
+                                    <img src="/vodafone-cash-logo.png" alt="Vodafone Cash" className="w-32 h-32 object-contain filter grayscale contrast-200" />
                                 </div>
                                 <h4 className="text-white font-bold text-sm mb-2">How to upgrade with Vodafone Cash:</h4>
                                 <ol className="text-xs text-neutral-300 space-y-2 list-decimal list-inside relative z-10">
-                                    <li>Transfer the plan amount to <strong className="text-[#ffe14d] font-mono text-sm px-1 bg-black/40 rounded">010 322 17887</strong></li>
+                                    <li>Transfer the plan amount to <strong className="text-[#ffe14d] font-mono text-sm px-1 bg-black/40 rounded">+20 01037312994</strong></li>
                                     <li>Take a screenshot of the successful transfer receipt</li>
-                                    <li>Send the screenshot to <a href="mailto:support@helixa.io" className="text-blue-400 hover:underline">support@helixa.io</a> along with your account email</li>
+                                    <li>Send the screenshot to <a href="mailto:cultleaderzoz.dev@gmail.com" className="text-blue-400 hover:underline">cultleaderzoz.dev@gmail.com</a> along with your account email</li>
                                     <li>Your account features will be unlocked within 24 hours</li>
                                 </ol>
                             </div>
