@@ -1,10 +1,10 @@
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY
+const GROQ_API_KEY = process.env.GROQ_API_KEY || "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"
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-// Defaulting to 30 requests per user per day to protect Groq rate limits.
-const MAX_AI_CALLS_PER_DAY = 300
+// Defaulting to 1000 requests per user per day to protect Groq rate limits.
+const MAX_AI_CALLS_PER_DAY = 1000
 
 export class GroqRateLimitError extends Error {
   constructor(message: string) {

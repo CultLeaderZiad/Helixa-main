@@ -606,7 +606,54 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          if (!match) continue
+          if (!match) {
+            if (user.ai_enabled) {
+              try {
+                const { generateGroqCompletion } = await import("@/lib/groq-client")
+                const prompt = `You are a helpful AI assistant for an Instagram account named @${user.username}. 
+Context/Instructions from account owner: ${user.ai_context || 'Be helpful, brief, and polite.'}
+The user sent: "${triggerValue}"
+Provide a very short, friendly response.`
+                
+                const aiReply = await generateGroqCompletion(user.id, "auto_reply", {
+                  messages: [{ role: "system", content: prompt }]
+                })
+                
+                if (aiReply) {
+                  const content = { message: aiReply }
+                  await sendAutomationResponse(user.access_token, { id: senderId }, content)
+                  
+                  if (conv) {
+                    await supabase.from("messages").insert({
+                      id: `mid_ai_${Date.now()}_${Math.random()}`,
+                      conversation_id: conv.id,
+                      user_id: user.id,
+                      sender_id: user.business_account_id,
+                      sender_username: user.username,
+                      content: aiReply,
+                      is_from_instagram: false,
+                    }).catch(() => {})
+                  }
+                  
+                  try {
+                    await supabase.from("automation_events").insert({
+                      user_id: user.id,
+                      automation_id: "AI_AUTO_REPLY",
+                      event_type: "dm_reply",
+                      recipient_id: senderId,
+                      platform: "instagram",
+                    })
+                  } catch (e) {}
+                  
+                  console.log(`[webhook] 🤖 AI Auto-reply sent to ${senderId}`)
+                  continue
+                }
+              } catch (e) {
+                console.error("[webhook] AI Auto-reply failed:", e)
+              }
+            }
+            continue
+          }
 
           const { content: rawContent, variantId } = pickVariant(match)
           console.log(`[webhook] ✅ DM match: "${match.name}" (variant: ${variantId || "default"})`)

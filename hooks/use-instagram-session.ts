@@ -137,17 +137,14 @@ function initSession(code: string | null, router: ReturnType<typeof useRouter>) 
                     } catch {
                         // localStorage unavailable - non-fatal
                     }
-                    setSnapshot({
-                        userId: data.userId || null,
-                        username: data.username,
-                        profilePic: data.profilePic || null,
-                    })
-                    router.replace("/dashboard")
                 }
             } catch (err) {
                 console.error("Login failed:", err)
             } finally {
+                // ALWAYS fetch the full session so accountId is populated before finishing load
+                await fetchMe()
                 setSnapshot({ isLoading: false })
+                router.replace("/dashboard")
             }
         })()
         return

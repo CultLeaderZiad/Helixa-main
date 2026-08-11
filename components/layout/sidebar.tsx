@@ -34,26 +34,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
 
   return (
     <aside className={cn("flex flex-col bg-[#0a0a09]", className)} {...props}>
-      {/* Brand */}
-      <div className="px-5 pt-6 pb-5 flex items-center gap-3">
-        {/* Image removed */}
-        <div style={{ position: 'relative', height: '22px', width: '80px' }}>
-          <TextPressure
-            text="HELIXA"
-            flex={true}
-            alpha={false}
-            stroke={false}
-            width={true}
-            weight={true}
-            italic={true}
-            textColor="#ffffff"
-            strokeColor="#ff0000"
-            minFontSize={16}
-          />
-        </div>
-      </div>
 
-      <div className="mx-5 h-px bg-white/[0.06]" />
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">

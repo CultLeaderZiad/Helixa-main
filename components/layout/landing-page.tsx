@@ -67,21 +67,6 @@ export function LandingPage() {
         <div className="flex items-center gap-2 md:gap-3">
           <div className="relative h-9 w-9 md:h-12 md:w-12 overflow-hidden flex-shrink-0">
           </div>
-          <div style={{ position: 'relative', height: '14px', width: '45px' }} className="md:h-[18px] md:w-[55px]">
-            <TextPressure
-              text="HELIXA"
-              flex={true}
-              alpha={false}
-              stroke={false}
-              width={true}
-              weight={true}
-              italic={true}
-              textColor="#ffffff"
-              strokeColor="#ff0000"
-              minFontSize={10}
-            />
-          </div>
-          <span className="hidden sm:inline-block font-mono-ui text-[10px] text-neutral-500 border border-white/10 rounded-full px-2 py-0.5 ml-1 md:ml-2">open source</span>
         </div>
 
         <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-8 font-mono-ui text-xs text-neutral-400">

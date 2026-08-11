@@ -76,7 +76,6 @@ export default function DashboardLayout({
                 {/* Mobile Header (Visible only on small screens) */}
                 <header className="md:hidden h-16 border-b border-white/10 bg-[#03010A] flex items-center justify-between px-4 sticky top-0 z-40">
                     <div className="flex items-center gap-2">
-                        <span className="text-xl font-bold italic tracking-wider text-white">HELIXA</span>
                     </div>
                     <MobileNav username={username || "User"} profilePic={profilePic} email={email} userRole={role} onLogout={logout} />
                 </header>

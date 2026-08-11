@@ -125,7 +125,7 @@ export default function CheckoutClient({ plan, methods, user }: { plan: any, met
               Please transfer exactly <strong className="text-white text-base">${plan.price_usd}</strong> to the following Vodafone Cash number:
             </p>
             <div className="bg-black/50 p-3 rounded-lg text-[#ffe14d] font-mono text-xl text-center border border-white/10 font-bold tracking-wider">
-              {selectedMethod === "vodafone_cash" ? "+01037312994" : selected.instructions || "+01037312994"}
+              +01037312994
             </div>
           </div>
           <div className="space-y-2">

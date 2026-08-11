@@ -76,9 +76,13 @@ export function IceBreakersManager() {
             const data = await res.json()
             if (data.success) {
                 clearCache(`/api/ice-breakers?userId=${userId}`)
-                toast.success("Ice Breakers saved & synced usually!")
+                if (data.warning) {
+                    toast.error(`Saved to DB, but Instagram sync failed: ${data.error?.message || 'Rate limit or API error'}`)
+                } else {
+                    toast.success("Ice Breakers saved & synced successfully!")
+                }
             } else {
-                toast.error("Failed to save")
+                toast.error(data.error || "Failed to save")
             }
         } catch (e) {
             toast.error("Error saving")
