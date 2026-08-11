@@ -4,18 +4,19 @@ import { requireAdmin } from "@/lib/auth"
 import { sendEmail } from "@/lib/email-provider"
 import { generateEmailHtml } from "@/lib/email-templates"
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const result = await requireAdmin(request)
     if (result.response) return result.response
 
+    const { id } = await params;
     const supabase = await getSupabaseServerClient()
 
     // 1. Fetch Campaign
     const { data: campaign, error: campaignError } = await supabase
       .from("email_campaigns")
       .select("*")
-      .eq("id", params.id)
+      .eq("id", id)
       .single()
 
     if (campaignError || !campaign) {

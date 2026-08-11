@@ -43,6 +43,7 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
         )
     }
 
+    return (
         <div className="flex flex-col h-full border-r border-white/5 bg-[#03010A]/60 backdrop-blur-3xl w-full md:w-[350px] relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-[300px] bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
             

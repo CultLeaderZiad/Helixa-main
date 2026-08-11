@@ -2,16 +2,17 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { requireAdmin } from "@/lib/auth"
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const result = await requireAdmin(request)
     if (result.response) return result.response
 
+    const { id } = await params;
     const supabase = await getSupabaseServerClient()
     const { data: campaign, error } = await supabase
       .from("email_campaigns")
       .select("*")
-      .eq("id", params.id)
+      .eq("id", id)
       .single()
 
     if (error) {
@@ -24,11 +25,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const result = await requireAdmin(request)
     if (result.response) return result.response
 
+    const { id } = await params;
     const body = await request.json()
     const supabase = await getSupabaseServerClient()
 
@@ -36,7 +38,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const { data: existing, error: checkError } = await supabase
       .from("email_campaigns")
       .select("status")
-      .eq("id", params.id)
+      .eq("id", id)
       .single()
 
     if (checkError || !existing) {
@@ -63,7 +65,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         cta_url: body.cta_url || null,
         audience_filter: body.audience_filter,
       })
-      .eq("id", params.id)
+      .eq("id", id)
       .select()
       .single()
 
@@ -79,17 +81,18 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const result = await requireAdmin(request)
     if (result.response) return result.response
 
+    const { id } = await params;
     const supabase = await getSupabaseServerClient()
 
     const { data: existing, error: checkError } = await supabase
       .from("email_campaigns")
       .select("status")
-      .eq("id", params.id)
+      .eq("id", id)
       .single()
 
     if (checkError || !existing) {
@@ -103,7 +106,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const { error } = await supabase
       .from("email_campaigns")
       .delete()
-      .eq("id", params.id)
+      .eq("id", id)
 
     if (error) {
       return NextResponse.json({ error: "Failed to delete campaign" }, { status: 500 })

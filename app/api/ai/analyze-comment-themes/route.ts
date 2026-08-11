@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     const comments = (!eventsError && events) ? events
       ?.filter(e => e.data?.field === "comments" || e.data?.object === "instagram")
       .map(e => e.data?.value?.text || e.data?.text || "")
-      .filter(text => text && typeof text === "string" && text.length > 2) || []
+      .filter(text => text && typeof text === "string" && text.length > 2) || [] : []
 
     if (comments.length === 0) {
       const { data: existingThemes } = await supabase

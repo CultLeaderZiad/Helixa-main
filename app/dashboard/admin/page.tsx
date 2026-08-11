@@ -81,7 +81,7 @@ export default function AdminPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
-  const [activeTab, setActiveTab] = useState<"users" | "audit" | "payments">("users")
+  const [activeTab, setActiveTab] = useState<"users" | "audit" | "payments" | "banner" | "matrix">("users")
   const [trialsThisWeek, setTrialsThisWeek] = useState<number | null>(null)
   
   // Edit state
@@ -702,6 +702,8 @@ export default function AdminPage() {
             </tbody>
           </table>
         </div>
+      )}
+
       {activeTab === "banner" && (
         <div className="border border-white/[0.08] rounded-xl overflow-hidden p-6 bg-white/[0.02] space-y-6 max-w-2xl">
           <div className="space-y-2">

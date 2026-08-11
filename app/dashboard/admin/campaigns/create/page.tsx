@@ -176,7 +176,7 @@ export default function CreateCampaignPage() {
                 value={formData.heading} onChange={handleChange}
                 className="bg-zinc-900 border-zinc-800"
               />
-              <p className="text-xs text-zinc-500">Supports {{customer_name}} variable</p>
+              <p className="text-xs text-zinc-500">Supports {"{{customer_name}}"} variable</p>
             </div>
 
             <div className="space-y-2">
