@@ -9,7 +9,6 @@ import { DeferredMount, InViewMount } from "@/components/ui/mount-lazy"
 
 const Ferrofluid = dynamic(() => import("@/components/effects/ferrofluid"), { ssr: false })
 const ScrollFloat = dynamic(() => import("@/components/ui/ScrollFloat"), { ssr: false })
-const ASCIIText = dynamic(() => import("@/components/ui/ASCIIText"), { ssr: false })
 import {
   MessageCircle, Sparkles, ArrowUpRight, Github, Star,
   Send, AtSign, Brain, Inbox, Lock, Terminal,
@@ -64,9 +63,18 @@ export function LandingPage() {
 
       {/* Nav */}
       <nav className="relative z-50 flex items-center justify-between px-5 md:px-10 h-16 border-b border-white/[0.08]">
-        <div className="flex items-center gap-2 md:gap-3">
-          <div className="relative h-9 w-9 md:h-12 md:w-12 overflow-hidden flex-shrink-0">
-          </div>
+        <div className="flex items-center gap-2 md:gap-3 pointer-events-auto" style={{ position: 'relative', height: '40px', width: '120px' }}>
+          <TextPressure
+            text="HELIXA"
+            flex={true}
+            alpha={false}
+            stroke={false}
+            width={true}
+            weight={true}
+            italic={false}
+            textColor="#ffe14d"
+            minFontSize={14}
+          />
         </div>
 
         <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-8 font-mono-ui text-xs text-neutral-400">
@@ -100,7 +108,7 @@ export function LandingPage() {
         </div>
       </nav>
 
-        {/* Hero */}
+        {/* Hero — Split Layout */}
         <section className="relative overflow-hidden bg-transparent w-full">
           {/* Ferrofluid background layer */}
           <div className="absolute inset-0 pointer-events-none md:pointer-events-auto">
@@ -127,33 +135,51 @@ export function LandingPage() {
           
           <div className="absolute inset-0 bg-gradient-to-t from-[#03010A] via-[#03010A]/80 to-[#03010A]/30 pointer-events-none" />
 
-          <div className="relative px-5 md:px-10 pt-20 md:pt-32 pb-24 max-w-6xl mx-auto flex flex-col items-center text-center pointer-events-none">
+          <div className="relative px-5 md:px-10 pt-20 md:pt-32 pb-24 max-w-6xl mx-auto">
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-10 md:gap-16">
 
+              {/* Left — TextPressure Logo */}
+              <div className="fade-up w-full md:w-1/2 flex items-center justify-center pointer-events-auto" style={{ animationDelay: "40ms" }}>
+                <div className="w-full h-[160px] md:h-[280px] relative">
+                  <TextPressure
+                    text="HELIXA"
+                    flex={true}
+                    alpha={false}
+                    stroke={true}
+                    width={true}
+                    weight={true}
+                    italic={true}
+                    textColor="#ffe14d"
+                    strokeColor="#ffffff"
+                    minFontSize={36}
+                  />
+                </div>
+              </div>
 
-            <div className="fade-up w-full h-[120px] md:h-[200px] relative mb-6 pointer-events-none" style={{ animationDelay: "40ms" }}>
-              <DeferredMount delay={1500}>
-                <ASCIIText
-                  text='HELIXA'
-                  enableWaves={true}
-                  asciiFontSize={12}
-                  textFontSize={150}
-                  planeBaseHeight={16}
-                />
-              </DeferredMount>
-            </div>
+              {/* Right — Copy + CTAs */}
+              <div className="fade-up w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left pointer-events-none" style={{ animationDelay: "120ms" }}>
+                <h1 className="font-serif-display text-[13vw] md:text-7xl lg:text-[5.5rem] leading-[0.95] tracking-tight text-white relative z-20 mb-8">
+                  Your DMs,
+                  <br />
+                  <span className="italic text-[#ffe14d]">on autopilot.</span>
+                </h1>
 
-            <h1 className="fade-up font-serif-display text-[15vw] md:text-[7.5rem] leading-[0.95] tracking-tight text-white relative z-20" style={{ animationDelay: "80ms" }}>
-              Your DMs,
-              <br />
-              <span className="italic text-[#ffe14d]">on autopilot.</span>
-              </h1>
+                <div className="space-y-4 mb-10">
+                  <p className="text-neutral-300 text-base md:text-lg leading-relaxed max-w-lg">
+                    Comment-to-DM funnels, keyword triggers,
+                    <br className="hidden md:block" />
+                    story reactions, AI replies, a live inbox,
+                    <br className="hidden md:block" />
+                    and Reels scheduling.
+                  </p>
+                  <p className="text-neutral-500 text-sm md:text-base leading-relaxed max-w-lg">
+                    The open-source ManyChat alternative —
+                    <br className="hidden md:block" />
+                    your data stays in your own Supabase.
+                  </p>
+                </div>
 
-              <div className="fade-up mt-10 flex flex-col items-center gap-8 md:gap-10 w-full pointer-events-auto" style={{ animationDelay: "160ms" }}>
-                <p className="text-neutral-400 text-base md:text-lg max-w-md leading-relaxed bg-[#03010A]/40 p-4 rounded-xl backdrop-blur-sm border border-white/5">
-                  Comment-to-DM funnels, keyword triggers, story reactions, AI replies, a live inbox,
-                  and Reels scheduling. The open-source ManyChat alternative — your data stays in your own Supabase.
-                </p>
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3 pointer-events-auto">
                   <button
                     onClick={handleSignup}
                     className="group flex items-center gap-2 bg-[#ffe14d] text-black font-mono-ui text-sm font-bold px-7 py-4 rounded-full hover:scale-[1.03] active:scale-[0.98] transition-transform"
@@ -171,6 +197,7 @@ export function LandingPage() {
                 </div>
               </div>
             </div>
+          </div>
         </section>
 
         {/* Marquee */}

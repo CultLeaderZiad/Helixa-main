@@ -34,6 +34,16 @@ interface Plan {
   stripe_price_id: string | null
 }
 
+interface Agent {
+  id: string
+  name: string
+}
+
+interface PlanAgent {
+  plan_id: string
+  agent_id: string
+}
+
 const EMPTY_FORM = {
   name: "",
   description: "",
@@ -46,6 +56,8 @@ const EMPTY_FORM = {
 
 export default function DashboardAdminPlansPage() {
   const [plans, setPlans] = useState<Plan[]>([])
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [planAgents, setPlanAgents] = useState<PlanAgent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
@@ -60,14 +72,50 @@ export default function DashboardAdminPlansPage() {
   const fetchPlans = async () => {
     try {
       setError("")
-      const res = await fetch("/api/admin/plans")
-      if (!res.ok) throw new Error("Failed to load plans")
-      const data = await res.json()
-      setPlans(data)
+      const [plansRes, agentsRes, planAgentsRes] = await Promise.all([
+        fetch("/api/admin/plans"),
+        fetch("/api/admin/agents"),
+        fetch("/api/admin/plan-agents")
+      ])
+
+      if (!plansRes.ok) throw new Error("Failed to load plans")
+      
+      const plansData = await plansRes.json()
+      setPlans(plansData)
+
+      if (agentsRes.ok) {
+        setAgents(await agentsRes.json())
+      }
+      
+      if (planAgentsRes.ok) {
+        setPlanAgents(await planAgentsRes.json())
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleTogglePlanAgent = async (planId: string, agentId: string, enable: boolean) => {
+    try {
+      // Optimistic
+      if (enable) {
+        setPlanAgents([...planAgents, { plan_id: planId, agent_id: agentId }])
+      } else {
+        setPlanAgents(planAgents.filter(pa => !(pa.plan_id === planId && pa.agent_id === agentId)))
+      }
+
+      const res = await fetch("/api/admin/plan-agents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan_id: planId, agent_id: agentId, enable })
+      })
+
+      if (!res.ok) throw new Error("Failed to update agent mapping")
+    } catch (err) {
+      fetchPlans() // revert
+      alert("Failed to update mapping")
     }
   }
 
@@ -248,6 +296,52 @@ export default function DashboardAdminPlansPage() {
               No plans found. Create one to get started.
             </div>
           )}
+        </div>
+      )}
+
+      {/* Plan-to-Agent Matrix */}
+      {!loading && plans.length > 0 && agents.length > 0 && (
+        <div className="mt-12">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-white">Plan-Agent Matrix</h2>
+            <p className="text-xs text-neutral-500 mt-1">
+              Configure which AI agents are available in each plan. Changes apply immediately.
+            </p>
+          </div>
+          <div className="bg-[#0b0b0a] border border-white/10 rounded-2xl overflow-x-auto">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead className="bg-white/[0.02] border-b border-white/10">
+                <tr>
+                  <th className="px-6 py-4 font-mono-ui text-[10px] uppercase tracking-widest text-neutral-500 sticky left-0 bg-[#0b0b0a] z-10 border-r border-white/10">Agent</th>
+                  {plans.map(plan => (
+                    <th key={plan.id} className="px-6 py-4 font-mono-ui text-[10px] uppercase tracking-widest text-neutral-500 text-center">
+                      {plan.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {agents.map(agent => (
+                  <tr key={agent.id} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="px-6 py-4 font-bold text-white sticky left-0 bg-[#0b0b0a] z-10 border-r border-white/10">
+                      {agent.name}
+                    </td>
+                    {plans.map(plan => {
+                      const isEnabled = planAgents.some(pa => pa.plan_id === plan.id && pa.agent_id === agent.id)
+                      return (
+                        <td key={plan.id} className="px-6 py-4 text-center">
+                          <Switch
+                            checked={isEnabled}
+                            onCheckedChange={(v) => handleTogglePlanAgent(plan.id, agent.id, v)}
+                          />
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

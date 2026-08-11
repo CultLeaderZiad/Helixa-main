@@ -7,6 +7,7 @@ import { MobileNav } from "@/components/layout/mobile-nav"
 import Image from "next/image"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { Loader2 } from "lucide-react"
+import TextPressure from "@/components/ui/text-pressure"
 import { TrialBanner } from "@/components/layout/TrialBanner"
 
 export default function DashboardLayout({
@@ -75,7 +76,18 @@ export default function DashboardLayout({
             <div className="flex-1 flex flex-col md:pl-64 transition-all duration-300">
                 {/* Mobile Header (Visible only on small screens) */}
                 <header className="md:hidden h-16 border-b border-white/10 bg-[#03010A] flex items-center justify-between px-4 sticky top-0 z-40">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" style={{ position: 'relative', height: '36px', width: '90px' }}>
+                        <TextPressure
+                            text="HELIXA"
+                            flex={true}
+                            alpha={false}
+                            stroke={false}
+                            width={true}
+                            weight={true}
+                            italic={false}
+                            textColor="#ffe14d"
+                            minFontSize={10}
+                        />
                     </div>
                     <MobileNav username={username || "User"} profilePic={profilePic} email={email} userRole={role} onLogout={logout} />
                 </header>

@@ -8,6 +8,7 @@ import { Activity, Users, MessageCircle, Zap, Loader2, AlertCircle, Sparkles, Re
 import Link from "next/link"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
+import TextPressure from "@/components/ui/text-pressure"
 interface DashboardStats {
     metrics: {
         totalAutomations: number
@@ -189,7 +190,37 @@ export default function DashboardPage() {
             )}
 
             {/* Greeting */}
-            <div className="mb-10 mt-4">
+            <div className="mb-10 mt-4 relative">
+                {/* Top-right HELIXA logo */}
+                <div className="absolute top-0 right-0 h-[36px] w-[100px] pointer-events-auto hidden md:block">
+                    <TextPressure
+                        text="HELIXA"
+                        flex={true}
+                        alpha={false}
+                        stroke={false}
+                        width={true}
+                        weight={true}
+                        italic={false}
+                        textColor="#ffe14d"
+                        minFontSize={10}
+                    />
+                </div>
+
+                {/* Logo above Overview label */}
+                <div className="h-[36px] w-[80px] pointer-events-auto mb-3">
+                    <TextPressure
+                        text="HELIXA"
+                        flex={true}
+                        alpha={false}
+                        stroke={false}
+                        width={true}
+                        weight={true}
+                        italic={false}
+                        textColor="#ffe14d"
+                        minFontSize={10}
+                    />
+                </div>
+
                 <p className="font-mono-ui text-[10px] uppercase tracking-[0.3em] text-[#ffe14d] mb-3 font-bold">Overview</p>
                 <h1 className="font-serif-display text-4xl md:text-5xl text-white leading-none mb-4">Hey, {username || "creator"}.</h1>
                 <p className="text-neutral-400 text-sm">Here's what your automations did while you were away.</p>

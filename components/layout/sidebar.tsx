@@ -17,6 +17,7 @@ const NAV = [
   { href: "/dashboard/inbox", icon: MessageSquare, label: "Inbox" },
   { href: "/dashboard/ice-breakers", icon: Snowflake, label: "Ice breakers" },
   { href: "/dashboard/analytics", icon: BarChart3, label: "Analytics" },
+  { href: "/dashboard/agents", icon: Zap, label: "Agents" },
 ]
 
 interface SidebarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "role"> {
@@ -35,6 +36,22 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
   return (
     <aside className={cn("flex flex-col bg-[#0a0a09]", className)} {...props}>
 
+      {/* Logo */}
+      <Link href="/dashboard" className="block px-4 pt-4 pb-2">
+        <div className="relative h-[44px] w-full pointer-events-auto">
+          <TextPressure
+            text="HELIXA"
+            flex={true}
+            alpha={false}
+            stroke={false}
+            width={true}
+            weight={true}
+            italic={false}
+            textColor="#ffe14d"
+            minFontSize={12}
+          />
+        </div>
+      </Link>
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
@@ -113,6 +130,20 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
               {pathname === "/dashboard/admin/plans" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
               <CreditCard className="w-4 h-4 shrink-0" strokeWidth={1.8} />
               <span>Plans</span>
+            </Link>
+            <Link
+              href="/dashboard/admin/agents"
+              onClick={onNavigate}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-colors relative",
+                pathname === "/dashboard/admin/agents"
+                  ? "text-white bg-white/[0.06]"
+                  : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
+              )}
+            >
+              {pathname === "/dashboard/admin/agents" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
+              <Zap className="w-4 h-4 shrink-0" strokeWidth={1.8} />
+              <span>Agents Catalog</span>
             </Link>
           </>
         )}

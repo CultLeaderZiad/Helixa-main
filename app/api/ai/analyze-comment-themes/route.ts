@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireInstagramUser } from "@/lib/auth"
-import { generateGroqCompletion } from "@/lib/groq-client"
+import { generateCompletion } from "@/lib/llm-provider"
 
 // GET: fetch current themes (and re-analyze if 24h+ old or ?force=true)
 export async function GET(request: NextRequest) {
@@ -83,12 +83,18 @@ Return ONLY a valid JSON object with a "themes" array.`
       }
     ]
 
-    const completion = await generateGroqCompletion(igUser.id, "analyze_themes", {
-      messages: messages as any,
-      temperature: 0.2,
-      max_tokens: 600,
-      response_format: { type: "json_object" }
-    })
+    const completion = await generateCompletion(
+      String(igUser.id),
+      result.user.id, // accountId
+      "analyze_themes",
+      "comment_themes", // agentKey
+      {
+        messages: messages as any,
+        temperature: 0.2,
+        max_tokens: 600,
+        response_format: { type: "json_object" }
+      }
+    )
 
     if (!completion) {
       const { data: existingThemes } = await supabase
