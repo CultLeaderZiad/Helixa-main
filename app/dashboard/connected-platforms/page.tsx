@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useLanguage } from "@/hooks/use-language"
+import { useLanguage } from "@/lib/i18n/LanguageContext"
 import { AlertTriangle, Plus, Loader2, X } from "lucide-react"
 
 interface Connection {
