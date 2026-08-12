@@ -11,6 +11,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import TextPressure from "@/components/ui/text-pressure"
 import MaskedHeading from "@/components/ui/MaskedHeading"
+import DepthText from "@/components/ui/DepthText"
 
 const NAV = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
@@ -40,15 +41,19 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
       {/* Logo */}
       <Link href="/dashboard" className="block px-4 pt-4 pb-2">
         <div className="relative h-[44px] w-full pointer-events-auto">
-          <MaskedHeading
+          <DepthText
             text="HELIXA"
             className="font-serif-display"
-            mediaType="color"
-            color="#ffe14d"
-            reveal="none"
-            trigger="mount"
-            parallax={0}
-            drift={0}
+            layers={8}
+            depth={1.5}
+            faceColor="#ffe14d"
+            depthColor="#a18110"
+            tilt={5}
+            perspective={600}
+            autoOrbit={false}
+            fontSize="28px"
+            fontWeight={900}
+            shadow={false}
           />
         </div>
       </Link>
