@@ -13,24 +13,27 @@ export async function GET(request: NextRequest) {
 
   const supabase = await getSupabaseBypassClient()
 
-  // Real platform_connections columns: id, user_id, platform, external_account_id,
-  // access_token, is_active, connected_at, account_id
-  const { data: rawConnections, error } = await supabase
-    .from("platform_connections")
-    .select("id, platform, external_account_id, is_active, connected_at")
-    .eq("account_id", account.id)
+  let rawConnections: any = []
+  if (igUser) {
+    const { data, error } = await supabase
+      .from("platform_connections")
+      .select("id, platform, page_id, metadata, created_at")
+      .eq("user_id", igUser.id)
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      console.error("Error fetching platform connections:", error)
+    } else {
+      rawConnections = data
+    }
   }
 
   // Map to the shape the frontend expects ({ id, platform, page_id, metadata, created_at })
   const connections = (rawConnections || []).map((c: any) => ({
     id: c.id,
     platform: c.platform,
-    page_id: c.external_account_id,
-    metadata: { name: c.external_account_id },
-    created_at: c.connected_at,
+    page_id: c.page_id,
+    metadata: c.metadata || { name: c.page_id },
+    created_at: c.created_at,
   }))
 
   // The Instagram account lives in `users` (connected via OAuth), not in
@@ -38,9 +41,9 @@ export async function GET(request: NextRequest) {
   if (igUser) {
     connections.unshift({
       id: `ig_${igUser.id}`,
-      platform: "facebook", // the "Instagram & Facebook" card filters by facebook/messenger
+      platform: "instagram", // It's an Instagram connection
       page_id: igUser.business_account_id?.toString() || igUser.page_id?.toString() || "",
-      metadata: { name: igUser.username || `user_${igUser.id}` },
+      metadata: { username: igUser.username || `user_${igUser.id}` },
       created_at: igUser.created_at,
     })
   }

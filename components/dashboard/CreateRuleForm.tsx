@@ -1190,50 +1190,64 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
             {/* iPhone Outer Frame */}
             <div className="w-[320px] h-[580px] rounded-[3rem] border-8 border-[#1f1f1e] bg-black shadow-2xl relative flex flex-col overflow-hidden ring-1 ring-white/10">
               
-              {/* iPhone Dynamic Island */}
-              <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-24 h-5 bg-black rounded-full z-50 flex items-center justify-center">
-                <div className="w-2.5 h-2.5 rounded-full bg-neutral-900 border border-neutral-800 ml-auto mr-3" />
-              </div>
-
               {/* Status Bar Mockup */}
-              <div className="h-8 bg-neutral-950 flex items-end justify-between px-6 pb-1 text-[9px] text-white/80 font-mono-ui z-40 select-none">
-                <span>9:41</span>
-                <div className="flex items-center gap-1">
-                  <span>5G</span>
-                  <div className="w-4 h-2 border border-white/40 rounded-sm p-[1px] flex items-center"><div className="w-2 h-full bg-white rounded-2xs" /></div>
+              <div className="h-12 flex items-center justify-between px-6 pt-2 pb-1 text-[11px] font-semibold text-white/90 z-40 select-none">
+                <span className="w-14 text-center">9:41</span>
+                
+                {/* Dynamic Island */}
+                <div className="w-[120px] h-[32px] bg-black rounded-full z-50 flex items-center justify-between px-2.5 shadow-sm border border-white/5 ring-1 ring-black absolute left-1/2 -translate-x-1/2 top-2.5">
+                   <div className="w-2.5 h-2.5 rounded-full bg-neutral-900 border border-neutral-800" />
+                   <div className="w-2.5 h-2.5 rounded-full bg-[#111] border border-neutral-900/50" />
+                </div>
+
+                <div className="flex items-center gap-1.5 w-14 justify-end">
+                  <svg viewBox="0 0 18 12" className="w-3.5 h-3 fill-current opacity-90"><path d="M1 9h2V3H1v6zm3 0h2V1H4v8zm3 0h2V6H7v3zm3 0h2V4h-2v5zm3 0h2V7h-2v2z"/></svg>
+                  <svg viewBox="0 0 16 12" className="w-3.5 h-3 fill-current opacity-90"><path d="M8 2.2C5.5 2.2 3.3 3.3 1.8 4.9L8 11.8 14.2 4.9C12.7 3.3 10.5 2.2 8 2.2zM8 0c3.2 0 6 1.4 8 3.5L8 12 0 3.5C2 1.4 4.8 0 8 0z"/></svg>
+                  <div className="w-5 h-2.5 border border-white/40 rounded-[4px] p-[1px] flex items-center relative">
+                    <div className="w-[80%] h-full bg-white rounded-[2px]" />
+                    <div className="absolute -right-[3px] top-1/2 -translate-y-1/2 w-[2px] h-1 bg-white/40 rounded-r-sm" />
+                  </div>
                 </div>
               </div>
 
               {/* True-to-life Instagram DM Header */}
-              <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/5 bg-neutral-950/80 backdrop-blur-md sticky top-0 z-40">
-                <div className="flex items-center gap-2">
-                  <ArrowLeft className="w-4 h-4 text-white cursor-pointer" />
-                  <div className="relative">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#8a3ab9] via-[#e95950] to-[#fccc63] p-[1.5px]">
-                      <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[10px] font-bold text-white font-mono">
-                        {(editRule?.name || "T").substring(0,1).toUpperCase()}
+              <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-black sticky top-0 z-40 mt-1">
+                <div className="flex items-center gap-3">
+                  <ArrowLeft className="w-5 h-5 text-white cursor-pointer -ml-1" />
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="w-8 h-8 rounded-full overflow-hidden bg-neutral-800">
+                        <div className="w-full h-full flex items-center justify-center text-[11px] font-bold text-white uppercase">
+                          {(editRule?.name || "T").substring(0,1)}
+                        </div>
                       </div>
+                      <div className="absolute bottom-0 -right-0.5 w-3 h-3 bg-[#31a24c] rounded-full border-2 border-black" />
                     </div>
-                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-neutral-950" />
-                  </div>
-                  <div className="leading-tight">
-                    <p className="text-[11px] font-semibold text-white truncate max-w-[100px]">@{userId ? "test_creator" : "creator"}</p>
-                    <p className="text-[8px] text-green-500 font-medium">Active now</p>
+                    <div className="leading-tight flex flex-col justify-center">
+                      <div className="flex items-center gap-1">
+                        <p className="text-[14px] font-semibold text-white tracking-tight">
+                          {userId ? "test_creator" : "creator"}
+                        </p>
+                        <svg className="w-3 h-3 text-[#0095F6] fill-current" viewBox="0 0 24 24">
+                          <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z" />
+                        </svg>
+                      </div>
+                      <p className="text-[12px] text-neutral-500 font-medium tracking-tight">Active now</p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3.5 text-neutral-300">
-                  <Phone className="w-3.5 h-3.5" />
-                  <Video className="w-3.5 h-3.5" />
-                  <Info className="w-3.5 h-3.5" />
+                <div className="flex items-center gap-4 text-white pr-1">
+                  <Phone className="w-5 h-5" />
+                  <Video className="w-6 h-6" />
                 </div>
               </div>
 
               {/* Screen Body */}
               <div className="flex-1 bg-black px-3 py-4 space-y-4 overflow-y-auto font-sans flex flex-col justify-end">
                 {/* Incoming bubble */}
-                <div className="flex justify-start items-end gap-1.5">
-                  <div className="w-6 h-6 rounded-full bg-neutral-800 flex items-center justify-center text-[9px] text-white">U</div>
-                  <div className="bg-[#1f1f1e] text-white rounded-2xl rounded-bl-sm px-3.5 py-2 text-xs max-w-[75%] shadow-md">
+                <div className="flex justify-start items-end gap-2">
+                  <div className="w-7 h-7 rounded-full bg-neutral-800 flex items-center justify-center text-[10px] text-white shrink-0">U</div>
+                  <div className="bg-[#262626] text-white rounded-2xl rounded-bl-sm px-4 py-2.5 text-[14px] max-w-[75%] leading-snug">
                     {incomingMsg(triggerSource, triggers)}
                   </div>
                 </div>
@@ -1249,13 +1263,13 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                 {captureName && (
                   <>
                     <div className="flex justify-end items-end gap-1.5 animate-in fade-in zoom-in-95 duration-200">
-                      <div className="bg-[#3797f0] text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-xs shadow-lg max-w-[80%]">
+                      <div className="bg-[#0095F6] text-white rounded-2xl rounded-br-sm px-4 py-2 text-[14px] max-w-[80%] leading-snug">
                         What is your name?
                       </div>
                     </div>
-                    <div className="flex justify-start items-end gap-1.5">
-                      <div className="w-6 h-6 rounded-full bg-neutral-800 flex items-center justify-center text-[9px] text-white shrink-0">U</div>
-                      <div className="bg-[#1f1f1e] text-white rounded-2xl rounded-bl-sm px-3.5 py-2 text-xs max-w-[75%] shadow-md">
+                    <div className="flex justify-start items-end gap-2">
+                      <div className="w-7 h-7 rounded-full bg-neutral-800 flex items-center justify-center text-[10px] text-white shrink-0">U</div>
+                      <div className="bg-[#262626] text-white rounded-2xl rounded-bl-sm px-4 py-2.5 text-[14px] max-w-[75%] leading-snug">
                         John Doe
                       </div>
                     </div>
@@ -1265,13 +1279,13 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                 {captureEmail && (
                   <>
                     <div className="flex justify-end items-end gap-1.5 animate-in fade-in zoom-in-95 duration-200">
-                      <div className="bg-[#3797f0] text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-xs shadow-lg max-w-[80%]">
+                      <div className="bg-[#0095F6] text-white rounded-2xl rounded-br-sm px-4 py-2 text-[14px] max-w-[80%] leading-snug">
                         What is your email address?
                       </div>
                     </div>
-                    <div className="flex justify-start items-end gap-1.5">
-                      <div className="w-6 h-6 rounded-full bg-neutral-800 flex items-center justify-center text-[9px] text-white shrink-0">U</div>
-                      <div className="bg-[#1f1f1e] text-white rounded-2xl rounded-bl-sm px-3.5 py-2 text-xs max-w-[75%] shadow-md">
+                    <div className="flex justify-start items-end gap-2">
+                      <div className="w-7 h-7 rounded-full bg-neutral-800 flex items-center justify-center text-[10px] text-white shrink-0">U</div>
+                      <div className="bg-[#262626] text-white rounded-2xl rounded-bl-sm px-4 py-2.5 text-[14px] max-w-[75%] leading-snug">
                         john@example.com
                       </div>
                     </div>
@@ -1283,14 +1297,14 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                   <div className="flex justify-end items-end gap-1.5 animate-in fade-in zoom-in-95 duration-200">
                     <div className="max-w-[80%] space-y-1.5 flex flex-col items-end">
                       {type === "text" && (
-                        <div className="bg-[#3797f0] text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-xs whitespace-pre-wrap break-words leading-relaxed shadow-lg">
+                        <div className="bg-[#0095F6] text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-[14px] whitespace-pre-wrap break-words leading-snug">
                           {messageText || "Type message content..."}
                         </div>
                       )}
                       {type === "card" && (
                         <div className="flex flex-col gap-1.5 w-full items-end">
                            {cardTitle && (
-                              <div className="bg-[#3797f0] text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-xs shadow-lg max-w-[85%] break-words">
+                              <div className="bg-[#0095F6] text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-[14px] max-w-[85%] break-words leading-snug">
                                 {cardTitle}
                               </div>
                            )}
@@ -1320,7 +1334,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                         </div>
                       )}
                       {type === "media" && messageText && (
-                        <div className="bg-[#3797f0] text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-xs leading-relaxed shadow-lg">{messageText}</div>
+                        <div className="bg-[#0095F6] text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-[14px] leading-snug">{messageText}</div>
                       )}
                     </div>
                   </div>
@@ -1345,14 +1359,18 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
               </div>
 
               {/* iPhone Footer Navigation Bar */}
-              <div className="h-12 bg-neutral-950 border-t border-white/5 flex items-center justify-between px-5 text-neutral-500">
-                <Camera className="w-4 h-4" />
-                <div className="flex-1 max-w-[150px] h-7 bg-neutral-900 border border-white/5 rounded-full px-3 flex items-center justify-between text-[9px] text-neutral-600">
-                  <span>Message...</span>
-                  <Smile className="w-3 h-3" />
+              <div className="h-14 bg-black flex items-center justify-between px-3 text-white gap-3 pb-1">
+                <div className="w-8 h-8 rounded-full bg-[#0095F6] flex items-center justify-center shrink-0">
+                  <Camera className="w-5 h-5 text-white" />
                 </div>
-                <Mic className="w-4 h-4" />
-                <PicIcon className="w-4 h-4" />
+                <div className="flex-1 h-9 bg-[#262626] rounded-full px-4 flex items-center justify-between text-[13px] text-[#A8A8A8]">
+                  <span>Message...</span>
+                  <div className="flex items-center gap-3 text-white">
+                    <Mic className="w-4 h-4 opacity-80" />
+                    <svg aria-label="Sticker" className="w-5 h-5 opacity-80 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                  </div>
+                </div>
+                <PicIcon className="w-6 h-6 shrink-0 opacity-90" />
               </div>
 
               {/* iPhone Bottom Bar Indicator */}
