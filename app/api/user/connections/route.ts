@@ -7,6 +7,10 @@ export async function GET(request: NextRequest) {
   if (result.response) return result.response
   const { user: account, igUser } = result
 
+  if (!account) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   const supabase = await getSupabaseBypassClient()
 
   // Real platform_connections columns: id, user_id, platform, external_account_id,

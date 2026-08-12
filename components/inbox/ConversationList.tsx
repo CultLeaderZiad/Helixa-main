@@ -90,20 +90,6 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
                                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#ffe14d] rounded-r-full" />
                                 )}
                                 
-                                <div className="relative shrink-0">
-                                    <div className={cn(
-                                        "w-12 h-12 rounded-full flex items-center justify-center transition-colors",
-                                        isSelected ? "bg-[#ffe14d]/20 border border-[#ffe14d]/30" : "bg-white/[0.06] border border-white/10 group-hover:border-white/20"
-                                    )}>
-                                        <span className={cn(
-                                            "font-bold text-lg",
-                                            isSelected ? "text-[#ffe14d]" : "text-white/70"
-                                        )}>
-                                            {conv.recipient_username.charAt(0).toUpperCase()}
-                                        </span>
-                                    </div>
-                                </div>
-                                
                                 <div className="flex-1 min-w-0 text-left">
                                     <div className="flex items-center justify-between mb-1">
                                         <span className={cn(

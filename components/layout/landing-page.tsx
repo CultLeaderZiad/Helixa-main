@@ -6,6 +6,7 @@ import Image from "next/image"
 import dynamic from "next/dynamic"
 import TextPressure from "@/components/ui/text-pressure"
 import { DeferredMount, InViewMount } from "@/components/ui/mount-lazy"
+import MaskedHeading from "@/components/ui/MaskedHeading"
 
 const Ferrofluid = dynamic(() => import("@/components/effects/ferrofluid"), { ssr: false })
 const ScrollFloat = dynamic(() => import("@/components/ui/ScrollFloat"), { ssr: false })
@@ -138,18 +139,36 @@ export function LandingPage() {
           <div className="relative px-5 md:px-10 pt-20 md:pt-32 pb-24 max-w-6xl mx-auto">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-10 md:gap-16">
 
-              {/* Left — Empty space or we can just make the right side take up more space or keep it as is */}
-              <div className="hidden md:flex w-full md:w-1/2 flex-col justify-center pointer-events-none">
-                {/* Empty left side as requested */}
+              {/* Left — Helixa Logo */}
+              <div className="hidden md:flex w-full md:w-1/2 flex-col justify-center pointer-events-none items-center">
+                <div className="w-32 h-32 md:w-48 md:h-48 rounded-full border border-white/10 bg-black/40 backdrop-blur-xl flex items-center justify-center shadow-[0_0_50px_rgba(255,225,77,0.15)] relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-[#ffe14d]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                  <TextPressure
+                    text="HELIXA"
+                    flex={true}
+                    alpha={false}
+                    stroke={false}
+                    width={true}
+                    weight={true}
+                    italic={false}
+                    textColor="#ffe14d"
+                    minFontSize={24}
+                  />
+                </div>
               </div>
 
               {/* Right — Copy + CTAs */}
               <div className="fade-up w-full md:w-1/2 flex flex-col items-center md:items-end text-center md:text-right pointer-events-none" style={{ animationDelay: "120ms" }}>
-                <h1 className="font-serif-display text-[13vw] md:text-7xl lg:text-[5.5rem] leading-[0.95] tracking-tight text-white relative z-20 mb-8">
-                  Your DMs,
-                  <br />
-                  <span className="italic text-[#ffe14d]">on autopilot.</span>
-                </h1>
+                <div className="w-full max-w-[500px] mb-8 relative z-20">
+                  <MaskedHeading
+                    text="Your DMs, on autopilot."
+                    src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop"
+                    reveal="wipe"
+                    trigger="view"
+                    align="right"
+                    className="font-serif-display"
+                  />
+                </div>
 
                 <div className="space-y-4 mb-10">
                   <p className="text-neutral-300 text-base md:text-lg leading-relaxed max-w-lg">

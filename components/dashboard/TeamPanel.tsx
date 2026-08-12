@@ -117,7 +117,7 @@ export function TeamPanel() {
           <select
             value={inviteRole}
             onChange={e => setInviteRole(e.target.value)}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 text-sm text-white focus:outline-none"
+            className="bg-white/5 border border-white/10 rounded-lg px-3 text-sm text-white focus:outline-none [&>option]:bg-[#0b0b0a] [&>option]:text-white"
           >
             <option value="viewer">Viewer</option>
             <option value="editor">Editor</option>

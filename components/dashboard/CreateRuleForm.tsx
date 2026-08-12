@@ -1245,6 +1245,39 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                   </div>
                 )}
 
+                {/* Lead Capture Sequence Simulator */}
+                {askName && (
+                  <>
+                    <div className="flex justify-end items-end gap-1.5 animate-in fade-in zoom-in-95 duration-200">
+                      <div className="bg-[#3797f0] text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-xs shadow-lg max-w-[80%]">
+                        What is your name?
+                      </div>
+                    </div>
+                    <div className="flex justify-start items-end gap-1.5">
+                      <div className="w-6 h-6 rounded-full bg-neutral-800 flex items-center justify-center text-[9px] text-white shrink-0">U</div>
+                      <div className="bg-[#1f1f1e] text-white rounded-2xl rounded-bl-sm px-3.5 py-2 text-xs max-w-[75%] shadow-md">
+                        John Doe
+                      </div>
+                    </div>
+                  </>
+                )}
+                
+                {askEmail && (
+                  <>
+                    <div className="flex justify-end items-end gap-1.5 animate-in fade-in zoom-in-95 duration-200">
+                      <div className="bg-[#3797f0] text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-xs shadow-lg max-w-[80%]">
+                        What is your email address?
+                      </div>
+                    </div>
+                    <div className="flex justify-start items-end gap-1.5">
+                      <div className="w-6 h-6 rounded-full bg-neutral-800 flex items-center justify-center text-[9px] text-white shrink-0">U</div>
+                      <div className="bg-[#1f1f1e] text-white rounded-2xl rounded-bl-sm px-3.5 py-2 text-xs max-w-[75%] shadow-md">
+                        john@example.com
+                      </div>
+                    </div>
+                  </>
+                )}
+
                 {/* Outgoing Reply Bubble */}
                 {hasDMContent(type, messageText, cardTitle, mediaUrl) ? (
                   <div className="flex justify-end items-end gap-1.5 animate-in fade-in zoom-in-95 duration-200">
@@ -1255,23 +1288,23 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                         </div>
                       )}
                       {type === "card" && (
-                        <div className={`border rounded-2xl overflow-hidden shadow-2xl transition-all ${
-                          cardStyle === "modern" ? "bg-neutral-900 border-white/10 w-48" : 
-                          cardStyle === "classic" ? "bg-white border-white/20 w-52 text-black" : 
-                          "bg-black border-white/5 w-44"
-                        }`}>
-
-                          <div className="p-3">
-                            <p className={`text-xs font-bold line-clamp-1 ${cardStyle === 'classic' ? 'text-black' : 'text-white'}`}>{cardTitle || "Card Title"}</p>
-                            {cardSubtitle && <p className={`text-[10px] mt-1 line-clamp-2 leading-tight ${cardStyle === 'classic' ? 'text-neutral-600' : 'text-neutral-400'}`}>{cardSubtitle}</p>}
-                          </div>
-                          {buttons.filter((b) => b.title).map((b) => (
-                            <div key={b.id} className={`border-t py-2 text-center text-[10px] font-bold cursor-pointer transition-colors ${
-                              cardStyle === 'classic' ? 'border-neutral-200 text-[#0064e0] hover:bg-neutral-100' : 'border-white/5 text-[#3797f0] hover:bg-white/[0.03]'
-                            }`}>
-                              {b.title}
-                            </div>
-                          ))}
+                        <div className="flex flex-col gap-1.5 w-full items-end">
+                           {cardTitle && (
+                              <div className="bg-[#3797f0] text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-xs shadow-lg max-w-[85%] break-words">
+                                {cardTitle}
+                              </div>
+                           )}
+                           {buttons.filter((b) => b.title).map((b) => (
+                              <div key={b.id} className="bg-[#262626] text-white/90 text-[11px] font-medium px-4 py-2.5 rounded-full border border-white/5 hover:bg-[#333] cursor-pointer transition-colors w-max max-w-full truncate shadow-sm">
+                                {b.title}
+                              </div>
+                           ))}
+                           {/* If no buttons yet, show a placeholder button */}
+                           {buttons.filter((b) => b.title).length === 0 && (
+                              <div className="bg-[#262626] text-white/50 text-[10px] font-medium px-4 py-2 rounded-full border border-white/5 italic">
+                                Button link will appear here
+                              </div>
+                           )}
                         </div>
                       )}
                       {type === "media" && (
