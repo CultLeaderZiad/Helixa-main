@@ -10,6 +10,7 @@ import {
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import TextPressure from "@/components/ui/text-pressure"
+import MaskedHeading from "@/components/ui/MaskedHeading"
 
 const NAV = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
@@ -39,16 +40,15 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
       {/* Logo */}
       <Link href="/dashboard" className="block px-4 pt-4 pb-2">
         <div className="relative h-[44px] w-full pointer-events-auto">
-          <TextPressure
+          <MaskedHeading
             text="HELIXA"
-            flex={true}
-            alpha={false}
-            stroke={false}
-            width={true}
-            weight={true}
-            italic={false}
-            textColor="#ffe14d"
-            minFontSize={12}
+            className="font-serif-display"
+            mediaType="color"
+            color="#ffe14d"
+            reveal="none"
+            trigger="mount"
+            parallax={0}
+            drift={0}
           />
         </div>
       </Link>

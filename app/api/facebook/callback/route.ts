@@ -59,13 +59,14 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const clientId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || process.env.INSTAGRAM_APP_ID
-  const clientSecret = process.env.FACEBOOK_APP_SECRET || process.env.INSTAGRAM_APP_SECRET
+  const clientId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || process.env.INSTAGRAM_APP_ID || process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID
+  const clientSecret = process.env.FACEBOOK_APP_SECRET || process.env.META_APP_SECRET || process.env.INSTAGRAM_APP_SECRET
   const appUrl = process.env.NEXT_PUBLIC_APP_URL
   const redirectUri = process.env.NEXT_PUBLIC_FACEBOOK_REDIRECT_URI || `${appUrl}/api/facebook/callback`
 
   if (!clientId || !clientSecret || !redirectUri) {
-    return NextResponse.json({ error: "Missing Env Vars" }, { status: 500 })
+    console.error("[FB Callback] Missing configuration: App ID, Secret, or Redirect URI is not set.")
+    return NextResponse.json({ error: "Missing Facebook configuration in environment variables." }, { status: 500 })
   }
 
   try {

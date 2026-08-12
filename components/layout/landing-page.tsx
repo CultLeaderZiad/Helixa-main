@@ -65,16 +65,15 @@ export function LandingPage() {
       {/* Nav */}
       <nav className="relative z-50 flex items-center justify-between px-5 md:px-10 h-16 border-b border-white/[0.08]">
         <div className="flex items-center gap-2 md:gap-3 pointer-events-auto" style={{ position: 'relative', height: '40px', width: '120px' }}>
-          <TextPressure
+          <MaskedHeading
             text="HELIXA"
-            flex={true}
-            alpha={false}
-            stroke={false}
-            width={true}
-            weight={true}
-            italic={false}
-            textColor="#ffe14d"
-            minFontSize={14}
+            className="font-serif-display"
+            mediaType="color"
+            color="#ffe14d"
+            reveal="none"
+            trigger="mount"
+            parallax={0}
+            drift={0}
           />
         </div>
 
@@ -141,18 +140,19 @@ export function LandingPage() {
 
               {/* Left — Helixa Logo */}
               <div className="hidden md:flex w-full md:w-1/2 flex-col justify-center pointer-events-none items-center">
-                <div className="w-32 h-32 md:w-48 md:h-48 rounded-full border border-white/10 bg-black/40 backdrop-blur-xl flex items-center justify-center shadow-[0_0_50px_rgba(255,225,77,0.15)] relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-[#ffe14d]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                  <TextPressure
+                <div className="w-32 h-32 md:w-48 md:h-48 flex items-center justify-center shadow-[0_0_50px_rgba(255,225,77,0.15)] relative overflow-visible group">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-[#ffe14d]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 rounded-full" />
+                  <MaskedHeading
                     text="HELIXA"
-                    flex={true}
-                    alpha={false}
-                    stroke={false}
-                    width={true}
-                    weight={true}
-                    italic={false}
-                    textColor="#ffe14d"
-                    minFontSize={24}
+                    className="font-serif-display"
+                    mediaType="color"
+                    color="#ffe14d"
+                    textScale={0.25}
+                    fillScale={1.1}
+                    parallax={20}
+                    drift={10}
+                    reveal="rise"
+                    trigger="view"
                   />
                 </div>
               </div>
