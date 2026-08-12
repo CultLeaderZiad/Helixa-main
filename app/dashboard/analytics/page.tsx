@@ -167,7 +167,7 @@ export default function AnalyticsPage() {
 
     if (!userId) {
         return (
-            <div className="min-h-[calc(100vh-64px)] bg-[#03010A] p-4 flex items-center justify-center">
+            <div className="min-h-[calc(100vh-64px)] bg-transparent p-4 flex items-center justify-center">
                 <ConnectPlatformEmptyState description="You need to connect your professional Instagram account to view analytics." />
             </div>
         )

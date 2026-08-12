@@ -115,21 +115,23 @@ export async function GET(request: NextRequest) {
       const pageAccessToken = page.access_token
       const pageId = page.id
       
-      await supabase.from("platform_connections").upsert({
+      const res1 = await supabase.from("platform_connections").upsert({
         user_id: userProfile.id,
         platform: "facebook",
         page_id: pageId,
         access_token: pageAccessToken,
         metadata: { name: page.name, category: page.category }
       }, { onConflict: 'user_id, platform, page_id' })
+      if (res1.error) throw new Error("Upsert FB failed: " + res1.error.message);
 
-      await supabase.from("platform_connections").upsert({
+      const res2 = await supabase.from("platform_connections").upsert({
         user_id: userProfile.id,
         platform: "messenger",
         page_id: pageId,
         access_token: pageAccessToken,
         metadata: { name: page.name, category: page.category }
       }, { onConflict: 'user_id, platform, page_id' })
+      if (res2.error) throw new Error("Upsert Messenger failed: " + res2.error.message);
     }
 
     return NextResponse.redirect(new URL("/dashboard/connected-platforms?success=1", request.url))

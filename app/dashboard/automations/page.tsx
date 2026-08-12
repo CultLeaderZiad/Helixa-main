@@ -142,7 +142,7 @@ function AutomationsPageContent() {
     
     if (!userId) {
         return (
-            <div className="min-h-[calc(100vh-64px)] bg-[#03010A] p-4 flex items-center justify-center">
+            <div className="min-h-[calc(100vh-64px)] bg-transparent p-4 flex items-center justify-center">
                 <ConnectPlatformEmptyState description="You need to connect your professional Instagram account to use automations." />
             </div>
         )
@@ -162,7 +162,7 @@ function AutomationsPageContent() {
     ]
 
     return (
-        <div className="min-h-screen bg-[#03010A]">
+        <div className="min-h-screen bg-transparent">
             <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 space-y-8">
                 {/* Header */}
                 <div className="flex items-end justify-between gap-4 flex-wrap">

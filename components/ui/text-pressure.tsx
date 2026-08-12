@@ -247,6 +247,7 @@ const TextPressure: React.FC<TextPressureProps> = ({
 
   return (
     <div
+      dir="ltr"
       ref={containerRef}
       style={{
         position: 'relative',

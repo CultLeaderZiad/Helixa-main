@@ -1307,22 +1307,43 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                       )}
                       {type === "card" && (
                         <div className="flex flex-col gap-1.5 w-full items-end">
-                           {cardTitle && (
-                              <div className="bg-[#0095F6] text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-[14px] max-w-[85%] break-words leading-snug">
-                                {cardTitle}
-                              </div>
-                           )}
-                           {buttons.filter((b) => b.title).map((b) => (
-                              <div key={b.id} className="bg-[#262626] text-white/90 text-[11px] font-medium px-4 py-2.5 rounded-full border border-white/5 hover:bg-[#333] cursor-pointer transition-colors w-max max-w-full truncate shadow-sm">
-                                {b.title}
-                              </div>
-                           ))}
-                           {/* If no buttons yet, show a placeholder button */}
-                           {buttons.filter((b) => b.title).length === 0 && (
-                              <div className="bg-[#262626] text-white/50 text-[10px] font-medium px-4 py-2 rounded-full border border-white/5 italic">
-                                Button link will appear here
-                              </div>
-                           )}
+                           <div className="bg-[#262626] rounded-2xl rounded-br-sm w-[85%] overflow-hidden border border-white/10 shadow-sm flex flex-col">
+                             {/* Card Image Area (Placeholder if empty) */}
+                             {cardImage ? (
+                               <img src={cardImage} alt="Card Preview" className="w-full h-32 object-cover" />
+                             ) : (
+                               <div className="w-full h-32 bg-neutral-800 flex items-center justify-center">
+                                 <ImageIcon className="w-8 h-8 text-neutral-600" />
+                               </div>
+                             )}
+                             
+                             {/* Text Area */}
+                             <div className="p-3">
+                               <div className="text-[14px] font-semibold text-white leading-tight">
+                                 {cardTitle || "Card Title"}
+                               </div>
+                               {cardSubtitle && (
+                                 <div className="text-[12px] text-neutral-400 mt-1 leading-snug">
+                                   {cardSubtitle}
+                                 </div>
+                               )}
+                             </div>
+
+                             {/* Buttons Area */}
+                             {buttons.length > 0 ? (
+                               <div className="flex flex-col border-t border-white/10">
+                                 {buttons.filter((b) => b.title).map((b, idx) => (
+                                   <div key={b.id} className={`text-center py-2.5 text-[14px] text-[#0095F6] font-medium hover:bg-white/5 cursor-pointer transition-colors ${idx > 0 ? 'border-t border-white/10' : ''}`}>
+                                     {b.title}
+                                   </div>
+                                 ))}
+                               </div>
+                             ) : (
+                               <div className="border-t border-white/10 text-center py-2.5 text-[14px] text-neutral-500 font-medium italic">
+                                 Button Link
+                               </div>
+                             )}
+                           </div>
                         </div>
                       )}
                       {type === "media" && (
