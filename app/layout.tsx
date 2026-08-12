@@ -12,10 +12,10 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Helixa — Instagram Automation",
+  title: "Helixa - Automate your Dm's",
   description: "Auto-reply to comments, DMs, and stories with keyword triggers.",
   icons: {
-    icon: [],
+    icon: "/icon.svg",
   },
 }
 

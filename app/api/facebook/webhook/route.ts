@@ -1,0 +1,74 @@
+import crypto from "crypto"
+import { type NextRequest, NextResponse } from "next/server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { handleFacebookWebhook } from "@/lib/facebook-webhook"
+
+const WEBHOOK_VERIFY_TOKEN = process.env.FACEBOOK_WEBHOOK_VERIFY_TOKEN
+
+// Meta signs every webhook POST with HMAC-SHA256 of the raw body. Depending on app setup the
+// signing key is the Facebook app secret or the parent Meta app secret, so accept either.
+const APP_SECRETS = [process.env.FACEBOOK_APP_SECRET, process.env.META_APP_SECRET].filter(
+  (s): s is string => Boolean(s),
+)
+
+function isValidSignature(rawBody: string, signatureHeader: string | null): boolean {
+  if (APP_SECRETS.length === 0 || !signatureHeader?.startsWith("sha256=")) return false
+  const received = signatureHeader.slice("sha256=".length)
+  return APP_SECRETS.some((secret) => {
+    const expected = crypto.createHmac("sha256", secret).update(rawBody, "utf8").digest("hex")
+    return (
+      received.length === expected.length &&
+      crypto.timingSafeEqual(Buffer.from(received, "utf8"), Buffer.from(expected, "utf8"))
+    )
+  })
+}
+
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams
+  const mode = searchParams.get("hub.mode")
+  const token = searchParams.get("hub.verify_token")
+  const challenge = searchParams.get("hub.challenge")
+
+  if (mode === "subscribe" && WEBHOOK_VERIFY_TOKEN && token === WEBHOOK_VERIFY_TOKEN && challenge) {
+    return new NextResponse(challenge, { status: 200 })
+  }
+  return NextResponse.json({ error: "Invalid token" }, { status: 403 })
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const rawBody = await request.text()
+    const signature = request.headers.get("x-hub-signature-256")
+    
+    if (!isValidSignature(rawBody, signature)) {
+      const computed = APP_SECRETS.map(
+        (s, i) =>
+          `${i === 0 ? "FB" : "META"}:${crypto.createHmac("sha256", s).update(rawBody, "utf8").digest("hex").slice(0, 12)}`,
+      ).join(" ")
+      console.error(
+        `[fb-webhook] 401: ${!signature ? "no x-hub-signature-256 header" : "signature mismatch"}; ` +
+          `secrets configured: ${APP_SECRETS.length}; received=${signature?.slice(7, 19) ?? "-"} computed=[${computed}] bodyLen=${rawBody.length}`,
+      )
+      if (process.env.DISABLE_WEBHOOK_SIGNATURE_CHECK === "true") {
+        console.warn("[fb-webhook] SIGNATURE CHECK BYPASSED — remove DISABLE_WEBHOOK_SIGNATURE_CHECK after debugging")
+      } else {
+        return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
+      }
+    }
+
+    const body = JSON.parse(rawBody)
+    if (!body.entry) return NextResponse.json({ ok: true })
+    
+    // Facebook Messenger / Pages send body.object === "page"
+    if (body.object === "page") {
+      const supabase = await getSupabaseBypassClient()
+      return handleFacebookWebhook(body, supabase)
+    }
+
+    // Acknowledge unknown objects to prevent retries
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error("[fb-webhook] Error", error)
+    return NextResponse.json({ ok: true })
+  }
+}

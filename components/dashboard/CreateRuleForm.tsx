@@ -1246,7 +1246,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                 )}
 
                 {/* Lead Capture Sequence Simulator */}
-                {askName && (
+                {captureName && (
                   <>
                     <div className="flex justify-end items-end gap-1.5 animate-in fade-in zoom-in-95 duration-200">
                       <div className="bg-[#3797f0] text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-xs shadow-lg max-w-[80%]">
@@ -1262,7 +1262,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                   </>
                 )}
                 
-                {askEmail && (
+                {captureEmail && (
                   <>
                     <div className="flex justify-end items-end gap-1.5 animate-in fade-in zoom-in-95 duration-200">
                       <div className="bg-[#3797f0] text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-xs shadow-lg max-w-[80%]">
