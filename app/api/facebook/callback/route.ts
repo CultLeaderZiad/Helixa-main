@@ -62,12 +62,9 @@ export async function GET(request: NextRequest) {
   // Trial limit check: max 1 platform connection (which is usually their IG)
   const { data: userDetails } = await supabase.from("users").select("plan").eq("id", userProfile.id).single()
   if (userDetails?.plan === "trial") {
-    // Check how many connections they have. Instagram inherently counts as 1.
-    // If they already have IG, this is connection #2, which is blocked for trial.
-    const { count } = await supabase.from("platform_connections").select("id", { count: 'exact', head: true }).eq("user_id", userProfile.id)
-    // Even if count is 0, they always have their primary Instagram. 
-    // We enforce 1 total, so if they are on trial, no additional platforms can be added.
-    return NextResponse.redirect(new URL("/dashboard/settings?error=trial_limit", request.url))
+    // We allow connecting Facebook pages because it's required to automate Instagram.
+    // We will enforce the 1 platform limit at the automation rules level, not the connection level.
+    console.log("[FB Callback] Trial user connecting Facebook - allowed because it's required for IG automation.")
   }
 
   const clientId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || process.env.INSTAGRAM_APP_ID || process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID

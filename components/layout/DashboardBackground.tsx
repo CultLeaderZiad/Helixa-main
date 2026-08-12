@@ -18,26 +18,26 @@ export function DashboardBackground() {
       style={{ width: "100vw", height: "100vh" }}
     >
       <AcidSquares
-        color1="#1a0d00"
-        color2="#a18110"
-        color3="#ffe14d"
-        detail="low"
-        speed={0.3}
-        waveDepth={0.6}
-        zoom={1.6}
-        density={12.0}
-        glow={0.6}
-        exposure={3200}
-        spread={0.25}
+        color1="#5227FF"
+        color2="#A855F7"
+        color3="#FFFFFF"
+        detail="medium"
+        speed={0.7}
+        waveDepth={1}
+        zoom={1.3}
+        density={10.0}
+        glow={1.0}
+        exposure={2700}
+        spread={0.3}
         stepSize={0.002}
         colorShift={0}
-        contrast={0.9}
-        brightness={0.7}
-        opacity={0.12}
-        mouseInteraction={false}
-        mouseStrength={0}
-        mouseRadius={0}
-        blur={0.3}
+        contrast={1}
+        brightness={1.0}
+        opacity={1.0}
+        mouseInteraction={true}
+        mouseStrength={0.1}
+        mouseRadius={0.35}
+        blur={0}
         grain={true}
         grainIntensity={0.03}
       />
