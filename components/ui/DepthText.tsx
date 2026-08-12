@@ -62,7 +62,7 @@ const DepthText = ({
   const stageRef = useRef<HTMLSpanElement | null>(null);
 
   const safeLayers = clamp(Math.round(Number(layers) || 1), 2, MAX_LAYERS);
-  const safeDepth = clamp(Number(depth) || 0, 12);
+  const safeDepth = clamp(Number(depth) || 0, 0, 12);
   const safeTilt = clamp(Number(tilt) || 0, 0, 12);
   const safeSmoothing = clamp(Number(smoothing) || 0.14, 0.02, 0.35);
   const safePerspective = clamp(Number(perspective) || 900, 300, 2000);
