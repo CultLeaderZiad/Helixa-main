@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get("error")
 
   if (error) {
-    const redirectUrl = new URL("/dashboard/settings?error=" + encodeURIComponent(error), request.url)
+    const redirectUrl = new URL("/dashboard/connected-platforms?error=" + encodeURIComponent(error), request.url)
     return NextResponse.redirect(redirectUrl)
   }
 
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   // Get the linked users row (Instagram profile)
   const { data: userProfile } = await supabase.from("users").select("id").eq("account_id", account.id).single()
   if (!userProfile) {
-    return NextResponse.redirect(new URL("/dashboard/settings?error=connect_ig_first", request.url))
+    return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=connect_ig_first", request.url))
   }
 
   // IPQualityScore (IPQS) Graceful Lookup
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
     const tokenData = await tokenRes.json()
 
     if (!tokenRes.ok) {
-      return NextResponse.redirect(new URL("/dashboard/settings?error=token_failed", request.url))
+      return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=token_failed", request.url))
     }
 
     const shortToken = tokenData.access_token
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
     const accountsData = await accountsRes.json()
 
     if (!accountsData.data || accountsData.data.length === 0) {
-      return NextResponse.redirect(new URL("/dashboard/settings?error=no_pages", request.url))
+      return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=no_pages", request.url))
     }
 
     // 4. Save to platform_connections
@@ -132,9 +132,9 @@ export async function GET(request: NextRequest) {
       }, { onConflict: 'user_id, platform, page_id' })
     }
 
-    return NextResponse.redirect(new URL("/dashboard/settings?success=1", request.url))
+    return NextResponse.redirect(new URL("/dashboard/connected-platforms?success=1", request.url))
   } catch (error) {
     console.error("Facebook auth error:", error)
-    return NextResponse.redirect(new URL("/dashboard/settings?error=server_error", request.url))
+    return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=server_error", request.url))
   }
 }
