@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button"
 import { Plus, Mail, Clock, Send, AlertTriangle, ArrowRight, Activity, Users } from "lucide-react"
 import { toast } from "react-hot-toast"
+import { useLanguage } from "@/lib/i18n/LanguageContext"
 
 interface Campaign {
   id: string
@@ -22,6 +23,7 @@ interface Campaign {
 
 export default function CampaignsPage() {
   const router = useRouter()
+  const { t, language } = useLanguage()
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -47,13 +49,13 @@ export default function CampaignsPage() {
   const getStatusBadge = (status: Campaign['status']) => {
     switch (status) {
       case 'draft':
-        return <span className="px-2.5 py-1 text-xs rounded-full bg-zinc-800 text-zinc-300 font-medium border border-zinc-700 flex items-center gap-1.5"><Clock className="w-3 h-3" /> Draft</span>
+        return <span className="px-2.5 py-1 text-xs rounded-full bg-zinc-800 text-zinc-300 font-medium border border-zinc-700 flex items-center gap-1.5"><Clock className="w-3 h-3" /> {t.draft}</span>
       case 'sending':
-        return <span className="px-2.5 py-1 text-xs rounded-full bg-blue-500/10 text-blue-400 font-medium border border-blue-500/20 flex items-center gap-1.5"><Activity className="w-3 h-3 animate-pulse" /> Sending</span>
+        return <span className="px-2.5 py-1 text-xs rounded-full bg-blue-500/10 text-blue-400 font-medium border border-blue-500/20 flex items-center gap-1.5"><Activity className="w-3 h-3 animate-pulse" /> {t.sending}</span>
       case 'completed':
-        return <span className="px-2.5 py-1 text-xs rounded-full bg-emerald-500/10 text-emerald-400 font-medium border border-emerald-500/20 flex items-center gap-1.5"><Send className="w-3 h-3" /> Sent</span>
+        return <span className="px-2.5 py-1 text-xs rounded-full bg-emerald-500/10 text-emerald-400 font-medium border border-emerald-500/20 flex items-center gap-1.5"><Send className="w-3 h-3" /> {t.completed}</span>
       case 'failed':
-        return <span className="px-2.5 py-1 text-xs rounded-full bg-red-500/10 text-red-400 font-medium border border-red-500/20 flex items-center gap-1.5"><AlertTriangle className="w-3 h-3" /> Failed</span>
+        return <span className="px-2.5 py-1 text-xs rounded-full bg-red-500/10 text-red-400 font-medium border border-red-500/20 flex items-center gap-1.5"><AlertTriangle className="w-3 h-3" /> {t.failed}</span>
       default:
         return null
     }
@@ -61,35 +63,37 @@ export default function CampaignsPage() {
 
   const formatAudience = (filter: string) => {
     const map: Record<string, string> = {
-      'all': 'All Customers',
-      'paid': 'All Paid',
-      'trial': 'Free Trial',
-      'monthly': 'Monthly Plan',
-      'one_time': 'One-Time Plan',
-      'expired': 'Expired Subs'
+      'all': t.allCustomers,
+      'paid': t.allPaid,
+      'trial': t.freeTrial,
+      'monthly': t.monthlyPlan,
+      'one_time': t.oneTimePlan,
+      'expired': t.expiredSubs
     }
     return map[filter] || filter
   }
 
+  const isRtl = language === 'ar'
+
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${isRtl ? 'text-right' : ''}`} dir={isRtl ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
             <Mail className="w-6 h-6 text-brand-400" />
-            Communication Center
+            {t.communicationCenter}
           </h2>
           <p className="text-zinc-400 text-sm mt-1">
-            Create and send email campaigns to your customers.
+            {t.communicationCenterDesc}
           </p>
         </div>
         <Button 
           onClick={() => router.push("/dashboard/admin/campaigns/create")}
           className="bg-[#ccff00] hover:bg-[#b3e600] text-black font-semibold"
         >
-          <Plus className="w-4 h-4 mr-2" />
-          New Campaign
+          <Plus className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />
+          {t.newCampaign}
         </Button>
       </div>
 
@@ -99,7 +103,7 @@ export default function CampaignsPage() {
           <CardContent className="p-6">
             <div className="flex justify-between items-center">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-zinc-400">Total Campaigns</p>
+                <p className="text-sm font-medium text-zinc-400">{t.totalCampaigns}</p>
                 <p className="text-3xl font-bold text-white">{campaigns.length}</p>
               </div>
               <div className="w-10 h-10 rounded-full bg-brand-500/10 flex items-center justify-center">
@@ -112,7 +116,7 @@ export default function CampaignsPage() {
           <CardContent className="p-6">
             <div className="flex justify-between items-center">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-zinc-400">Total Emails Sent</p>
+                <p className="text-sm font-medium text-zinc-400">{t.totalEmailsSent}</p>
                 <p className="text-3xl font-bold text-white">
                   {campaigns.filter(c => c.status === 'completed').reduce((acc, curr) => acc + (curr.recipient_count || 0), 0)}
                 </p>
@@ -127,7 +131,7 @@ export default function CampaignsPage() {
           <CardContent className="p-6">
             <div className="flex justify-between items-center">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-zinc-400">Active Drafts</p>
+                <p className="text-sm font-medium text-zinc-400">{t.activeDrafts}</p>
                 <p className="text-3xl font-bold text-white">{campaigns.filter(c => c.status === 'draft').length}</p>
               </div>
               <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center">
@@ -141,39 +145,39 @@ export default function CampaignsPage() {
       {/* Campaigns List */}
       <Card className="bg-[#0a0a0a] border-zinc-800 shadow-xl overflow-hidden">
         <CardHeader className="border-b border-zinc-800 bg-zinc-900/50">
-          <CardTitle className="text-lg">Recent Campaigns</CardTitle>
-          <CardDescription>View and manage your email campaigns</CardDescription>
+          <CardTitle className="text-lg">{t.recentCampaigns}</CardTitle>
+          <CardDescription>{t.recentCampaignsDesc}</CardDescription>
         </CardHeader>
         <div className="overflow-x-auto">
           {loading ? (
             <div className="p-8 text-center text-zinc-500 flex flex-col items-center">
               <Activity className="w-8 h-8 animate-spin text-brand-500 mb-2" />
-              Loading campaigns...
+              {t.loadingCampaigns}
             </div>
           ) : campaigns.length === 0 ? (
             <div className="p-12 text-center flex flex-col items-center justify-center">
               <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center mb-4 border border-zinc-800">
                 <Mail className="w-8 h-8 text-zinc-600" />
               </div>
-              <h3 className="text-xl font-medium text-white mb-2">No campaigns yet</h3>
-              <p className="text-zinc-400 max-w-sm mb-6">Create your first email campaign to announce new features, product updates, or promotions to your customers.</p>
+              <h3 className="text-xl font-medium text-white mb-2">{t.noCampaignsYet}</h3>
+              <p className="text-zinc-400 max-w-sm mb-6">{t.createFirstCampaign}</p>
               <Button 
                 onClick={() => router.push("/dashboard/admin/campaigns/create")}
                 className="bg-[#ccff00] hover:bg-[#b3e600] text-black font-semibold"
               >
-                Create Campaign
+                {t.newCampaign}
               </Button>
             </div>
           ) : (
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-zinc-400 uppercase bg-zinc-900/50 border-b border-zinc-800">
                 <tr>
-                  <th className="px-6 py-4 font-medium">Campaign Name</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                  <th className="px-6 py-4 font-medium">Audience</th>
-                  <th className="px-6 py-4 font-medium">Recipients</th>
-                  <th className="px-6 py-4 font-medium">Date</th>
-                  <th className="px-6 py-4 font-medium text-right">Actions</th>
+                  <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.campaignName}</th>
+                  <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.status}</th>
+                  <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.audience}</th>
+                  <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.recipients}</th>
+                  <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.date}</th>
+                  <th className={`px-6 py-4 font-medium ${isRtl ? 'text-left' : 'text-right'}`}>{t.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">

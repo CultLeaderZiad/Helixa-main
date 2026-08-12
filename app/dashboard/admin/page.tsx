@@ -89,6 +89,8 @@ export default function AdminPage() {
   const [editRole, setEditRole] = useState("")
   const [editFlagged, setEditFlagged] = useState(false)
   const [editFlaggedReason, setEditFlaggedReason] = useState("")
+  const [editBanned, setEditBanned] = useState(false)
+  const [editBannedReason, setEditBannedReason] = useState("")
 
   const fetchStats = useCallback(async () => {
     const res = await fetch("/api/admin/stats")
@@ -243,6 +245,8 @@ export default function AdminPage() {
     setEditRole(user.role)
     setEditFlagged(user.is_flagged)
     setEditFlaggedReason(user.flagged_reason || "")
+    setEditBanned(user.is_banned)
+    setEditBannedReason(user.banned_reason || "")
   }
 
   const saveUser = async () => {
@@ -257,6 +261,8 @@ export default function AdminPage() {
           role: editRole,
           is_flagged: editFlagged,
           flagged_reason: editFlaggedReason || null,
+          is_banned: editBanned,
+          banned_reason: editBannedReason || null,
         }),
       })
       if (res.ok) {
@@ -610,6 +616,28 @@ export default function AdminPage() {
                       placeholder="Flag reason..."
                       value={editFlaggedReason}
                       onChange={e => setEditFlaggedReason(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3 mt-4">
+                  <label className="font-mono text-[10px] text-red-500 uppercase tracking-wider font-bold">Ban User</label>
+                  <button
+                    onClick={() => setEditBanned(b => !b)}
+                    className={`relative w-10 h-5 rounded-full transition-colors ${editBanned ? "bg-red-500" : "bg-white/10"}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${editBanned ? "translate-x-5" : ""}`} />
+                  </button>
+                </div>
+
+                {editBanned && (
+                  <div>
+                    <label className="font-mono text-[10px] text-neutral-500 uppercase tracking-wider">Ban Reason</label>
+                    <input
+                      className="mt-1 w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-xs text-white outline-none placeholder:text-neutral-600"
+                      placeholder="Ban reason..."
+                      value={editBannedReason}
+                      onChange={e => setEditBannedReason(e.target.value)}
                     />
                   </div>
                 )}

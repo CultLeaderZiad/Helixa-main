@@ -12,15 +12,8 @@ import { usePathname } from "next/navigation"
 import TextPressure from "@/components/ui/text-pressure"
 import MaskedHeading from "@/components/ui/MaskedHeading"
 import DepthText from "@/components/ui/DepthText"
-
-const NAV = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
-  { href: "/dashboard/automations", icon: Zap, label: "Automations" },
-  { href: "/dashboard/inbox", icon: MessageSquare, label: "Inbox" },
-  { href: "/dashboard/ice-breakers", icon: Snowflake, label: "Ice breakers" },
-  { href: "/dashboard/analytics", icon: BarChart3, label: "Analytics" },
-  { href: "/dashboard/agents", icon: Zap, label: "Agents" },
-]
+import { useLanguage } from "@/lib/i18n/LanguageContext"
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"
 
 interface SidebarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "role"> {
   username?: string
@@ -34,6 +27,16 @@ interface SidebarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "role"
 
 export function Sidebar({ className, username = "creator", profilePic, email, userRole, onLogout, onNavigate, ...props }: SidebarProps) {
   const pathname = usePathname()
+  const { t } = useLanguage()
+
+  const NAV = [
+    { href: "/dashboard", icon: LayoutDashboard, label: t.overview },
+    { href: "/dashboard/automations", icon: Zap, label: t.automations },
+    { href: "/dashboard/inbox", icon: MessageSquare, label: t.inbox },
+    { href: "/dashboard/ice-breakers", icon: Snowflake, label: t.iceBreakers },
+    { href: "/dashboard/analytics", icon: BarChart3, label: t.analytics },
+    { href: "/dashboard/agents", icon: Zap, label: t.agents },
+  ]
 
   return (
     <aside className={cn("flex flex-col bg-[#0a0a09]", className)} {...props}>
@@ -97,7 +100,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
         >
           {pathname === "/dashboard/connected-platforms" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
           <Share2 className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-          <span>Connected Platforms</span>
+          <span>{t.connectedPlatforms}</span>
         </Link>
 
             {userRole === "admin" && (
@@ -194,7 +197,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
         >
           {pathname === "/dashboard/settings" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
           <Settings className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-          <span>Account Settings</span>
+          <span>{t.settings}</span>
         </Link>
 
         <a
@@ -217,13 +220,16 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
           <span>LinkedIn</span>
         </a>
 
-        <div className="pt-2">
+        <div className="pt-2 flex flex-col gap-1">
+          <div className="px-1 flex justify-start">
+            <LanguageSwitcher />
+          </div>
           <button
             onClick={onLogout}
             className="flex w-full items-center gap-3 px-3 py-2 rounded-md text-[13px] text-neutral-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
           >
             <LogOut className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-            <span>Log out</span>
+            <span>{t.logout}</span>
           </button>
         </div>
       </nav>

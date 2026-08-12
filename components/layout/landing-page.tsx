@@ -8,6 +8,8 @@ import TextPressure from "@/components/ui/text-pressure"
 import { DeferredMount, InViewMount } from "@/components/ui/mount-lazy"
 import MaskedHeading from "@/components/ui/MaskedHeading"
 import DepthText from "@/components/ui/DepthText"
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"
+import { useLanguage } from "@/lib/i18n/LanguageContext"
 
 const Ferrofluid = dynamic(() => import("@/components/effects/ferrofluid"), { ssr: false })
 const ScrollFloat = dynamic(() => import("@/components/ui/ScrollFloat"), { ssr: false })
@@ -24,6 +26,7 @@ const LINKEDIN_URL = "https://www.linkedin.com/in/ziad-sabry-cl/"
 export function LandingPage() {
   const [stars, setStars] = useState<number | null>(null)
   const router = useRouter()
+  const { t } = useLanguage()
 
   useEffect(() => {
     fetch("https://api.github.com/repos/CultLeaderZiad/insta-p8")
@@ -83,12 +86,13 @@ export function LandingPage() {
         </div>
 
         <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-8 font-mono-ui text-xs text-neutral-400">
-          <a href="/pricing" className="hover:text-white transition-colors">Pricing</a>
+          <a href="/pricing" className="hover:text-white transition-colors">{t.pricing}</a>
           <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
           <a href="/terms" className="hover:text-white transition-colors">Terms</a>
         </div>
 
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
           <a
             href={GITHUB_URL} target="_blank" rel="noreferrer"
             className="flex items-center gap-1.5 font-mono-ui text-xs text-neutral-400 hover:text-white border border-white/10 hover:border-white/30 rounded-full px-3.5 py-1.5 transition-colors"
@@ -108,7 +112,7 @@ export function LandingPage() {
             onClick={handleLogin}
             className="font-mono-ui text-xs font-bold bg-white text-black rounded-full px-4 py-1.5 hover:bg-[#ffe14d] transition-colors"
           >
-            Log in
+            {t.login}
           </button>
         </div>
       </nav>
@@ -170,7 +174,7 @@ export function LandingPage() {
               <div className="fade-up w-full md:w-1/2 flex flex-col items-center md:items-end text-center md:text-right pointer-events-none" style={{ animationDelay: "120ms" }}>
                 <div className="w-full max-w-[500px] mb-8 relative z-20">
                   <MaskedHeading
-                    text="Your DMs, on autopilot."
+                    text={`${t.heroTitle1} ${t.heroTitle2}`}
                     src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop"
                     reveal="wipe"
                     trigger="view"
@@ -181,16 +185,10 @@ export function LandingPage() {
 
                 <div className="space-y-4 mb-10">
                   <p className="text-neutral-300 text-base md:text-lg leading-relaxed max-w-lg">
-                    Comment-to-DM funnels, keyword triggers,
-                    <br className="hidden md:block" />
-                    story reactions, AI replies, a live inbox,
-                    <br className="hidden md:block" />
-                    and Reels scheduling.
+                    {t.heroSubtitle}
                   </p>
                   <p className="text-neutral-500 text-sm md:text-base leading-relaxed max-w-lg">
-                    The open-source ManyChat alternative —
-                    <br className="hidden md:block" />
-                    your data stays in your own Supabase.
+                    {t.noCreditCard}
                   </p>
                 </div>
 
@@ -199,8 +197,8 @@ export function LandingPage() {
                     onClick={handleSignup}
                     className="group flex items-center gap-2 bg-[#ffe14d] text-black font-mono-ui text-sm font-bold px-7 py-4 rounded-full hover:scale-[1.03] active:scale-[0.98] transition-transform"
                   >
-                    Start free trial
-                    <ArrowUpRight className="w-4 h-4 group-hover:rotate-45 transition-transform" />
+                    <span className="relative z-10">{t.heroCta}</span>
+                    <ArrowUpRight className="w-4 h-4 relative z-10 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                   </button>
                   <a
                     href={TELEGRAM_URL} target="_blank" rel="noreferrer"

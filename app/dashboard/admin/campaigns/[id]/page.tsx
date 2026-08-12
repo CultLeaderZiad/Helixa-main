@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Loader2, Send, Activity, Users, Mail, AlertTriangle } from "lucide-react"
 import { toast } from "react-hot-toast"
+import { useLanguage } from "@/lib/i18n/LanguageContext"
 
 interface Campaign {
   id: string
@@ -26,6 +27,7 @@ export default function CampaignDetailsPage() {
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
+  const { t, language } = useLanguage()
 
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [audience, setAudience] = useState<CustomerPreview[]>([])
@@ -65,8 +67,8 @@ export default function CampaignDetailsPage() {
     try {
       const res = await fetch(`/api/admin/campaigns/${id}/send-test`, { method: "POST" })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed to send test")
-      toast.success("Test email sent to your admin email!")
+      if (!res.ok) throw new Error(data.error || t.failSendTest)
+      toast.success(t.testEmailSent)
     } catch (error: any) {
       toast.error(error.message)
     } finally {
@@ -75,15 +77,15 @@ export default function CampaignDetailsPage() {
   }
 
   const handleSendReal = async () => {
-    if (!confirm(`Are you absolutely sure you want to send this email to ${audience.length} customers? This cannot be undone.`)) return
+    if (!confirm(t.confirmSend.replace('{{count}}', audience.length.toString()))) return
 
     setSendingReal(true)
     try {
       const res = await fetch(`/api/admin/campaigns/${id}/send`, { method: "POST" })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed to send campaign")
+      if (!res.ok) throw new Error(data.error || t.failSendCampaign)
       
-      toast.success(`Campaign sent to ${data.recipient_count} recipients!`)
+      toast.success(t.campaignSentTo.replace('{{count}}', data.recipient_count.toString()))
       fetchData() // Refresh status
     } catch (error: any) {
       toast.error(error.message)
@@ -97,14 +99,15 @@ export default function CampaignDetailsPage() {
   }
 
   if (!campaign) {
-    return <div className="text-center p-12 text-zinc-400">Campaign not found.</div>
+    return <div className="text-center p-12 text-zinc-400">{t.campaignNotFound}</div>
   }
 
   const isDraft = campaign.status === "draft"
+  const isRtl = language === 'ar'
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className={`max-w-5xl mx-auto space-y-6 ${isRtl ? 'text-right' : ''}`} dir={isRtl ? 'rtl' : 'ltr'}>
+      <div className={`flex items-center justify-between ${isRtl ? 'flex-row-reverse' : ''}`}>
         <div className="flex items-center gap-4">
           <Button 
             variant="ghost" 
@@ -112,7 +115,7 @@ export default function CampaignDetailsPage() {
             onClick={() => router.push("/dashboard/admin/campaigns")}
             className="text-zinc-400 hover:text-white"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className={`w-5 h-5 ${isRtl ? 'rotate-180' : ''}`} />
           </Button>
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
@@ -121,7 +124,7 @@ export default function CampaignDetailsPage() {
                 {campaign.status.toUpperCase()}
               </span>
             </h2>
-            <p className="text-zinc-400 text-sm mt-1">Subject: {campaign.subject}</p>
+            <p className="text-zinc-400 text-sm mt-1">{t.subjectLabel} {campaign.subject}</p>
           </div>
         </div>
         
@@ -133,16 +136,16 @@ export default function CampaignDetailsPage() {
               disabled={sendingTest || sendingReal}
               className="border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-white"
             >
-              {sendingTest ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
-              Send Test Email
+              {sendingTest ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'} animate-spin`} /> : <Mail className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />}
+              {t.sendTestEmail}
             </Button>
             <Button 
               onClick={handleSendReal}
               disabled={sendingTest || sendingReal || audience.length === 0}
               className="bg-brand-500 hover:bg-brand-600 text-black font-semibold"
             >
-              {sendingReal ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-              Send to {audience.length} Customers
+              {sendingReal ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'} animate-spin`} /> : <Send className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />}
+              {t.sendToCustomers.replace('{{count}}', audience.length.toString())}
             </Button>
           </div>
         )}
@@ -158,10 +161,10 @@ export default function CampaignDetailsPage() {
                 <div>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Users className="w-5 h-5 text-brand-400" />
-                    Audience Preview
+                    {t.audiencePreview}
                   </CardTitle>
                   <CardDescription>
-                    Filter: <strong>{campaign.audience_filter}</strong> ({audience.length} matching customers)
+                    {t.filter} <strong>{campaign.audience_filter}</strong> {t.matchingCustomers.replace('{{count}}', audience.length.toString())}
                   </CardDescription>
                 </div>
               </div>
@@ -170,15 +173,15 @@ export default function CampaignDetailsPage() {
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-zinc-400 uppercase bg-zinc-900/80 sticky top-0 border-b border-zinc-800">
                   <tr>
-                    <th className="px-6 py-3 font-medium">Email</th>
-                    <th className="px-6 py-3 font-medium">Plan</th>
+                    <th className={`px-6 py-3 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.email}</th>
+                    <th className={`px-6 py-3 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.plan}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800">
                   {audience.length === 0 ? (
                     <tr>
                       <td colSpan={2} className="px-6 py-8 text-center text-zinc-500">
-                        No customers match this filter.
+                        {t.noCustomersMatch}
                       </td>
                     </tr>
                   ) : (
@@ -199,7 +202,7 @@ export default function CampaignDetailsPage() {
         <div className="space-y-6">
           <Card className="bg-[#0a0a0a] border-zinc-800">
             <CardHeader className="border-b border-zinc-800">
-              <CardTitle className="text-lg">Pre-Flight Checklist</CardTitle>
+              <CardTitle className="text-lg">{t.preFlightChecklist}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <ul className="divide-y divide-zinc-800">
@@ -208,8 +211,8 @@ export default function CampaignDetailsPage() {
                     {campaign.subject ? <Send className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white">Subject Line</p>
-                    <p className="text-xs text-zinc-500">{campaign.subject || "Missing"}</p>
+                    <p className="text-sm font-medium text-white">{t.subjectLine}</p>
+                    <p className="text-xs text-zinc-500">{campaign.subject || t.missing}</p>
                   </div>
                 </li>
                 <li className="p-4 flex items-start gap-3">
@@ -217,8 +220,8 @@ export default function CampaignDetailsPage() {
                     {audience.length > 0 ? <Users className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white">Valid Audience</p>
-                    <p className="text-xs text-zinc-500">{audience.length} recipients found</p>
+                    <p className="text-sm font-medium text-white">{t.validAudience}</p>
+                    <p className="text-xs text-zinc-500">{t.recipientsFound.replace('{{count}}', audience.length.toString())}</p>
                   </div>
                 </li>
               </ul>
@@ -228,12 +231,12 @@ export default function CampaignDetailsPage() {
           {!isDraft && (
             <Card className="bg-[#0a0a0a] border-zinc-800">
               <CardHeader className="border-b border-zinc-800">
-                <CardTitle className="text-lg">Delivery Status</CardTitle>
+                <CardTitle className="text-lg">{t.deliveryStatus}</CardTitle>
               </CardHeader>
               <CardContent className="p-6 text-center">
                 <Activity className="w-8 h-8 text-brand-400 mx-auto mb-3" />
                 <h3 className="text-2xl font-bold text-white">{campaign.recipient_count}</h3>
-                <p className="text-sm text-zinc-400">Total Recipients Processed</p>
+                <p className="text-sm text-zinc-400">{t.totalRecipientsProcessed}</p>
               </CardContent>
             </Card>
           )}

@@ -1188,11 +1188,15 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
             </div>
             
             {/* iPhone Outer Frame */}
-            <div className="w-[320px] h-[580px] rounded-[3rem] border-8 border-[#1f1f1e] bg-black shadow-2xl relative flex flex-col overflow-hidden ring-1 ring-white/10">
+            {/* iPhone Outer Frame */}
+            <div 
+              className="w-[320px] h-[580px] rounded-[3rem] border-8 border-[#1f1f1e] bg-black shadow-2xl relative flex flex-col overflow-hidden ring-1 ring-white/10 transition-transform duration-500 hover:scale-[1.02] hover:-rotate-1 hover:shadow-[0_20px_50px_rgba(255,225,77,0.15)] group"
+              style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
+            >
               
               {/* Status Bar Mockup */}
-              <div className="h-12 flex items-center justify-between px-6 pt-2 pb-1 text-[11px] font-semibold text-white/90 z-40 select-none">
-                <span className="w-14 text-center">9:41</span>
+              <div className="h-12 flex items-center justify-between px-6 pt-3 pb-1 text-[11px] font-semibold text-white/90 z-40 select-none relative">
+                <span className="w-14 text-center flex items-center justify-center">9:41</span>
                 
                 {/* Dynamic Island */}
                 <div className="w-[120px] h-[32px] bg-black rounded-full z-50 flex items-center justify-between px-2.5 shadow-sm border border-white/5 ring-1 ring-black absolute left-1/2 -translate-x-1/2 top-2.5">
@@ -1200,7 +1204,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                    <div className="w-2.5 h-2.5 rounded-full bg-[#111] border border-neutral-900/50" />
                 </div>
 
-                <div className="flex items-center gap-1.5 w-14 justify-end">
+                <div className="flex items-center gap-1.5 w-14 justify-center">
                   <svg viewBox="0 0 18 12" className="w-3.5 h-3 fill-current opacity-90"><path d="M1 9h2V3H1v6zm3 0h2V1H4v8zm3 0h2V6H7v3zm3 0h2V4h-2v5zm3 0h2V7h-2v2z"/></svg>
                   <svg viewBox="0 0 16 12" className="w-3.5 h-3 fill-current opacity-90"><path d="M8 2.2C5.5 2.2 3.3 3.3 1.8 4.9L8 11.8 14.2 4.9C12.7 3.3 10.5 2.2 8 2.2zM8 0c3.2 0 6 1.4 8 3.5L8 12 0 3.5C2 1.4 4.8 0 8 0z"/></svg>
                   <div className="w-5 h-2.5 border border-white/40 rounded-[4px] p-[1px] flex items-center relative">
@@ -1211,7 +1215,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
               </div>
 
               {/* True-to-life Instagram DM Header */}
-              <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-black sticky top-0 z-40 mt-1">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-black sticky top-0 z-40 mt-0">
                 <div className="flex items-center gap-3">
                   <ArrowLeft className="w-5 h-5 text-white cursor-pointer -ml-1" />
                   <div className="flex items-center gap-3">
@@ -1359,7 +1363,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
               </div>
 
               {/* iPhone Footer Navigation Bar */}
-              <div className="h-14 bg-black flex items-center justify-between px-3 text-white gap-3 pb-1">
+              <div className="h-14 bg-black flex items-center justify-between px-3 text-white gap-3 pb-4 pt-1 border-t border-white/10">
                 <div className="w-8 h-8 rounded-full bg-[#0095F6] flex items-center justify-center shrink-0">
                   <Camera className="w-5 h-5 text-white" />
                 </div>
@@ -1374,8 +1378,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
               </div>
 
               {/* iPhone Bottom Bar Indicator */}
-              <div className="h-5 bg-neutral-950 flex items-center justify-center pb-1">
-                <div className="w-24 h-1 bg-white/40 rounded-full" />
+              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex items-center justify-center z-50">
+                <div className="w-32 h-1 bg-white/60 rounded-full" />
               </div>
 
             </div>

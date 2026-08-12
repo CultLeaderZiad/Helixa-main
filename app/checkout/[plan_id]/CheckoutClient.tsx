@@ -9,6 +9,9 @@ export default function CheckoutClient({ plan, methods, user }: { plan: any, met
   )
   const [transactionRef, setTransactionRef] = useState("")
   const [clientName, setClientName] = useState("")
+  const [clientPhone, setClientPhone] = useState("")
+  const [countryCode, setCountryCode] = useState("+20")
+  const [hasQuestions, setHasQuestions] = useState(false)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
 
@@ -27,7 +30,10 @@ export default function CheckoutClient({ plan, methods, user }: { plan: any, met
         const res = await fetch("/api/stripe/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ planType })
+          body: JSON.stringify({ 
+            planType,
+            metadata: { clientName, clientPhone: countryCode + clientPhone }
+          })
         })
         const data = await res.json()
         if (data.url) {
@@ -40,6 +46,10 @@ export default function CheckoutClient({ plan, methods, user }: { plan: any, met
         if (!transactionRef.trim()) {
           throw new Error("Please enter your transaction reference")
         }
+        if (!clientName.trim() || !clientPhone.trim()) {
+          throw new Error("Please fill in your name and phone number")
+        }
+        
         const res = await fetch("/api/payments/submit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -48,7 +58,7 @@ export default function CheckoutClient({ plan, methods, user }: { plan: any, met
             amount: Number(plan.price_usd),
             payment_method: selectedMethod,
             plan_id: plan.id,
-            note: clientName.trim(),
+            note: `${clientName.trim()} | ${countryCode}${clientPhone.trim()}`,
           })
         })
         const data = await res.json()
@@ -74,7 +84,7 @@ export default function CheckoutClient({ plan, methods, user }: { plan: any, met
         {selected && (
           <div className="bg-black/50 p-4 rounded-lg mt-4 border border-white/10 text-sm text-left text-neutral-300 space-y-2">
             <p><strong>Instructions:</strong> {selected.instructions}</p>
-            <p className="mt-4">Please upload your receipt to our support chat or wait 24h for manual activation.</p>
+            <p className="mt-4">Our admin will review your payment shortly. Once approved, your account will be activated!</p>
           </div>
         )}
       </div>
@@ -89,6 +99,89 @@ export default function CheckoutClient({ plan, methods, user }: { plan: any, met
         <div className="flex justify-between items-center text-lg font-bold border-t border-white/10 pt-4">
           <span>Total due today:</span>
           <span>${plan.price_usd}</span>
+        </div>
+      </div>
+
+      <div className="space-y-4 p-6 bg-white/[0.02] border border-white/10 rounded-2xl">
+        <h3 className="text-lg font-bold">Your Information</h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Full Name
+            </label>
+            <input
+              type="text"
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              placeholder="e.g. John Doe"
+              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-neutral-500 outline-none focus:border-[#ffe14d]/50"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Phone Number
+            </label>
+            <div className="flex gap-2">
+              <select
+                value={countryCode}
+                onChange={(e) => setCountryCode(e.target.value)}
+                className="w-32 px-2 py-3 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-[#ffe14d]/50 cursor-pointer appearance-none text-center"
+              >
+                <option value="+20">🇪🇬 +20</option>
+                <option value="+1">🇺🇸 +1</option>
+                <option value="+44">🇬🇧 +44</option>
+                <option value="+971">🇦🇪 +971</option>
+                <option value="+966">🇸🇦 +966</option>
+              </select>
+              <input
+                type="tel"
+                value={clientPhone}
+                onChange={(e) => setClientPhone(e.target.value)}
+                placeholder="Phone number"
+                className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-neutral-500 outline-none focus:border-[#ffe14d]/50"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${hasQuestions ? 'bg-[#ffe14d] border-[#ffe14d]' : 'bg-white/5 border-white/20 group-hover:border-white/40'}`}>
+                {hasQuestions && <svg className="w-3.5 h-3.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+              </div>
+              <span className="text-sm text-neutral-300 group-hover:text-white transition-colors">I have specific questions before I buy</span>
+            </label>
+          </div>
+
+          {hasQuestions && (
+            <div className="mt-4 p-5 border border-white/10 rounded-xl bg-[#03010A] animate-in fade-in slide-in-from-top-2">
+              <h4 className="text-[#ffe14d] font-bold mb-2">Contact Support</h4>
+              <p className="text-sm text-neutral-400 mb-4">
+                We're here to help! Please reach out to our lead developer directly for any questions before you finalize your plan.
+              </p>
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center gap-3 text-neutral-300">
+                  <span className="text-neutral-500 w-20">Developer:</span>
+                  <span className="font-medium text-white">Ziad (CultLeaderZoz)</span>
+                </div>
+                <div className="flex items-center gap-3 text-neutral-300">
+                  <span className="text-neutral-500 w-20">Email:</span>
+                  <a href="mailto:cultleaderzoz.dev@gmail.com" className="font-medium text-blue-400 hover:underline">
+                    cultleaderzoz.dev@gmail.com
+                  </a>
+                </div>
+                <div className="flex items-center gap-3 text-neutral-300">
+                  <span className="text-neutral-500 w-20">LinkedIn:</span>
+                  <a href="https://www.linkedin.com/in/ziadelzallat/" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-400 hover:underline">
+                    View Profile
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -128,19 +221,7 @@ export default function CheckoutClient({ plan, methods, user }: { plan: any, met
               +01037312994
             </div>
           </div>
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-neutral-300">
-              Client Name
-            </label>
-            <input
-              type="text"
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
-              placeholder="e.g. John Doe"
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-neutral-500 outline-none focus:border-[#ffe14d]/50"
-              required
-            />
-          </div>
+          
           <div className="space-y-2">
             <label className="block text-sm font-medium text-neutral-300">
               Transaction Reference / Wallet Number

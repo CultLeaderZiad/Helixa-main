@@ -8,6 +8,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 
 import { GlobalBanner } from "@/components/layout/GlobalBanner"
 
+import { LanguageProvider } from "@/lib/i18n/LanguageContext"
+
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
@@ -35,11 +37,13 @@ export default function RootLayout({
         />
       </head>
       <body className={`font-sans antialiased bg-[#03010A]`} suppressHydrationWarning>
-        <ThemeProvider>
-          <GlobalBanner />
-          {children}
-          <Toaster />
-        </ThemeProvider>
+        <LanguageProvider>
+          <ThemeProvider>
+            <GlobalBanner />
+            {children}
+            <Toaster />
+          </ThemeProvider>
+        </LanguageProvider>
         <Analytics />
       </body>
     </html>
