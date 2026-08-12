@@ -68,7 +68,7 @@ export function LandingPage() {
         <div className="flex items-center gap-2 md:gap-3 pointer-events-auto" style={{ position: 'relative', height: '40px', width: '120px' }}>
           <DepthText
             text="HELIXA"
-            className="font-serif-display"
+            className=""
             layers={8}
             depth={1.5}
             faceColor="#ffe14d"
@@ -150,7 +150,7 @@ export function LandingPage() {
                   <DepthText
                     text="HELIXA"
                     layers={24}
-                    depth={1.5}
+                    depth={1.8}
                     faceColor="#ffe14d"
                     depthColor="#a18110"
                     tilt={7.5}
@@ -158,10 +158,10 @@ export function LandingPage() {
                     perspective={900}
                     autoOrbit
                     orbitSpeed={0.35}
-                    fontSize="clamp(3rem, 12vw, 5rem)"
+                    fontSize="clamp(6rem, 18vw, 12rem)"
                     fontWeight={900}
                     shadow
-                    className="font-serif-display pointer-events-auto"
+                    className="pointer-events-auto"
                   />
                 </div>
               </div>

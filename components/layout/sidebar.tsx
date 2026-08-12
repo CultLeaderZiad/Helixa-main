@@ -43,7 +43,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
         <div className="relative h-[44px] w-full pointer-events-auto">
           <DepthText
             text="HELIXA"
-            className="font-serif-display"
+            className=""
             layers={8}
             depth={1.5}
             faceColor="#ffe14d"
