@@ -10,11 +10,13 @@ import { toast } from "sonner"
 import type { IceBreaker } from "@/types/db"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
 import { readCache, cachedFetch, clearCache } from "@/lib/client-cache"
+import { useLanguage } from "@/lib/i18n/LanguageContext"
 export function IceBreakersManager() {
     const { userId, isLoading } = useInstagramSession()
     const [breakers, setBreakers] = useState<Partial<IceBreaker>[]>([])
     const [saving, setSaving] = useState(false)
     const [fetching, setFetching] = useState(true)
+    const { t } = useLanguage()
 
     useEffect(() => {
         if (!userId) return
@@ -107,9 +109,9 @@ export function IceBreakersManager() {
         <div className="space-y-6 max-w-2xl mx-auto">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="font-serif-display text-3xl text-white">Ice Breakers</h2>
+                    <h2 className="font-serif-display text-3xl text-white">{t.iceBreakersTitle}</h2>
                     <p className="text-muted-foreground text-sm">
-                        Questions people see when they start a chat with you.
+                        {t.iceBreakersDesc}
                     </p>
                 </div>
                 <Button onClick={handleSave} disabled={saving} className="bg-[#ffe14d] hover:brightness-95 text-black font-bold">

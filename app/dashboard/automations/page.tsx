@@ -10,10 +10,12 @@ import type { Automation } from "@/lib/types"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
 import { readCache, writeCache } from "@/lib/client-cache"
 import { toast } from "sonner"
+import { useLanguage } from "@/lib/i18n/LanguageContext"
 
 function AutomationsPageContent() {
     const searchParams = useSearchParams()
     const { userId, isLoading: isSessionLoading } = useInstagramSession()
+    const { t } = useLanguage()
     const [userRole, setUserRole] = useState("admin")
     const [automations, setAutomations] = useState<Automation[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -164,9 +166,9 @@ function AutomationsPageContent() {
             <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 space-y-8">
                 {/* Header */}
                 <div className="flex items-end justify-between gap-4 flex-wrap">
-                    <div>
-                        <p className="font-mono-ui text-[10px] uppercase tracking-[0.3em] text-neutral-600 mb-2">Rules engine</p>
-                        <h1 className="font-serif-display text-4xl md:text-5xl text-white leading-none">Automations</h1>
+                    <div className="flex flex-col gap-1">
+                        <h1 className="font-serif-display text-4xl md:text-5xl text-white leading-none">{t.automationsTitle}</h1>
+                        <p className="text-neutral-400 text-sm mt-1">{t.rulesEngine}</p>
                     </div>
                     <div className="flex items-center gap-2">
                         {/* AI Auto-Reply Toggle */}

@@ -5,6 +5,7 @@ import { Settings, User, Mail, AlertTriangle, Calendar, Shield, Share2, LifeBuoy
 import { TeamPanel } from "@/components/dashboard/TeamPanel"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import Image from "next/image"
+import { useLanguage } from "@/lib/i18n/LanguageContext"
 
 interface UserProfile {
     email: string
@@ -18,6 +19,7 @@ interface UserProfile {
 export default function SettingsPage() {
     const [profile, setProfile] = useState<UserProfile | null>(null)
     const [connectionsCount, setConnectionsCount] = useState(0)
+    const { t } = useLanguage()
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     
@@ -162,7 +164,7 @@ export default function SettingsPage() {
         <div className="p-8 space-y-8 animate-in fade-in duration-700">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="font-serif-display text-4xl text-white mb-2">Account Settings</h1>
+                    <h1 className="font-serif-display text-4xl text-white mb-2">{t.settingsTitle}</h1>
                     <p className="text-muted-foreground text-sm">
                         Manage your account details and preferences.
                     </p>

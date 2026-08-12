@@ -9,6 +9,8 @@ import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { Loader2 } from "lucide-react"
 import TextPressure from "@/components/ui/text-pressure"
 import { TrialBanner } from "@/components/layout/TrialBanner"
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"
+import { DashboardBackground } from "@/components/layout/DashboardBackground"
 
 export default function DashboardLayout({
     children,
@@ -59,11 +61,14 @@ export default function DashboardLayout({
     }
 
     return (
-        <div className="flex min-h-screen bg-transparent text-foreground">
+        <div className="flex min-h-screen bg-[#03010A] text-foreground relative">
+            {/* AcidSquares animated background */}
+            <DashboardBackground />
+
             {/* Desktop Sidebar */}
-            <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-50">
+            <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 md:start-0 z-50">
                 <Sidebar
-                    className="h-full border-r border-white/10 bg-[#03010A]/50 backdrop-blur-xl"
+                    className="h-full border-e border-white/10 bg-[#03010A]/50 backdrop-blur-xl"
                     username={username || "User"}
                     profilePic={profilePic}
                     email={email}
@@ -73,7 +78,7 @@ export default function DashboardLayout({
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col md:pl-64 transition-all duration-300">
+            <div className="flex-1 flex flex-col md:ps-64 transition-all duration-300">
                 {/* Mobile Header (Visible only on small screens) */}
                 <header className="md:hidden h-16 border-b border-white/10 bg-[#03010A] flex items-center justify-between px-4 sticky top-0 z-40">
                     <div className="flex items-center gap-2" style={{ position: 'relative', height: '36px', width: '90px' }}>
@@ -89,10 +94,13 @@ export default function DashboardLayout({
                             minFontSize={10}
                         />
                     </div>
-                    <MobileNav username={username || "User"} profilePic={profilePic} email={email} userRole={role} onLogout={logout} />
+                    <div className="flex items-center gap-2">
+                        <LanguageSwitcher />
+                        <MobileNav username={username || "User"} profilePic={profilePic} email={email} userRole={role} onLogout={logout} />
+                    </div>
                 </header>
 
-                <main className="flex-1 relative overflow-auto">
+                <main className="flex-1 relative overflow-auto z-10">
                     {!trialExempt && <TrialBanner plan={plan || ""} trialEndsAt={trialEndsAt} />}
                     {children}
                 </main>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { CreditCard, AlertTriangle, CheckCircle, Package } from "lucide-react"
+import { useLanguage } from "@/lib/i18n/LanguageContext"
 
 interface Subscription {
     id: string
@@ -15,6 +16,7 @@ export default function BillingPage() {
     const [plans, setPlans] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
+    const { t } = useLanguage()
 
     useEffect(() => {
         const fetchSubscriptionAndPlans = async () => {
@@ -47,9 +49,9 @@ export default function BillingPage() {
     return (
         <div className="p-8 space-y-12 animate-in fade-in duration-700 max-w-6xl mx-auto">
             <div>
-                <h1 className="font-serif-display text-4xl text-white mb-2 tracking-tight">Billing & Subscription</h1>
+                <h1 className="font-serif-display text-4xl text-white mb-2 tracking-tight">{t.billingTitle}</h1>
                 <p className="text-neutral-400 text-sm max-w-lg">
-                    Manage your subscription plan, view your usage, and upgrade to unlock advanced AI capabilities.
+                    {t.billingDesc}
                 </p>
             </div>
 

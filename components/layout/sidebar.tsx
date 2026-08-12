@@ -109,7 +109,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
               <div className="h-px bg-white/[0.06]" />
             </div>
             <div className="px-3 pb-1 pt-2 font-mono-ui text-[9px] uppercase tracking-widest text-neutral-600">
-              Admin
+              {t.admin}
             </div>
             <Link
               href="/dashboard/admin"
@@ -123,7 +123,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
             >
               {pathname === "/dashboard/admin" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
               <BarChart3 className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-              <span>Users & Stats</span>
+              <span>{t.usersAndStats}</span>
             </Link>
             <Link
               href="/dashboard/admin/plans"
@@ -137,7 +137,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
             >
               {pathname === "/dashboard/admin/plans" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
               <CreditCard className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-              <span>Plans</span>
+              <span>{t.billing}</span>
             </Link>
             <Link
               href="/dashboard/admin/agents"
@@ -151,7 +151,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
             >
               {pathname === "/dashboard/admin/agents" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
               <Zap className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-              <span>Agents Catalog</span>
+              <span>{t.agents}</span>
             </Link>
             <Link
               href="/dashboard/admin/campaigns"
@@ -165,7 +165,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
             >
               {pathname.startsWith("/dashboard/admin/campaigns") && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
               <Mail className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-              <span>Email Campaigns</span>
+              <span>{t.campaigns}</span>
             </Link>
           </>
         )}
@@ -182,7 +182,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
         >
           {pathname === "/dashboard/billing" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
           <CreditCard className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-          <span>Billing & Subscription</span>
+          <span>{t.billingTitle}</span>
         </Link>
 
         <Link
@@ -207,7 +207,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
           className="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] text-neutral-500 hover:text-[#2AABEE] hover:bg-white/[0.03] transition-colors"
         >
           <Send className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-          <span>Get help</span>
+          <span>{t.getHelp}</span>
         </a>
 
         <a
@@ -217,7 +217,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
           className="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] text-neutral-500 hover:text-[#0A66C2] hover:bg-white/[0.03] transition-colors"
         >
           <Linkedin className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-          <span>LinkedIn</span>
+          <span>{t.linkedIn}</span>
         </a>
 
         <div className="pt-2 flex flex-col gap-1">

@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
+import { useLanguage } from "@/lib/i18n/LanguageContext"
 
 function timeAgo(isoString: string | null): string {
     if (!isoString) return "Never"
@@ -25,6 +26,7 @@ export default function AnalyticsPage() {
     const [funnelData, setFunnelData] = useState<any>(null)
     const [funnelLoading, setFunnelLoading] = useState<boolean>(true)
     const { userId, isLoading: isSessionLoading } = useInstagramSession()
+    const { t } = useLanguage()
 
     // Comment Themes
     const [themes, setThemes] = useState<any[]>([])
@@ -178,8 +180,8 @@ export default function AnalyticsPage() {
                     <Activity className="w-6 h-6 text-[#ffe14d]" />
                 </div>
                 <div>
-                    <h1 className="font-serif-display text-3xl text-white">Analytics</h1>
-                    <p className="text-sm text-muted-foreground">Monitor performance and AI insights</p>
+                    <h1 className="font-serif-display text-3xl text-white">{t.analyticsTitle}</h1>
+                    <p className="text-sm text-muted-foreground">{t.analyticsDesc}</p>
                 </div>
             </div>
 

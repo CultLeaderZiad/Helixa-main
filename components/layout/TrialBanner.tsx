@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useLanguage } from "@/lib/i18n/LanguageContext"
 
 export function TrialBanner({ plan, trialEndsAt }: { plan: string; trialEndsAt: string | null }) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number, seconds: number } | null>(null)
 
   useEffect(() => {
@@ -48,15 +50,15 @@ export function TrialBanner({ plan, trialEndsAt }: { plan: string; trialEndsAt: 
   }
 
   return (
-    <div className="bg-[#ffe14d] text-black text-center py-2 px-4 text-sm font-bold font-mono-ui z-50 relative flex items-center justify-center gap-4">
+    <div className="bg-[#ffe14d] text-black text-center py-2 px-4 text-sm font-bold font-mono-ui z-50 relative flex items-center justify-center gap-4 w-full">
       <span>
-        Trial expires in:{" "}
-        <span className="font-mono bg-black/10 px-2 py-0.5 rounded ml-1">
+        {t.trialExpiresIn}{" "}
+        <span className="font-mono bg-black/10 px-2 py-0.5 rounded ms-1">
           {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s
         </span>
       </span>
       <a href="/dashboard/billing" className="underline hover:no-underline text-blue-800 hover:text-black transition-colors">
-        Upgrade now
+        {t.upgradeNow}
       </a>
     </div>
   )

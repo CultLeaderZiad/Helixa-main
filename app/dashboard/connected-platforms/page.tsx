@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Facebook, AlertTriangle, PhoneCall } from "lucide-react"
+import { useLanguage } from "@/lib/i18n/LanguageContext"
 
 interface Connection {
     id: string
@@ -15,6 +16,7 @@ export default function ConnectedPlatformsPage() {
     const [connections, setConnections] = useState<Connection[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
+    const { t } = useLanguage()
 
     useEffect(() => {
         // Handle URL parameters for oauth errors/success
@@ -47,9 +49,9 @@ export default function ConnectedPlatformsPage() {
     return (
         <div className="p-8 space-y-8 animate-in fade-in duration-700">
             <div>
-                <h1 className="font-serif-display text-4xl text-white mb-2">Connected Platforms</h1>
+                <h1 className="font-serif-display text-4xl text-white mb-2">{t.connectedPlatformsTitle}</h1>
                 <p className="text-muted-foreground text-sm">
-                    Manage your connected social accounts and messaging platforms.
+                    {t.connectedPlatformsDesc}
                 </p>
             </div>
 

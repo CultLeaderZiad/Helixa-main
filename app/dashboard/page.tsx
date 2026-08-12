@@ -10,6 +10,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
 import TextPressure from "@/components/ui/text-pressure"
 import SplitText from "@/components/ui/SplitText"
+import { useLanguage } from "@/lib/i18n/LanguageContext"
 
 interface DashboardStats {
     metrics: {
@@ -39,6 +40,7 @@ export default function DashboardPage() {
     const [stats, setStats] = useState<DashboardStats | null>(null)
     const [loading, setLoading] = useState(true)
     const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null)
+    const { t } = useLanguage()
     
     const [themes, setThemes] = useState<any[]>([])
     const [loadingThemes, setLoadingThemes] = useState(false)
@@ -175,7 +177,7 @@ export default function DashboardPage() {
             {paymentStatus?.hasPendingSubmission && (
                 <div className="border border-blue-500/30 bg-blue-500/10 rounded-xl p-4 flex items-center gap-3">
                     <Loader2 className="w-5 h-5 text-blue-400 animate-spin flex-shrink-0" />
-                    <p className="font-mono text-sm text-blue-400">Payment pending review. Your plan will be activated once approved by an admin.</p>
+                    <p className="font-mono text-sm text-blue-400">{t.paymentPendingReview}</p>
                 </div>
             )}
             
@@ -183,10 +185,10 @@ export default function DashboardPage() {
                 <div className="border border-red-500/30 bg-red-500/10 rounded-xl p-4 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                         <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                        <p className="font-mono text-sm text-red-400">Your Vodafone Cash subscription expires in {paymentStatus.daysToRenew} day(s). Renew soon to prevent interruption.</p>
+                        <p className="font-mono text-sm text-red-400">{t.vodafoneExpires.replace('{{days}}', String(paymentStatus.daysToRenew))}</p>
                     </div>
                     <a href="/billing" className="font-mono text-xs bg-red-500/20 text-red-400 px-3 py-1 rounded hover:bg-red-500/30 transition-colors">
-                        Renew Now
+                        {t.renewNow}
                     </a>
                 </div>
             )}
@@ -223,7 +225,7 @@ export default function DashboardPage() {
                     />
                 </div>
 
-                <p className="font-mono-ui text-[10px] uppercase tracking-[0.3em] text-[#ffe14d] mb-3 font-bold">Overview</p>
+                <p className="font-mono-ui text-[10px] uppercase tracking-[0.3em] text-[#ffe14d] mb-3 font-bold">{t.overviewLabel}</p>
                 <SplitText
                     text={`Hey, ${username || "creator"}.`}
                     className="font-serif-display text-4xl md:text-5xl text-white leading-none mb-4"
@@ -236,33 +238,33 @@ export default function DashboardPage() {
                     tag="h1"
                     textAlign="left"
                 />
-                <p className="text-neutral-400 text-sm">Here's what your automations did while you were away.</p>
+                <p className="text-neutral-400 text-sm">{t.overviewSubtitle}</p>
             </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
-                    title="Total Automations"
+                    title={t.totalAutomations}
                     value={stats?.metrics.totalAutomations.toString() || "0"}
-                    trend="Active"
+                    trend={t.activeLabel}
                     icon={<Zap className="w-5 h-5 text-[#ffe14d]" />}
                 />
                 <StatCard
-                    title="Messages Sent"
+                    title={t.messagesSent}
                     value={stats?.metrics.messagesSent.toString() || "0"}
-                    trend="Lifetime"
+                    trend={t.lifetime}
                     icon={<MessageCircle className="w-5 h-5 text-[#ffe14d]" />}
                 />
                 <StatCard
-                    title="Active Triggers"
+                    title={t.activeTriggers}
                     value={stats?.metrics.activeTriggers.toString() || "0"}
-                    trend="Running"
+                    trend={t.running}
                     icon={<Activity className="w-5 h-5 text-[#ffe14d]" />}
                 />
                 <StatCard
-                    title="Audience Reached"
+                    title={t.audienceReached}
                     value={stats?.metrics.audienceReached.toString() || "0"}
-                    trend="Unique Users"
+                    trend={t.uniqueUsers}
                     icon={<Users className="w-5 h-5 text-[#ffe14d]" />}
                 />
             </div>
@@ -270,7 +272,7 @@ export default function DashboardPage() {
             {/* Recent Activity */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <Card className="p-6 bg-[#0b0b0a] border-white/10">
-                    <h3 className="font-serif-display text-2xl text-white mb-5">Recent activity</h3>
+                    <h3 className="font-serif-display text-2xl text-white mb-5">{t.recentActivity}</h3>
                     <div className="space-y-4">
                         {stats?.recentActivity && stats.recentActivity.length > 0 ? (
                             stats.recentActivity.map((msg) => (
@@ -280,7 +282,7 @@ export default function DashboardPage() {
                                     </div>
                                     <div className="min-w-0">
                                         <p className="text-sm text-white font-medium truncate">
-                                            Auto-reply to @{msg.recipient?.recipient_username || "user"}
+                                            {t.autoReplyTo.replace('{{user}}', msg.recipient?.recipient_username || "user")}
                                         </p>
                                         <p className="text-xs text-muted-foreground truncate w-full max-w-[300px]">{msg.content}</p>
                                     </div>
@@ -291,22 +293,22 @@ export default function DashboardPage() {
                             ))
                         ) : (
                             <div className="py-8 text-center text-muted-foreground text-sm">
-                                No recent activity found.
+                                {t.noRecentActivity}
                             </div>
                         )}
                     </div>
                 </Card>
 
                 <Card className="p-6 bg-[#0b0b0a] border-white/10">
-                    <h3 className="font-serif-display text-2xl text-white mb-5">Quick actions</h3>
+                    <h3 className="font-serif-display text-2xl text-white mb-5">{t.quickActions}</h3>
                     <div className="grid grid-cols-2 gap-4">
                         <Link href="/dashboard/automations" className="h-24 rounded-xl border border-dashed border-white/20 flex flex-col items-center justify-center hover:bg-white/5 cursor-pointer transition-colors group">
                             <Zap className="w-6 h-6 text-muted-foreground group-hover:text-[#ffe14d] mb-2" />
-                            <span className="text-xs font-medium text-muted-foreground">New Rule</span>
+                            <span className="text-xs font-medium text-muted-foreground">{t.newRule}</span>
                         </Link>
                         <div className="h-24 rounded-xl border border-dashed border-white/20 flex flex-col items-center justify-center hover:bg-white/5 cursor-pointer transition-colors group">
                             <Users className="w-6 h-6 text-muted-foreground group-hover:text-[#ffe14d] mb-2" />
-                            <span className="text-xs font-medium text-muted-foreground">View Audience</span>
+                            <span className="text-xs font-medium text-muted-foreground">{t.viewAudience}</span>
                         </div>
                     </div>
                 </Card>
@@ -318,9 +320,9 @@ export default function DashboardPage() {
                     <div>
                         <h3 className="font-serif-display text-2xl text-white flex items-center gap-2">
                             <Sparkles className="w-5 h-5 text-[#ffe14d]" />
-                            What people are asking
+                            {t.whatPeopleAsk}
                         </h3>
-                        <p className="text-xs text-neutral-400 mt-1">AI analysis of your recent comments to find automation opportunities.</p>
+                        <p className="text-xs text-neutral-400 mt-1">{t.aiAnalysisDesc}</p>
                     </div>
                     <button 
                         onClick={() => fetchThemes(true)} 
@@ -356,14 +358,14 @@ export default function DashboardPage() {
                                     href={`/dashboard/automations?intent=${encodeURIComponent("Reply to comments about " + theme.theme + " matching keywords: " + theme.keywords)}`}
                                     className="text-xs font-bold text-black bg-[#ffe14d] hover:bg-[#ffe14d]/90 py-2 rounded-lg flex items-center justify-center gap-1 transition-colors"
                                 >
-                                    Turn into automation <ArrowRight className="w-3.5 h-3.5" />
+                                    {t.turnIntoAutomation} <ArrowRight className="w-3.5 h-3.5" />
                                 </Link>
                             </div>
                         ))}
                     </div>
                 ) : (
                     <div className="py-8 text-center text-neutral-500 text-sm">
-                        Not enough comments recently to detect themes. Check back later!
+                        {t.notEnoughComments}
                     </div>
                 )}
             </Card>

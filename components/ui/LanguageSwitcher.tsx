@@ -1,7 +1,5 @@
 "use client";
-import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { Globe } from "lucide-react";
 
 export function LanguageSwitcher() {
   const { language, setLanguage } = useLanguage();
@@ -11,14 +9,14 @@ export function LanguageSwitcher() {
   };
 
   return (
-    <Button 
-      variant="ghost" 
-      size="sm" 
+    <button
       onClick={toggleLanguage}
-      className="flex items-center gap-2 text-zinc-400 hover:text-white"
+      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-mono-ui uppercase tracking-wider text-neutral-500 hover:text-white hover:bg-white/[0.06] transition-colors"
+      title={language === "en" ? "Switch to Arabic" : "Switch to English"}
     >
-      <Globe className="w-4 h-4" />
-      <span className="font-medium text-xs uppercase">{language === "en" ? "AR" : "EN"}</span>
-    </Button>
+      <span className="text-[13px]">{language === "en" ? "ع" : "A"}</span>
+      <span className="text-neutral-600">/</span>
+      <span className={language === "en" ? "text-neutral-600" : "font-bold text-white"}>{language === "en" ? "EN" : "AR"}</span>
+    </button>
   );
 }
