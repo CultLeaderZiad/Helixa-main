@@ -43,7 +43,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
 
       {/* Logo */}
       <Link href="/dashboard" className="block px-4 pt-4 pb-2">
-        <div className="relative h-[44px] w-full pointer-events-auto">
+        <div className="relative h-[44px] w-full pointer-events-auto" dir="ltr">
           <DepthText
             text="HELIXA"
             className=""

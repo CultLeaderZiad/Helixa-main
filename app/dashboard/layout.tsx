@@ -81,7 +81,7 @@ export default function DashboardLayout({
             <div className="flex-1 flex flex-col md:ps-64 transition-all duration-300">
                 {/* Mobile Header (Visible only on small screens) */}
                 <header className="md:hidden h-16 border-b border-white/10 bg-[#03010A] flex items-center justify-between px-4 sticky top-0 z-40">
-                    <div className="flex items-center gap-2" style={{ position: 'relative', height: '36px', width: '90px' }}>
+                    <div className="flex items-center gap-2" style={{ position: 'relative', height: '36px', width: '90px' }} dir="ltr">
                         <TextPressure
                             text="HELIXA"
                             flex={true}

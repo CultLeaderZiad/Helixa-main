@@ -11,12 +11,12 @@ export function LanguageSwitcher() {
   return (
     <button
       onClick={toggleLanguage}
-      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-mono-ui uppercase tracking-wider text-neutral-500 hover:text-white hover:bg-white/[0.06] transition-colors"
+      className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-semibold uppercase tracking-wider bg-white/5 border border-white/10 text-neutral-300 hover:text-white hover:bg-white/10 transition-all backdrop-blur-sm"
       title={language === "en" ? "Switch to Arabic" : "Switch to English"}
     >
-      <span className="text-[13px]">{language === "en" ? "ع" : "A"}</span>
-      <span className="text-neutral-600">/</span>
-      <span className={language === "en" ? "text-neutral-600" : "font-bold text-white"}>{language === "en" ? "EN" : "AR"}</span>
+      <span className={language === "en" ? "text-neutral-400" : "font-bold text-white text-base"}>ع</span>
+      <span className="text-neutral-600 font-light">|</span>
+      <span className={language === "en" ? "font-bold text-white text-base" : "text-neutral-400"}>EN</span>
     </button>
   );
 }
