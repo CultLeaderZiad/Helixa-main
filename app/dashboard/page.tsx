@@ -10,7 +10,6 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
 import TextPressure from "@/components/ui/text-pressure"
 import SplitText from "@/components/ui/SplitText"
-import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern"
 
 interface DashboardStats {
     metrics: {
