@@ -63,7 +63,7 @@ export default function ConnectedPlatformsPage() {
     return (
         <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8 pb-32">
             <div>
-                <h1 className="font-serif-display text-4xl text-white mb-2">{t.sidebar.connectedPlatforms}</h1>
+                <h1 className="font-serif-display text-4xl text-white mb-2">{t.connectedPlatforms}</h1>
                 <p className="text-muted-foreground">Connect your social accounts to start automating.</p>
             </div>
 
