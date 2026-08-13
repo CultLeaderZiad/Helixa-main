@@ -1,8 +1,16 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
-import { AlertTriangle, Plus, Loader2, X } from "lucide-react"
+import { AlertTriangle, Plus, Loader2, X, Check, ChevronRight } from "lucide-react"
+
+// Extend Window to include FB SDK types
+declare global {
+    interface Window {
+        FB: any
+        fbAsyncInit: () => void
+    }
+}
 
 interface Connection {
     id: string
@@ -11,14 +19,72 @@ interface Connection {
     metadata?: any
 }
 
+interface DiscoveredPage {
+    id: string
+    name: string
+    category: string
+}
+
 export default function ConnectedPlatformsPage() {
     const { t } = useLanguage()
     const [connections, setConnections] = useState<Connection[]>([])
     const [loading, setLoading] = useState(true)
     const [deletingId, setDeletingId] = useState<string | null>(null)
 
+    // Facebook SDK popup flow state
+    const [fbSdkReady, setFbSdkReady] = useState(false)
+    const [fbPages, setFbPages] = useState<DiscoveredPage[]>([])
+    const [showPagePicker, setShowPagePicker] = useState(false)
+    const [fbConnecting, setFbConnecting] = useState(false)
+    const [fbDiscovering, setFbDiscovering] = useState(false)
+    const [fbError, setFbError] = useState<string | null>(null)
+    const [fbToken, setFbToken] = useState<string>("")
+    const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
+
+    // Telegram flow state
+    const [telegramToken, setTelegramToken] = useState("")
+    const [telegramConnecting, setTelegramConnecting] = useState(false)
+    const [telegramError, setTelegramError] = useState<string | null>(null)
+
     useEffect(() => {
         fetchConnections()
+    }, [])
+
+    // Load Facebook SDK
+    useEffect(() => {
+        const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID
+
+        if (!appId) {
+            console.warn("[FB SDK] NEXT_PUBLIC_FACEBOOK_APP_ID not set, Facebook connect will be disabled")
+            return
+        }
+
+        // Don't re-load if already present
+        if (window.FB) {
+            setFbSdkReady(true)
+            return
+        }
+
+        window.fbAsyncInit = function () {
+            window.FB.init({
+                appId: appId,
+                cookie: true,
+                xfbml: false,
+                version: "v20.0",
+            })
+            console.log("[FB SDK] Initialized successfully")
+            setFbSdkReady(true)
+        }
+
+        // Inject the SDK script
+        if (!document.getElementById("facebook-jssdk")) {
+            const script = document.createElement("script")
+            script.id = "facebook-jssdk"
+            script.src = "https://connect.facebook.net/en_US/sdk.js"
+            script.async = true
+            script.defer = true
+            document.body.appendChild(script)
+        }
     }, [])
 
     const fetchConnections = async () => {
@@ -60,6 +126,152 @@ export default function ConnectedPlatformsPage() {
         }
     }
 
+    // ── Facebook SDK Popup Flow ──────────────────────────────────────
+
+    const handleFacebookLogin = useCallback(() => {
+        if (!window.FB) {
+            setFbError("Facebook SDK not loaded. Please refresh the page and try again.")
+            return
+        }
+
+        setFbError(null)
+        setFbDiscovering(true)
+
+        window.FB.login(
+            (response: any) => {
+                if (response.status === "connected" && response.authResponse?.accessToken) {
+                    console.log("[FB Login] Success, discovering pages...")
+                    discoverPages(response.authResponse.accessToken)
+                } else {
+                    setFbDiscovering(false)
+                    if (response.status === "not_authorized") {
+                        setFbError("You need to authorize Helixa to access your Facebook Pages.")
+                    } else {
+                        setFbError("Facebook login was cancelled.")
+                    }
+                }
+            },
+            {
+                // All five scopes — the SDK popup handles Business Portfolio
+                // selection natively, unlike the server redirect which auto-cancels
+                scope: "pages_manage_metadata,pages_messaging,pages_read_engagement,pages_show_list,business_management",
+                return_scopes: true,
+            }
+        )
+    }, [])
+
+    const discoverPages = async (accessToken: string) => {
+        try {
+            const res = await fetch("/api/facebook/discover", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ accessToken }),
+            })
+
+            const data = await res.json()
+
+            if (!res.ok) {
+                setFbError(data.error || "Failed to discover Facebook Pages.")
+                setFbDiscovering(false)
+                return
+            }
+
+            if (!data.pages || data.pages.length === 0) {
+                setFbError("No Facebook Pages found. Make sure you manage at least one Facebook Page.")
+                setFbDiscovering(false)
+                return
+            }
+
+            setFbPages(data.pages)
+            setFbToken(data._token || "")
+            setShowPagePicker(true)
+            setFbDiscovering(false)
+        } catch (error) {
+            console.error("[FB Discover] Error:", error)
+            setFbError("An error occurred while discovering your Facebook Pages.")
+            setFbDiscovering(false)
+        }
+    }
+
+    const connectPage = async (pageId: string) => {
+        setSelectedPageId(pageId)
+        setFbConnecting(true)
+        setFbError(null)
+
+        try {
+            const res = await fetch("/api/facebook/connect", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ page_id: pageId, _token: fbToken }),
+            })
+
+            const data = await res.json()
+
+            if (!res.ok) {
+                setFbError(data.error || "Failed to connect the Page.")
+                setFbConnecting(false)
+                return
+            }
+
+            // Success — close picker, refresh connections
+            setShowPagePicker(false)
+            setFbPages([])
+            setFbToken("")
+            setSelectedPageId(null)
+            setFbConnecting(false)
+            await fetchConnections()
+        } catch (error) {
+            console.error("[FB Connect] Error:", error)
+            setFbError("An error occurred while connecting the Page.")
+            setFbConnecting(false)
+        }
+    }
+
+    const closePagePicker = () => {
+        setShowPagePicker(false)
+        setFbPages([])
+        setFbToken("")
+        setSelectedPageId(null)
+        setFbError(null)
+    }
+
+    // ── Telegram Token Flow ─────────────────────────────────────────
+    
+    const handleTelegramConnect = async () => {
+        if (!telegramToken.trim()) {
+            setTelegramError("Please enter a bot token.")
+            return
+        }
+
+        setTelegramConnecting(true)
+        setTelegramError(null)
+
+        try {
+            const res = await fetch("/api/telegram/connect", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ botToken: telegramToken.trim() })
+            })
+
+            const data = await res.json()
+
+            if (!res.ok) {
+                setTelegramError(data.error || "Failed to connect Telegram Bot.")
+                setTelegramConnecting(false)
+                return
+            }
+
+            // Success
+            setTelegramToken("")
+            setTelegramConnecting(false)
+            await fetchConnections()
+        } catch (error) {
+            console.error("[Telegram Connect] Error:", error)
+            setTelegramError("An error occurred while connecting.")
+            setTelegramConnecting(false)
+        }
+    }
+
     return (
         <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8 pb-32">
             <div>
@@ -67,7 +279,7 @@ export default function ConnectedPlatformsPage() {
                 <p className="text-muted-foreground">Connect your social accounts to start automating.</p>
             </div>
 
-            <div className="grid gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                 {/* Instagram (Primary) */}
                 <div className="p-6 rounded-2xl border border-white/10 bg-[#0b0b0a] hover:border-white/20 transition-colors">
                     <div className="flex items-center justify-between mb-6">
@@ -162,11 +374,94 @@ export default function ConnectedPlatformsPage() {
                             <div className="text-sm text-neutral-500">No Facebook Pages connected.</div>
                         )}
                     </div>
+
+                    {/* Facebook Error State */}
+                    {fbError && (
+                        <div className="mb-4 bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-2">
+                            <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                                <p className="text-xs text-red-400 leading-relaxed">{fbError}</p>
+                            </div>
+                            <button onClick={() => setFbError(null)} className="text-red-400 hover:text-red-300 p-0.5">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Page Picker (shown after FB.login success) */}
+                    {showPagePicker && fbPages.length > 0 && (
+                        <div className="mb-4 border border-blue-500/20 bg-blue-500/5 rounded-xl p-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <h4 className="text-white font-medium text-sm">Select a Page to connect</h4>
+                                <button
+                                    onClick={closePagePicker}
+                                    className="text-neutral-400 hover:text-white p-1"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <div className="space-y-2">
+                                {fbPages.map((page) => {
+                                    const isAlreadyConnected = connections.some(
+                                        c => c.platform === "facebook" && c.page_id === page.id
+                                    )
+                                    const isConnectingThis = fbConnecting && selectedPageId === page.id
+
+                                    return (
+                                        <button
+                                            key={page.id}
+                                            onClick={() => !isAlreadyConnected && !fbConnecting && connectPage(page.id)}
+                                            disabled={isAlreadyConnected || fbConnecting}
+                                            className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all text-left
+                                                ${isAlreadyConnected
+                                                    ? "border-green-500/20 bg-green-500/5 cursor-default"
+                                                    : isConnectingThis
+                                                        ? "border-blue-500/30 bg-blue-500/10"
+                                                        : "border-white/10 bg-white/[0.03] hover:border-blue-500/30 hover:bg-blue-500/5 cursor-pointer"
+                                                }
+                                                ${fbConnecting && !isConnectingThis ? "opacity-50" : ""}
+                                            `}
+                                        >
+                                            <div>
+                                                <div className="text-sm text-white font-medium">{page.name}</div>
+                                                <div className="text-[10px] text-neutral-500">{page.category}</div>
+                                            </div>
+                                            <div>
+                                                {isAlreadyConnected ? (
+                                                    <span className="text-xs text-green-400 bg-green-400/10 px-2 py-1 rounded-full flex items-center gap-1">
+                                                        <Check className="w-3 h-3" /> Connected
+                                                    </span>
+                                                ) : isConnectingThis ? (
+                                                    <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                                                ) : (
+                                                    <ChevronRight className="w-4 h-4 text-neutral-500" />
+                                                )}
+                                            </div>
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     <button 
-                        onClick={() => window.location.href = "/api/facebook/auth"}
-                        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                        onClick={handleFacebookLogin}
+                        disabled={fbDiscovering || !fbSdkReady}
+                        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                        Connect Facebook Page
+                        {fbDiscovering ? (
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Discovering Pages...
+                            </>
+                        ) : !fbSdkReady ? (
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Loading Facebook...
+                            </>
+                        ) : (
+                            "Connect Facebook Page"
+                        )}
                     </button>
                 </div>
 
@@ -226,6 +521,94 @@ export default function ConnectedPlatformsPage() {
                     >
                         Configure via Meta App Dashboard
                     </button>
+                </div>
+
+                {/* Telegram */}
+                <div className="p-6 rounded-2xl border border-white/10 bg-[#0b0b0a] hover:border-white/20 transition-colors">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-[#2AABEE]/10 flex items-center justify-center text-[#2AABEE]">
+                                <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                                    <path d="M12 24c6.627 0 12-5.373 12-12S18.627 0 12 0 0 5.373 0 12s5.373 12 12 12zm5.894-17.156l-2.73 12.836c-.208.92-.75.114-1.127-.156l-3.12-2.302-1.503 1.448c-.166.167-.306.307-.63.307l.223-3.178 5.792-5.234c.252-.224-.055-.348-.39-.124L7.25 15.002 4.167 14.04c-.67-.21-1.077-.45-1.077-.922 0-.472 1.345-1.066 1.76-1.22l12.444-4.8c.582-.225 1.122-.053 1.25.132.128.185.114.58-.088 1.09l-1.084-2.822z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 className="text-white font-medium">Telegram</h3>
+                                <p className="text-xs text-muted-foreground">Automate Telegram Bot messages</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="space-y-3 mb-6">
+                        {loading ? (
+                            <div className="text-sm text-neutral-500">Loading...</div>
+                        ) : connections.filter(c => c.platform === "telegram").length > 0 ? (
+                            connections.filter(c => c.platform === "telegram").map(c => (
+                                <div key={c.id} className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/5">
+                                    <div>
+                                        <div className="text-sm text-white font-medium">@{c.metadata?.username || c.page_id}</div>
+                                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{c.platform}</div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-xs text-green-400 bg-green-400/10 px-2 py-1 rounded-full">Connected</div>
+                                        <button 
+                                            onClick={() => handleDelete(c.id, c.platform)}
+                                            disabled={deletingId === c.id}
+                                            className="text-red-400 hover:text-red-300 transition-colors p-1"
+                                            title="Disconnect"
+                                        >
+                                            {deletingId === c.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="text-sm text-neutral-500 mb-4">No Telegram bot connected.</div>
+                        )}
+                    </div>
+
+                    {/* Telegram Connection Form */}
+                    <div className="space-y-3">
+                        {telegramError && (
+                            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-2">
+                                <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                                <div className="flex-1">
+                                    <p className="text-xs text-red-400 leading-relaxed">{telegramError}</p>
+                                </div>
+                                <button onClick={() => setTelegramError(null)} className="text-red-400 hover:text-red-300 p-0.5">
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        )}
+
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Paste your bot token here..."
+                                value={telegramToken}
+                                onChange={(e) => setTelegramToken(e.target.value)}
+                                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30 placeholder-white/30"
+                            />
+                            <p className="text-[10px] text-neutral-500 mt-2">
+                                Get your bot token from <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-[#2AABEE] hover:underline">@BotFather</a> on Telegram.
+                            </p>
+                        </div>
+
+                        <button 
+                            onClick={handleTelegramConnect}
+                            disabled={telegramConnecting || !telegramToken.trim()}
+                            className="w-full py-2 bg-[#2AABEE] hover:bg-[#2AABEE]/90 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
+                        >
+                            {telegramConnecting ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Connecting...
+                                </>
+                            ) : (
+                                "Connect Telegram Bot"
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

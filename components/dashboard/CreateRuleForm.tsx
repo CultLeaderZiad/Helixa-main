@@ -85,7 +85,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
   const [cardStyle, setCardStyle] = useState<"modern" | "classic" | "minimal">("modern")
   const [specificMediaUrl, setSpecificMediaUrl] = useState("")
   const [resolvingUrl, setResolvingUrl] = useState(false)
-  const [platform, setPlatform] = useState<"instagram" | "messenger" | "facebook">("instagram")
+  const [platform, setPlatform] = useState<"instagram" | "messenger" | "facebook" | "telegram">("instagram")
   const [availablePlatforms, setAvailablePlatforms] = useState<string[]>(["instagram"])
 
   const [intentDescription, setIntentDescription] = useState(initialIntent || "")
@@ -143,6 +143,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
           const available = new Set<string>(["instagram"])
           if (platforms.includes("messenger")) available.add("messenger")
           if (platforms.includes("facebook") && platforms.length > 1) available.add("facebook")
+          if (platforms.includes("telegram")) available.add("telegram")
           setAvailablePlatforms(Array.from(available))
         }
       })

@@ -1,3 +1,11 @@
+/**
+ * DEPRECATED — This server-redirect OAuth route is no longer used by the frontend.
+ * The Connected Platforms page now uses the Facebook JS SDK (FB.login popup) →
+ * /api/facebook/discover → /api/facebook/connect flow instead.
+ *
+ * Kept as a fallback reference. Can be safely removed once the SDK flow is
+ * confirmed stable in production.
+ */
 import { NextResponse } from "next/server"
 
 export async function GET() {
