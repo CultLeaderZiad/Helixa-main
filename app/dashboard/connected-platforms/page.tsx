@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import { AlertTriangle, Plus, Loader2, X, Check, ChevronRight } from "lucide-react"
+import useSWR from "swr"
+import { fetcher } from "@/lib/fetcher"
 
 // Extend Window to include FB SDK types
 declare global {
@@ -27,8 +29,9 @@ interface DiscoveredPage {
 
 export default function ConnectedPlatformsPage() {
     const { t } = useLanguage()
-    const [connections, setConnections] = useState<Connection[]>([])
-    const [loading, setLoading] = useState(true)
+    const { data: connectionsData, mutate: mutateConnections, isLoading: isConnectionsLoading } = useSWR("/api/user/connections", fetcher)
+    const connections: Connection[] = connectionsData?.connections || []
+    const loading = isConnectionsLoading
     const [deletingId, setDeletingId] = useState<string | null>(null)
 
     // Facebook SDK popup flow state
@@ -45,10 +48,6 @@ export default function ConnectedPlatformsPage() {
     const [telegramToken, setTelegramToken] = useState("")
     const [telegramConnecting, setTelegramConnecting] = useState(false)
     const [telegramError, setTelegramError] = useState<string | null>(null)
-
-    useEffect(() => {
-        fetchConnections()
-    }, [])
 
     // Load Facebook SDK
     useEffect(() => {
@@ -87,19 +86,7 @@ export default function ConnectedPlatformsPage() {
         }
     }, [])
 
-    const fetchConnections = async () => {
-        try {
-            const res = await fetch("/api/user/connections")
-            if (res.ok) {
-                const data = await res.json()
-                setConnections(data.connections || [])
-            }
-        } catch (error) {
-            console.error("Failed to fetch connections:", error)
-        } finally {
-            setLoading(false)
-        }
-    }
+    // fetchConnections is now handled by SWR
 
     const handleDelete = async (id: string, platform: string) => {
         if (platform === 'instagram') {
@@ -115,7 +102,7 @@ export default function ConnectedPlatformsPage() {
                 method: 'DELETE'
             })
             if (res.ok) {
-                setConnections(connections.filter(c => c.id !== id))
+                mutateConnections()
             } else {
                 alert('Failed to disconnect')
             }
@@ -219,7 +206,7 @@ export default function ConnectedPlatformsPage() {
             setFbToken("")
             setSelectedPageId(null)
             setFbConnecting(false)
-            await fetchConnections()
+            mutateConnections()
         } catch (error) {
             console.error("[FB Connect] Error:", error)
             setFbError("An error occurred while connecting the Page.")
@@ -264,7 +251,7 @@ export default function ConnectedPlatformsPage() {
             // Success
             setTelegramToken("")
             setTelegramConnecting(false)
-            await fetchConnections()
+            mutateConnections()
         } catch (error) {
             console.error("[Telegram Connect] Error:", error)
             setTelegramError("An error occurred while connecting.")
@@ -273,7 +260,7 @@ export default function ConnectedPlatformsPage() {
     }
 
     return (
-        <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8 pb-32">
+        <div className="p-4 md:p-8 max-w-[90rem] mx-auto space-y-8 pb-32">
             <div>
                 <h1 className="font-serif-display text-4xl text-white mb-2">{t.connectedPlatforms}</h1>
                 <p className="text-muted-foreground">Connect your social accounts to start automating.</p>

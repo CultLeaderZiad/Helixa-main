@@ -1,5 +1,6 @@
+export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireAdmin } from "@/lib/auth"
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -8,7 +9,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (result.response) return result.response
 
     const { id } = await params;
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
     const { data: campaign, error } = await supabase
       .from("email_campaigns")
       .select("*")
@@ -32,7 +33,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const { id } = await params;
     const body = await request.json()
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
 
     // Can only edit if status is draft
     const { data: existing, error: checkError } = await supabase
@@ -87,7 +88,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (result.response) return result.response
 
     const { id } = await params;
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
 
     const { data: existing, error: checkError } = await supabase
       .from("email_campaigns")

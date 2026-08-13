@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
@@ -50,3 +51,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Failed to fetch audit log" }, { status: 500 })
   }
 }
+

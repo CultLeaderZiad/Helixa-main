@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
@@ -60,3 +61,4 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
+

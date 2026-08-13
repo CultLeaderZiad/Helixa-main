@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { Activity, Users, MessageCircle, Zap, Loader2, AlertCircle, Sparkles, RefreshCcw, ArrowRight } from "lucide-react"
 import Link from "next/link"
+import useSWR from "swr"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
 import TextPressure from "@/components/ui/text-pressure"
@@ -37,9 +38,58 @@ interface PaymentStatus {
 
 export default function DashboardPage() {
     const { username, userId, isLoading: isSessionLoading } = useInstagramSession()
+    
+    // Fetch stats using SWR
+    const { data: statsData, mutate: mutateStats } = useSWR(
+        userId ? `/api/dashboard/stats?userId=${userId}` : null,
+        (url) => fetch(url).then(r => r.json())
+    )
+
+    // Fetch payment status using SWR
+    const { data: paymentStatus } = useSWR(
+        userId ? ['paymentStatus', userId] : null,
+        async () => {
+            const supabase = getSupabaseBrowserClient()
+            const { data: pending } = await supabase
+                .from("payment_submissions")
+                .select("id")
+                .eq("user_id", userId!)
+                .eq("status", "pending")
+                .limit(1)
+
+            const { data: sub } = await supabase
+                .from("subscriptions")
+                .select("payment_method, current_period_end")
+                .eq("user_id", userId!)
+                .single()
+
+            let needsManualRenewal = false
+            let daysToRenew = 0
+
+            if (sub && sub.payment_method === 'vodafone_cash' && sub.current_period_end) {
+                const diff = new Date(sub.current_period_end).getTime() - new Date().getTime()
+                daysToRenew = Math.ceil(diff / (1000 * 60 * 60 * 24))
+                if (daysToRenew <= 3 && daysToRenew > 0) {
+                    needsManualRenewal = true
+                }
+            }
+
+            return {
+                hasPendingSubmission: !!(pending && pending.length > 0),
+                needsManualRenewal,
+                daysToRenew
+            }
+        }
+    )
+
     const [stats, setStats] = useState<DashboardStats | null>(null)
-    const [loading, setLoading] = useState(true)
-    const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null)
+    // Sync SWR data to local state for Realtime updates
+    useEffect(() => {
+        if (statsData && !statsData.error) {
+            setStats(statsData)
+        }
+    }, [statsData])
+
     const { t } = useLanguage()
     
     const [themes, setThemes] = useState<any[]>([])
@@ -60,59 +110,9 @@ export default function DashboardPage() {
 
     useEffect(() => {
         if (!userId) {
-            setLoading(false)
             return
         }
         fetchThemes()
-
-        const fetchStats = async () => {
-            try {
-                const res = await fetch(`/api/dashboard/stats?userId=${userId}`)
-                const data = await res.json()
-                if (data && !data.error) {
-                    setStats(data)
-                }
-
-                // Check payment submission & subscription status
-                const supabase = getSupabaseBrowserClient()
-                const { data: pending } = await supabase
-                    .from("payment_submissions")
-                    .select("id")
-                    .eq("user_id", userId)
-                    .eq("status", "pending")
-                    .limit(1)
-
-                const { data: sub } = await supabase
-                    .from("subscriptions")
-                    .select("payment_method, current_period_end")
-                    .eq("user_id", userId)
-                    .single()
-
-                let needsManualRenewal = false
-                let daysToRenew = 0
-
-                if (sub && sub.payment_method === 'vodafone_cash' && sub.current_period_end) {
-                    const diff = new Date(sub.current_period_end).getTime() - new Date().getTime()
-                    daysToRenew = Math.ceil(diff / (1000 * 60 * 60 * 24))
-                    if (daysToRenew <= 3 && daysToRenew > 0) {
-                        needsManualRenewal = true
-                    }
-                }
-
-                setPaymentStatus({
-                    hasPendingSubmission: !!(pending && pending.length > 0),
-                    needsManualRenewal,
-                    daysToRenew
-                })
-
-            } catch (err) {
-                console.error("Failed to load dashboard stats", err)
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        fetchStats()
 
         // Realtime Subscription
         const supabase = getSupabaseBrowserClient()
@@ -155,7 +155,7 @@ export default function DashboardPage() {
         }
     }, [userId])
 
-    if (isSessionLoading || loading) {
+    if (isSessionLoading) {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
                 <Loader2 className="w-8 h-8 text-white/20 animate-spin" />

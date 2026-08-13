@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
@@ -20,3 +21,4 @@ export async function GET() {
     return NextResponse.json({ isActive: false, message: "", link: "" })
   }
 }
+

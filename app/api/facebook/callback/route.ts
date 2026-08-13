@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { getSessionUser } from "@/lib/auth"
@@ -148,3 +149,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=server_error", request.url))
   }
 }
+

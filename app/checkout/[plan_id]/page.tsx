@@ -4,11 +4,16 @@ import { redirect } from "next/navigation"
 import CheckoutClient from "./CheckoutClient"
 import BackToHome from "@/components/ui/back-to-home"
 
-export default async function CheckoutPage(props: { params: Promise<{ plan_id: string }> }) {
+export default async function CheckoutPage(props: { 
+  params: Promise<{ plan_id: string }>,
+  searchParams: Promise<{ cycle?: string }>
+}) {
   const params = await props.params
+  const searchParams = await props.searchParams
   const user = await getSessionUser()
   if (!user) {
-    redirect(`/signup?plan_id=${params.plan_id}`)
+    const cycleQuery = searchParams.cycle ? `&cycle=${searchParams.cycle}` : ""
+    redirect(`/signup?plan_id=${params.plan_id}${cycleQuery}`)
   }
 
   const supabase = await getSupabaseBypassClient()
@@ -27,13 +32,16 @@ export default async function CheckoutPage(props: { params: Promise<{ plan_id: s
     .select("*")
     .eq("is_enabled", true)
 
+  const isYearly = searchParams.cycle === "yearly"
+
   return (
     <div className="min-h-screen bg-[#03010A] text-white py-24 px-6 relative">
       <BackToHome />
       <div className="max-w-xl mx-auto space-y-8 relative z-10">
         <h1 className="text-3xl font-bold text-center">Complete your checkout</h1>
-        <CheckoutClient plan={plan} methods={methods || []} user={user} />
+        <CheckoutClient plan={plan} methods={methods || []} user={user} cycle={searchParams.cycle} />
       </div>
     </div>
   )
 }
+

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
@@ -229,3 +230,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Internal error" }, { status: 500 })
   }
 }
+

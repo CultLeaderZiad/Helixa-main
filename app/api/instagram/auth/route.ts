@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextResponse } from "next/server"
 
 /**
@@ -28,3 +29,4 @@ export async function GET() {
 
   return NextResponse.redirect(`https://api.instagram.com/oauth/authorize?${params.toString()}`)
 }
+

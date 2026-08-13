@@ -8,22 +8,35 @@ import { CreateRuleForm } from "@/components/dashboard/CreateRuleForm"
 import { MessageCircle, Send, Sparkles, Zap, Plus, Brain, Loader2 } from "lucide-react"
 import type { Automation } from "@/lib/types"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
-import { readCache, writeCache } from "@/lib/client-cache"
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
+import useSWR from "swr"
+import { fetcher } from "@/lib/fetcher"
 
 function AutomationsPageContent() {
     const searchParams = useSearchParams()
     const { userId, isLoading: isSessionLoading } = useInstagramSession()
     const { t } = useLanguage()
-    const [userRole, setUserRole] = useState("admin")
-    const [automations, setAutomations] = useState<Automation[]>([])
-    const [isLoading, setIsLoading] = useState(true)
+    const { data: roleData } = useSWR("/api/auth/me", fetcher)
+    const userRole = roleData?.permission_level || "admin"
+
+    const { data: aiData, mutate: mutateAi } = useSWR(
+        userId ? `/api/groq/auto-reply?userId=${userId}` : null,
+        fetcher
+    )
+    const aiEnabled = aiData?.enabled ?? false
+    const aiContextInitial = aiData?.ai_context ?? ""
+
+    const { data: automationsData, mutate: mutateAutomations, isLoading: isAutomationsLoading } = useSWR<Automation[]>(
+        userId ? `/api/automations?userId=${userId}` : null,
+        fetcher
+    )
+    const automations = Array.isArray(automationsData) ? automationsData : []
+    const isLoading = isSessionLoading || isAutomationsLoading
+
     const [activeTab, setActiveTab] = useState<'comment' | 'dm' | 'story'>('comment')
     const [showCreateForm, setShowCreateForm] = useState(false)
     const [editRule, setEditRule] = useState<Automation | null>(null)
-    const [aiEnabled, setAiEnabled] = useState(false)
-    const [aiLoading, setAiLoading] = useState(true)
     const [aiToggling, setAiToggling] = useState(false)
     const [showAiContext, setShowAiContext] = useState(false)
     const [aiContext, setAiContext] = useState("")
@@ -31,29 +44,47 @@ function AutomationsPageContent() {
     const [aiContextSaved, setAiContextSaved] = useState(false)
 
     useEffect(() => {
-        if (!userId) return
-        fetch(`/api/groq/auto-reply?userId=${userId}`)
-            .then(res => res.json())
-            .then(data => {
-                setAiEnabled(data.enabled ?? false)
-                setAiContext(data.ai_context ?? "")
-            })
-            .catch(() => {})
-            .finally(() => setAiLoading(false))
-            
-        // Fetch role from auth
-        fetch("/api/auth/me")
-            .then(res => res.json())
-            .then(data => setUserRole(data.permission_level || "admin"))
-            .catch(() => {})
+        if (aiData?.ai_context !== undefined) {
+            setAiContext(aiData.ai_context)
+        }
+    }, [aiData])
 
+    useEffect(() => {
         // Check for intent query param to open form
         const intent = searchParams?.get("intent")
         if (intent) {
             setShowCreateForm(true)
         }
-    }, [userId, searchParams])
+    }, [searchParams])
 
+    const handleDeleteRule = async (id: string) => {
+        await fetch(`/api/automations?id=${id}`, { method: "DELETE" })
+        mutateAutomations()
+    }
+
+    const handleEditRule = (rule: Automation) => {
+        setEditRule(rule)
+        setShowCreateForm(true)
+    }
+
+    const handleToggleRule = async (rule: Automation, active: boolean) => {
+        const previous = rule.is_active
+        mutateAutomations(prev => (prev || []).map(a => a.id === rule.id ? { ...a, is_active: active } : a), false)
+        try {
+            const res = await fetch("/api/automations", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: rule.id, is_active: active }),
+            })
+            if (!res.ok) throw new Error("PATCH failed")
+            toast.success(active ? "Automation enabled" : "Automation paused")
+            mutateAutomations()
+        } catch (err) {
+            mutateAutomations(prev => (prev || []).map(a => a.id === rule.id ? { ...a, is_active: previous } : a), false)
+            toast.error("Failed to update")
+        }
+    }
+    
     const handleSaveAiContext = async () => {
         if (aiContextSaving) return
         setAiContextSaving(true)
@@ -63,6 +94,7 @@ function AutomationsPageContent() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ userId, enabled: aiEnabled, ai_context: aiContext }),
             })
+            mutateAi()
             setAiContextSaved(true)
             setTimeout(() => setAiContextSaved(false), 2000)
         } catch {}
@@ -79,63 +111,11 @@ function AutomationsPageContent() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ userId, enabled: newState }),
             })
-            if (res.ok) setAiEnabled(newState)
+            if (res.ok) {
+                mutateAi()
+            }
         } catch {}
         setAiToggling(false)
-    }
-
-    const fetchAutomations = useCallback(async () => {
-        if (!userId) return
-        const cacheKey = `/api/automations?userId=${userId}`
-        const cached = readCache<Automation[]>(cacheKey)
-        if (cached) {
-            setAutomations(cached)
-            setIsLoading(false)
-        }
-        try {
-            const res = await fetch(`/api/automations?userId=${userId}`)
-            const data = await res.json()
-            if (res.ok) {
-                const list = Array.isArray(data) ? data : []
-                setAutomations(list)
-                writeCache(cacheKey, list)
-            }
-        } catch (err) {
-            console.error("Fetch error:", err)
-        } finally {
-            setIsLoading(false)
-        }
-    }, [userId])
-
-    useEffect(() => {
-        if (userId) fetchAutomations()
-    }, [userId, fetchAutomations])
-
-    const handleDeleteRule = async (id: string) => {
-        await fetch(`/api/automations?id=${id}`, { method: "DELETE" })
-        fetchAutomations()
-    }
-
-    const handleEditRule = (rule: Automation) => {
-        setEditRule(rule)
-        setShowCreateForm(true)
-    }
-
-    const handleToggleRule = async (rule: Automation, active: boolean) => {
-        const previous = rule.is_active
-        setAutomations(prev => prev.map(a => a.id === rule.id ? { ...a, is_active: active } : a))
-        try {
-            const res = await fetch("/api/automations", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: rule.id, is_active: active }),
-            })
-            if (!res.ok) throw new Error("PATCH failed")
-            toast.success(active ? "Automation enabled" : "Automation paused")
-        } catch (err) {
-            setAutomations(prev => prev.map(a => a.id === rule.id ? { ...a, is_active: previous } : a))
-            toast.error("Failed to update")
-        }
     }
 
     if (isSessionLoading) return <div className="h-screen flex items-center justify-center bg-[#03010A]"><div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>
@@ -172,7 +152,7 @@ function AutomationsPageContent() {
                     </div>
                     <div className="flex items-center gap-2">
                         {/* AI Auto-Reply Toggle */}
-                        {aiLoading ? (
+                        {aiData === undefined ? (
                             <Loader2 className="w-4 h-4 text-neutral-500 animate-spin" />
                         ) : (
                             <>
@@ -275,7 +255,7 @@ function AutomationsPageContent() {
                             editRule={editRule}
                             initialIntent={searchParams?.get("intent") || undefined}
                             onSuccess={() => {
-                                fetchAutomations()
+                                mutateAutomations()
                                 setShowCreateForm(false)
                                 setEditRule(null)
                             }}
@@ -295,7 +275,7 @@ function AutomationsPageContent() {
                         onDelete={handleDeleteRule}
                         onEdit={handleEditRule}
                         onToggle={handleToggleRule}
-                        onChanged={fetchAutomations}
+                        onChanged={() => mutateAutomations()}
                         userId={userId}
                         userRole={userRole}
                     />

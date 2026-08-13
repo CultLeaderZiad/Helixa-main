@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from "react"
 import { Settings, User, Mail, AlertTriangle, Calendar, Shield, Share2, LifeBuoy, Check, Upload, Loader2, Camera } from "lucide-react"
 import { TeamPanel } from "@/components/dashboard/TeamPanel"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
+import useSWR from "swr"
+import { fetcher } from "@/lib/fetcher"
 import Image from "next/image"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 
@@ -32,47 +34,42 @@ export default function SettingsPage() {
     
     const fileInputRef = useRef<HTMLInputElement>(null)
 
+    const { data: meData, error: meError } = useSWR("/api/auth/me", fetcher)
+    const { data: connData, error: connError } = useSWR("/api/user/connections", fetcher)
+
     useEffect(() => {
-        const fetchAll = async () => {
-            try {
-                const [meRes, connRes] = await Promise.all([
-                    fetch("/api/auth/me"),
-                    fetch("/api/user/connections")
-                ])
-                
-                if (meRes.ok) {
-                    const data = await meRes.json()
-                    if (data.authenticated) {
-                        setProfile({
-                            email: data.email,
-                            name: data.username || "",
-                            profilePic: data.profilePic || null,
-                            plan: data.plan || "free",
-                            trial_ends_at: data.trial_ends_at,
-                            created_at: data.created_at || new Date().toISOString()
-                        })
-                        setEditName(data.username || "")
-                        setEditPhotoUrl(data.profilePic || "")
-                    } else {
-                        setError("Could not load profile. User not found.")
-                    }
-                }
-                
-                if (connRes.ok) {
-                    const connData = await connRes.json()
-                    if (connData.connections) {
-                        setConnectionsCount(connData.connections.length)
-                    }
-                }
-            } catch (err) {
-                console.error("Failed to fetch data", err)
-                setError("Failed to load settings.")
-            } finally {
-                setLoading(false)
+        if (meData) {
+            if (meData.authenticated) {
+                setProfile({
+                    email: meData.email,
+                    name: meData.username || "",
+                    profilePic: meData.profilePic || null,
+                    plan: meData.plan || "free",
+                    trial_ends_at: meData.trial_ends_at,
+                    created_at: meData.created_at || new Date().toISOString()
+                })
+                setEditName(prev => prev || meData.username || "")
+                setEditPhotoUrl(prev => prev || meData.profilePic || "")
+            } else {
+                setError("Could not load profile. User not found.")
             }
         }
-        fetchAll()
-    }, [])
+    }, [meData])
+
+    useEffect(() => {
+        if (connData?.connections) {
+            setConnectionsCount(connData.connections.length)
+        }
+    }, [connData])
+
+    useEffect(() => {
+        if (meError || connError) {
+            setError("Failed to load settings.")
+            setLoading(false)
+        } else if (meData && connData) {
+            setLoading(false)
+        }
+    }, [meData, connData, meError, connError])
 
     const handleSaveProfile = async () => {
         setSaving(true)

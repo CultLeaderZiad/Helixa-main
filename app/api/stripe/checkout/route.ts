@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
 import { requireInstagramUser } from "@/lib/auth"
@@ -79,3 +80,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 })
   }
 }
+

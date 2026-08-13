@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireInstagramUser } from "@/lib/auth"
@@ -62,3 +63,4 @@ Return ONLY a valid JSON object. Do not include markdown formatting or explanati
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
+

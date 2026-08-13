@@ -102,7 +102,7 @@ export const en = {
   buttonTextOpt: "Button Text (Optional)",
   egTryNow: "e.g. Try it now",
   buttonUrlOpt: "Button URL (Optional)",
-  saveDraft: "Save Draft",
+  saveDraft: "Save Draft and Continue",
   reqFields: "Name, subject, and heading are required",
   draftSaved: "Draft saved successfully",
   failSave: "Failed to save draft",

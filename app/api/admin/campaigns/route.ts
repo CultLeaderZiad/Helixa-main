@@ -1,5 +1,6 @@
+export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireAdmin } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
@@ -7,7 +8,7 @@ export async function GET(request: NextRequest) {
     const result = await requireAdmin(request)
     if (result.response) return result.response
 
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
     const { data: campaigns, error } = await supabase
       .from("email_campaigns")
       .select("*")
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
     const { user } = result
 
     const body = await request.json()
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
 
     const { data: campaign, error } = await supabase
       .from("email_campaigns")
@@ -66,3 +67,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
+

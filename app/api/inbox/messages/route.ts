@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireInstagramUser } from "@/lib/auth"
@@ -40,3 +41,4 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Failed to fetch messages" }, { status: 500 })
     }
 }
+

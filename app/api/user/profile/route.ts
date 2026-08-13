@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/auth"
 import { createClient } from "@supabase/supabase-js"
@@ -43,3 +44,4 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
   }
 }
+

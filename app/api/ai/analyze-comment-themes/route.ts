@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireInstagramUser } from "@/lib/auth"
@@ -153,3 +154,4 @@ export async function POST(request: NextRequest) {
   url.searchParams.set("force", "true")
   return GET(new Request(url.toString(), { headers: request.headers }) as NextRequest)
 }
+

@@ -558,7 +558,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
               {triggerSource === "story" && (
                 <div className="space-y-3">
                   <FieldLabel>Select Story Interaction Type</FieldLabel>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {([
                       { key: "mention" as const, icon: <AtSign className="w-5 h-5" />, label: "Mentions me", desc: "Tagged in a story" },
                       { key: "reaction" as const, icon: <Heart className="w-5 h-5" />, label: "Reacts", desc: "Sends emoji reaction" },
@@ -816,7 +816,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
               {triggerSource === "comment" && (
                 <div className="space-y-2">
                   <FieldLabel>Flow direction</FieldLabel>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     {([
                       { key: "both" as const, label: "Reply + DM" },
                       { key: "public_only" as const, label: "Reply only" },
@@ -849,7 +849,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                 <div className="space-y-5 pt-2">
                   <div className="space-y-2">
                     <FieldLabel>Direct Message Format</FieldLabel>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {([
                         { key: "text" as const, icon: <MessageCircle className="w-4.5 h-4.5" />, label: "Text Only" },
                         { key: "card" as const, icon: <Link2 className="w-4.5 h-4.5" />, label: "Card / Link" },
@@ -946,30 +946,32 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                           </button>
                         </div>
                         {buttons.map((btn) => (
-                          <div key={btn.id} className="flex gap-2 items-center bg-white/[0.02] p-3 rounded-2xl border border-white/5">
+                          <div key={btn.id} className="flex flex-col sm:flex-row gap-2 items-start sm:items-center bg-white/[0.02] p-3 rounded-2xl border border-white/5">
                             <input
                               value={btn.title}
                               onChange={(e) => updateButton(btn.id, "title", e.target.value)}
-                              className="h-8 text-xs flex-1 bg-transparent border-none px-2 text-white placeholder:text-neutral-500 focus:outline-none"
+                              className="h-8 text-xs w-full sm:flex-1 bg-black/20 sm:bg-transparent border border-white/10 sm:border-none rounded-md sm:rounded-none px-2 text-white placeholder:text-neutral-500 focus:outline-none"
                               placeholder="Button label"
                             />
                             <select
                               value={btn.type}
                               onChange={(e) => updateButton(btn.id, "type", e.target.value)}
-                              className="h-8 text-[11px] bg-black border border-white/10 rounded-lg px-2 text-neutral-300 focus:outline-none"
+                              className="h-8 text-[11px] w-full sm:w-auto bg-black border border-white/10 rounded-lg px-2 text-neutral-300 focus:outline-none"
                             >
                               <option value="web_url">Open Link</option>
                               <option value="postback">Trigger Flow</option>
                             </select>
-                            <input
-                              value={btn.type === "web_url" ? btn.url : btn.payload}
-                              onChange={(e) => updateButton(btn.id, btn.type === "web_url" ? "url" : "payload", e.target.value)}
-                              className="h-8 text-xs flex-1 bg-transparent border-none px-2 text-white placeholder:text-neutral-500 focus:outline-none font-mono"
-                              placeholder={btn.type === "web_url" ? "https://link" : "flow_keyword"}
-                            />
-                            <button type="button" onClick={() => removeButton(btn.id)} className="text-neutral-500 hover:text-red-400 p-1.5 transition-colors">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            <div className="flex gap-2 w-full sm:flex-1">
+                              <input
+                                value={btn.type === "web_url" ? btn.url : btn.payload}
+                                onChange={(e) => updateButton(btn.id, btn.type === "web_url" ? "url" : "payload", e.target.value)}
+                                className="h-8 text-xs w-full bg-black/20 sm:bg-transparent border border-white/10 sm:border-none rounded-md sm:rounded-none px-2 text-white placeholder:text-neutral-500 focus:outline-none font-mono"
+                                placeholder={btn.type === "web_url" ? "https://link" : "flow_keyword"}
+                              />
+                              <button type="button" onClick={() => removeButton(btn.id)} className="text-neutral-500 hover:text-red-400 p-1.5 transition-colors shrink-0">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>

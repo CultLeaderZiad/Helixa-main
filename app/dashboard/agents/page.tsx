@@ -7,6 +7,8 @@ import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
+import useSWR from "swr"
+import { fetcher } from "@/lib/fetcher"
 import {
   Dialog,
   DialogContent,
@@ -34,9 +36,9 @@ interface Agent {
 }
 
 export default function DashboardAgentsPage() {
-  const [agents, setAgents] = useState<Agent[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
+  const { data: agentsData, error: swrError, isLoading: loading, mutate: mutateAgents } = useSWR("/api/agents", fetcher)
+  const agents = agentsData?.agents || []
+  const error = swrError?.message || ""
   const { t } = useLanguage()
 
   const [byokDialog, setByokDialog] = useState(false)
@@ -45,27 +47,13 @@ export default function DashboardAgentsPage() {
   const [byokProvider, setByokProvider] = useState("gemini")
   const [savingKey, setSavingKey] = useState(false)
 
-  useEffect(() => {
-    fetchAgents()
-  }, [])
-
-  const fetchAgents = async () => {
-    try {
-      const res = await fetch("/api/agents")
-      if (!res.ok) throw new Error("Failed to load agents")
-      const data = await res.json()
-      setAgents(data.agents || [])
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleToggleAgent = async (agentId: string, currentState: boolean) => {
     try {
       // Optimistic update
-      setAgents(agents.map(a => a.id === agentId ? { ...a, settings: { ...a.settings, is_enabled: !currentState } } : a))
+      mutateAgents((prev: any) => ({
+        ...prev,
+        agents: prev?.agents?.map((a: Agent) => a.id === agentId ? { ...a, settings: { ...a.settings, is_enabled: !currentState } } : a)
+      }), false)
       
       // We hardcode accountId for now since auth context is skipped
       const accountId = "00000000-0000-0000-0000-000000000000"
@@ -76,7 +64,7 @@ export default function DashboardAgentsPage() {
         body: JSON.stringify({ accountId, agentId, is_enabled: !currentState }),
       })
     } catch (err) {
-      fetchAgents()
+      mutateAgents()
       alert("Failed to update status")
     }
   }
@@ -101,7 +89,7 @@ export default function DashboardAgentsPage() {
       
       setByokDialog(false)
       setByokKey("")
-      fetchAgents()
+      mutateAgents()
     } catch (err: any) {
       alert(err.message)
     } finally {
@@ -116,7 +104,7 @@ export default function DashboardAgentsPage() {
   }
 
   // Group by category
-  const groupedAgents = agents.reduce((acc, agent) => {
+  const groupedAgents = agents.reduce((acc: Record<string, Agent[]>, agent: Agent) => {
     const cat = agent.category || "General"
     if (!acc[cat]) acc[cat] = []
     acc[cat].push(agent)
@@ -144,7 +132,7 @@ export default function DashboardAgentsPage() {
         <div key={category} className="mb-12">
           <h2 className="text-lg font-bold text-white mb-4 capitalize">{category} Agents</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {catAgents.map((agent) => (
+            {(catAgents as Agent[]).map((agent: Agent) => (
               <div
                 key={agent.id}
                 className={`border border-white/10 bg-white/[0.03] rounded-xl p-6 flex flex-col gap-4 relative overflow-hidden ${

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 /* @ts-nocheck */
 
 import crypto from "crypto"
@@ -753,3 +754,4 @@ Provide a very short, friendly response.`
     return NextResponse.json({ ok: true })
   }
 }
+

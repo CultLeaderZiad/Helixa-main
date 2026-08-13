@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { requireInstagramUser } from "@/lib/auth"
 
@@ -71,3 +72,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Failed to resolve media" }, { status: 500 })
   }
 }
+

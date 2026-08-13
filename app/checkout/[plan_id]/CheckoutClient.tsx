@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Loader2, ArrowRight } from "lucide-react"
 
-export default function CheckoutClient({ plan, methods, user }: { plan: any, methods: any[], user: any }) {
+export default function CheckoutClient({ plan, methods, user, cycle }: { plan: any, methods: any[], user: any, cycle?: string }) {
   const [selectedMethod, setSelectedMethod] = useState<string | null>(
     methods.length > 0 ? methods[0].method : null
   )
@@ -18,8 +18,14 @@ export default function CheckoutClient({ plan, methods, user }: { plan: any, met
   const selected = methods.find((m) => m.method === selectedMethod)
   const isStripe = selectedMethod === "stripe"
 
+  const isYearlyCycle = cycle === "yearly"
+  const amountToCharge = isYearlyCycle ? Number(plan.price_yearly) : Number(plan.price_usd)
+
   // plans.billing_cycle: "monthly" | "yearly" | "lifetime" (one-time)
-  const planType = plan.billing_cycle === "monthly" ? "monthly" : "one_time"
+  let planType = plan.billing_cycle === "monthly" ? "monthly" : "one_time"
+  if (plan.billing_cycle === "monthly" && isYearlyCycle) {
+    planType = "yearly"
+  }
 
   const handleCheckout = async () => {
     if (!selectedMethod) return
@@ -55,7 +61,7 @@ export default function CheckoutClient({ plan, methods, user }: { plan: any, met
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             transaction_reference: transactionRef.trim(),
-            amount: Number(plan.price_usd),
+            amount: amountToCharge,
             payment_method: selectedMethod,
             plan_id: plan.id,
             note: `${clientName.trim()} | ${countryCode}${clientPhone.trim()}`,
@@ -98,7 +104,7 @@ export default function CheckoutClient({ plan, methods, user }: { plan: any, met
         <p className="text-neutral-400 text-sm mb-4">You are subscribing to {plan.name}</p>
         <div className="flex justify-between items-center text-lg font-bold border-t border-white/10 pt-4">
           <span>Total due today:</span>
-          <span>${plan.price_usd}</span>
+          <span>${amountToCharge}</span>
         </div>
       </div>
 
@@ -215,7 +221,7 @@ export default function CheckoutClient({ plan, methods, user }: { plan: any, met
           <div className="p-4 bg-white/5 border border-[#ffe14d]/30 rounded-xl">
             <h4 className="font-bold text-[#ffe14d] mb-2">Payment Instructions</h4>
             <p className="text-sm text-neutral-300 mb-2">
-              Please transfer exactly <strong className="text-white text-base">${plan.price_usd}</strong> to the following Vodafone Cash number:
+              Please transfer exactly <strong className="text-white text-base">${amountToCharge}</strong> to the following Vodafone Cash number:
             </p>
             <div className="bg-black/50 p-3 rounded-lg text-[#ffe14d] font-mono text-xl text-center border border-white/10 font-bold tracking-wider">
               +01037312994

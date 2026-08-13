@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
@@ -199,3 +200,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 })
   }
 }
+

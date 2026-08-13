@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient, getSupabaseBypassClient } from "@/lib/supabase-server"
@@ -205,3 +206,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+

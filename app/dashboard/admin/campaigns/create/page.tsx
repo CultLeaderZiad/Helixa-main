@@ -57,7 +57,12 @@ export default function CreateCampaignPage() {
       
       const data = await res.json()
       toast.success(t.draftSaved)
-      router.push(`/dashboard/admin/campaigns`)
+      // Go to the campaign page so the admin can continue to send or test it
+      if (data.campaign && data.campaign.id) {
+        router.push(`/dashboard/admin/campaigns/${data.campaign.id}`)
+      } else {
+        router.push(`/dashboard/admin/campaigns`)
+      }
     } catch (error) {
       toast.error(t.failSave)
       console.error(error)
@@ -234,7 +239,7 @@ export default function CreateCampaignPage() {
               className="bg-white text-black hover:bg-zinc-200"
             >
               {loading ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'} animate-spin`} /> : <Save className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />}
-              {t.saveDraft}
+              {t.saveDraft || "Save Draft"} & Continue
             </Button>
           </div>
 

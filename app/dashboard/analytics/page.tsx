@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
+import useSWR from "swr"
+import { fetcher } from "@/lib/fetcher"
 
 function timeAgo(isoString: string | null): string {
     if (!isoString) return "Never"
@@ -20,97 +22,63 @@ function timeAgo(isoString: string | null): string {
 
 export default function AnalyticsPage() {
     const router = useRouter()
+    const { t } = useLanguage()
+    const { userId, isLoading: isSessionLoading } = useInstagramSession()
     const [summary, setSummary] = useState<string>("")
     const [loading, setLoading] = useState<boolean>(false)
     const [hasLoaded, setHasLoaded] = useState<boolean>(false)
-    const [funnelData, setFunnelData] = useState<any>(null)
-    const [funnelLoading, setFunnelLoading] = useState<boolean>(true)
-    const { userId, isLoading: isSessionLoading } = useInstagramSession()
-    const { t } = useLanguage()
+    const { data: funnelData, isLoading: funnelLoading } = useSWR(
+        userId ? `/api/analytics/funnel?userId=${userId}` : null,
+        fetcher
+    )
 
     // Comment Themes
-    const [themes, setThemes] = useState<any[]>([])
-    const [themesLoading, setThemesLoading] = useState(true)
-    const [themesLastAnalyzed, setThemesLastAnalyzed] = useState<string | null>(null)
+    const { data: themesData, isLoading: themesLoading, mutate: mutateThemes } = useSWR(
+        userId ? "/api/ai/analyze-comment-themes" : null,
+        fetcher
+    )
+    const themes = themesData?.themes || []
+    const themesLastAnalyzed = themesData?.last_analyzed_at || null
     const [themesRefreshing, setThemesRefreshing] = useState(false)
 
     // FAQ Suggestions
-    const [faqs, setFaqs] = useState<any[]>([])
-    const [faqsLoading, setFaqsLoading] = useState(true)
-    const [faqsLastAnalyzed, setFaqsLastAnalyzed] = useState<string | null>(null)
+    const { data: faqsData, isLoading: faqsLoading, mutate: mutateFaqs } = useSWR(
+        userId ? "/api/ai/analyze-inbox-faqs" : null,
+        fetcher
+    )
+    const faqs = faqsData?.faqs || []
+    const faqsLastAnalyzed = faqsData?.last_analyzed_at || null
     const [faqsRefreshing, setFaqsRefreshing] = useState(false)
     const [dismissingFaqId, setDismissingFaqId] = useState<string | null>(null)
 
-    useEffect(() => {
-        if (!userId) return
-        const fetchFunnel = async () => {
-            try {
-                const res = await fetch(`/api/analytics/funnel?userId=${userId}`)
-                if (res.ok) {
-                    const data = await res.json()
-                    setFunnelData(data)
-                }
-            } catch (err) {
-                console.error(err)
-            } finally {
-                setFunnelLoading(false)
-            }
-        }
-        fetchFunnel()
-    }, [userId])
-
-    const fetchThemes = useCallback(async (force = false) => {
-        try {
-            const url = force ? "/api/ai/analyze-comment-themes?force=true" : "/api/ai/analyze-comment-themes"
-            const res = await fetch(url)
-            const data = await res.json()
-            if (data.themes) {
-                setThemes(data.themes)
-                setThemesLastAnalyzed(data.last_analyzed_at || null)
-            }
-            if (data.error && data.themes === undefined) toast.error(data.error)
-        } catch {
-            // silent fail — themes are optional
-        } finally {
-            setThemesLoading(false)
-            setThemesRefreshing(false)
-        }
-    }, [])
-
-    const fetchFaqs = useCallback(async (force = false) => {
-        try {
-            const url = force ? "/api/ai/analyze-inbox-faqs?force=true" : "/api/ai/analyze-inbox-faqs"
-            const res = await fetch(url)
-            const data = await res.json()
-            if (data.faqs) {
-                setFaqs(data.faqs)
-                setFaqsLastAnalyzed(data.last_analyzed_at || null)
-            }
-            if (data.error && data.faqs === undefined) toast.error(data.error)
-        } catch {
-            // silent fail
-        } finally {
-            setFaqsLoading(false)
-            setFaqsRefreshing(false)
-        }
-    }, [])
-
-    useEffect(() => {
-        if (!userId) return
-        fetchThemes()
-        fetchFaqs()
-    }, [userId, fetchThemes, fetchFaqs])
-
     const handleRefreshThemes = async () => {
         setThemesRefreshing(true)
-        await fetchThemes(true)
-        toast.success("Comment themes refreshed!")
+        try {
+            const res = await fetch("/api/ai/analyze-comment-themes?force=true")
+            const data = await res.json()
+            if (data.themes) mutateThemes(data, false)
+            if (data.error) toast.error(data.error)
+            else toast.success("Comment themes refreshed!")
+        } catch {
+            // silent
+        } finally {
+            setThemesRefreshing(false)
+        }
     }
 
     const handleRefreshFaqs = async () => {
         setFaqsRefreshing(true)
-        await fetchFaqs(true)
-        toast.success("FAQ suggestions refreshed!")
+        try {
+            const res = await fetch("/api/ai/analyze-inbox-faqs?force=true")
+            const data = await res.json()
+            if (data.faqs) mutateFaqs(data, false)
+            if (data.error) toast.error(data.error)
+            else toast.success("FAQ suggestions refreshed!")
+        } catch {
+            // silent
+        } finally {
+            setFaqsRefreshing(false)
+        }
     }
 
     const handleDismissFaq = async (faqId: string) => {
@@ -122,7 +90,7 @@ export default function AnalyticsPage() {
                 body: JSON.stringify({ faqId, dismiss: true })
             })
             if (res.ok) {
-                setFaqs(prev => prev.filter(f => f.id !== faqId))
+                mutateFaqs((prev: any) => ({ ...prev, faqs: prev?.faqs?.filter((f: any) => f.id !== faqId) }), false)
             } else {
                 toast.error("Failed to dismiss")
             }

@@ -5,6 +5,8 @@ import { Send, Loader2, MoreVertical, Phone, Video, Zap, ChevronLeft, MessageSqu
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { Message } from "@/types/db"
+import useSWR from "swr"
+import { fetcher } from "@/lib/fetcher"
 
 interface ChatWindowProps {
     conversationId: string | null
@@ -15,43 +17,22 @@ interface ChatWindowProps {
 }
 
 export function ChatWindow({ conversationId, recipientId, recipientName, userId, onBack }: ChatWindowProps) {
-    const [messages, setMessages] = useState<Message[]>([])
-    const [loading, setLoading] = useState(false)
+    const { data: messagesData, mutate: mutateMessages, isLoading: loading } = useSWR(
+        conversationId ? `/api/inbox/messages?conversationId=${conversationId}` : null,
+        fetcher
+    )
+    const messages = Array.isArray(messagesData) ? messagesData : []
+
+    const { data: automationsData } = useSWR(
+        userId ? `/api/automations?userId=${userId}` : null,
+        fetcher
+    )
+    const automations = Array.isArray(automationsData) ? automationsData : []
+
     const [inputText, setInputText] = useState("")
     const [sending, setSending] = useState(false)
     const [isAutomationOpen, setIsAutomationOpen] = useState(false)
-    const [automations, setAutomations] = useState<any[]>([])
     const bottomRef = useRef<HTMLDivElement>(null)
-
-    useEffect(() => {
-        if (!conversationId) return
-
-        const fetchMessages = async () => {
-            setLoading(true)
-            try {
-                const res = await fetch(`/api/inbox/messages?conversationId=${conversationId}`)
-                const data = await res.json()
-                if (Array.isArray(data)) {
-                    setMessages(data)
-                }
-            } catch (error) {
-                console.error("Failed to load messages", error)
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        fetchMessages()
-    }, [conversationId])
-
-    // Fetch automations for quick reply
-    useEffect(() => {
-        if (userId) {
-            fetch(`/api/automations?userId=${userId}`).then(res => res.json()).then(data => {
-                if (Array.isArray(data)) setAutomations(data)
-            })
-        }
-    }, [userId])
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -85,7 +66,7 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
                     is_from_instagram: false,
                     created_at: new Date().toISOString()
                 }
-                setMessages(prev => [...prev, newMsg])
+                mutateMessages((prev: any) => [...(prev || []), newMsg], false)
             }
         } catch (e) {
             console.error("Send failed", e)

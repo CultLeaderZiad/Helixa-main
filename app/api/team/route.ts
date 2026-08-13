@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { getSessionInstagramUser } from "@/lib/auth"
@@ -118,3 +119,4 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Failed to remove member" }, { status: 500 })
   }
 }
+

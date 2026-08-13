@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 /**
  * DEPRECATED — This server-redirect OAuth route is no longer used by the frontend.
  * The Connected Platforms page now uses the Facebook JS SDK (FB.login popup) →
@@ -32,3 +33,4 @@ export async function GET() {
   
   return NextResponse.redirect(url)
 }
+

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { Search, Loader2, UserCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Conversation } from "@/types/db"
+import useSWR from "swr"
+import { fetcher } from "@/lib/fetcher"
 
 interface ConversationListProps {
     userId: string
@@ -12,28 +14,11 @@ interface ConversationListProps {
 }
 
 export function ConversationList({ userId, selectedId, onSelect }: ConversationListProps) {
-    const [conversations, setConversations] = useState<Conversation[]>([])
-    const [loading, setLoading] = useState(true)
-
-    useEffect(() => {
-        if (!userId) return
-
-        const fetchConversations = async () => {
-            try {
-                const res = await fetch(`/api/inbox/conversations?userId=${userId}`)
-                const data = await res.json()
-                if (Array.isArray(data)) {
-                    setConversations(data)
-                }
-            } catch (error) {
-                console.error("Failed to load conversations", error)
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        fetchConversations()
-    }, [userId])
+    const { data, error, isLoading: loading } = useSWR(
+        userId ? `/api/inbox/conversations?userId=${userId}` : null,
+        fetcher
+    )
+    const conversations = Array.isArray(data) ? data : []
 
     if (loading) {
         return (

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextResponse } from "next/server"
 import { requireInstagramUser } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
@@ -72,3 +73,4 @@ export async function PUT(request: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }
+

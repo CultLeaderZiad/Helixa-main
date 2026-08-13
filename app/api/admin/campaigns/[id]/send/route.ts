@@ -1,5 +1,6 @@
+export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireAdmin } from "@/lib/auth"
 import { sendEmail } from "@/lib/email-provider"
 import { generateEmailHtml } from "@/lib/email-templates"
@@ -10,7 +11,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (result.response) return result.response
 
     const { id } = await params;
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
 
     // 1. Fetch Campaign
     const { data: campaign, error: campaignError } = await supabase
