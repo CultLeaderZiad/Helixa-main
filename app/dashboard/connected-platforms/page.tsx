@@ -196,7 +196,6 @@ export default function ConnectedPlatformsPage() {
 
             if (!res.ok) {
                 setFbError(data.error || "Failed to connect the Page.")
-                setFbConnecting(false)
                 return
             }
 
@@ -205,11 +204,11 @@ export default function ConnectedPlatformsPage() {
             setFbPages([])
             setFbToken("")
             setSelectedPageId(null)
-            setFbConnecting(false)
             mutateConnections()
         } catch (error) {
             console.error("[FB Connect] Error:", error)
             setFbError("An error occurred while connecting the Page.")
+        } finally {
             setFbConnecting(false)
         }
     }

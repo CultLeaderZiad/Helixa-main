@@ -41,9 +41,18 @@ export async function POST(request: NextRequest) {
     // Token is in the path as Telegram's security measure
     const webhookUrl = `${appUrl}/api/telegram/webhook/${botToken}`
     
-    const webhookResult = await setWebhook(botToken, webhookUrl)
-    if (!webhookResult.ok) {
-      return NextResponse.json({ error: `Failed to register webhook with Telegram: ${webhookResult.error}` }, { status: 502 })
+    // Deep fix: skip webhook if testing on localhost since Telegram blocks HTTP webhooks
+    const isLocal = appUrl.includes("localhost") || appUrl.startsWith("http://")
+    let webhookSubscribed = false
+    
+    if (isLocal) {
+      console.warn(`[Telegram Connect] Skipping webhook registration for local development: ${appUrl}`)
+    } else {
+      const webhookResult = await setWebhook(botToken, webhookUrl)
+      if (!webhookResult.ok) {
+        return NextResponse.json({ error: `Failed to register webhook with Telegram: ${webhookResult.error}` }, { status: 502 })
+      }
+      webhookSubscribed = true
     }
 
     // 3. Encrypt the token for secure storage at rest
@@ -62,7 +71,8 @@ export async function POST(request: NextRequest) {
       metadata: {
         name: botInfo.first_name,
         username: botInfo.username,
-        is_bot: botInfo.is_bot
+        is_bot: botInfo.is_bot,
+        webhook_subscribed: webhookSubscribed
       }
     }
     

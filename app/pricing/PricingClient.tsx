@@ -53,20 +53,22 @@ export default function PricingClient({ plans }: { plans: any[] }) {
     }
   }
 
-  const renderPlatformIcons = () => (
-    <div className="flex items-center gap-3 mt-6 pt-6 border-t border-white/10">
-      <img src="/instagram.svg" alt="Instagram" className="w-5 h-5 opacity-80 invert" />
-      <img src="/facebook.svg" alt="Facebook" className="w-5 h-5 opacity-80 invert" />
-      <img src="/whatsapp.svg" alt="WhatsApp" className="w-5 h-5 opacity-80 invert" />
-      <img src="/telegram.svg" alt="Telegram" className="w-5 h-5 opacity-80 invert" />
-      <div className="relative group flex items-center justify-center">
-        <img src="/tiktok.svg" alt="TikTok" className="w-5 h-5 opacity-30 grayscale invert" />
-        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/20">
-          Coming Soon
-        </div>
+  const renderPlatformIcons = (plan: any) => {
+    const p = plan?.platforms || { instagram: true, facebook: true, whatsapp: false, telegram: false, tiktok: false }
+    return (
+      <div className="flex items-center gap-3 mt-6 pt-6 border-t border-white/10">
+        {p.instagram && <img src="/instagram.svg" alt="Instagram" className="w-5 h-5 opacity-100" title="Instagram" />}
+        {p.facebook && <img src="/facebook.svg" alt="Facebook" className="w-5 h-5 opacity-100" title="Facebook" />}
+        {p.whatsapp && <img src="/whatsapp.svg" alt="WhatsApp" className="w-5 h-5 opacity-100" title="WhatsApp" />}
+        {p.telegram && <img src="/telegram.svg" alt="Telegram" className="w-5 h-5 opacity-100" title="Telegram" />}
+        {p.tiktok && (
+          <div className="relative group flex items-center justify-center" title="TikTok (Coming Soon)">
+            <img src="/tiktok.svg" alt="TikTok" className="w-5 h-5 opacity-30 invert" />
+          </div>
+        )}
       </div>
-    </div>
-  )
+    )
+  }
 
   return (
     <div className="space-y-12">
@@ -150,7 +152,7 @@ export default function PricingClient({ plans }: { plans: any[] }) {
                   ))}
                 </ul>
 
-                {renderPlatformIcons()}
+                {renderPlatformIcons(mainPlan)}
 
                 <Link 
                   href={`/checkout/${mainPlan.id}${isAnnual ? '?cycle=yearly' : '?cycle=monthly'}`} 
@@ -186,7 +188,7 @@ export default function PricingClient({ plans }: { plans: any[] }) {
                 ))}
               </ul>
 
-              {renderPlatformIcons()}
+              {renderPlatformIcons(enterprisePlan)}
 
               <button 
                 onClick={() => setDialogOpen(true)}

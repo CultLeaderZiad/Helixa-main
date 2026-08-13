@@ -34,6 +34,13 @@ interface Plan {
   is_active: boolean
   stripe_price_id: string | null
   is_contact_sales: boolean
+  platforms: {
+    instagram: boolean
+    facebook: boolean
+    whatsapp: boolean
+    telegram: boolean
+    tiktok: boolean
+  }
 }
 
 interface Agent {
@@ -56,6 +63,13 @@ const EMPTY_FORM = {
   stripe_price_id: "",
   is_active: true,
   is_contact_sales: false,
+  platforms: {
+    instagram: true,
+    facebook: true,
+    whatsapp: false,
+    telegram: false,
+    tiktok: false,
+  }
 }
 
 export default function DashboardAdminPlansPage() {
@@ -141,6 +155,13 @@ export default function DashboardAdminPlansPage() {
       stripe_price_id: plan.stripe_price_id || "",
       is_active: plan.is_active,
       is_contact_sales: plan.is_contact_sales,
+      platforms: plan.platforms || {
+        instagram: true,
+        facebook: true,
+        whatsapp: false,
+        telegram: false,
+        tiktok: false,
+      }
     })
     setDialogOpen(true)
   }
@@ -165,6 +186,7 @@ export default function DashboardAdminPlansPage() {
         stripe_price_id: form.stripe_price_id.trim() || null,
         is_active: form.is_active,
         is_contact_sales: form.is_contact_sales,
+        platforms: form.platforms,
       }
 
       const res = editingId
@@ -473,6 +495,24 @@ export default function DashboardAdminPlansPage() {
                   checked={form.is_contact_sales}
                   onCheckedChange={(v) => setForm({ ...form, is_contact_sales: v })}
                 />
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <Label className="text-neutral-300">Supported Platforms</Label>
+              <div className="grid grid-cols-2 gap-3">
+                {Object.keys(form.platforms).map((platform) => (
+                  <div key={platform} className="flex items-center justify-between rounded-lg border border-white/10 px-3 py-2 bg-white/5">
+                    <span className="text-sm text-white capitalize">{platform}</span>
+                    <Switch
+                      checked={form.platforms[platform as keyof typeof form.platforms]}
+                      onCheckedChange={(v) => setForm({
+                        ...form,
+                        platforms: { ...form.platforms, [platform]: v }
+                      })}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           </div>

@@ -59,6 +59,23 @@ export default function BillingPage() {
         fetchSubscriptionAndPlans()
     }, [])
 
+    const renderPlatformIcons = (plan: any) => {
+        const p = plan?.platforms || { instagram: true, facebook: true, whatsapp: false, telegram: false, tiktok: false }
+        return (
+            <div className="flex items-center gap-3 mt-4 pt-4 border-t border-white/10 mb-6">
+                {p.instagram && <img src="/instagram.svg" alt="Instagram" className="w-5 h-5 opacity-100" title="Instagram" />}
+                {p.facebook && <img src="/facebook.svg" alt="Facebook" className="w-5 h-5 opacity-100" title="Facebook" />}
+                {p.whatsapp && <img src="/whatsapp.svg" alt="WhatsApp" className="w-5 h-5 opacity-100" title="WhatsApp" />}
+                {p.telegram && <img src="/telegram.svg" alt="Telegram" className="w-5 h-5 opacity-100" title="Telegram" />}
+                {p.tiktok && (
+                    <div className="relative group flex items-center justify-center" title="TikTok (Coming Soon)">
+                        <img src="/tiktok.svg" alt="TikTok" className="w-5 h-5 opacity-30 invert" />
+                    </div>
+                )}
+            </div>
+        )
+    }
+
     return (
         <div className="p-8 space-y-12 animate-in fade-in duration-700 max-w-6xl mx-auto">
             <div>
@@ -238,6 +255,7 @@ export default function BillingPage() {
                                             </li>
                                         ))}
                                     </ul>
+                                    {renderPlatformIcons(plan)}
                                     <button 
                                         onClick={() => window.location.href = `/checkout/${plan.id}${isAnnual && plan.price_yearly ? '?cycle=yearly' : '?cycle=monthly'}`}
                                         className={`w-full py-3.5 font-bold rounded-xl transition-all ${isFeatured ? 'bg-white text-black hover:bg-neutral-200' : 'bg-gradient-to-br from-[#ffe14d] to-[#e6c419] text-black font-black hover:brightness-110 shadow-[0_10px_20px_rgba(255,225,77,0.2)] hover:-translate-y-0.5 active:translate-y-0'}`}
