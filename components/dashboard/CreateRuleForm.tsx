@@ -25,6 +25,7 @@ interface CreateRuleFormProps {
   onSuccess: () => void
   editRule?: Automation | null
   initialIntent?: string
+  defaultPlatform?: string
 }
 
 const STEPS = [
@@ -33,7 +34,7 @@ const STEPS = [
   { key: "settings", label: "Final Settings", sub: "Speed & restrictions" },
 ] as const
 
-export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, initialIntent }: CreateRuleFormProps) {
+export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, initialIntent, defaultPlatform }: CreateRuleFormProps) {
   const isEditing = !!editRule
   const [step, setStep] = useState(0)
 
@@ -85,7 +86,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
   const [cardStyle, setCardStyle] = useState<"modern" | "classic" | "minimal">("modern")
   const [specificMediaUrl, setSpecificMediaUrl] = useState("")
   const [resolvingUrl, setResolvingUrl] = useState(false)
-  const [platform, setPlatform] = useState<"instagram" | "messenger" | "facebook" | "telegram">("instagram")
+  const [platform, setPlatform] = useState<"instagram" | "messenger" | "facebook" | "telegram">((defaultPlatform as any) || "instagram")
   const [availablePlatforms, setAvailablePlatforms] = useState<string[]>(["instagram"])
 
   const [intentDescription, setIntentDescription] = useState(initialIntent || "")
@@ -589,23 +590,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                 <div className="space-y-4">
                   <FieldLabel>Automate which post or reel?</FieldLabel>
                   
-                  {/* Platform Selector */}
-                  {availablePlatforms.length > 1 && (
-                    <div className="flex gap-2 mb-4 bg-white/[0.02] p-1 rounded-xl w-max border border-white/10">
-                      {availablePlatforms.map(p => (
-                        <button
-                          key={p}
-                          type="button"
-                          onClick={() => setPlatform(p as any)}
-                          className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
-                            platform === p ? "bg-white text-black" : "text-neutral-500 hover:text-white"
-                          }`}
-                        >
-                          {p}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+
                   {loadingReels ? (
                     <div className="p-8 flex flex-col items-center justify-center gap-3 border border-white/5 rounded-2xl bg-white/[0.01]">
                       <Loader2 className="w-6 h-6 animate-spin text-[#ffe14d]" />

@@ -112,7 +112,7 @@ async function sendAutomationResponse(
   token: string,
   recipient: { id?: string; comment_id?: string },
   content: any,
-  opts: { skipTyping?: boolean } = {},
+  opts: { skipTyping?: boolean; automationId?: string; variantId?: string | null } = {},
 ) {
   const delaySeconds = Number(content.delay_seconds) || 0
   const useTyping = content.typing_indicator === true && recipient.id && !opts.skipTyping
@@ -123,19 +123,30 @@ async function sendAutomationResponse(
   let result
   if (recipient.comment_id) {
     // Private replies via comment_id only support plain text
-    let text = content.message || (content.card ? content.card.title : "[Automated Reply]")
-    
-    if (content.card && Array.isArray(content.card.buttons)) {
-        const links = content.card.buttons
-          .filter((b: any) => b.type === "web_url" && b.url)
-          .map((b: any) => `${b.title}:\n${b.url}`)
-          .join("\n\n")
-      if (links) {
-        text += "\n\n" + links
-      }
+    // If it's a card, we send a Quick Reply to trigger the actual card since Instagram forbids templates here
+    if (content.card && Array.isArray(content.card.buttons) && content.card.buttons.length > 0 && opts.automationId) {
+        const text = content.message || content.card.title || "I have a link for you!"
+        const qrTitle = content.card.buttons[0]?.title || "Show link"
+        const qr = [{
+            title: qrTitle,
+            payload: `SYS_CARD_${opts.automationId}_${opts.variantId || 'default'}`
+        }]
+        result = await sendTextDM(token, recipient, text, qr)
+    } else {
+        let text = content.message || (content.card ? content.card.title : "[Automated Reply]")
+        
+        if (content.card && Array.isArray(content.card.buttons)) {
+            const links = content.card.buttons
+              .filter((b: any) => b.type === "web_url" && b.url)
+              .map((b: any) => `${b.title}:\n${b.url}`)
+              .join("\n\n")
+          if (links) {
+            text += "\n\n" + links
+          }
+        }
+        
+        result = await sendTextDM(token, recipient, text)
     }
-    
-    result = await sendTextDM(token, recipient, text)
   } else {
     const quickReplies = Array.isArray(content.quick_replies)
       ? content.quick_replies
@@ -382,7 +393,7 @@ export async function POST(request: NextRequest) {
               user.access_token,
               { comment_id: commentId },
               content,
-              { skipTyping: true },
+              { skipTyping: true, automationId: match.id, variantId: variantId },
             )
           }
 
@@ -557,6 +568,20 @@ export async function POST(request: NextRequest) {
             if (triggerValue.startsWith("UNLOCK_CONTENT_")) {
               const ruleId = triggerValue.replace("UNLOCK_CONTENT_", "")
               match = automations.find((a) => a.id === ruleId)
+            } else if (triggerValue.startsWith("SYS_CARD_")) {
+              const parts = triggerValue.split("_")
+              const ruleId = parts[2]
+              const variantId = parts.length > 3 && parts[3] !== "default" ? parts.slice(3).join("_") : null
+              
+              const rule = automations.find((a: any) => a.id === ruleId)
+              if (rule) {
+                let responseContent = rule.response_content
+                if (variantId && rule.automation_variants) {
+                   const v = rule.automation_variants.find((v: any) => v.id === variantId)
+                   if (v) responseContent = v.response_config
+                }
+                match = { id: rule.id, name: "System Card Reply", response_content: responseContent }
+              }
             } else if (triggerValue.startsWith("ICE_BREAKER_")) {
               const iceBreakerId = triggerValue.replace("ICE_BREAKER_", "")
               const { data: ib } = await supabase

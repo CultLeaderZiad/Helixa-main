@@ -19,16 +19,17 @@ interface AutomationListProps {
   onChanged: () => void
   userId: string
   userRole?: string
+  platform?: string
 }
 
-export function AutomationList({ automations, onDelete, onEdit, onToggle, onChanged, userId, userRole = "admin" }: AutomationListProps) {
+export function AutomationList({ automations, onDelete, onEdit, onToggle, onChanged, userId, userRole = "admin", platform = "instagram" }: AutomationListProps) {
   const [mediaMap, setMediaMap] = useState<Record<string, string>>({})
 
   const globalRules = automations.filter((rule) => !rule.specific_media_id)
   const postSpecificRules = automations.filter((rule) => rule.specific_media_id)
 
   useEffect(() => {
-    if (!userId || postSpecificRules.length === 0) return
+    if (!userId || postSpecificRules.length === 0 || platform !== "instagram") return
     const fetchMedia = async () => {
       try {
         const res = await fetch(`/api/instagram/media?userId=${userId}`)
@@ -97,7 +98,7 @@ export function AutomationList({ automations, onDelete, onEdit, onToggle, onChan
         {postSpecificRules.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-pink-400 ml-1">
-              <Instagram className="w-3 h-3" /> Post Specific
+              {platform === "instagram" ? <Instagram className="w-3 h-3" /> : <Globe className="w-3 h-3" />} Post Specific
             </div>
             {postSpecificRules.map((rule, idx) => (
               <RuleCard key={rule.id} rule={rule} onDelete={onDelete} onEdit={onEdit} onToggle={handleToggle} onDuplicate={handleDuplicate} index={idx} mediaUrl={mediaMap[rule.specific_media_id || ""]} isSpecific userRole={userRole} />

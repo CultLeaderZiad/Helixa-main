@@ -32,6 +32,16 @@ function AutomationsPageContent() {
         fetcher
     )
     const automations = Array.isArray(automationsData) ? automationsData : []
+
+    const { data: connectionsData } = useSWR(
+        userId ? `/api/user/connections` : null,
+        fetcher
+    )
+    const connections = connectionsData?.connections || []
+    const availablePlatforms = Array.from(new Set(connections.map((c: any) => c.platform))) as string[]
+    if (userId && !availablePlatforms.includes("instagram")) availablePlatforms.unshift("instagram")
+
+    const [selectedPlatform, setSelectedPlatform] = useState<string>("instagram")
     const isLoading = isSessionLoading || isAutomationsLoading
 
     const [activeTab, setActiveTab] = useState<'comment' | 'dm' | 'story'>('comment')
@@ -128,11 +138,12 @@ function AutomationsPageContent() {
         )
     }
 
-    const filteredAutomations = automations.filter(a => a.trigger_source === activeTab)
+    const platformAutomations = automations.filter(a => (a.platform || "instagram") === selectedPlatform)
+    const filteredAutomations = platformAutomations.filter(a => a.trigger_source === activeTab)
     const counts = {
-        comment: automations.filter(a => a.trigger_source === 'comment').length,
-        dm: automations.filter(a => a.trigger_source === 'dm').length,
-        story: automations.filter(a => a.trigger_source === 'story').length,
+        comment: platformAutomations.filter(a => a.trigger_source === 'comment').length,
+        dm: platformAutomations.filter(a => a.trigger_source === 'dm').length,
+        story: platformAutomations.filter(a => a.trigger_source === 'story').length,
     }
 
     const tabs = [
@@ -221,6 +232,25 @@ function AutomationsPageContent() {
                     </div>
                 )}
 
+                {/* Platform Switcher */}
+                {availablePlatforms.length > 1 && (
+                    <div className="flex gap-2 bg-white/5 p-1 rounded-full w-fit mb-4">
+                        {availablePlatforms.map((platform) => (
+                            <button
+                                key={platform}
+                                onClick={() => setSelectedPlatform(platform)}
+                                className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-colors ${
+                                    selectedPlatform === platform
+                                        ? 'bg-white text-black'
+                                        : 'text-neutral-500 hover:text-white'
+                                }`}
+                            >
+                                {platform}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
                 {/* Tabs — editorial underline */}
                 <div className="flex items-center gap-6 border-b border-white/10">
                     {tabs.map((tab) => (
@@ -254,6 +284,7 @@ function AutomationsPageContent() {
                             triggerSource={editRule ? editRule.trigger_source : activeTab}
                             editRule={editRule}
                             initialIntent={searchParams?.get("intent") || undefined}
+                            defaultPlatform={selectedPlatform}
                             onSuccess={() => {
                                 mutateAutomations()
                                 setShowCreateForm(false)
@@ -278,6 +309,7 @@ function AutomationsPageContent() {
                         onChanged={() => mutateAutomations()}
                         userId={userId}
                         userRole={userRole}
+                        platform={selectedPlatform}
                     />
                 )}
             </div>
