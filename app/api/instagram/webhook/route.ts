@@ -389,12 +389,29 @@ export async function POST(request: NextRequest) {
           }
 
           if (replyMode !== "public_only") {
-            await sendAutomationResponse(
+            const leadCaptureResult = await processLeadCapture(
+              supabase,
+              user.id,
+              senderId,
+              "User", // realUsername is not easily available for comments
               user.access_token,
-              { comment_id: commentId },
+              commentText,
+              match,
               content,
-              { skipTyping: true, automationId: match.id, variantId: variantId },
+              commentId
             )
+
+            if (!leadCaptureResult.shouldContinue) {
+              // We just prompted them for lead capture info via Private Reply.
+              // Note: We don't have a conv object yet, so we don't log to messages table until they reply.
+            } else {
+              await sendAutomationResponse(
+                user.access_token,
+                { comment_id: commentId },
+                content,
+                { skipTyping: true, automationId: match.id, variantId: variantId },
+              )
+            }
           }
 
           try {
@@ -467,8 +484,22 @@ export async function POST(request: NextRequest) {
             console.log(`[webhook] ✨ Story match: "${match.name}"`)
             const { content: rawContent, variantId } = pickVariant(match)
             const content = parseContent(rawContent)
-            await sendAutomationResponse(user.access_token, { id: senderId }, content)
+            const leadCaptureResult = await processLeadCapture(
+              supabase,
+              user.id,
+              senderId,
+              "User",
+              user.access_token,
+              event.message?.text || "",
+              match,
+              content
+            )
 
+            if (!leadCaptureResult.shouldContinue) {
+              // We just prompted them for lead capture info.
+            } else {
+              await sendAutomationResponse(user.access_token, { id: senderId }, content)
+            }
             try {
               await supabase.from("automation_events").insert({
                 user_id: user.id,

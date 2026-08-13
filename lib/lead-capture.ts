@@ -9,7 +9,8 @@ export async function processLeadCapture(
   accessToken: string,
   triggerValue: string,
   automation: any,
-  parsedContent: any
+  parsedContent: any,
+  commentId?: string
 ) {
   // 1. Fetch current conversation state
   const { data: leadState } = await supabase
@@ -100,7 +101,8 @@ export async function processLeadCapture(
   else if (currentStep === "ask_name") promptText = "What's your name?"
 
   if (promptText) {
-    await sendTextDM(accessToken, { id: senderId }, promptText)
+    const recipient = justStarted && commentId ? { comment_id: commentId } : { id: senderId }
+    await sendTextDM(accessToken, recipient, promptText)
     return { shouldContinue: false, replyTextLog: `[Lead Capture] ${promptText}` }
   }
 
