@@ -74,13 +74,24 @@ export async function POST(request: NextRequest) {
     // 3. Upsert into platform_connections
     const supabase = await getSupabaseBypassClient()
 
-    const fbResult = await supabase.from("platform_connections").upsert({
+    const fbData = {
       user_id: igUser.id,
       platform: "facebook",
       page_id: page_id,
+      external_account_id: page_id,
       access_token: pageAccessToken,
       metadata: { name: pageName, category: pageCategory, webhook_subscribed: webhookSubscribed },
-    }, { onConflict: "user_id, platform, page_id" })
+    }
+    
+    const { data: existingFb } = await supabase.from("platform_connections")
+      .select("id").eq("user_id", igUser.id).eq("platform", "facebook").eq("page_id", page_id).maybeSingle()
+      
+    let fbResult;
+    if (existingFb) {
+      fbResult = await supabase.from("platform_connections").update(fbData).eq("id", existingFb.id)
+    } else {
+      fbResult = await supabase.from("platform_connections").insert(fbData)
+    }
 
     if (fbResult.error) {
       console.error("[FB Connect] Failed to upsert facebook connection:", fbResult.error)
@@ -88,13 +99,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Also create a messenger connection with the same token (matches old callback behavior)
-    const msgResult = await supabase.from("platform_connections").upsert({
+    const msgData = {
       user_id: igUser.id,
       platform: "messenger",
       page_id: page_id,
+      external_account_id: page_id,
       access_token: pageAccessToken,
       metadata: { name: pageName, category: pageCategory, webhook_subscribed: webhookSubscribed },
-    }, { onConflict: "user_id, platform, page_id" })
+    }
+    
+    const { data: existingMsg } = await supabase.from("platform_connections")
+      .select("id").eq("user_id", igUser.id).eq("platform", "messenger").eq("page_id", page_id).maybeSingle()
+      
+    let msgResult;
+    if (existingMsg) {
+      msgResult = await supabase.from("platform_connections").update(msgData).eq("id", existingMsg.id)
+    } else {
+      msgResult = await supabase.from("platform_connections").insert(msgData)
+    }
 
     if (msgResult.error) {
       console.error("[FB Connect] Failed to upsert messenger connection:", msgResult.error)

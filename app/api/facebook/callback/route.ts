@@ -124,22 +124,44 @@ export async function GET(request: NextRequest) {
       const pageAccessToken = page.access_token
       const pageId = page.id
       
-      const res1 = await supabase.from("platform_connections").upsert({
+      const fbData = {
         user_id: userProfile.id,
         platform: "facebook",
         page_id: pageId,
+        external_account_id: pageId,
         access_token: pageAccessToken,
         metadata: { name: page.name, category: page.category }
-      }, { onConflict: 'user_id, platform, page_id' })
+      }
+      
+      const { data: existingFb } = await supabase.from("platform_connections")
+        .select("id").eq("user_id", userProfile.id).eq("platform", "facebook").eq("page_id", pageId).maybeSingle()
+        
+      let res1;
+      if (existingFb) {
+        res1 = await supabase.from("platform_connections").update(fbData).eq("id", existingFb.id)
+      } else {
+        res1 = await supabase.from("platform_connections").insert(fbData)
+      }
       if (res1.error) throw new Error("Upsert FB failed: " + res1.error.message);
 
-      const res2 = await supabase.from("platform_connections").upsert({
+      const msgData = {
         user_id: userProfile.id,
         platform: "messenger",
         page_id: pageId,
+        external_account_id: pageId,
         access_token: pageAccessToken,
         metadata: { name: page.name, category: page.category }
-      }, { onConflict: 'user_id, platform, page_id' })
+      }
+      
+      const { data: existingMsg } = await supabase.from("platform_connections")
+        .select("id").eq("user_id", userProfile.id).eq("platform", "messenger").eq("page_id", pageId).maybeSingle()
+        
+      let res2;
+      if (existingMsg) {
+        res2 = await supabase.from("platform_connections").update(msgData).eq("id", existingMsg.id)
+      } else {
+        res2 = await supabase.from("platform_connections").insert(msgData)
+      }
       if (res2.error) throw new Error("Upsert Messenger failed: " + res2.error.message);
     }
 

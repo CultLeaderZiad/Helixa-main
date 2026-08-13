@@ -28,10 +28,12 @@ interface Plan {
   name: string
   description: string | null
   price_usd: number
+  price_yearly: number | null
   billing_cycle: "monthly" | "yearly" | "lifetime"
   features: string[] | null
   is_active: boolean
   stripe_price_id: string | null
+  is_contact_sales: boolean
 }
 
 interface Agent {
@@ -48,10 +50,12 @@ const EMPTY_FORM = {
   name: "",
   description: "",
   price_usd: "",
+  price_yearly: "",
   billing_cycle: "monthly" as Plan["billing_cycle"],
   features: "",
   stripe_price_id: "",
   is_active: true,
+  is_contact_sales: false,
 }
 
 export default function DashboardAdminPlansPage() {
@@ -131,10 +135,12 @@ export default function DashboardAdminPlansPage() {
       name: plan.name,
       description: plan.description || "",
       price_usd: String(plan.price_usd),
+      price_yearly: plan.price_yearly !== null ? String(plan.price_yearly) : "",
       billing_cycle: plan.billing_cycle,
       features: Array.isArray(plan.features) ? plan.features.join(", ") : "",
       stripe_price_id: plan.stripe_price_id || "",
       is_active: plan.is_active,
+      is_contact_sales: plan.is_contact_sales,
     })
     setDialogOpen(true)
   }
@@ -150,6 +156,7 @@ export default function DashboardAdminPlansPage() {
         name: form.name.trim(),
         description: form.description.trim() || null,
         price_usd: parseFloat(form.price_usd),
+        price_yearly: form.price_yearly ? parseFloat(form.price_yearly) : null,
         billing_cycle: form.billing_cycle,
         features: form.features
           .split(",")
@@ -157,6 +164,7 @@ export default function DashboardAdminPlansPage() {
           .filter(Boolean),
         stripe_price_id: form.stripe_price_id.trim() || null,
         is_active: form.is_active,
+        is_contact_sales: form.is_contact_sales,
       }
 
       const res = editingId
@@ -367,17 +375,31 @@ export default function DashboardAdminPlansPage() {
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-neutral-300">Price (USD)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className="bg-white/5 border-white/10 text-white"
-                  placeholder="9.99"
-                  value={form.price_usd}
-                  onChange={(e) => setForm({ ...form, price_usd: e.target.value })}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-neutral-300">Price (Mo)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="bg-white/5 border-white/10 text-white"
+                    placeholder="9.99"
+                    value={form.price_usd}
+                    onChange={(e) => setForm({ ...form, price_usd: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-neutral-300">Price (Yr)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="bg-white/5 border-white/10 text-white"
+                    placeholder="99.99"
+                    value={form.price_yearly}
+                    onChange={(e) => setForm({ ...form, price_yearly: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
 
@@ -431,15 +453,27 @@ export default function DashboardAdminPlansPage() {
               />
             </div>
 
-            <div className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3">
-              <div>
-                <p className="text-sm text-white">Active on pricing page</p>
-                <p className="text-xs text-neutral-500">Toggle to show or hide this plan publicly.</p>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3">
+                <div>
+                  <p className="text-sm text-white">Active on pricing page</p>
+                  <p className="text-xs text-neutral-500">Toggle to show or hide this plan publicly.</p>
+                </div>
+                <Switch
+                  checked={form.is_active}
+                  onCheckedChange={(v) => setForm({ ...form, is_active: v })}
+                />
               </div>
-              <Switch
-                checked={form.is_active}
-                onCheckedChange={(v) => setForm({ ...form, is_active: v })}
-              />
+              <div className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3">
+                <div>
+                  <p className="text-sm text-white">Contact Sales / Enterprise Plan</p>
+                  <p className="text-xs text-neutral-500">Enable this if it's a custom/enterprise plan without fixed pricing.</p>
+                </div>
+                <Switch
+                  checked={form.is_contact_sales}
+                  onCheckedChange={(v) => setForm({ ...form, is_contact_sales: v })}
+                />
+              </div>
             </div>
           </div>
 

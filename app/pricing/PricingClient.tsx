@@ -73,15 +73,19 @@ export default function PricingClient({ plans }: { plans: any[] }) {
       {/* Toggle */}
       {mainPlan && mainPlan.price_yearly && (
         <div className="flex items-center justify-center gap-4">
-          <span className={`text-sm font-medium ${!isAnnual ? "text-white" : "text-neutral-400"}`}>Monthly</span>
-          <Switch 
-            checked={isAnnual} 
-            onCheckedChange={setIsAnnual} 
-            className="data-[state=checked]:bg-[#ffe14d]"
-          />
-          <div className="flex items-center gap-2">
-            <span className={`text-sm font-medium ${isAnnual ? "text-white" : "text-neutral-400"}`}>Annually</span>
-            <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Save 20%</span>
+          <div className="bg-white/5 border border-white/10 p-1 rounded-xl flex items-center">
+            <button 
+              onClick={() => setIsAnnual(false)}
+              className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${!isAnnual ? 'bg-[#ffe14d] text-black shadow-lg' : 'text-neutral-400 hover:text-white'}`}
+            >
+              Monthly
+            </button>
+            <button 
+              onClick={() => setIsAnnual(true)}
+              className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-all ${isAnnual ? 'bg-[#ffe14d] text-black shadow-lg' : 'text-neutral-400 hover:text-white'}`}
+            >
+              Annually <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${isAnnual ? 'bg-black/20 text-black' : 'bg-green-500/20 text-green-400'}`}>Save 20%</span>
+            </button>
           </div>
         </div>
       )}

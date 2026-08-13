@@ -18,41 +18,34 @@ export interface TgBotInfo {
   username: string
 }
 
-/**
- * Validate a bot token by calling getMe.
- * Returns the bot info if valid, null if invalid.
- */
-export async function getBotInfo(botToken: string): Promise<TgBotInfo | null> {
+export async function getBotInfo(botToken: string): Promise<{ok: boolean, bot?: TgBotInfo, error?: string}> {
   try {
     const res = await fetch(`${TG_API}/bot${botToken}/getMe`)
     const data = await res.json()
     if (data.ok && data.result) {
-      return data.result as TgBotInfo
+      return { ok: true, bot: data.result as TgBotInfo }
     }
     console.error("[tg-api] getMe failed:", data)
-    return null
-  } catch (e) {
+    return { ok: false, error: data.description || JSON.stringify(data) }
+  } catch (e: any) {
     console.error("[tg-api] getMe network error:", e)
-    return null
+    return { ok: false, error: e.message || String(e) }
   }
 }
 
-/**
- * Register a webhook URL with Telegram for this bot.
- */
-export async function setWebhook(botToken: string, webhookUrl: string): Promise<boolean> {
+export async function setWebhook(botToken: string, webhookUrl: string): Promise<{ok: boolean, error?: string}> {
   try {
     const res = await fetch(`${TG_API}/bot${botToken}/setWebhook?url=${encodeURIComponent(webhookUrl)}`)
     const data = await res.json()
     if (data.ok) {
       console.log(`[tg-api] Webhook set successfully: ${webhookUrl}`)
-      return true
+      return { ok: true }
     }
     console.error("[tg-api] setWebhook failed:", data)
-    return false
-  } catch (e) {
+    return { ok: false, error: data.description || JSON.stringify(data) }
+  } catch (e: any) {
     console.error("[tg-api] setWebhook network error:", e)
-    return false
+    return { ok: false, error: e.message || String(e) }
   }
 }
 

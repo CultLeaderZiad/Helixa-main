@@ -17,6 +17,7 @@ export default function BillingPage() {
     const [plans, setPlans] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
+    const [isAnnual, setIsAnnual] = useState(false)
     const { t } = useLanguage()
 
     useEffect(() => {
@@ -183,7 +184,25 @@ export default function BillingPage() {
             <div className="pt-8 border-t border-white/5">
                 <div className="text-center mb-10">
                     <h2 className="text-2xl font-serif-display text-white mb-3">Upgrade Your Plan</h2>
-                    <p className="text-neutral-400 text-sm">Remove the 7-day trial banner and unlock all AI capabilities.</p>
+                    <p className="text-neutral-400 text-sm mb-6">Remove the 7-day trial banner and unlock all AI capabilities.</p>
+                    {plans.some(p => p.price_yearly) && (
+                        <div className="flex items-center justify-center gap-4">
+                            <div className="bg-white/5 border border-white/10 p-1 rounded-xl flex items-center">
+                                <button 
+                                onClick={() => setIsAnnual(false)}
+                                className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${!isAnnual ? 'bg-[#ffe14d] text-black shadow-lg' : 'text-neutral-400 hover:text-white'}`}
+                                >
+                                Monthly
+                                </button>
+                                <button 
+                                onClick={() => setIsAnnual(true)}
+                                className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-all ${isAnnual ? 'bg-[#ffe14d] text-black shadow-lg' : 'text-neutral-400 hover:text-white'}`}
+                                >
+                                Annually <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${isAnnual ? 'bg-black/20 text-black' : 'bg-green-500/20 text-green-400'}`}>Save 20%</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
@@ -208,8 +227,8 @@ export default function BillingPage() {
                                         <p className="text-sm text-neutral-400">{plan.description}</p>
                                     </div>
                                     <div className="mb-8">
-                                        <span className="text-5xl font-black text-white tracking-tighter">${plan.price_usd}</span>
-                                        <span className="text-neutral-500">/{plan.billing_cycle === 'monthly' ? 'month' : plan.billing_cycle}</span>
+                                        <span className="text-5xl font-black text-white tracking-tighter">${isAnnual && plan.price_yearly ? plan.price_yearly : plan.price_usd}</span>
+                                        <span className="text-neutral-500">/{isAnnual && plan.price_yearly ? 'yr' : 'mo'}</span>
                                     </div>
                                     <ul className="space-y-4 mb-8 flex-1">
                                         {((plan.features || []).concat(plan.active_agents?.map((a: any) => a.name) || [])).map((f: string, i: number) => (
@@ -220,7 +239,7 @@ export default function BillingPage() {
                                         ))}
                                     </ul>
                                     <button 
-                                        onClick={() => window.location.href = `/checkout/${plan.id}`}
+                                        onClick={() => window.location.href = `/checkout/${plan.id}${isAnnual && plan.price_yearly ? '?cycle=yearly' : '?cycle=monthly'}`}
                                         className={`w-full py-3.5 font-bold rounded-xl transition-all ${isFeatured ? 'bg-white text-black hover:bg-neutral-200' : 'bg-gradient-to-br from-[#ffe14d] to-[#e6c419] text-black font-black hover:brightness-110 shadow-[0_10px_20px_rgba(255,225,77,0.2)] hover:-translate-y-0.5 active:translate-y-0'}`}
                                     >
                                         Select {plan.name}

@@ -30,19 +30,20 @@ export async function POST(request: NextRequest) {
 
   try {
     // 1. Validate the bot token with Telegram
-    const botInfo = await getBotInfo(botToken)
-    if (!botInfo) {
-      return NextResponse.json({ error: "Invalid Telegram bot token. Please check and try again." }, { status: 400 })
+    const botInfoResult = await getBotInfo(botToken)
+    if (!botInfoResult.ok || !botInfoResult.bot) {
+      return NextResponse.json({ error: `Invalid Telegram bot token: ${botInfoResult.error}` }, { status: 400 })
     }
+    const botInfo = botInfoResult.bot
 
     // 2. Set the webhook
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://helixa-main-ecru.vercel.app"
     // Token is in the path as Telegram's security measure
     const webhookUrl = `${appUrl}/api/telegram/webhook/${botToken}`
     
-    const webhookSuccess = await setWebhook(botToken, webhookUrl)
-    if (!webhookSuccess) {
-      return NextResponse.json({ error: "Failed to register webhook with Telegram. Please try again." }, { status: 502 })
+    const webhookResult = await setWebhook(botToken, webhookUrl)
+    if (!webhookResult.ok) {
+      return NextResponse.json({ error: `Failed to register webhook with Telegram: ${webhookResult.error}` }, { status: 502 })
     }
 
     // 3. Encrypt the token for secure storage at rest
@@ -52,17 +53,30 @@ export async function POST(request: NextRequest) {
     const supabase = await getSupabaseBypassClient()
     const pageId = botInfo.id.toString()
 
-    const { error: upsertError } = await supabase.from("platform_connections").upsert({
+    const telegramData = {
       user_id: igUser.id,
       platform: "telegram",
       page_id: pageId, // Using the bot's user ID as page_id
+      external_account_id: pageId,
       access_token: encryptedToken,
       metadata: {
         name: botInfo.first_name,
         username: botInfo.username,
         is_bot: botInfo.is_bot
       }
-    }, { onConflict: "user_id, platform, page_id" })
+    }
+    
+    const { data: existingTg } = await supabase.from("platform_connections")
+      .select("id").eq("user_id", igUser.id).eq("platform", "telegram").eq("page_id", pageId).maybeSingle()
+      
+    let upsertError;
+    if (existingTg) {
+      const { error } = await supabase.from("platform_connections").update(telegramData).eq("id", existingTg.id)
+      upsertError = error
+    } else {
+      const { error } = await supabase.from("platform_connections").insert(telegramData)
+      upsertError = error
+    }
 
     if (upsertError) {
       console.error("[Telegram Connect] Failed to save connection:", upsertError)
