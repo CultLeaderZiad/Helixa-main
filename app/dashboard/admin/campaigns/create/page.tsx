@@ -57,7 +57,7 @@ export default function CreateCampaignPage() {
       
       const data = await res.json()
       toast.success(t.draftSaved)
-      router.push(`/dashboard/admin/campaigns/${data.campaign.id}`)
+      router.push(`/dashboard/admin/campaigns`)
     } catch (error) {
       toast.error(t.failSave)
       console.error(error)

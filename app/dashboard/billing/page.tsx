@@ -9,6 +9,7 @@ interface Subscription {
     plan: string
     status: string
     current_period_end: string
+    role?: string
 }
 
 export default function BillingPage() {
@@ -21,14 +22,25 @@ export default function BillingPage() {
     useEffect(() => {
         const fetchSubscriptionAndPlans = async () => {
             try {
-                // In a real app, this would fetch from /api/user/subscription
-                // For now, we simulate a Free Trial
-                setSubscription({
-                    id: "sub_123",
-                    plan: "Free Trial",
-                    status: "active",
-                    current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-                })
+                const authRes = await fetch("/api/auth/me", { cache: "no-store" })
+                const authData = await authRes.json()
+                
+                if (authData.authenticated) {
+                    setSubscription({
+                        id: "sub_123",
+                        plan: authData.plan || "Free Trial",
+                        status: "active",
+                        current_period_end: authData.trial_ends_at || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                        role: authData.role
+                    })
+                } else {
+                    setSubscription({
+                        id: "sub_123",
+                        plan: "Free Trial",
+                        status: "active",
+                        current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+                    })
+                }
 
                 // Fetch dynamic plans
                 const res = await fetch("/api/plans")
@@ -92,7 +104,7 @@ export default function BillingPage() {
                                         {subscription.plan === "Free Trial" ? "Trial ends on" : "Renews on"} <span className="text-white font-medium">{new Date(subscription.current_period_end).toLocaleDateString()}</span>
                                     </div>
                                     
-                                    {subscription.plan === "Free Trial" && (
+                                    {subscription.plan === "Free Trial" && subscription.role !== "admin" && (
                                         <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
                                             <p className="text-xs text-red-400 leading-relaxed font-medium">
                                                 Your 7-day free trial banner will be removed and AI features unlocked once you upgrade to a paid plan.
@@ -158,7 +170,7 @@ export default function BillingPage() {
                                 <ol className="text-xs text-neutral-300 space-y-2 list-decimal list-inside relative z-10">
                                     <li>Transfer the plan amount to <strong className="text-[#ffe14d] font-mono text-sm px-1 bg-black/40 rounded">+20 01037312994</strong></li>
                                     <li>Take a screenshot of the successful transfer receipt</li>
-                                    <li>Send the screenshot to <a href="mailto:cultleaderzoz.dev@gmail.com" className="text-blue-400 hover:underline">cultleaderzoz.dev@gmail.com</a> along with your account email</li>
+                                    <li>Send the screenshot to <a href="mailto:cultleaderzoz.dev@gmail.com" className="text-blue-400 hover:underline">cultleaderzoz.dev@gmail.com</a> or <a href="https://wa.me/201037312994?text=Hi!%20I%20transferred%20*insert%20the%20amount*%20and%20here%27s%20my%20screenshot.%20Please%20upgrade%20my%20plan." target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline font-bold">contact</a> us on WhatsApp</li>
                                     <li>Your account features will be unlocked within 24 hours</li>
                                 </ol>
                             </div>
@@ -174,7 +186,7 @@ export default function BillingPage() {
                     <p className="text-neutral-400 text-sm">Remove the 7-day trial banner and unlock all AI capabilities.</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
                     {plans.map((plan, idx) => {
                         const isFeatured = idx === 0;
                         const borderColor = isFeatured ? "from-white/20" : "from-[#ffe14d]";
@@ -185,7 +197,7 @@ export default function BillingPage() {
                                 <div className={`absolute inset-0 bg-gradient-to-br ${borderColor} ${isFeatured ? 'to-transparent opacity-0 group-hover:opacity-100' : 'via-[#ffaa00] to-transparent animate-[shimmer_3s_linear_infinite] group-hover:animate-none opacity-50 group-hover:opacity-100'} transition-opacity duration-500 rounded-[2rem]`} />
                                 <div className="relative h-full bg-[#050505] p-8 rounded-[2rem] flex flex-col">
                                     {!isFeatured && (
-                                        <div className="absolute top-0 right-8 transform -translate-y-1/2">
+                                        <div className="absolute top-4 right-4">
                                             <span className="bg-gradient-to-r from-[#ffe14d] to-[#e6c419] text-black text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">
                                                 Best Value
                                             </span>

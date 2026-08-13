@@ -7,7 +7,15 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code")
   const error = searchParams.get("error")
 
+  // Diagnostic logging — capture everything Facebook sends back
+  const allParams: Record<string, string> = {}
+  searchParams.forEach((value, key) => { allParams[key] = value })
+  console.log("[FB Callback] Incoming query params:", JSON.stringify(allParams))
+
   if (error) {
+    const errorReason = searchParams.get("error_reason") || "unknown"
+    const errorDescription = searchParams.get("error_description") || "none"
+    console.error(`[FB Callback] OAuth error: ${error} | reason: ${errorReason} | description: ${errorDescription}`)
     const redirectUrl = new URL("/dashboard/connected-platforms?error=" + encodeURIComponent(error), request.url)
     return NextResponse.redirect(redirectUrl)
   }

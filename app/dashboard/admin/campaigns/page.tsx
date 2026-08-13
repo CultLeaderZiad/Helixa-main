@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Plus, Mail, Clock, Send, AlertTriangle, ArrowRight, Activity, Users } from "lucide-react"
 import { toast } from "react-hot-toast"
@@ -143,86 +144,177 @@ export default function CampaignsPage() {
       </div>
 
       {/* Campaigns List */}
-      <Card className="bg-[#0a0a0a] border-zinc-800 shadow-xl overflow-hidden">
-        <CardHeader className="border-b border-zinc-800 bg-zinc-900/50">
-          <CardTitle className="text-lg">{t.recentCampaigns}</CardTitle>
-          <CardDescription>{t.recentCampaignsDesc}</CardDescription>
-        </CardHeader>
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="p-8 text-center text-zinc-500 flex flex-col items-center">
-              <Activity className="w-8 h-8 animate-spin text-brand-500 mb-2" />
-              {t.loadingCampaigns}
-            </div>
-          ) : campaigns.length === 0 ? (
-            <div className="p-12 text-center flex flex-col items-center justify-center">
-              <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center mb-4 border border-zinc-800">
-                <Mail className="w-8 h-8 text-zinc-600" />
-              </div>
-              <h3 className="text-xl font-medium text-white mb-2">{t.noCampaignsYet}</h3>
-              <p className="text-zinc-400 max-w-sm mb-6">{t.createFirstCampaign}</p>
-              <Button 
-                onClick={() => router.push("/dashboard/admin/campaigns/create")}
-                className="bg-[#ccff00] hover:bg-[#b3e600] text-black font-semibold"
-              >
-                {t.newCampaign}
-              </Button>
-            </div>
-          ) : (
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-zinc-400 uppercase bg-zinc-900/50 border-b border-zinc-800">
-                <tr>
-                  <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.campaignName}</th>
-                  <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.status}</th>
-                  <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.audience}</th>
-                  <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.recipients}</th>
-                  <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.date}</th>
-                  <th className={`px-6 py-4 font-medium ${isRtl ? 'text-left' : 'text-right'}`}>{t.actions}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800">
-                {campaigns.map((campaign) => (
-                  <motion.tr 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    key={campaign.id} 
-                    className="hover:bg-zinc-900/50 transition-colors group cursor-pointer"
-                    onClick={() => router.push(`/dashboard/admin/campaigns/${campaign.id}`)}
-                  >
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-white">{campaign.name}</div>
-                      <div className="text-zinc-500 text-xs truncate max-w-xs">{campaign.subject}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {getStatusBadge(campaign.status)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center text-zinc-300">
-                        <Users className="w-3.5 h-3.5 mr-1.5 text-zinc-500" />
-                        {formatAudience(campaign.audience_filter)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-zinc-300">
-                      {campaign.status === 'draft' ? '-' : campaign.recipient_count}
-                    </td>
-                    <td className="px-6 py-4 text-zinc-400 text-xs">
-                      {new Date(campaign.created_at).toLocaleDateString(undefined, {
-                        month: 'short', day: 'numeric', year: 'numeric'
-                      })}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-400 hover:text-brand-300 hover:bg-brand-500/10">
-                        {campaign.status === 'draft' ? 'Edit' : 'View'} 
-                        <ArrowRight className="w-4 h-4 ml-1" />
-                      </Button>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+      <Tabs defaultValue="all" className="w-full">
+        <div className="flex justify-between items-center mb-4">
+          <TabsList className="bg-zinc-900 border border-zinc-800">
+            <TabsTrigger value="all" className="data-[state=active]:bg-zinc-800">All Campaigns</TabsTrigger>
+            <TabsTrigger value="drafts" className="data-[state=active]:bg-zinc-800">Drafts</TabsTrigger>
+          </TabsList>
         </div>
-      </Card>
+
+        <TabsContent value="all" className="m-0">
+          <Card className="bg-[#0a0a0a] border-zinc-800 shadow-xl overflow-hidden">
+            <CardHeader className="border-b border-zinc-800 bg-zinc-900/50">
+              <CardTitle className="text-lg">{t.recentCampaigns}</CardTitle>
+              <CardDescription>{t.recentCampaignsDesc}</CardDescription>
+            </CardHeader>
+            <div className="overflow-x-auto">
+              {loading ? (
+                <div className="p-8 text-center text-zinc-500 flex flex-col items-center">
+                  <Activity className="w-8 h-8 animate-spin text-brand-500 mb-2" />
+                  {t.loadingCampaigns}
+                </div>
+              ) : campaigns.length === 0 ? (
+                <div className="p-12 text-center flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center mb-4 border border-zinc-800">
+                    <Mail className="w-8 h-8 text-zinc-600" />
+                  </div>
+                  <h3 className="text-xl font-medium text-white mb-2">{t.noCampaignsYet}</h3>
+                  <p className="text-zinc-400 max-w-sm mb-6">{t.createFirstCampaign}</p>
+                  <Button 
+                    onClick={() => router.push("/dashboard/admin/campaigns/create")}
+                    className="bg-[#ccff00] hover:bg-[#b3e600] text-black font-semibold"
+                  >
+                    {t.newCampaign}
+                  </Button>
+                </div>
+              ) : (
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-zinc-400 uppercase bg-zinc-900/50 border-b border-zinc-800">
+                    <tr>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.campaignName}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.status}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.audience}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.recipients}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.date}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-left' : 'text-right'}`}>{t.actions}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800">
+                    {campaigns.filter(c => c.status !== 'draft').map((campaign) => (
+                      <motion.tr 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        key={campaign.id} 
+                        className="hover:bg-zinc-900/50 transition-colors group cursor-pointer"
+                        onClick={() => router.push(`/dashboard/admin/campaigns/${campaign.id}`)}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="font-medium text-white">{campaign.name}</div>
+                          <div className="text-zinc-500 text-xs truncate max-w-xs">{campaign.subject}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {getStatusBadge(campaign.status)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center text-zinc-300">
+                            <Users className="w-3.5 h-3.5 mr-1.5 text-zinc-500" />
+                            {formatAudience(campaign.audience_filter)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-zinc-300">
+                          {campaign.recipient_count}
+                        </td>
+                        <td className="px-6 py-4 text-zinc-400 text-xs">
+                          {new Date(campaign.created_at).toLocaleDateString(undefined, {
+                            month: 'short', day: 'numeric', year: 'numeric'
+                          })}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-400 hover:text-brand-300 hover:bg-brand-500/10">
+                            View
+                            <ArrowRight className="w-4 h-4 ml-1" />
+                          </Button>
+                        </td>
+                      </motion.tr>
+                    ))}
+                    {campaigns.filter(c => c.status !== 'draft').length === 0 && !loading && (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-8 text-center text-zinc-500">
+                          No active or completed campaigns yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="drafts" className="m-0">
+          <Card className="bg-[#0a0a0a] border-zinc-800 shadow-xl overflow-hidden">
+            <CardHeader className="border-b border-zinc-800 bg-zinc-900/50">
+              <CardTitle className="text-lg">Draft Campaigns</CardTitle>
+              <CardDescription>Campaigns that are saved as drafts and not yet sent.</CardDescription>
+            </CardHeader>
+            <div className="overflow-x-auto">
+              {loading ? (
+                <div className="p-8 text-center text-zinc-500 flex flex-col items-center">
+                  <Activity className="w-8 h-8 animate-spin text-brand-500 mb-2" />
+                  {t.loadingCampaigns}
+                </div>
+              ) : campaigns.filter(c => c.status === 'draft').length === 0 ? (
+                <div className="p-12 text-center flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center mb-4 border border-zinc-800">
+                    <Clock className="w-8 h-8 text-zinc-600" />
+                  </div>
+                  <h3 className="text-xl font-medium text-white mb-2">No drafts</h3>
+                  <p className="text-zinc-400 max-w-sm mb-6">You don't have any drafts.</p>
+                </div>
+              ) : (
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-zinc-400 uppercase bg-zinc-900/50 border-b border-zinc-800">
+                    <tr>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.campaignName}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.status}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.audience}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.date}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-left' : 'text-right'}`}>{t.actions}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800">
+                    {campaigns.filter(c => c.status === 'draft').map((campaign) => (
+                      <motion.tr 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        key={campaign.id} 
+                        className="hover:bg-zinc-900/50 transition-colors group cursor-pointer"
+                        onClick={() => router.push(`/dashboard/admin/campaigns/${campaign.id}`)}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="font-medium text-white">{campaign.name}</div>
+                          <div className="text-zinc-500 text-xs truncate max-w-xs">{campaign.subject}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {getStatusBadge(campaign.status)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center text-zinc-300">
+                            <Users className="w-3.5 h-3.5 mr-1.5 text-zinc-500" />
+                            {formatAudience(campaign.audience_filter)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-zinc-400 text-xs">
+                          {new Date(campaign.created_at).toLocaleDateString(undefined, {
+                            month: 'short', day: 'numeric', year: 'numeric'
+                          })}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-400 hover:text-brand-300 hover:bg-brand-500/10">
+                            Edit
+                            <ArrowRight className="w-4 h-4 ml-1" />
+                          </Button>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
