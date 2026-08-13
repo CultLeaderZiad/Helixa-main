@@ -55,13 +55,10 @@ export default function DashboardAgentsPage() {
         agents: prev?.agents?.map((a: Agent) => a.id === agentId ? { ...a, settings: { ...a.settings, is_enabled: !currentState } } : a)
       }), false)
       
-      // We hardcode accountId for now since auth context is skipped
-      const accountId = "00000000-0000-0000-0000-000000000000"
-      
       await fetch("/api/agents", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accountId, agentId, is_enabled: !currentState }),
+        body: JSON.stringify({ agentId, is_enabled: !currentState }),
       })
     } catch (err) {
       mutateAgents()
@@ -73,12 +70,10 @@ export default function DashboardAgentsPage() {
     if (!byokKey || !selectedAgentId) return
     setSavingKey(true)
     try {
-      const accountId = "00000000-0000-0000-0000-000000000000"
       const res = await fetch("/api/agents", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          accountId,
           agentId: selectedAgentId,
           byok_key: byokKey,
           byok_provider: byokProvider,

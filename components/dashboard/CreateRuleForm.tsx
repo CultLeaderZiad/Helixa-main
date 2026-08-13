@@ -1336,7 +1336,11 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                              {buttons.length > 0 ? (
                                <div className="flex flex-col border-t border-white/10">
                                  {buttons.filter((b) => b.title).map((b, idx) => (
-                                   <div key={b.id} className={`text-center py-2.5 text-[14px] text-[#0095F6] font-medium hover:bg-white/5 cursor-pointer transition-colors ${idx > 0 ? 'border-t border-white/10' : ''}`}>
+                                   <div 
+                                     key={b.id} 
+                                     onClick={() => { if (b.url) window.open(b.url, "_blank") }}
+                                     className={`text-center py-2.5 text-[14px] text-[#0095F6] font-medium hover:bg-white/5 cursor-pointer transition-colors ${idx > 0 ? 'border-t border-white/10' : ''}`}
+                                   >
                                      {b.title}
                                    </div>
                                  ))}

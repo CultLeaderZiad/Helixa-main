@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   if (igUser) {
     const { data, error } = await supabase
       .from("platform_connections")
-      .select("id, platform, page_id, metadata, created_at")
+      .select("id, platform, page_id, metadata, connected_at")
       .eq("user_id", igUser.id)
 
     if (error) {

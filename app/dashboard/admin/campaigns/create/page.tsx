@@ -39,7 +39,7 @@ export default function CreateCampaignPage() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleSaveDraft = async () => {
+  const handleSaveDraft = async (action: 'draft' | 'continue' = 'continue') => {
     if (!formData.name || !formData.subject || !formData.heading) {
       toast.error(t.reqFields)
       return
@@ -57,11 +57,10 @@ export default function CreateCampaignPage() {
       
       const data = await res.json()
       toast.success(t.draftSaved)
-      // Go to the campaign page so the admin can continue to send or test it
-      if (data.campaign && data.campaign.id) {
+      if (action === 'continue' && data.campaign && data.campaign.id) {
         router.push(`/dashboard/admin/campaigns/${data.campaign.id}`)
       } else {
-        router.push(`/dashboard/admin/campaigns`)
+        router.push(`/dashboard/admin/campaigns?tab=drafts`)
       }
     } catch (error) {
       toast.error(t.failSave)
@@ -232,14 +231,23 @@ export default function CreateCampaignPage() {
 
           </div>
 
-          <div className={`flex justify-end pt-4 border-t border-zinc-800 ${isRtl ? 'flex-row-reverse' : ''}`}>
+          <div className={`flex justify-end pt-4 border-t border-zinc-800 gap-3 ${isRtl ? 'flex-row-reverse' : ''}`}>
             <Button 
-              onClick={handleSaveDraft} 
+              onClick={() => handleSaveDraft('draft')} 
+              disabled={loading}
+              variant="outline"
+              className="bg-transparent border-zinc-700 text-white hover:bg-zinc-800"
+            >
+              {loading ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'} animate-spin`} /> : <Save className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />}
+              Save to drafts page
+            </Button>
+            <Button 
+              onClick={() => handleSaveDraft('continue')} 
               disabled={loading}
               className="bg-white text-black hover:bg-zinc-200"
             >
-              {loading ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'} animate-spin`} /> : <Save className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />}
-              {t.saveDraft || "Save Draft"} & Continue
+              {loading ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'} animate-spin`} /> : null}
+              Continue
             </Button>
           </div>
 
