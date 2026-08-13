@@ -1295,7 +1295,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                       )}
                       {type === "card" && (
                         <div className="flex flex-col gap-1.5 w-full items-end">
-                           <div className={`bg-[#262626] rounded-2xl rounded-br-sm w-[85%] overflow-hidden border border-white/10 shadow-sm flex flex-col ${cardStyle === "minimal" ? "bg-transparent border-white/20" : ""}`}>
+                           <div className="bg-[#262626] rounded-2xl rounded-br-sm w-[85%] overflow-hidden border border-white/10 shadow-sm flex flex-col">
                              {/* Minimal style skips image */}
                              {cardStyle !== "minimal" && (
                                <div className={cardStyle === "classic" ? "flex flex-row items-center p-2 gap-3" : ""}>
@@ -1331,7 +1331,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                                    {cardTitle || "Card Title"}
                                  </div>
                                  {cardSubtitle && (
-                                   <div className="text-[12px] text-neutral-400 mt-1 leading-snug">
+                                   <div className="text-[12px] text-neutral-400 mt-1 leading-snug whitespace-pre-wrap">
                                      {cardSubtitle}
                                    </div>
                                  )}
@@ -1340,14 +1340,12 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
 
                              {/* Buttons Area */}
                              {buttons.length > 0 ? (
-                               <div className={`flex flex-col border-t border-white/10 ${cardStyle === "minimal" ? "gap-1 p-2" : ""}`}>
+                               <div className="flex flex-col border-t border-white/10">
                                  {buttons.filter((b) => b.title).map((b, idx) => (
                                    <div 
                                      key={b.id} 
                                      onClick={() => { if (b.url) window.open(b.url, "_blank") }}
-                                     className={cardStyle === "minimal" ? 
-                                       "text-center py-2 text-[13px] text-black bg-white font-medium rounded-lg hover:bg-neutral-200 cursor-pointer transition-colors" : 
-                                       `text-center py-2.5 text-[14px] text-[#0095F6] font-medium hover:bg-white/5 cursor-pointer transition-colors ${idx > 0 ? 'border-t border-white/10' : ''}`}
+                                     className={`text-center py-2.5 text-[14px] text-[#0095F6] font-medium hover:bg-white/5 cursor-pointer transition-colors ${idx > 0 ? 'border-t border-white/10' : ''}`}
                                    >
                                      {b.title}
                                    </div>
