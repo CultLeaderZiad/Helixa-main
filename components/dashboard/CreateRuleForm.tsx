@@ -93,6 +93,9 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
   const [parsingIntent, setParsingIntent] = useState(false)
   const [hasParsedInitialIntent, setHasParsedInitialIntent] = useState(false)
 
+  /* ---------- PHONE PREVIEW SCALE ---------- */
+  const [phoneScale, setPhoneScale] = useState<"mini" | "pro" | "pro-max">("pro")
+
   const handleParseIntent = async (overrideDescription?: string) => {
     const descToParse = overrideDescription ?? intentDescription
     if (!descToParse.trim() || parsingIntent) return
@@ -1171,14 +1174,18 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
         {/* ── RIGHT: iPhone Mockup ── */}
         {replyMode !== "public_only" && (
           <div className="hidden lg:block sticky top-6">
-            <div className="text-center mb-3">
+            <div className="flex items-center justify-between mb-3 px-1">
               <span className="font-mono-ui text-[10px] uppercase tracking-[0.25em] text-neutral-500 font-bold">Interactive Preview</span>
+              <div className="flex items-center gap-1 bg-white/5 p-1 rounded-lg border border-white/10">
+                <button onClick={() => setPhoneScale("mini")} className={`px-2 py-1 text-[9px] font-bold uppercase rounded transition-colors ${phoneScale === "mini" ? "bg-white/20 text-white" : "text-neutral-500 hover:text-white"}`}>Mini</button>
+                <button onClick={() => setPhoneScale("pro")} className={`px-2 py-1 text-[9px] font-bold uppercase rounded transition-colors ${phoneScale === "pro" ? "bg-white/20 text-white" : "text-neutral-500 hover:text-white"}`}>Pro</button>
+                <button onClick={() => setPhoneScale("pro-max")} className={`px-2 py-1 text-[9px] font-bold uppercase rounded transition-colors ${phoneScale === "pro-max" ? "bg-white/20 text-white" : "text-neutral-500 hover:text-white"}`}>Max</button>
+              </div>
             </div>
             
             {/* iPhone Outer Frame */}
-            {/* iPhone Outer Frame */}
             <div 
-              className="w-[320px] h-[580px] rounded-[3rem] border-8 border-[#1f1f1e] bg-black shadow-2xl relative flex flex-col overflow-hidden ring-1 ring-white/10 transition-transform duration-500 hover:scale-[1.02] hover:-rotate-1 hover:shadow-[0_20px_50px_rgba(255,225,77,0.15)] group"
+              className={`${phoneScale === "mini" ? "w-[280px] h-[520px]" : phoneScale === "pro" ? "w-[320px] h-[580px]" : "w-[380px] h-[680px]"} rounded-[3rem] border-8 border-[#1f1f1e] bg-black shadow-2xl relative flex flex-col overflow-hidden ring-1 ring-white/10 transition-all duration-500 hover:scale-[1.02] hover:-rotate-1 hover:shadow-[0_20px_50px_rgba(255,225,77,0.15)] group`}
               style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
             >
               
@@ -1235,7 +1242,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
               </div>
 
               {/* Screen Body */}
-              <div className="flex-1 bg-black px-3 py-4 space-y-4 overflow-y-auto font-sans flex flex-col justify-end">
+              <div className="flex-1 bg-black px-3 pt-4 pb-6 space-y-4 overflow-y-auto font-sans flex flex-col justify-end">
                 {/* Incoming bubble */}
                 <div className="flex justify-start items-end gap-2">
                   <div className="w-7 h-7 rounded-full bg-neutral-800 flex items-center justify-center text-[10px] text-white shrink-0">U</div>
