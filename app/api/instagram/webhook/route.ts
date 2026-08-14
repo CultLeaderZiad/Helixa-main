@@ -732,8 +732,11 @@ Provide a very short, friendly response.`
                   console.log(`[webhook] 🤖 AI Auto-reply sent to ${senderId}`)
                   continue
                 }
-              } catch (e) {
+              } catch (e: any) {
                 console.error("[webhook] AI Auto-reply failed:", e)
+                if (e.name === "GroqRateLimitError" || e.name === "GroqAPIError") {
+                  console.error(`[webhook] AI API Error details: ${e.message} (status: ${e.status || 429})`)
+                }
               }
             }
             continue

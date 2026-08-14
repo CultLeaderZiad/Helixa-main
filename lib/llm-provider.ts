@@ -114,7 +114,7 @@ async function callGroqAPI(options: GroqCompletionRequest, apiKey: string) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: options.model || "llama3-8b-8192",
+      model: options.model || "openai/gpt-oss-20b",
       messages: options.messages,
       temperature: options.temperature,
       max_tokens: options.max_tokens,
@@ -141,7 +141,7 @@ async function callOpenRouterAPI(options: GroqCompletionRequest, apiKey: string)
       "X-Title": "Helixa"
     },
     body: JSON.stringify({
-      model: "meta-llama/llama-3-8b-instruct", // equivalent fallback
+      model: "openai/gpt-oss-20b", // equivalent fallback
       messages: options.messages,
       temperature: options.temperature,
       max_tokens: options.max_tokens,

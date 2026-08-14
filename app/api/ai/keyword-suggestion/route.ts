@@ -68,8 +68,11 @@ Return ONLY the comma-separated string. No markdown, no explanations.`
 
   } catch (error: any) {
     console.error("[keyword-suggestion] Server error:", error)
-    if (error.message === "AI limit exceeded for today.") {
-      return NextResponse.json({ error: error.message }, { status: 429 })
+    if (error.name === "GroqRateLimitError") {
+      return NextResponse.json({ error: "Rate limit reached — try again in a minute" }, { status: 429 })
+    }
+    if (error.name === "GroqAPIError") {
+      return NextResponse.json({ error: `AI request failed: ${error.message}` }, { status: error.status || 500 })
     }
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
