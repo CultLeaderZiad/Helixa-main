@@ -278,6 +278,7 @@ export async function POST(request: NextRequest) {
         .select("*, automation_variants(*)")
         .eq("user_id", user.id)
         .eq("is_active", true)
+        .or("platform.eq.instagram,platform.is.null")
 
       if (!automations?.length) continue
 
@@ -336,6 +337,14 @@ export async function POST(request: NextRequest) {
           const mediaId = change.value.media.id
           const parentId = change.value.parent_id || null
 
+          // Enforce 7-day eligibility window
+          const eventTimeMs = (entry.time || Math.floor(Date.now() / 1000)) * 1000
+          const sevenDaysMs = 7 * 24 * 60 * 60 * 1000
+          if (Date.now() - eventTimeMs > sevenDaysMs) {
+            console.log(`[webhook] ⚠️ Comment ${commentId} is older than 7 days. Skipping private reply per Meta rules.`)
+            continue
+          }
+
           if (senderId === webhookId || senderId === user.business_account_id || senderId === user.page_id) continue
 
           const commentAutomations = automations.filter((a: any) => a.trigger_source === "comment")
@@ -374,6 +383,19 @@ export async function POST(request: NextRequest) {
 
           // Skip nested replies unless user opted in
           if (parentId && content.include_replies !== true) continue
+
+          // Prevent duplicate private replies for the same comment
+          const { data: alreadyReplied } = await supabase
+            .from("automation_events")
+            .select("id")
+            .eq("comment_id", commentId)
+            .eq("event_type", "comment_dm")
+            .maybeSingle()
+
+          if (alreadyReplied) {
+            console.log(`[webhook] ⚠️ Already sent private reply for comment ${commentId}. Skipping to prevent Meta rejection.`)
+            continue
+          }
 
           console.log(`[webhook] ✅ Comment match: "${match.name}" (variant: ${variantId || "default"})`)
 
@@ -421,7 +443,8 @@ export async function POST(request: NextRequest) {
               event_type: "comment_dm",
               recipient_id: senderId,
               platform: "instagram",
-              variant_id: variantId
+              variant_id: variantId,
+              comment_id: commentId
             })
           } catch (e) {
             console.error("[webhook] Failed to log event", e)
@@ -649,14 +672,16 @@ export async function POST(request: NextRequest) {
             }
           }
 
+          let leadState: any = null
           if (!match) {
             // Check if user is in an active lead capture state even if there's no match
-            const { data: leadState } = await supabase
+            const { data: dbLeadState } = await supabase
               .from("conversation_state")
               .select("*")
               .eq("user_id", user.id)
               .eq("ig_user_id", senderId)
               .single()
+            leadState = dbLeadState
             if (leadState) {
               const activeAuto = automations.find((a: any) => a.id === leadState.automation_id)
               if (activeAuto) match = activeAuto
@@ -718,6 +743,40 @@ Provide a very short, friendly response.`
           console.log(`[webhook] ✅ DM match: "${match.name}" (variant: ${variantId || "default"})`)
           const content = parseContent(rawContent)
 
+          // Follow gate
+          const isUnlockEvent = triggerType === "postback" && triggerValue.startsWith("UNLOCK_CONTENT_")
+          let result
+          let replyTextLog = responsePreviewText(content)
+
+          if (content.check_follow === true && !isUnlockEvent && !leadState) {
+            replyTextLog = "[Locked Content Gate]"
+            result = await sendCardDM(user.access_token, { id: senderId }, {
+              title: "🔒 Content Locked",
+              subtitle: `Please follow @${user.username} to see this!`,
+              buttons: [
+                { type: "web_url", url: `https://instagram.com/${user.username}`, title: "Follow Us" },
+                { type: "postback", title: "I Followed! ✅", payload: `UNLOCK_CONTENT_${match.id}` },
+              ],
+            })
+            
+            if (result?.ok && conv) {
+              try {
+                await supabase.from("messages").insert({
+                  id: `mid_reply_${Date.now()}_${Math.random()}`,
+                  conversation_id: conv.id,
+                  user_id: user.id,
+                  sender_id: user.business_account_id,
+                  sender_username: user.username,
+                  content: replyTextLog,
+                  is_from_instagram: false,
+                })
+              } catch (e) {
+                console.error("[webhook] Failed to save outgoing message", e)
+              }
+            }
+            continue // Stop processing this match until they click I Followed!
+          }
+
           // ---------- Process Lead Capture State Machine ----------
           let realUsername = "User"
           if (conv && conv.recipient_username) realUsername = conv.recipient_username
@@ -756,35 +815,18 @@ Provide a very short, friendly response.`
             await sendSenderAction(user.access_token, senderId, "mark_seen")
           }
 
-          // Follow gate
-          const isUnlockEvent = triggerType === "postback" && triggerValue.startsWith("UNLOCK_CONTENT_")
-          let result
-          let replyTextLog = responsePreviewText(content)
-
-          if (content.check_follow === true && !isUnlockEvent) {
-            replyTextLog = "[Locked Content Gate]"
-            result = await sendCardDM(user.access_token, { id: senderId }, {
-              title: "🔒 Content Locked",
-              subtitle: `Please follow @${user.username} to see this!`,
-              buttons: [
-                { type: "web_url", url: `https://instagram.com/${user.username}`, title: "Follow Us" },
-                { type: "postback", title: "I Followed! ✅", payload: `UNLOCK_CONTENT_${match.id}` },
-              ],
+          result = await sendAutomationResponse(user.access_token, { id: senderId }, content)
+          
+          try {
+            await supabase.from("automation_events").insert({
+              user_id: user.id,
+              automation_id: match.id,
+              event_type: "dm_reply",
+              recipient_id: senderId,
+              platform: "instagram",
+              variant_id: variantId
             })
-          } else {
-            result = await sendAutomationResponse(user.access_token, { id: senderId }, content)
-            
-            try {
-              await supabase.from("automation_events").insert({
-                user_id: user.id,
-                automation_id: match.id,
-                event_type: "dm_reply",
-                recipient_id: senderId,
-                platform: "instagram",
-                variant_id: variantId
-              })
-            } catch (e) {}
-          }
+          } catch (e) {}
 
           if (result?.ok && conv) {
             try {
@@ -794,7 +836,7 @@ Provide a very short, friendly response.`
                 user_id: user.id,
                 sender_id: user.business_account_id,
                 sender_username: user.username,
-                content: replyTextLog,
+                content: replyTextLog, // Original responsePreviewText
                 is_from_instagram: false,
               })
             } catch (e) {

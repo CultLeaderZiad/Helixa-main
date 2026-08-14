@@ -1085,7 +1085,9 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
 
               <div className="space-y-4">
                 <FieldLabel>Delivery options</FieldLabel>
-                <ToggleRow icon={<Lock className="w-5 h-5" />} title="Follow gate required" sub="Only followers get the payload. Non-followers get follow prompt first." on={checkFollow} onToggle={() => setCheckFollow(!checkFollow)} />
+                {platform !== "telegram" && platform !== "whatsapp" && (
+                  <ToggleRow icon={<Lock className="w-5 h-5" />} title="Follow gate required" sub="Only followers get the payload. Non-followers get follow prompt first." on={checkFollow} onToggle={() => setCheckFollow(!checkFollow)} />
+                )}
                 <ToggleRow icon={<Eye className="w-5 h-5" />} title="Mimic active typing status" sub="Displays typing bubble indicators to look completely organic." on={typingIndicator} onToggle={() => setTypingIndicator(!typingIndicator)} />
                 
                 <FieldLabel>Lead Capture Sequence (Pre-Delivery)</FieldLabel>
@@ -1093,28 +1095,30 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                 <ToggleRow icon={<Phone className="w-5 h-5" />} title="Ask for Phone Number" sub="Capture the user's phone number before sending the payload." on={capturePhone} onToggle={() => setCapturePhone(!capturePhone)} />
                 <ToggleRow icon={<Smile className="w-5 h-5" />} title="Ask for Name" sub="Capture the user's name before sending the payload." on={captureName} onToggle={() => setCaptureName(!captureName)} />
                 
-                <div className="flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/[0.01]">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-neutral-900 flex items-center justify-center border border-white/5">
-                      <Timer className="w-4.5 h-4.5 text-neutral-400" />
+                {platform !== "telegram" && platform !== "whatsapp" && (
+                  <div className="flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/[0.01]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-neutral-900 flex items-center justify-center border border-white/5">
+                        <Timer className="w-4.5 h-4.5 text-neutral-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-white">Randomized delivery delay</p>
+                        <p className="text-[11px] text-neutral-500 mt-0.5">Waits before sending to simulate real human delays.</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-white">Randomized delivery delay</p>
-                      <p className="text-[11px] text-neutral-500 mt-0.5">Waits before sending to simulate real human delays.</p>
-                    </div>
+                    <select
+                      value={delaySeconds}
+                      onChange={(e) => setDelaySeconds(Number(e.target.value))}
+                      className="bg-black border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none hover:border-white/20 transition-all cursor-pointer"
+                    >
+                      <option value={0}>Send Immediately</option>
+                      <option value={3}>3s delay</option>
+                      <option value={5}>5s delay</option>
+                      <option value={10}>10s delay</option>
+                      <option value={30}>30s delay</option>
+                    </select>
                   </div>
-                  <select
-                    value={delaySeconds}
-                    onChange={(e) => setDelaySeconds(Number(e.target.value))}
-                    className="bg-black border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none hover:border-white/20 transition-all cursor-pointer"
-                  >
-                    <option value={0}>Send Immediately</option>
-                    <option value={3}>3s delay</option>
-                    <option value={5}>5s delay</option>
-                    <option value={10}>10s delay</option>
-                    <option value={30}>30s delay</option>
-                  </select>
-                </div>
+                )}
               </div>
 
               {/* Plain-text Summary Panel */}

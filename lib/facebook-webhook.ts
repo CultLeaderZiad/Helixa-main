@@ -91,7 +91,28 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
         const text = change.value.message || ""
         const senderId = change.value.from?.id
 
+        // Enforce 7-day eligibility window
+        const eventTimeMs = (entry.time || Math.floor(Date.now() / 1000)) * 1000
+        const sevenDaysMs = 7 * 24 * 60 * 60 * 1000
+        if (Date.now() - eventTimeMs > sevenDaysMs) {
+          console.log(`[fb-webhook] ⚠️ Comment ${commentId} is older than 7 days. Skipping private reply per Meta rules.`)
+          continue
+        }
+
         if (senderId === webhookId) continue // ignore own comments
+
+        // Prevent duplicate private replies for the same comment
+        const { data: alreadyReplied } = await supabase
+          .from("automation_events")
+          .select("id")
+          .eq("comment_id", commentId)
+          .eq("event_type", "comment_dm")
+          .maybeSingle()
+
+        if (alreadyReplied) {
+          console.log(`[fb-webhook] ⚠️ Already sent private reply for comment ${commentId}. Skipping to prevent Meta rejection.`)
+          continue
+        }
 
         // Check keyword matches
         for (const rule of automations) {
@@ -131,7 +152,7 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
               }
             }
 
-            await logAutomationEvent(supabase, user.id, rule.id, "comment_dm", senderId, "facebook", variantId)
+            await logAutomationEvent(supabase, user.id, rule.id, "comment_dm", senderId, "facebook", variantId, commentId)
             break
         }
       }
@@ -249,7 +270,8 @@ async function logAutomationEvent(
   eventType: string,
   recipientId: string,
   platform: string,
-  variantId?: string
+  variantId?: string,
+  commentId?: string
 ) {
   try {
     await supabase.from("automation_events").insert({
@@ -258,7 +280,8 @@ async function logAutomationEvent(
       event_type: eventType,
       recipient_id: recipientId,
       platform,
-      ...(variantId ? { variant_id: variantId } : {})
+      ...(variantId ? { variant_id: variantId } : {}),
+      ...(commentId ? { comment_id: commentId } : {})
     })
   } catch (error) {
     console.error("[fb-webhook] Failed to log automation_event:", error)

@@ -146,11 +146,25 @@ function AutomationsPageContent() {
         story: platformAutomations.filter(a => a.trigger_source === 'story').length,
     }
 
+    // Determine supported tabs by platform
+    let supportedTabs: ('comment' | 'dm' | 'story')[] = ['comment', 'dm', 'story'] // instagram default
+    if (selectedPlatform === 'facebook' || selectedPlatform === 'messenger') {
+        supportedTabs = ['comment', 'dm']
+    } else if (selectedPlatform === 'telegram' || selectedPlatform === 'whatsapp') {
+        supportedTabs = ['dm']
+    }
+
+    useEffect(() => {
+        if (!supportedTabs.includes(activeTab)) {
+            setActiveTab(supportedTabs[0] || 'dm')
+        }
+    }, [selectedPlatform, activeTab]) // eslint-disable-line react-hooks/exhaustive-deps
+
     const tabs = [
         { key: 'comment' as const, icon: <MessageCircle className="w-4 h-4" />, label: 'Comments', count: counts.comment },
         { key: 'dm' as const, icon: <Send className="w-4 h-4" />, label: 'DMs', count: counts.dm },
         { key: 'story' as const, icon: <Sparkles className="w-4 h-4" />, label: 'Stories', count: counts.story },
-    ]
+    ].filter(t => supportedTabs.includes(t.key))
 
     return (
         <div className="min-h-screen bg-transparent">
