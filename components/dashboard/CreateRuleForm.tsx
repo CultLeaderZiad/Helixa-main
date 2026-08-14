@@ -86,7 +86,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
   const [cardStyle, setCardStyle] = useState<"modern" | "classic" | "minimal">("modern")
   const [specificMediaUrl, setSpecificMediaUrl] = useState("")
   const [resolvingUrl, setResolvingUrl] = useState(false)
-  const [platform, setPlatform] = useState<"instagram" | "messenger" | "facebook" | "telegram">((defaultPlatform as any) || "instagram")
+  const [platform, setPlatform] = useState<"instagram" | "messenger" | "facebook" | "telegram" | "whatsapp">((defaultPlatform as any) || "instagram")
   const [availablePlatforms, setAvailablePlatforms] = useState<string[]>(["instagram"])
 
   const [intentDescription, setIntentDescription] = useState(initialIntent || "")
