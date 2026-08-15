@@ -1,7 +1,5 @@
-/**
- * Email Provider (Mailgun)
- * Abstracted to easily swap out for Resend, SES, or SendGrid later.
- */
+import { getSupabaseBypassClient } from "./supabase-server";
+import nodemailer from "nodemailer";
 
 export interface SendEmailOptions {
   to: string;
@@ -26,51 +24,50 @@ export async function sendEmail({
   fromName,
   fromEmail,
 }: SendEmailOptions): Promise<SendEmailResult> {
-  const apiKey = process.env.MAILGUN_API_KEY;
-  const domain = process.env.MAILGUN_DOMAIN;
-  
-  // Default fallbacks from environment
-  const finalFromName = fromName || process.env.MAILGUN_FROM_NAME || "Helixa";
-  const finalFromEmail = fromEmail || process.env.MAILGUN_FROM_EMAIL || `hello@${domain}`;
-  const finalReplyTo = replyTo || process.env.MAILGUN_REPLY_TO || finalFromEmail;
-
-  if (!apiKey || !domain) {
-    console.error("[email-provider] MAILGUN_API_KEY or MAILGUN_DOMAIN missing in environment.");
-    return { success: false, error: "Missing email provider configuration" };
-  }
-
-  const from = `${finalFromName} <${finalFromEmail}>`;
-
-  // Prepare Mailgun URL & form data
-  const url = `https://api.mailgun.net/v3/${domain}/messages`;
-  
-  const formData = new URLSearchParams();
-  formData.append("from", from);
-  formData.append("to", to);
-  formData.append("subject", subject);
-  formData.append("html", html);
-  formData.append("h:Reply-To", finalReplyTo);
-
   try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${Buffer.from(`api:${apiKey}`).toString("base64")}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: formData.toString(),
-    });
+    const supabase = await getSupabaseBypassClient();
+    const { data, error } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "smtp_settings")
+      .maybeSingle();
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("[email-provider] Mailgun error:", data);
-      return { success: false, error: data.message || "Failed to send email" };
+    if (error || !data || !data.value) {
+      console.error("[email-provider] Missing SMTP configuration in app_settings.");
+      return { success: false, error: "Missing SMTP configuration. Please configure it in the Admin Dashboard." };
     }
 
-    return { success: true, messageId: data.id };
+    const { host, port, secure, user, pass, fromName: defaultFromName, fromEmail: defaultFromEmail } = data.value;
+
+    if (!host || !port || !user || !pass) {
+      return { success: false, error: "Incomplete SMTP configuration." };
+    }
+
+    const finalFromName = fromName || defaultFromName || "Helixa";
+    const finalFromEmail = fromEmail || defaultFromEmail || user;
+    const finalReplyTo = replyTo || finalFromEmail;
+
+    const transporter = nodemailer.createTransport({
+      host,
+      port: Number(port),
+      secure: secure ?? (Number(port) === 465), 
+      auth: {
+        user,
+        pass,
+      },
+    });
+
+    const info = await transporter.sendMail({
+      from: `"${finalFromName}" <${finalFromEmail}>`,
+      to,
+      subject,
+      html,
+      replyTo: finalReplyTo,
+    });
+
+    return { success: true, messageId: info.messageId };
   } catch (error: any) {
-    console.error("[email-provider] Request error:", error);
-    return { success: false, error: error.message || "Unknown error" };
+    console.error("[email-provider] Nodemailer error:", error);
+    return { success: false, error: error.message || "Unknown error sending email" };
   }
 }

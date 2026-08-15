@@ -123,9 +123,14 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
+              <div className="flex items-center justify-end mb-1">
+                <label htmlFor="password" className="sr-only">
+                  Password
+                </label>
+                <Link href="/forgot-password" className="text-xs text-[#ffe14d] hover:text-[#ffb300] transition-colors">
+                  Forgot your password?
+                </Link>
+              </div>
               <PasswordInput
                 id="password"
                 name="password"
@@ -135,14 +140,6 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end">
-            <div className="text-sm">
-              <Link href="/forgot-password" className="font-medium text-[#ffe14d] hover:text-[#e6c738]">
-                Forgot your password?
-              </Link>
             </div>
           </div>
 

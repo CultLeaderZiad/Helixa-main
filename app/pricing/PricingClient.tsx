@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { CheckCircle, Zap, Star } from "lucide-react"
 import Link from "next/link"
-import ElectricBorder from "@/components/ui/electric-border"
+import ElectricBorder from "@/components/ui/ElectricBorder"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -95,7 +95,7 @@ export default function PricingClient({ plans }: { plans: any[] }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4">
         {/* Free Trial */}
         <div className="relative pt-4">
-          <ElectricBorder color="#ffffff" speed={6} containerClassName="rounded-2xl flex-col flex h-full">
+          <ElectricBorder color="#ffffff" speed={6} chaos={0.12} thickness={2} containerClassName="rounded-2xl flex-col flex h-full">
             <div className="p-8 flex flex-col h-full bg-white/[0.03] border border-white/10 rounded-2xl relative">
               <div className="mb-8">
                 <h3 className="text-xl font-bold text-white mb-2">Free Trial</h3>
@@ -125,7 +125,7 @@ export default function PricingClient({ plans }: { plans: any[] }) {
             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#ffe14d] text-black px-4 py-1.5 rounded-full text-xs font-bold tracking-wider z-20 whitespace-nowrap shadow-xl border border-black/20">
               BEST VALUE
             </div>
-            <ElectricBorder color="#ffe14d" speed={2} containerClassName="rounded-2xl flex-col flex h-full">
+            <ElectricBorder color="#ffe14d" speed={2} chaos={0.12} thickness={2} containerClassName="rounded-2xl flex-col flex h-full">
               <div className="p-8 flex flex-col h-full bg-white/[0.03] border border-white/10 rounded-2xl relative">
                 <div className="mb-8">
                   <div className="flex items-center gap-2 mb-2">
@@ -167,7 +167,7 @@ export default function PricingClient({ plans }: { plans: any[] }) {
 
         {/* Enterprise Plan */}
         <div className="relative pt-4">
-          <ElectricBorder color="#ffffff" speed={6} containerClassName="rounded-2xl flex-col flex h-full">
+          <ElectricBorder color="#ffffff" speed={6} chaos={0.12} thickness={2} containerClassName="rounded-2xl flex-col flex h-full">
             <div className="p-8 flex flex-col h-full bg-white/[0.03] border border-white/10 rounded-2xl relative">
               <div className="mb-8">
                 <div className="flex items-center gap-2 mb-2">

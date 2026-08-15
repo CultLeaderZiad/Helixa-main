@@ -9,7 +9,7 @@ export async function PATCH(req: NextRequest) {
     if (adminCheck.response) return adminCheck.response
 
     const body = await req.json()
-    const { isActive, message, link } = body
+    const { isActive, message, link, type = "standard", content = "" } = body
 
     if (typeof isActive !== "boolean" || typeof message !== "string") {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
@@ -21,7 +21,7 @@ export async function PATCH(req: NextRequest) {
       .upsert(
         { 
           key: "update_banner", 
-          value: { isActive, message, link: link || "" },
+          value: { isActive, message, link: link || "", type, content },
           updated_at: new Date().toISOString()
         },
         { onConflict: "key" }

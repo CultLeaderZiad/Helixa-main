@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { CreditCard, AlertTriangle, CheckCircle, Package } from "lucide-react"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
+import ElectricBorder from "@/components/ui/ElectricBorder"
 
 interface Subscription {
     id: string
@@ -229,16 +230,15 @@ export default function BillingPage() {
                         const titleColor = isFeatured ? "text-white" : "text-white";
                         
                         return (
-                            <div key={plan.id} className={`relative group p-[${isFeatured ? '1px' : '2px'}] rounded-[2rem] overflow-hidden ${isFeatured ? 'bg-white/5' : 'bg-[#ffe14d]/20 shadow-[0_0_40px_rgba(255,225,77,0.15)]'}`}>
-                                <div className={`absolute inset-0 bg-gradient-to-br ${borderColor} ${isFeatured ? 'to-transparent opacity-0 group-hover:opacity-100' : 'via-[#ffaa00] to-transparent animate-[shimmer_3s_linear_infinite] group-hover:animate-none opacity-50 group-hover:opacity-100'} transition-opacity duration-500 rounded-[2rem]`} />
-                                <div className="relative h-full bg-[#050505] p-8 rounded-[2rem] flex flex-col">
-                                    {!isFeatured && (
-                                        <div className="absolute top-4 right-4">
-                                            <span className="bg-gradient-to-r from-[#ffe14d] to-[#e6c419] text-black text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">
-                                                Best Value
-                                            </span>
-                                        </div>
-                                    )}
+                            <div key={plan.id} className="relative pt-4">
+                              {/* Keep Best Value badge if not featured */}
+                              {!isFeatured && (
+                                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-[#ffe14d] to-[#e6c419] text-black px-4 py-1.5 rounded-full text-xs font-bold tracking-widest z-20 whitespace-nowrap shadow-xl border border-black/20">
+                                      BEST VALUE
+                                  </div>
+                              )}
+                              <ElectricBorder color={isFeatured ? "#ffffff" : "#ffe14d"} speed={isFeatured ? 6 : 2} chaos={0.12} thickness={2} containerClassName="rounded-[2rem] flex-col flex h-full">
+                                <div className={`relative h-full ${isFeatured ? 'bg-white/[0.03]' : 'bg-white/[0.03]'} border border-white/10 p-8 rounded-[2rem] flex flex-col`}>
                                     <div className="mb-6">
                                         <h3 className={`text-xl font-bold ${titleColor} mb-2`}>{plan.name}</h3>
                                         <p className="text-sm text-neutral-400">{plan.description}</p>
@@ -263,6 +263,7 @@ export default function BillingPage() {
                                         Select {plan.name}
                                     </button>
                                 </div>
+                              </ElectricBorder>
                             </div>
                         )
                     })}

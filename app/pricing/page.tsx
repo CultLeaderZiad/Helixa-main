@@ -1,7 +1,6 @@
 import { CheckCircle, Zap, Star } from "lucide-react"
 import Link from "next/link"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import ElectricBorder from "@/components/ui/electric-border"
 import BackToHome from "@/components/ui/back-to-home"
 
 import PricingClient from "./PricingClient"

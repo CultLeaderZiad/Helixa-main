@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import {
   Users, TrendingUp, AlertTriangle, Shield, RefreshCw,
   Search, ChevronLeft, ChevronRight, X, Check,
-  Activity, DollarSign, Clock, Flag, Zap, CreditCard, XCircle
+  Activity, DollarSign, Clock, Flag, Zap, CreditCard, XCircle, Mail, Save
 } from "lucide-react"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 
@@ -81,7 +81,7 @@ export default function AdminPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
-  const [activeTab, setActiveTab] = useState<"users" | "audit" | "payments" | "banner" | "matrix">("users")
+  const [activeTab, setActiveTab] = useState<"users" | "audit" | "payments" | "banner" | "matrix" | "smtp">("users")
   const [trialsThisWeek, setTrialsThisWeek] = useState<number | null>(null)
   
   // Edit state
@@ -145,8 +145,36 @@ export default function AdminPage() {
     }
   }, [])
 
-  const [bannerState, setBannerState] = useState({ isActive: false, message: "", link: "" })
+  const [bannerState, setBannerState] = useState({ isActive: false, type: "standard", message: "", link: "", content: "" })
   const [savingBanner, setSavingBanner] = useState(false)
+
+  const [smtpSettings, setSmtpSettings] = useState({ host: "", port: "465", secure: true, user: "", pass: "", fromName: "", fromEmail: "" })
+  const [savingSmtp, setSavingSmtp] = useState(false)
+
+  const fetchSmtpSettings = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/settings/smtp")
+      const data = await res.json()
+      if (data) setSmtpSettings(prev => ({ ...prev, ...data }))
+    } catch (err) {}
+  }, [])
+
+  const saveSmtpSettings = async () => {
+    setSavingSmtp(true)
+    try {
+      const res = await fetch("/api/admin/settings/smtp", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(smtpSettings)
+      })
+      if (res.ok) alert("SMTP Settings saved!")
+      else alert("Failed to save SMTP Settings")
+    } catch (err) {
+      alert("Error saving SMTP Settings")
+    } finally {
+      setSavingSmtp(false)
+    }
+  }
 
   // Plan-Agent Matrix state
   const [agents, setAgents] = useState<any[]>([])
@@ -158,7 +186,7 @@ export default function AdminPage() {
     try {
       const res = await fetch("/api/settings/banner")
       const data = await res.json()
-      if (data) setBannerState(data)
+        if (data) setBannerState(prev => ({ ...prev, ...data }))
     } catch (err) {}
   }, [])
 
@@ -214,7 +242,8 @@ export default function AdminPage() {
     fetchPendingPayments()
     fetchBanner()
     fetchMatrixData()
-  }, [fetchStats, fetchAuditLogs, fetchTrialsThisWeek, fetchPendingPayments, fetchBanner, fetchMatrixData])
+    fetchSmtpSettings()
+  }, [fetchStats, fetchAuditLogs, fetchTrialsThisWeek, fetchPendingPayments, fetchBanner, fetchMatrixData, fetchSmtpSettings])
 
   useEffect(() => {
     fetchUsers()
@@ -388,7 +417,7 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-white/[0.08] overflow-x-auto scrollbar-none">
-        {(["users", "audit", "payments", "matrix", "banner"] as const).map((tab) => (
+        {(["users", "audit", "payments", "matrix", "banner", "smtp"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab as any)}
@@ -398,7 +427,7 @@ export default function AdminPage() {
                 : "text-neutral-500 hover:text-white"
             }`}
           >
-            {tab === "users" ? "Users" : tab === "audit" ? "Audit Log" : tab === "payments" ? "Payments" : tab === "matrix" ? "Plan Matrix" : "Banner"}
+            {tab === "users" ? "Users" : tab === "audit" ? "Audit Log" : tab === "payments" ? "Payments" : tab === "matrix" ? "Plan Matrix" : tab === "banner" ? "Banner" : "SMTP Settings"}
             {tab === "payments" && pendingPayments.length > 0 && (
               <span className="absolute top-1.5 right-1 w-2 h-2 rounded-full bg-blue-500" />
             )}
@@ -794,6 +823,30 @@ export default function AdminPage() {
               />
             </div>
 
+            <div className="flex items-center gap-3">
+              <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider w-24">Banner Type</label>
+              <select
+                className="flex-1 border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none"
+                value={bannerState.type || "standard"}
+                onChange={e => setBannerState(s => ({ ...s, type: e.target.value }))}
+              >
+                <option value="standard">Standard Text Banner</option>
+                <option value="lanyard">3D Lanyard Badge (Left Aligned)</option>
+              </select>
+            </div>
+
+            {bannerState.type === "lanyard" && (
+              <div className="space-y-3 pt-2">
+                <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider block">Update Page Content (Markdown)</label>
+                <textarea
+                  className="w-full h-48 border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600 resize-none"
+                  placeholder="# New Updates\n\n- Feature A..."
+                  value={bannerState.content || ""}
+                  onChange={e => setBannerState(s => ({ ...s, content: e.target.value }))}
+                />
+              </div>
+            )}
+
             <div className="pt-4 flex justify-end">
               <button
                 onClick={saveBanner}
@@ -903,6 +956,104 @@ export default function AdminPage() {
                 </p>
               </div>
           )}
+        </div>
+      )}
+      {activeTab === "smtp" && (
+        <div className="max-w-2xl border border-white/[0.08] rounded-xl p-6 bg-white/[0.02] space-y-6">
+          <div className="flex items-center gap-3 border-b border-white/[0.08] pb-4">
+            <Mail className="w-5 h-5 text-[#ffe14d]" />
+            <div>
+              <h2 className="font-mono text-sm font-bold text-white">SMTP Settings</h2>
+              <p className="font-mono text-xs text-neutral-500">Configure outbound email provider credentials.</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider block mb-1">SMTP Host</label>
+                <input
+                  className="w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
+                  placeholder="smtp.example.com"
+                  value={smtpSettings.host}
+                  onChange={e => setSmtpSettings(s => ({ ...s, host: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider block mb-1">SMTP Port</label>
+                <input
+                  className="w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
+                  placeholder="465"
+                  value={smtpSettings.port}
+                  onChange={e => setSmtpSettings(s => ({ ...s, port: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider">Use Secure Connection (TLS/SSL)</label>
+              <button
+                onClick={() => setSmtpSettings(s => ({ ...s, secure: !s.secure }))}
+                className={`relative w-10 h-5 rounded-full transition-colors ${smtpSettings.secure ? "bg-green-500" : "bg-white/10"}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${smtpSettings.secure ? "translate-x-5" : ""}`} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider block mb-1">SMTP User / Email</label>
+                <input
+                  className="w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
+                  placeholder="user@example.com"
+                  value={smtpSettings.user}
+                  onChange={e => setSmtpSettings(s => ({ ...s, user: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider block mb-1">SMTP Password / Key</label>
+                <input
+                  type="password"
+                  className="w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
+                  placeholder="••••••••••••••••"
+                  value={smtpSettings.pass}
+                  onChange={e => setSmtpSettings(s => ({ ...s, pass: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/[0.08]">
+              <div>
+                <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider block mb-1">Default From Name</label>
+                <input
+                  className="w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
+                  placeholder="Helixa"
+                  value={smtpSettings.fromName}
+                  onChange={e => setSmtpSettings(s => ({ ...s, fromName: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider block mb-1">Default From Email</label>
+                <input
+                  className="w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
+                  placeholder="hello@helixa.app"
+                  value={smtpSettings.fromEmail}
+                  onChange={e => setSmtpSettings(s => ({ ...s, fromEmail: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="pt-4 flex justify-end">
+              <button
+                onClick={saveSmtpSettings}
+                disabled={savingSmtp}
+                className="bg-[#ffe14d] text-black font-mono text-sm font-bold px-6 py-2 rounded-lg hover:brightness-110 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {savingSmtp ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {savingSmtp ? "Saving..." : "Save SMTP Settings"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

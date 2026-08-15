@@ -407,12 +407,20 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                             {!isChangingPassword && (
-                                <button
-                                    onClick={() => setIsChangingPassword(true)}
-                                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-medium transition-colors border border-white/10"
-                                >
-                                    Change Password
-                                </button>
+                                <div className="flex items-center gap-3">
+                                    <a 
+                                        href="/forgot-password"
+                                        className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                                    >
+                                        Forgot Password?
+                                    </a>
+                                    <button
+                                        onClick={() => setIsChangingPassword(true)}
+                                        className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-medium transition-colors border border-white/10"
+                                    >
+                                        Change Password
+                                    </button>
+                                </div>
                             )}
                         </div>
 

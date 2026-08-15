@@ -10,7 +10,7 @@ import MaskedHeading from "@/components/ui/MaskedHeading"
 import DepthText from "@/components/ui/DepthText"
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
-
+import PillNav from "@/components/ui/PillNav"
 const Ferrofluid = dynamic(() => import("@/components/effects/ferrofluid"), { ssr: false })
 const ScrollFloat = dynamic(() => import("@/components/ui/ScrollFloat"), { ssr: false })
 import {
@@ -85,10 +85,18 @@ export function LandingPage() {
           />
         </div>
 
-        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-8 font-mono-ui text-xs text-neutral-400">
-          <a href="/pricing" className="hover:text-white transition-colors">{t.pricing}</a>
-          <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
-          <a href="/terms" className="hover:text-white transition-colors">Terms</a>
+        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center z-50">
+          <PillNav
+            items={[
+              { label: t.pricing || "Pricing", href: "/pricing" },
+              { label: "Privacy", href: "/privacy" },
+              { label: "Terms", href: "/terms" }
+            ]}
+            baseColor="rgba(255, 255, 255, 0.03)"
+            pillColor="#ffe14d"
+            hoveredPillTextColor="#ffffff"
+            pillTextColor="#000000"
+          />
         </div>
 
         <div className="flex items-center gap-2">

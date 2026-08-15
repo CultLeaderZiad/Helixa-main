@@ -167,11 +167,7 @@ const SplitText: React.FC<SplitTextProps> = ({
     const classes = `split-parent ${className}`;
     const Tag = (tag || 'p') as React.ElementType;
 
-    return (
-      <Tag ref={ref} style={style} className={classes}>
-        {text}
-      </Tag>
-    );
+    return React.createElement(Tag, { ref: ref as any, style, className: classes }, text);
   };
   return renderTag();
 };

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Plus, Mail, Clock, Send, AlertTriangle, ArrowRight, Activity, Users } from "lucide-react"
 import { toast } from "react-hot-toast"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
+import { useSearchParams } from "next/navigation"
 
 interface Campaign {
   id: string
@@ -24,9 +25,18 @@ interface Campaign {
 
 export default function CampaignsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get("tab")
   const { t, language } = useLanguage()
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState(tabParam || "all")
+
+  useEffect(() => {
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam)
+    }
+  }, [tabParam])
 
   useEffect(() => {
     fetchCampaigns()
@@ -144,7 +154,7 @@ export default function CampaignsPage() {
       </div>
 
       {/* Campaigns List */}
-      <Tabs defaultValue="all" className="w-full">
+      <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); router.replace(`/dashboard/admin/campaigns?tab=${val}`); }} className="w-full">
         <div className="flex justify-between items-center mb-4">
           <TabsList className="bg-zinc-900 border border-zinc-800">
             <TabsTrigger value="all" className="data-[state=active]:bg-zinc-800">All Campaigns</TabsTrigger>
