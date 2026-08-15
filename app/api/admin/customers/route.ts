@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from("accounts")
-      .select("id, email, plan, created_at, subscription_status")
+      .select("id, email, full_name, plan, created_at, subscription_status")
       .eq("role", "user")
       .order("created_at", { ascending: false })
 

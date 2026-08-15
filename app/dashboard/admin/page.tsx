@@ -91,6 +91,7 @@ export default function AdminPage() {
   const [editFlaggedReason, setEditFlaggedReason] = useState("")
   const [editBanned, setEditBanned] = useState(false)
   const [editBannedReason, setEditBannedReason] = useState("")
+  const [editTrialEndsAt, setEditTrialEndsAt] = useState<string | null>(null)
 
   const fetchStats = useCallback(async () => {
     const res = await fetch("/api/admin/stats")
@@ -247,6 +248,7 @@ export default function AdminPage() {
     setEditFlaggedReason(user.flagged_reason || "")
     setEditBanned(user.is_banned)
     setEditBannedReason(user.banned_reason || "")
+    setEditTrialEndsAt(user.trial_ends_at)
   }
 
   const saveUser = async () => {
@@ -263,6 +265,7 @@ export default function AdminPage() {
           flagged_reason: editFlaggedReason || null,
           is_banned: editBanned,
           banned_reason: editBannedReason || null,
+          trial_ends_at: editTrialEndsAt,
         }),
       })
       if (res.ok) {
@@ -585,6 +588,27 @@ export default function AdminPage() {
                     <option value="expired">Expired</option>
                   </select>
                 </div>
+
+                {editPlan === "trial" && (
+                  <div>
+                    <label className="font-mono text-[10px] text-neutral-500 uppercase tracking-wider block mb-1">Trial Access</label>
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-xs text-white">
+                        {editTrialEndsAt ? new Date(editTrialEndsAt).toLocaleString() : "No trial date"}
+                      </span>
+                      <button
+                        onClick={() => {
+                          const future = new Date()
+                          future.setDate(future.getDate() + 3)
+                          setEditTrialEndsAt(future.toISOString())
+                        }}
+                        className="px-2 py-1 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded text-xs font-mono"
+                      >
+                        Reset Trial (3 Days)
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="font-mono text-[10px] text-neutral-500 uppercase tracking-wider">Role</label>

@@ -13,6 +13,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { id } = await params;
     const supabase = await getSupabaseBypassClient()
 
+    let targetAccountIds: string[] | undefined = undefined;
+    try {
+      const body = await request.json()
+      if (body && Array.isArray(body.targetAccountIds)) {
+        targetAccountIds = body.targetAccountIds
+      }
+    } catch (e) {
+      // Ignore JSON parse errors for backwards compatibility
+    }
+
     // 1. Fetch Campaign
     const { data: campaign, error: campaignError } = await supabase
       .from("email_campaigns")
@@ -28,13 +38,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: "Campaign is already sent or processing" }, { status: 400 })
     }
 
-    // 2. Mark as Sending
-    await supabase.from("email_campaigns").update({ status: "sending" }).eq("id", campaign.id)
+    // 2. Mark as Sending and save target account IDs
+    const updateData: any = { status: "sending" }
+    if (targetAccountIds !== undefined) {
+      updateData.target_account_ids = targetAccountIds
+    }
+    await supabase.from("email_campaigns").update(updateData).eq("id", campaign.id)
 
     // 3. Fetch Audience
-    let query = supabase.from("accounts").select("id, email, role, plan").eq("role", "user")
+    let query = supabase.from("accounts").select("id, email, full_name, role, plan").eq("role", "user")
 
-    if (campaign.audience_filter !== "all") {
+    if (targetAccountIds !== undefined && targetAccountIds.length > 0) {
+      // If we have specific IDs selected from the UI, only send to those
+      query = query.in("id", targetAccountIds)
+    } else if (campaign.audience_filter !== "all") {
+      // Fallback to general filter if no specific IDs provided
       if (campaign.audience_filter === "trial") {
         query = query.eq("plan", "trial")
       } else if (campaign.audience_filter === "monthly") {
@@ -100,8 +118,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         features: campaign.features,
         ctaText: campaign.cta_text,
         ctaUrl: campaign.cta_url,
-        // We don't have first names in accounts, could parse email or add name to users
-        customerName: customer.email.split('@')[0], 
+        customerName: customer.full_name || customer.email.split('@')[0], 
       })
 
       const sendResult = await sendEmail({

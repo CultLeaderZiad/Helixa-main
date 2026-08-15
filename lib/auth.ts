@@ -161,6 +161,9 @@ export async function requireInstagramUser(request?: NextRequest): Promise<
   if (!session) {
     return { response: NextResponse.json({ error: "Not authenticated" }, { status: 401 }) }
   }
+  if (session.account.is_banned) {
+    return { response: NextResponse.json({ error: "Account is banned", isBanned: true }, { status: 403 }) }
+  }
   if (!session.igUser) {
     return { response: NextResponse.json({ error: "Connect Instagram first" }, { status: 400 }) }
   }
@@ -187,6 +190,30 @@ export async function requireAdmin(request?: NextRequest): Promise<
   }
   if (account.role !== "admin" || account.is_banned) {
     return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) }
+  }
+  return { user: account }
+}
+
+/**
+ * Gate for authenticated routes. Calls `getSessionUser` and returns a 401
+ * when unauthenticated, or a 403 when the user is banned.
+ *
+ * Usage:
+ * ```ts
+ * const result = await requireUser(request)
+ * if (result.response) return result.response
+ * const account = result.user
+ * ```
+ */
+export async function requireUser(request?: NextRequest): Promise<
+  { user: any; response?: never } | { user?: never; response: NextResponse }
+> {
+  const account = await getSessionUser(request)
+  if (!account) {
+    return { response: NextResponse.json({ error: "Not authenticated" }, { status: 401 }) }
+  }
+  if (account.is_banned) {
+    return { response: NextResponse.json({ error: "Account is banned", isBanned: true }, { status: 403 }) }
   }
   return { user: account }
 }

@@ -25,7 +25,7 @@ export async function PATCH(
     const supabase = await getSupabaseBypassClient()
     const body = await request.json()
 
-    const allowedFields = ["role", "plan", "is_flagged", "flagged_reason", "is_banned", "banned_reason"]
+    const allowedFields = ["role", "plan", "is_flagged", "flagged_reason", "is_banned", "banned_reason", "trial_ends_at"]
     const updates: Record<string, any> = {}
     for (const field of allowedFields) {
       if (field in body) updates[field] = body[field]
@@ -40,7 +40,7 @@ export async function PATCH(
     // Fetch current account state for audit diff
     const { data: targetAccount, error: fetchError } = await supabase
       .from("accounts")
-      .select("id, email, role, plan, is_flagged, flagged_reason, is_banned, banned_reason")
+      .select("id, email, role, plan, is_flagged, flagged_reason, is_banned, banned_reason, trial_ends_at")
       .eq("id", targetAccountId)
       .single()
 
@@ -65,27 +65,35 @@ export async function PATCH(
       .maybeSingle()
     targetUserId = targetUser?.id ?? null
 
-    // Mirror plan to users + subscriptions when plan changed
-    if (updates.plan && targetUserId !== null) {
-      await supabase.from("users").update({ plan: updates.plan }).eq("id", targetUserId)
+    // Mirror plan and trial_ends_at to users + subscriptions
+    if ((updates.plan !== undefined || updates.trial_ends_at !== undefined) && targetUserId !== null) {
+      const userUpdates: Record<string, any> = {}
+      if (updates.plan !== undefined) userUpdates.plan = updates.plan
+      if (updates.trial_ends_at !== undefined) userUpdates.trial_ends_at = updates.trial_ends_at
+      
+      if (Object.keys(userUpdates).length > 0) {
+        await supabase.from("users").update(userUpdates).eq("id", targetUserId)
+      }
 
-      const { data: existingSub } = await supabase
-        .from("subscriptions")
-        .select("id")
-        .eq("user_id", targetUserId)
-        .maybeSingle()
-      if (existingSub) {
-        await supabase.from("subscriptions").update({
-          plan_type: updates.plan,
-          status: updates.plan === "expired" ? "canceled" : "active",
-          updated_at: new Date().toISOString(),
-        }).eq("id", existingSub.id)
-      } else {
-        await supabase.from("subscriptions").insert({
-          user_id: targetUserId,
-          plan_type: updates.plan,
-          status: updates.plan === "expired" ? "canceled" : "active",
-        })
+      if (updates.plan !== undefined) {
+        const { data: existingSub } = await supabase
+          .from("subscriptions")
+          .select("id")
+          .eq("user_id", targetUserId)
+          .maybeSingle()
+        if (existingSub) {
+          await supabase.from("subscriptions").update({
+            plan_type: updates.plan,
+            status: updates.plan === "expired" ? "canceled" : "active",
+            updated_at: new Date().toISOString(),
+          }).eq("id", existingSub.id)
+        } else {
+          await supabase.from("subscriptions").insert({
+            user_id: targetUserId,
+            plan_type: updates.plan,
+            status: updates.plan === "expired" ? "canceled" : "active",
+          })
+        }
       }
     }
 

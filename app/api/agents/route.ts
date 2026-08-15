@@ -16,12 +16,16 @@ export async function GET(req: NextRequest) {
 
     const supabase = await getSupabaseBypassClient()
     
-    // 1. Get all active agents
-    const { data: agents, error: agentsError } = await supabase
-      .from("agents")
-      .select("*")
-      .eq("is_active", true)
-      .order("sort_order")
+    // Fetch base data in parallel
+    const [
+      { data: agents, error: agentsError },
+      { data: account },
+      { data: settings, error: settingsError }
+    ] = await Promise.all([
+      supabase.from("agents").select("*").eq("is_active", true).order("sort_order"),
+      supabase.from("accounts").select("plan, role").eq("id", accId).maybeSingle(),
+      supabase.from("account_agent_settings").select("agent_id, is_enabled, byok_provider, byok_connected_at").eq("account_id", accId)
+    ]);
 
     if (agentsError) {
       if (agentsError.code === '42P01') {
@@ -31,8 +35,7 @@ export async function GET(req: NextRequest) {
       throw new Error(agentsError.message)
     }
 
-    // 2. Get user's plan, role, and plan_agents mapping
-    const { data: account } = await supabase.from("accounts").select("plan, role").eq("id", accId).maybeSingle()
+    // Get user's plan_agents mapping based on plan
     let planAgents: string[] = []
     
     if (account?.role === 'admin') {
@@ -41,12 +44,6 @@ export async function GET(req: NextRequest) {
       const { data: pa, error: paError } = await supabase.from("plan_agents").select("agent_id").eq("plan_id", account.plan)
       if (pa && !paError) planAgents = pa.map((p: any) => p.agent_id)
     }
-
-    // 3. Get user's agent settings
-    const { data: settings, error: settingsError } = await supabase
-      .from("account_agent_settings")
-      .select("agent_id, is_enabled, byok_provider, byok_connected_at")
-      .eq("account_id", accId)
 
     const settingsMap = (!settingsError && settings ? settings : []).reduce((acc: any, s: any) => {
       acc[s.agent_id] = s

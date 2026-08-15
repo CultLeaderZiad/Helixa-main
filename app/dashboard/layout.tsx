@@ -17,7 +17,7 @@ export default function DashboardLayout({
 }: {
     children: React.ReactNode
 }) {
-    const { username, profilePic, logout, plan, trialEndsAt, trialExempt, isLoading, accountId, email, role, hasValidPayment, isTrialExpired, isPastDeadline } = useInstagramSession()
+    const { username, profilePic, logout, plan, trialEndsAt, trialExempt, isLoading, accountId, email, role, hasValidPayment, isTrialExpired, isPastDeadline, isBanned, bannedReason } = useInstagramSession()
 
     const router = useRouter()
 
@@ -56,6 +56,44 @@ export default function DashboardLayout({
         return (
             <div className="flex h-screen items-center justify-center bg-[#03010A] text-white">
                 <Loader2 className="h-8 w-8 animate-spin text-white" />
+            </div>
+        )
+    }
+
+    if (isBanned) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-[#03010A] text-white p-4 relative overflow-hidden">
+                <DashboardBackground />
+                <div className="max-w-md w-full border border-red-500/20 bg-[#0d070b]/60 backdrop-blur-xl rounded-2xl p-8 text-center space-y-6 shadow-2xl relative z-10 animate-in fade-in zoom-in duration-500">
+                    <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mx-auto text-red-500 animate-pulse">
+                        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <h2 className="text-2xl font-serif-display text-white">Access Suspended</h2>
+                        <p className="text-sm text-neutral-400">
+                            Your account has been administrative banned.
+                        </p>
+                    </div>
+
+                    {bannedReason && (
+                        <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-4 text-left">
+                            <span className="text-[10px] font-mono-ui uppercase tracking-wider text-red-400 block mb-1">Reason for suspension:</span>
+                            <p className="text-xs text-neutral-300 font-mono">{bannedReason}</p>
+                        </div>
+                    )}
+
+                    <div className="pt-4 border-t border-white/5">
+                        <button
+                            onClick={logout}
+                            className="w-full bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 font-mono-ui text-xs font-bold py-2.5 rounded-lg transition-all"
+                        >
+                            Log Out of Account
+                        </button>
+                    </div>
+                </div>
             </div>
         )
     }

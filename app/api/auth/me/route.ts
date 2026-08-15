@@ -95,6 +95,8 @@ export async function GET(request: NextRequest) {
       has_valid_payment: hasValidPayment,
       is_trial_expired: isTrialExpired,
       is_past_deadline: isPastDeadline,
+      is_banned: account.is_banned || false,
+      banned_reason: account.banned_reason || null,
     })
   } catch (error: any) {
     console.error("[auth/me] Error:", error)

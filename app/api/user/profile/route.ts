@@ -10,6 +10,10 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    if (account.is_banned) {
+      return NextResponse.json({ error: "Forbidden", is_banned: true }, { status: 403 })
+    }
+
     const body = await request.json()
     const { full_name, profile_picture_url } = body
     

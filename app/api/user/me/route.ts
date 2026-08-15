@@ -13,6 +13,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
+    if (user.is_banned) {
+      return NextResponse.json({ error: "Forbidden", is_banned: true }, { status: 403 })
+    }
+
     return NextResponse.json({
       user: {
         id: user.id,

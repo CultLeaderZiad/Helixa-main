@@ -1,13 +1,14 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { Settings, User, Mail, AlertTriangle, Calendar, Shield, Share2, LifeBuoy, Check, Upload, Loader2, Camera } from "lucide-react"
+import { Settings, User, Mail, AlertTriangle, Calendar, Shield, Share2, LifeBuoy, Check, Upload, Loader2, Camera, Key } from "lucide-react"
 import { TeamPanel } from "@/components/dashboard/TeamPanel"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import Image from "next/image"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
+import { PasswordInput } from "@/components/ui/password-input"
 
 interface UserProfile {
     email: string
@@ -31,6 +32,12 @@ export default function SettingsPage() {
     const [saving, setSaving] = useState(false)
     const [uploadingPhoto, setUploadingPhoto] = useState(false)
     const [successMsg, setSuccessMsg] = useState("")
+    
+    // Password state
+    const [isChangingPassword, setIsChangingPassword] = useState(false)
+    const [newPassword, setNewPassword] = useState("")
+    const [confirmPassword, setConfirmPassword] = useState("")
+    const [passwordSaving, setPasswordSaving] = useState(false)
     
     const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -155,6 +162,37 @@ export default function SettingsPage() {
         return new Date(dateString).toLocaleDateString("en-US", { 
             year: 'numeric', month: 'short', day: 'numeric' 
         })
+    }
+
+    const handleChangePassword = async () => {
+        if (newPassword !== confirmPassword) {
+            setError("Passwords do not match")
+            return
+        }
+        if (newPassword.length < 6) {
+            setError("Password must be at least 6 characters")
+            return
+        }
+
+        setPasswordSaving(true)
+        setError("")
+        try {
+            const supabase = getSupabaseBrowserClient()
+            const { error: updateError } = await supabase.auth.updateUser({
+                password: newPassword
+            })
+            if (updateError) throw updateError
+            
+            setSuccessMsg("Password updated successfully!")
+            setIsChangingPassword(false)
+            setNewPassword("")
+            setConfirmPassword("")
+            setTimeout(() => setSuccessMsg(""), 3000)
+        } catch (err: any) {
+            setError(err.message || "Failed to update password")
+        } finally {
+            setPasswordSaving(false)
+        }
     }
 
     return (
@@ -354,6 +392,73 @@ export default function SettingsPage() {
                                 </a>
                             </div>
                         </div>
+                    </div>
+
+                    {/* Security Panel */}
+                    <div className="p-5 rounded-xl border border-white/10 bg-[#0b0b0a] space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center">
+                                    <Key className="w-5 h-5 text-orange-500" />
+                                </div>
+                                <div>
+                                    <h4 className="text-white font-medium">Security</h4>
+                                    <p className="text-xs text-neutral-400">Manage your password</p>
+                                </div>
+                            </div>
+                            {!isChangingPassword && (
+                                <button
+                                    onClick={() => setIsChangingPassword(true)}
+                                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-medium transition-colors border border-white/10"
+                                >
+                                    Change Password
+                                </button>
+                            )}
+                        </div>
+
+                        {isChangingPassword && (
+                            <div className="space-y-4 pt-4 border-t border-white/10 animate-in fade-in slide-in-from-top-2">
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="text-xs text-neutral-400 font-medium mb-1 block">New Password</label>
+                                        <PasswordInput
+                                            value={newPassword}
+                                            onChange={(e) => setNewPassword(e.target.value)}
+                                            placeholder="Enter new password"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-neutral-400 font-medium mb-1 block">Confirm Password</label>
+                                        <PasswordInput
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            placeholder="Confirm new password"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={handleChangePassword}
+                                        disabled={passwordSaving || !newPassword || !confirmPassword}
+                                        className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                    >
+                                        {passwordSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                                        Update Password
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setIsChangingPassword(false)
+                                            setNewPassword("")
+                                            setConfirmPassword("")
+                                        }}
+                                        disabled={passwordSaving}
+                                        className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-medium transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Team Panel */}

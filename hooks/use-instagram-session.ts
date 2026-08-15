@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
+import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 
 export interface SessionState {
     username: string | null
@@ -17,6 +18,8 @@ export interface SessionState {
     isTrialExpired: boolean
     isPastDeadline: boolean
     isLoading: boolean
+    isBanned: boolean
+    bannedReason: string | null
 }
 
 /**
@@ -45,6 +48,8 @@ const initialState: SessionState = {
     isTrialExpired: false,
     isPastDeadline: false,
     isLoading: true,
+    isBanned: false,
+    bannedReason: null,
 }
 
 let snapshot: SessionState = { ...initialState }
@@ -100,6 +105,8 @@ async function fetchMe(): Promise<boolean> {
                     hasValidPayment: data.has_valid_payment || false,
                     isTrialExpired: data.is_trial_expired || false,
                     isPastDeadline: data.is_past_deadline || false,
+                    isBanned: data.is_banned || false,
+                    bannedReason: data.banned_reason || null,
                 })
                 try {
                     localStorage.setItem("ig_account_id", data.accountId)
@@ -196,6 +203,55 @@ export function useInstagramSession() {
     useEffect(() => {
         initSession(searchParams.get("code"), router)
     }, [searchParams, router])
+
+    // Live Realtime listener for account & user updates
+    useEffect(() => {
+        if (!state.accountId) return
+
+        const supabase = getSupabaseBrowserClient()
+        
+        // Listen for changes on accounts table (plan/banning)
+        const accountChannel = supabase.channel(`session-account-${state.accountId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'accounts',
+                    filter: `id=eq.${state.accountId}`
+                },
+                () => {
+                    fetchMe()
+                }
+            )
+            .subscribe()
+
+        // Listen for changes on users table (trial/plan mappings)
+        let userChannel: any = null
+        if (state.userId) {
+            userChannel = supabase.channel(`session-user-${state.userId}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'users',
+                        filter: `id=eq.${state.userId}`
+                    },
+                    () => {
+                        fetchMe()
+                    }
+                )
+                .subscribe()
+        }
+
+        return () => {
+            supabase.removeChannel(accountChannel)
+            if (userChannel) {
+                supabase.removeChannel(userChannel)
+            }
+        }
+    }, [state.accountId, state.userId])
 
     const logout = async () => {
         try {

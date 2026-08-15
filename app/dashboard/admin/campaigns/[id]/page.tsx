@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { ArrowLeft, Loader2, Send, Activity, Users, Mail, AlertTriangle } from "lucide-react"
 import { toast } from "react-hot-toast"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
@@ -19,6 +20,7 @@ interface Campaign {
 
 interface CustomerPreview {
   id: string
+  full_name?: string
   email: string
   plan: string
 }
@@ -31,6 +33,7 @@ export default function CampaignDetailsPage() {
 
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [audience, setAudience] = useState<CustomerPreview[]>([])
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [sendingTest, setSendingTest] = useState(false)
   const [sendingReal, setSendingReal] = useState(false)
@@ -52,7 +55,9 @@ export default function CampaignDetailsPage() {
       const resAud = await fetch(`/api/admin/customers?filter=${campData.campaign.audience_filter}`)
       if (resAud.ok) {
         const audData = await resAud.json()
-        setAudience(audData.customers || [])
+        const customers = audData.customers || []
+        setAudience(customers)
+        setSelectedCustomerIds(new Set(customers.map((c: any) => c.id)))
       }
     } catch (error) {
       toast.error("Failed to load details")
@@ -76,12 +81,33 @@ export default function CampaignDetailsPage() {
     }
   }
 
+  const handleToggleCustomer = (customerId: string) => {
+    setSelectedCustomerIds(prev => {
+      const next = new Set(prev)
+      if (next.has(customerId)) next.delete(customerId)
+      else next.add(customerId)
+      return next
+    })
+  }
+
+  const handleToggleAll = () => {
+    if (selectedCustomerIds.size === audience.length) {
+      setSelectedCustomerIds(new Set())
+    } else {
+      setSelectedCustomerIds(new Set(audience.map(c => c.id)))
+    }
+  }
+
   const handleSendReal = async () => {
-    if (!confirm(t.confirmSend.replace('{{count}}', audience.length.toString()))) return
+    if (!confirm(t.confirmSend.replace('{{count}}', selectedCustomerIds.size.toString()))) return
 
     setSendingReal(true)
     try {
-      const res = await fetch(`/api/admin/campaigns/${id}/send`, { method: "POST" })
+      const res = await fetch(`/api/admin/campaigns/${id}/send`, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetAccountIds: Array.from(selectedCustomerIds) })
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || t.failSendCampaign)
       
@@ -141,11 +167,11 @@ export default function CampaignDetailsPage() {
             </Button>
             <Button 
               onClick={handleSendReal}
-              disabled={sendingTest || sendingReal || audience.length === 0}
+              disabled={sendingTest || sendingReal || selectedCustomerIds.size === 0}
               className="bg-brand-500 hover:bg-brand-600 text-black font-semibold"
             >
               {sendingReal ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'} animate-spin`} /> : <Send className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />}
-              {t.sendToCustomers.replace('{{count}}', audience.length.toString())}
+              {t.sendToCustomers.replace('{{count}}', selectedCustomerIds.size.toString())}
             </Button>
           </div>
         )}
@@ -173,22 +199,38 @@ export default function CampaignDetailsPage() {
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-zinc-400 uppercase bg-zinc-900/80 sticky top-0 border-b border-zinc-800">
                   <tr>
-                    <th className={`px-6 py-3 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.email}</th>
-                    <th className={`px-6 py-3 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.plan}</th>
+                    <th className="px-4 py-3 w-[50px] text-center">
+                      <Checkbox 
+                        checked={selectedCustomerIds.size > 0 && selectedCustomerIds.size === audience.length}
+                        onCheckedChange={handleToggleAll}
+                        aria-label="Select all"
+                      />
+                    </th>
+                    <th className={`px-4 py-3 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>Name</th>
+                    <th className={`px-4 py-3 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.email}</th>
+                    <th className={`px-4 py-3 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.plan}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800">
                   {audience.length === 0 ? (
                     <tr>
-                      <td colSpan={2} className="px-6 py-8 text-center text-zinc-500">
+                      <td colSpan={4} className="px-6 py-8 text-center text-zinc-500">
                         {t.noCustomersMatch}
                       </td>
                     </tr>
                   ) : (
                     audience.map(c => (
                       <tr key={c.id} className="hover:bg-zinc-900/30">
-                        <td className="px-6 py-3 text-white">{c.email}</td>
-                        <td className="px-6 py-3 text-zinc-400">{c.plan}</td>
+                        <td className="px-4 py-3 text-center">
+                          <Checkbox 
+                            checked={selectedCustomerIds.has(c.id)}
+                            onCheckedChange={() => handleToggleCustomer(c.id)}
+                            aria-label={`Select ${c.email}`}
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-white font-medium">{c.full_name || 'N/A'}</td>
+                        <td className="px-4 py-3 text-zinc-300">{c.email}</td>
+                        <td className="px-4 py-3 text-zinc-400">{c.plan}</td>
                       </tr>
                     ))
                   )}
