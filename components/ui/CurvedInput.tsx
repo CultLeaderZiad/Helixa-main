@@ -14,7 +14,7 @@ interface CurvedInputProps {
 }
 
 export default function CurvedInput({
-  placeholder = "david@reactbits.dev",
+  placeholder = "yourname@xyz.com",
   buttonText = "Get Started",
   theme = "dark",
   bend = 28,

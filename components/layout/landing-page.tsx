@@ -270,7 +270,7 @@ export function LandingPage() {
             Join our newsletter to receive weekly updates, product news, and early access to new features.
           </p>
           <CurvedInput
-            placeholder="david@reactbits.dev"
+            placeholder="yourname@xyz.com"
             buttonText="Get Started"
             theme="dark"
             bend={28}
