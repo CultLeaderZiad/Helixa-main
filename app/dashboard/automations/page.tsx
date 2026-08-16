@@ -60,6 +60,22 @@ function AutomationsPageContent() {
     }
 
     const handleToggleRule = async (rule: Automation, active: boolean) => {
+        const previous = rule.is_active
+        mutateAutomations(prev => (prev || []).map(a => a.id === rule.id ? { ...a, is_active: active } : a), false)
+        try {
+            const res = await fetch("/api/automations", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: rule.id, is_active: active }),
+            })
+            if (!res.ok) throw new Error("PATCH failed")
+            toast.success(active ? "Automation enabled" : "Automation paused")
+            mutateAutomations()
+        } catch (err) {
+            mutateAutomations(prev => (prev || []).map(a => a.id === rule.id ? { ...a, is_active: previous } : a), false)
+            toast.error("Failed to update")
+        }
+    }
 
     if (isSessionLoading) return <div className="h-screen flex items-center justify-center bg-[#03010A]"><div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>
     
