@@ -78,15 +78,19 @@ export default function PillNav({
     return () => observer.disconnect()
   }, [items, activeHref])
 
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (href.startsWith('#')) {
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, originalHref: string, targetHref: string) => {
+    const isLocalHash = targetHref.startsWith('#') && pathname === '/'
+    const isRootHash = targetHref.startsWith('/#') && pathname === '/'
+    
+    if (isLocalHash || isRootHash) {
       e.preventDefault()
-      const element = document.getElementById(href.substring(1))
+      const hash = isRootHash ? targetHref.substring(1) : targetHref
+      const elementId = hash.substring(1)
+      const element = document.getElementById(elementId)
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' })
-        setCurrentActive(href)
-        // Optionally update URL hash without jump
-        window.history.pushState(null, '', href)
+        setCurrentActive(hash)
+        window.history.pushState(null, '', hash)
       }
     }
   }
@@ -104,6 +108,11 @@ export default function PillNav({
       )}
       <div className="flex items-center">
         {items.map((item) => {
+          let targetHref = item.href
+          if (targetHref.startsWith('#') && pathname !== '/') {
+            targetHref = `/${targetHref}`
+          }
+
           const isHovered = hoveredHref === item.href
           // Fallback to pathname matching if no hash matches
           const isActive = currentActive === item.href || (!currentActive && pathname === item.href)
@@ -116,8 +125,8 @@ export default function PillNav({
           return (
             <Link 
               key={item.href} 
-              href={item.href}
-              onClick={(e) => handleClick(e, item.href)}
+              href={targetHref}
+              onClick={(e) => handleClick(e, item.href, targetHref)}
               onMouseEnter={() => setHoveredHref(item.href)}
               className="relative px-6 py-2.5 rounded-full transition-colors z-10 font-bold tracking-widest text-xs uppercase"
               style={{ color: textColor }}
