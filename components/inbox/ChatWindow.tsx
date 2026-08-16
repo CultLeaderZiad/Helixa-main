@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import type { Message } from "@/types/db"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
+import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 
 interface ChatWindowProps {
     conversationId: string | null
@@ -37,6 +38,41 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" })
     }, [messages])
+
+    useEffect(() => {
+        if (!conversationId) return
+
+        const supabase = getSupabaseBrowserClient()
+        
+        const channel = supabase
+            .channel(`conversation-${conversationId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'messages',
+                    filter: `conversation_id=eq.${conversationId}`,
+                },
+                (payload) => {
+                    const newMsg = payload.new as Message
+                    // avoid duplicates if we already optimistically added it (by checking temp_ ID or content match)
+                    mutateMessages((prev: Message[] = []) => {
+                        const exists = prev.find((m) => m.id === newMsg.id || (m.content === newMsg.content && !m.is_from_instagram && m.id.toString().startsWith("temp_")))
+                        if (exists) {
+                            // Replace temp message with real one
+                            return prev.map(m => m.id === exists.id ? newMsg : m)
+                        }
+                        return [...prev, newMsg]
+                    }, false)
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [conversationId, mutateMessages])
 
     const handleSendMessage = async (text: string = inputText) => {
         if (!text.trim() || !recipientId || !userId) return

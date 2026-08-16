@@ -1,12 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
 import { getSessionInstagramUser } from "@/lib/auth"
-
-const getSupabase = () => createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-key"
-)
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 // Limit max members
 const MAX_SEATS = 5
@@ -17,7 +12,7 @@ export async function GET(request: NextRequest) {
 
   const agencyId = session.account.id
 
-  const supabase = getSupabase()
+  const supabase = await getSupabaseBypassClient()
   const { data, error } = await supabase
     .from("agency_team_members")
     .select("*")
@@ -46,7 +41,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid email" }, { status: 400 })
     }
 
-    const supabase = getSupabase()
+    const supabase = await getSupabaseBypassClient()
     // Check seat limit
     const { count, error: countError } = await supabase
       .from("agency_team_members")
@@ -105,7 +100,7 @@ export async function DELETE(request: NextRequest) {
 
     if (!memberId) return NextResponse.json({ error: "Missing member ID" }, { status: 400 })
 
-    const supabase = getSupabase()
+    const supabase = await getSupabaseBypassClient()
     const { error } = await supabase
       .from("agency_team_members")
       .delete()
@@ -119,4 +114,3 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Failed to remove member" }, { status: 500 })
   }
 }
-

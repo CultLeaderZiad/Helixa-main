@@ -5,18 +5,72 @@ import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2, Plus, Trash2, Save, RefreshCw, Snowflake } from "lucide-react"
+import { Loader2, Plus, Trash2, Save, RefreshCw, Brain, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import type { IceBreaker } from "@/types/db"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
 import { readCache, cachedFetch, clearCache } from "@/lib/client-cache"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
+import useSWR from "swr"
+import { fetcher } from "@/lib/fetcher"
+
 export function IceBreakersManager() {
     const { userId, isLoading } = useInstagramSession()
     const [breakers, setBreakers] = useState<Partial<IceBreaker>[]>([])
     const [saving, setSaving] = useState(false)
     const [fetching, setFetching] = useState(true)
     const { t } = useLanguage()
+
+    // AI Config State
+    const { data: aiData, mutate: mutateAi } = useSWR(
+        userId ? `/api/groq/auto-reply?userId=${userId}` : null,
+        fetcher
+    )
+    const aiEnabled = aiData?.enabled ?? false
+    
+    const [aiToggling, setAiToggling] = useState(false)
+    const [aiContext, setAiContext] = useState("")
+    const [aiContextSaving, setAiContextSaving] = useState(false)
+    const [aiContextSaved, setAiContextSaved] = useState(false)
+
+    useEffect(() => {
+        if (aiData?.ai_context !== undefined) {
+            setAiContext(aiData.ai_context)
+        }
+    }, [aiData])
+
+    const handleSaveAiContext = async () => {
+        if (aiContextSaving) return
+        setAiContextSaving(true)
+        try {
+            await fetch("/api/groq/auto-reply", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId, enabled: aiEnabled, ai_context: aiContext }),
+            })
+            mutateAi()
+            setAiContextSaved(true)
+            setTimeout(() => setAiContextSaved(false), 2000)
+        } catch {}
+        setAiContextSaving(false)
+    }
+
+    const handleToggleAI = async () => {
+        if (aiToggling) return
+        setAiToggling(true)
+        const newState = !aiEnabled
+        try {
+            const res = await fetch("/api/groq/auto-reply", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId, enabled: newState }),
+            })
+            if (res.ok) {
+                mutateAi()
+            }
+        } catch {}
+        setAiToggling(false)
+    }
 
     useEffect(() => {
         if (!userId) return
@@ -114,10 +168,52 @@ export function IceBreakersManager() {
                         {t.iceBreakersDesc}
                     </p>
                 </div>
-                <Button onClick={handleSave} disabled={saving} className="bg-[#ffe14d] hover:brightness-95 text-black font-bold">
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                    Save & Sync
-                </Button>
+                <div className="flex items-center gap-2">
+                    {/* AI Auto-Reply Toggle */}
+                    {aiData === undefined ? (
+                        <Loader2 className="w-4 h-4 text-neutral-500 animate-spin" />
+                    ) : (
+                        <button
+                            onClick={handleToggleAI}
+                            disabled={aiToggling}
+                            className={`flex items-center gap-2 h-9 px-4 rounded-full font-mono-ui text-[11px] font-bold uppercase tracking-widest transition-colors ${
+                                aiEnabled
+                                    ? 'bg-[#ffe14d]/10 border border-[#ffe14d]/40 text-[#ffe14d]'
+                                    : 'border border-white/10 text-neutral-500 hover:text-white hover:border-white/30'
+                            }`}
+                        >
+                            <Sparkles className={`w-3.5 h-3.5 ${aiToggling ? 'animate-pulse' : ''}`} />
+                            {aiToggling ? '...' : aiEnabled ? 'AI ON' : 'AI OFF'}
+                        </button>
+                    )}
+                    <Button onClick={handleSave} disabled={saving} className="bg-[#ffe14d] hover:brightness-95 text-black font-bold">
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                        Save & Sync
+                    </Button>
+                </div>
+            </div>
+
+            {/* AI Context Panel */}
+            <div className="rounded-2xl border border-[#ffe14d]/20 bg-[#ffe14d]/[0.04] p-5 space-y-3">
+                <div className="flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-[#ffe14d]" />
+                    <span className="text-sm font-semibold text-[#ffe14d]">AI Personality Context</span>
+                </div>
+                <p className="text-xs text-neutral-500">Tell AI about your account — niche, products, tone, what to say/avoid. More context = more human replies.</p>
+                <Textarea
+                    value={aiContext}
+                    onChange={e => setAiContext(e.target.value)}
+                    placeholder={`e.g. This is a fitness coaching account. I sell online training programs (₹2999/mo). My tone is motivating but chill. If someone asks about pricing, tell them to DM for a free consultation. Never promise specific results.`}
+                    rows={4}
+                    className="w-full bg-black/40 border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-neutral-600 resize-none focus:outline-none focus:border-[#ffe14d]/50 transition-colors"
+                />
+                <button
+                    onClick={handleSaveAiContext}
+                    disabled={aiContextSaving}
+                    className="px-4 py-2 rounded-xl bg-[#ffe14d] hover:brightness-95 text-black text-xs font-bold transition-all disabled:opacity-50"
+                >
+                    {aiContextSaving ? 'Saving...' : aiContextSaved ? 'Saved ✓' : 'Save AI Context'}
+                </button>
             </div>
 
             <div className="space-y-4">

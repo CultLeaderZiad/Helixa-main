@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/components/theme-provider"
 
 import { GlobalBanner } from "@/components/layout/GlobalBanner"
+import { GlobalUpdatesListener } from "@/components/layout/GlobalUpdatesListener"
 
 import { LanguageProvider } from "@/lib/i18n/LanguageContext"
 
@@ -40,6 +41,7 @@ export default function RootLayout({
         <LanguageProvider>
           <ThemeProvider>
             <GlobalBanner />
+            <GlobalUpdatesListener />
             {children}
             <Toaster />
           </ThemeProvider>

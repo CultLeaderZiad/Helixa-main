@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+import { NextResponse, NextRequest } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { requireAdmin } from "@/lib/auth"
 
@@ -22,7 +22,7 @@ export async function GET() {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const adminCheck = await requireAdmin(req)
     if (adminCheck.response) return adminCheck.response
