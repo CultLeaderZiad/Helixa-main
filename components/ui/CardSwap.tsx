@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, Children } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, type Variants } from 'framer-motion'
 
 interface CardSwapProps {
   children: React.ReactNode
@@ -47,7 +47,7 @@ export default function CardSwap({
   }, [delay, pauseOnHover, isHovering, cards.length])
 
   // Framer Motion variants for the stack effect
-  const variants = {
+  const variants: Variants = {
     front: { 
       scale: 1, 
       y: 0, 
