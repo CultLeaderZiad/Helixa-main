@@ -210,8 +210,10 @@ export function useInstagramSession() {
 
         const supabase = getSupabaseBrowserClient()
         
+        const hookId = Math.random().toString(36).substring(2)
+        
         // Listen for changes on accounts table (plan/banning)
-        const accountChannel = supabase.channel(`session-account-${state.accountId}`)
+        const accountChannel = supabase.channel(`session-acc-${state.accountId}-${hookId}`)
             .on(
                 'postgres_changes',
                 {
@@ -229,7 +231,7 @@ export function useInstagramSession() {
         // Listen for changes on users table (trial/plan mappings)
         let userChannel: any = null
         if (state.userId) {
-            userChannel = supabase.channel(`session-user-${state.userId}`)
+            userChannel = supabase.channel(`session-user-${state.userId}-${hookId}`)
                 .on(
                     'postgres_changes',
                     {
