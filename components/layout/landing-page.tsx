@@ -11,8 +11,10 @@ import DepthText from "@/components/ui/DepthText"
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import PillNav from "@/components/ui/PillNav"
-const Ferrofluid = dynamic(() => import("@/components/effects/ferrofluid"), { ssr: false })
+import { DashboardBackground } from "@/components/layout/DashboardBackground"
 const ScrollFloat = dynamic(() => import("@/components/ui/ScrollFloat"), { ssr: false })
+import CurvedLoop from "@/components/ui/CurvedLoop"
+import CurvedInput from "@/components/ui/CurvedInput"
 import {
   MessageCircle, Sparkles, ArrowUpRight, Github, Star,
   Send, AtSign, Brain, Inbox, Lock, Terminal,
@@ -64,6 +66,7 @@ export function LandingPage() {
         }
       `}</style>
 
+      <DashboardBackground />
       <div className="grain" />
 
       {/* Nav */}
@@ -88,9 +91,12 @@ export function LandingPage() {
         <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center z-50">
           <PillNav
             items={[
-              { label: t.pricing || "Pricing", href: "/pricing" },
-              { label: "Privacy", href: "/privacy" },
-              { label: "Terms", href: "/terms" }
+              { label: "FEATURES", href: "#features" },
+              { label: "HOW IT WORKS", href: "#how-it-works" },
+              { label: "PRICING", href: "/pricing" },
+              { label: "TEAM", href: "#team" },
+              { label: "START BUILD ->", href: "/signup" },
+              { label: "AR", href: "#ar" }
             ]}
             baseColor="rgba(255, 255, 255, 0.03)"
             pillColor="#ffe14d"
@@ -127,29 +133,6 @@ export function LandingPage() {
 
         {/* Hero — Split Layout */}
         <section className="relative overflow-hidden bg-transparent w-full">
-          {/* Ferrofluid background layer */}
-          <div className="absolute inset-0 pointer-events-none md:pointer-events-auto">
-            <DeferredMount delay={1000}>
-              <Ferrofluid
-                colors={["#ffe14d", "#ffffff", "#ffb300"]}
-                speed={0.5}
-                scale={1.2}
-                turbulence={1}
-                fluidity={0.1}
-                rimWidth={0.2}
-                sharpness={3}
-                shimmer={1}
-                glow={2}
-                flowDirection="down"
-                opacity={0.15}
-                mouseInteraction={true}
-                mouseStrength={1}
-                mouseRadius={0.3}
-                dpr={1}
-              />
-            </DeferredMount>
-          </div>
-          
           <div className="absolute inset-0 bg-gradient-to-t from-[#03010A] via-[#03010A]/80 to-[#03010A]/30 pointer-events-none" />
 
           <div className="relative px-5 md:px-10 pt-20 md:pt-32 pb-24 max-w-6xl mx-auto">
@@ -222,22 +205,19 @@ export function LandingPage() {
         </section>
 
         {/* Marquee */}
-        <div className="border-y border-white/[0.08] py-3 overflow-hidden">
-          <div className="marquee-track flex whitespace-nowrap font-mono-ui text-xs uppercase tracking-[0.2em] text-neutral-600 gap-8 w-max">
-            {Array.from({ length: 2 }).map((_, copy) => (
-              <div key={copy} className="flex gap-8">
-                {["comment → DM", "keyword triggers", "story reactions", "AI auto-reply", "live inbox", "ice breakers", "follow gate", "quick replies", "media attachments", "public + private replies"].map((t) => (
-                  <span key={t} className="flex items-center gap-8">
-                    {t} <span className="text-[#ffe14d]">✦</span>
-                  </span>
-                ))}
-              </div>
-            ))}
-          </div>
+        <div className="border-y border-white/[0.08] py-8 overflow-hidden bg-transparent">
+          <CurvedLoop 
+            marqueeText="COMMENT → DM ✦ KEYWORD TRIGGERS ✦ STORY REACTIONS ✦ AI AUTO-REPLY ✦ LIVE INBOX ✦ ICE BREAKERS ✦ FOLLOW GATE ✦ QUICK REPLIES ✦ MEDIA ATTACHMENTS ✦ PUBLIC + PRIVATE REPLIES ✦ "
+            speed={3}
+            curveAmount={300}
+            direction="left"
+            interactive={true}
+            className="fill-neutral-500 font-mono-ui"
+          />
         </div>
 
         {/* Feature grid */}
-        <section className="px-5 md:px-10 py-20 max-w-6xl mx-auto">
+        <section id="features" className="px-5 md:px-10 py-20 max-w-6xl mx-auto">
           <div className="flex items-baseline justify-between mb-10">
             <h2 className="font-serif-display text-4xl md:text-5xl">Everything the paid tools do.</h2>
             <span className="hidden md:block font-mono-ui text-xs text-neutral-600">$0/month</span>
@@ -267,7 +247,7 @@ export function LandingPage() {
         </section>
 
         {/* ScrollFloat App Name */}
-        <section className="py-24 md:py-32 w-full flex flex-col items-center justify-center overflow-hidden">
+        <section id="how-it-works" className="py-24 md:py-32 w-full flex flex-col items-center justify-center overflow-hidden">
           <InViewMount>
             <ScrollFloat
               animationDuration={1}
@@ -283,8 +263,24 @@ export function LandingPage() {
           </InViewMount>
         </section>
 
+        {/* Newsletter Subscription */}
+        <section className="px-5 md:px-10 py-12 max-w-6xl mx-auto flex flex-col items-center text-center">
+          <h3 className="font-serif-display text-2xl md:text-3xl mb-4">Get the latest updates</h3>
+          <p className="text-neutral-500 text-sm mb-8 max-w-md">
+            Join our newsletter to receive weekly updates, product news, and early access to new features.
+          </p>
+          <CurvedInput
+            placeholder="david@reactbits.dev"
+            buttonText="Get Started"
+            theme="dark"
+            bend={28}
+            height={64}
+            className="w-full max-w-md"
+          />
+        </section>
+
         {/* Community strip */}
-        <section className="px-5 md:px-10 pb-24 max-w-6xl mx-auto">
+        <section id="team" className="px-5 md:px-10 pb-24 max-w-6xl mx-auto">
           <div className="border border-white/[0.08] rounded-2xl p-8 md:p-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 bg-gradient-to-br from-white/[0.03] to-transparent">
             <div>
               <h3 className="font-serif-display text-3xl md:text-4xl mb-2">Built in the open.</h3>

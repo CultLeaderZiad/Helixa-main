@@ -13,6 +13,30 @@ export async function GET(request: NextRequest) {
 
     const supabase = await getSupabaseServerClient()
 
+    if (filter === "newsletter") {
+      const { data: subscribers, error: subError } = await supabase
+        .from("newsletter_subscribers")
+        .select("id, email, created_at")
+        .order("created_at", { ascending: false })
+
+      if (subError) {
+        console.error("[api/admin/customers] GET error (newsletter):", subError)
+        return NextResponse.json({ error: "Failed to fetch newsletter subscribers" }, { status: 500 })
+      }
+
+      // Map to same shape as customers
+      const mapped = subscribers?.map(s => ({
+        id: s.id,
+        email: s.email,
+        full_name: "Subscriber",
+        plan: "newsletter",
+        created_at: s.created_at,
+        subscription_status: "active"
+      })) || []
+
+      return NextResponse.json({ customers: mapped })
+    }
+
     let query = supabase
       .from("accounts")
       .select("id, email, full_name, plan, created_at, subscription_status")

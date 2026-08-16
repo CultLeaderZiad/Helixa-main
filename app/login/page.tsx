@@ -7,7 +7,7 @@ import { createBrowserClient } from "@supabase/ssr"
 import dynamic from "next/dynamic"
 import BackToHome from "@/components/ui/back-to-home"
 
-const Ferrofluid = dynamic(() => import("@/components/effects/ferrofluid"), { ssr: true })
+import { DashboardBackground } from "@/components/layout/DashboardBackground"
 import { PasswordInput } from "@/components/ui/password-input"
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -72,25 +72,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#03010A] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       <BackToHome />
-      <div className="absolute inset-0 pointer-events-none md:pointer-events-auto opacity-30">
-        <Ferrofluid
-          colors={["#ffe14d", "#ffffff", "#ffb300"]}
-          speed={0.5}
-          scale={1.2}
-          turbulence={1}
-          fluidity={0.1}
-          rimWidth={0.2}
-          sharpness={3}
-          shimmer={1}
-          glow={2}
-          flowDirection="down"
-          opacity={1}
-          mouseInteraction={true}
-          mouseStrength={1}
-          mouseRadius={0.3}
-          dpr={1.5}
-        />
-      </div>
+      <DashboardBackground />
       <div className="absolute inset-0 bg-gradient-to-t from-[#03010A] via-[#03010A]/80 to-[#03010A]/30 pointer-events-none" />
 
       <div className="w-full max-w-md space-y-8 bg-[#03010A]/60 backdrop-blur-md p-8 rounded-2xl border border-white/10 relative z-10">

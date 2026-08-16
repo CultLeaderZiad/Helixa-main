@@ -46,13 +46,39 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     await supabase.from("email_campaigns").update(updateData).eq("id", campaign.id)
 
     // 3. Fetch Audience
-    let query = supabase.from("accounts").select("id, email, full_name, role, plan").eq("role", "user")
+    let customers: any[] = []
+    let isNewsletter = false
 
     if (targetAccountIds !== undefined && targetAccountIds.length > 0) {
-      // If we have specific IDs selected from the UI, only send to those
-      query = query.in("id", targetAccountIds)
-    } else if (campaign.audience_filter !== "all") {
-      // Fallback to general filter if no specific IDs provided
+      // If we have specific IDs selected from the UI, we need to check if they are subscribers or accounts
+      // Assuming they all belong to one table per campaign since we filter by audience
+      if (campaign.audience_filter === "newsletter") {
+        isNewsletter = true
+        const { data, error } = await supabase.from("newsletter_subscribers").select("id, email").in("id", targetAccountIds)
+        if (error) {
+          await supabase.from("email_campaigns").update({ status: "failed" }).eq("id", campaign.id)
+          return NextResponse.json({ error: "Failed to fetch newsletter audience" }, { status: 500 })
+        }
+        customers = data || []
+      } else {
+        const { data, error } = await supabase.from("accounts").select("id, email, full_name, role, plan").in("id", targetAccountIds)
+        if (error) {
+          await supabase.from("email_campaigns").update({ status: "failed" }).eq("id", campaign.id)
+          return NextResponse.json({ error: "Failed to fetch audience" }, { status: 500 })
+        }
+        customers = data || []
+      }
+    } else if (campaign.audience_filter === "newsletter") {
+      isNewsletter = true
+      const { data, error } = await supabase.from("newsletter_subscribers").select("id, email")
+      if (error) {
+        await supabase.from("email_campaigns").update({ status: "failed" }).eq("id", campaign.id)
+        return NextResponse.json({ error: "Failed to fetch newsletter audience" }, { status: 500 })
+      }
+      customers = data || []
+    } else {
+      let query = supabase.from("accounts").select("id, email, full_name, role, plan").eq("role", "user")
+
       if (campaign.audience_filter === "trial") {
         query = query.eq("plan", "trial")
       } else if (campaign.audience_filter === "monthly") {
@@ -64,13 +90,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       } else if (campaign.audience_filter === "paid") {
         query = query.in("plan", ["monthly", "one_time"])
       }
-    }
 
-    const { data: customers, error: customersError } = await query
-
-    if (customersError) {
-      await supabase.from("email_campaigns").update({ status: "failed" }).eq("id", campaign.id)
-      return NextResponse.json({ error: "Failed to fetch audience" }, { status: 500 })
+      const { data, error } = await query
+      if (error) {
+        await supabase.from("email_campaigns").update({ status: "failed" }).eq("id", campaign.id)
+        return NextResponse.json({ error: "Failed to fetch audience" }, { status: 500 })
+      }
+      customers = data || []
     }
 
     if (!customers || customers.length === 0) {
@@ -86,7 +112,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Create initial pending recipient records
     const recipientRecords = customers.map(c => ({
       campaign_id: campaign.id,
-      account_id: c.id,
+      account_id: isNewsletter ? null : c.id,
+      subscriber_id: isNewsletter ? c.id : null,
       status: "pending"
     }))
     
@@ -100,10 +127,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Fetch the inserted records so we have their IDs to update later
     const { data: insertedRecipients } = await supabase
       .from("email_campaign_recipients")
-      .select("id, account_id")
+      .select("id, account_id, subscriber_id")
       .eq("campaign_id", campaign.id)
 
-    const recipientMap = new Map(insertedRecipients?.map(r => [r.account_id, r.id]) || [])
+    const recipientMap = new Map(insertedRecipients?.map(r => [isNewsletter ? r.subscriber_id : r.account_id, r.id]) || [])
 
     // Process Emails
     for (const customer of customers) {
@@ -142,7 +169,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         // Add to email_logs
         await supabase.from("email_logs").insert({
           campaign_id: campaign.id,
-          account_id: customer.id,
+          account_id: isNewsletter ? null : customer.id,
+          subscriber_id: isNewsletter ? customer.id : null,
           email: customer.email,
           status: "sent",
           provider_message_id: sendResult.messageId
@@ -157,7 +185,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         
         await supabase.from("email_logs").insert({
           campaign_id: campaign.id,
-          account_id: customer.id,
+          account_id: isNewsletter ? null : customer.id,
+          subscriber_id: isNewsletter ? customer.id : null,
           email: customer.email,
           status: "failed",
           error_message: sendResult.error

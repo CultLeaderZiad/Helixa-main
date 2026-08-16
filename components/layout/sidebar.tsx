@@ -5,7 +5,7 @@ import Image from "next/image"
 import { cn } from "@/lib/utils"
 import {
   Zap, LayoutDashboard, LogOut, Settings, BarChart3,
-  MessageSquare, Snowflake, Send, Linkedin, Share2, CreditCard, Mail
+  MessageSquare, Snowflake, Send, Linkedin, Share2, CreditCard, Mail, Sparkles
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -36,6 +36,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
     { href: "/dashboard/ice-breakers", icon: Snowflake, label: t.iceBreakers },
     { href: "/dashboard/analytics", icon: BarChart3, label: t.analytics },
     { href: "/dashboard/agents", icon: Zap, label: t.agents },
+    { href: "/dashboard/updates", icon: Sparkles, label: "Updates" },
   ]
 
   return (

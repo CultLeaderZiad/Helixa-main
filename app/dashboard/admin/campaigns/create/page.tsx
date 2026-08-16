@@ -119,6 +119,7 @@ export default function CreateCampaignPage() {
                     <SelectItem value="monthly">{t.monthlyOnly}</SelectItem>
                     <SelectItem value="one_time">{t.oneTimeOnly}</SelectItem>
                     <SelectItem value="expired">{t.expiredSubs}</SelectItem>
+                    <SelectItem value="newsletter">Newsletter Subscribers</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
