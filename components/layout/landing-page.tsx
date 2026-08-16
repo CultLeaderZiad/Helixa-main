@@ -92,11 +92,8 @@ export function LandingPage() {
           <PillNav
             items={[
               { label: "FEATURES", href: "#features" },
-              { label: "HOW IT WORKS", href: "#how-it-works" },
               { label: "PRICING", href: "/pricing" },
-              { label: "TEAM", href: "#team" },
-              { label: "START BUILD ->", href: "/signup" },
-              { label: "AR", href: "#ar" }
+              { label: "START BUILD ->", href: "/signup" }
             ]}
             baseColor="rgba(255, 255, 255, 0.03)"
             pillColor="#ffe14d"
@@ -107,27 +104,6 @@ export function LandingPage() {
 
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
-          <a
-            href={GITHUB_URL} target="_blank" rel="noreferrer"
-            className="flex items-center gap-1.5 font-mono-ui text-xs text-neutral-400 hover:text-white border border-white/10 hover:border-white/30 rounded-full px-3.5 py-1.5 transition-colors"
-          >
-            <Github className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Star</span>
-            {stars !== null && <span className="text-[#ffe14d]">{stars}</span>}
-          </a>
-          <a
-            href={LINKEDIN_URL} target="_blank" rel="noreferrer"
-            className="flex items-center gap-1.5 font-mono-ui text-xs text-neutral-400 hover:text-white border border-white/10 hover:border-white/30 rounded-full px-3.5 py-1.5 transition-colors"
-          >
-            <Linkedin className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Connect</span>
-          </a>
-          <button
-            onClick={handleLogin}
-            className="font-mono-ui text-xs font-bold bg-white text-black rounded-full px-4 py-1.5 hover:bg-[#ffe14d] transition-colors"
-          >
-            {t.login}
-          </button>
         </div>
       </nav>
 
