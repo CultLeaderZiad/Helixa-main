@@ -16,6 +16,7 @@ interface Campaign {
   status: string
   audience_filter: string
   recipient_count: number
+  scheduled_at?: string | null
 }
 
 interface CustomerPreview {
@@ -37,6 +38,64 @@ export default function CampaignDetailsPage() {
   const [loading, setLoading] = useState(true)
   const [sendingTest, setSendingTest] = useState(false)
   const [sendingReal, setSendingReal] = useState(false)
+  const [scheduleTime, setScheduleTime] = useState("")
+
+  const handleScheduleCampaign = async () => {
+    if (!scheduleTime) {
+      toast.error("Please select a date and time to schedule the campaign.")
+      return
+    }
+
+    const scheduledDate = new Date(scheduleTime)
+    if (scheduledDate.getTime() <= Date.now()) {
+      toast.error("Schedule time must be in the future.")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/admin/campaigns/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "scheduled",
+          scheduled_at: scheduledDate.toISOString()
+        })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to schedule campaign")
+      
+      toast.success("Campaign scheduled successfully!")
+      fetchData()
+    } catch (error: any) {
+      toast.error(error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCancelSchedule = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/admin/campaigns/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "draft",
+          scheduled_at: null
+        })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to cancel schedule")
+      
+      toast.success("Schedule cancelled and returned to draft!")
+      fetchData()
+    } catch (error: any) {
+      toast.error(error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     fetchData()
@@ -128,7 +187,7 @@ export default function CampaignDetailsPage() {
     return <div className="text-center p-12 text-zinc-400">{t.campaignNotFound}</div>
   }
 
-  const isDraft = campaign.status === "draft"
+  const isDraft = campaign.status === "draft" || campaign.status === "failed" || campaign.status === "scheduled"
   const isRtl = language === 'ar'
 
   return (
@@ -146,7 +205,13 @@ export default function CampaignDetailsPage() {
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
               {campaign.name}
-              <span className={`text-xs px-2 py-0.5 rounded-full border ${isDraft ? 'bg-zinc-800 text-zinc-300 border-zinc-700' : 'bg-brand-500/10 text-brand-400 border-brand-500/20'}`}>
+              <span className={`text-xs px-2 py-0.5 rounded-full border ${
+                campaign.status === "draft" 
+                  ? 'bg-zinc-800 text-zinc-300 border-zinc-700' 
+                  : campaign.status === "scheduled"
+                    ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                    : 'bg-brand-500/10 text-brand-400 border-brand-500/20'
+              }`}>
                 {campaign.status.toUpperCase()}
               </span>
             </h2>
@@ -154,8 +219,22 @@ export default function CampaignDetailsPage() {
           </div>
         </div>
         
-        {isDraft && (
+        {campaign.status === "scheduled" && (
           <div className="flex items-center gap-3">
+            <span className="text-zinc-400 text-xs font-mono">
+              Scheduled: {campaign.scheduled_at ? new Date(campaign.scheduled_at).toLocaleString() : "N/A"}
+            </span>
+            <Button 
+              onClick={handleCancelSchedule}
+              className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold py-1.5 h-auto rounded px-3"
+            >
+              Cancel Schedule
+            </Button>
+          </div>
+        )}
+
+        {(campaign.status === "draft" || campaign.status === "failed") && (
+          <div className="flex items-center gap-3 flex-wrap">
             <Button 
               variant="outline"
               onClick={handleSendTest}
@@ -173,6 +252,21 @@ export default function CampaignDetailsPage() {
               {sendingReal ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'} animate-spin`} /> : <Send className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />}
               {t.sendToCustomers.replace('{{count}}', selectedCustomerIds.size.toString())}
             </Button>
+            <div className="flex items-center gap-2 border border-zinc-800 bg-zinc-900/50 p-1 rounded-lg">
+              <input 
+                type="datetime-local" 
+                value={scheduleTime}
+                onChange={e => setScheduleTime(e.target.value)}
+                className="bg-black text-white border border-zinc-800 rounded px-2 py-1 text-xs outline-none font-mono"
+              />
+              <Button 
+                onClick={handleScheduleCampaign}
+                disabled={sendingTest || sendingReal || !scheduleTime}
+                className="bg-white hover:bg-white/90 text-black text-xs font-semibold py-1 h-7 rounded px-3"
+              >
+                Schedule
+              </Button>
+            </div>
           </div>
         )}
       </div>

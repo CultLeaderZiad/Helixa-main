@@ -168,3 +168,23 @@
 .font-mono-ui {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
 }
+
+/* Force centering for flex layout utilities */
+.justify-center {
+  justify-content: center !important;
+}
+.items-center {
+  align-items: center !important;
+}
+
+/* Perfect alignment for SVG icons inside flex-centered wrappers */
+.flex.items-center.justify-center > svg,
+.flex.justify-center.items-center > svg {
+  margin: auto !important;
+  display: block !important;
+}
+
+/* Center all buttons text by default */
+button, .button {
+  text-align: center;
+}

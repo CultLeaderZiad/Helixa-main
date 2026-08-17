@@ -35,7 +35,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const body = await request.json()
     const supabase = await getSupabaseBypassClient()
 
-    // Can only edit if status is draft
+    // Can only edit if status is draft, scheduled, or failed
     const { data: existing, error: checkError } = await supabase
       .from("email_campaigns")
       .select("status")
@@ -46,26 +46,29 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
     }
 
-    if (existing.status !== "draft") {
-      return NextResponse.json({ error: "Can only edit draft campaigns" }, { status: 400 })
+    if (existing.status !== "draft" && existing.status !== "scheduled" && existing.status !== "failed") {
+      return NextResponse.json({ error: "Can only edit draft, scheduled or failed campaigns" }, { status: 400 })
     }
+
+    const updatePayload: any = {}
+    if (body.name !== undefined) updatePayload.name = body.name
+    if (body.subject !== undefined) updatePayload.subject = body.subject
+    if (body.preview_text !== undefined) updatePayload.preview_text = body.preview_text || null
+    if (body.template !== undefined) updatePayload.template = body.template
+    if (body.hero_image !== undefined) updatePayload.hero_image = body.hero_image || null
+    if (body.heading !== undefined) updatePayload.heading = body.heading
+    if (body.subheading !== undefined) updatePayload.subheading = body.subheading || null
+    if (body.body_text !== undefined) updatePayload.body_text = body.body_text || null
+    if (body.features !== undefined) updatePayload.features = body.features || []
+    if (body.cta_text !== undefined) updatePayload.cta_text = body.cta_text || null
+    if (body.cta_url !== undefined) updatePayload.cta_url = body.cta_url || null
+    if (body.audience_filter !== undefined) updatePayload.audience_filter = body.audience_filter
+    if (body.status !== undefined) updatePayload.status = body.status
+    if (body.scheduled_at !== undefined) updatePayload.scheduled_at = body.scheduled_at || null
 
     const { data: campaign, error } = await supabase
       .from("email_campaigns")
-      .update({
-        name: body.name,
-        subject: body.subject,
-        preview_text: body.preview_text || null,
-        template: body.template,
-        hero_image: body.hero_image || null,
-        heading: body.heading,
-        subheading: body.subheading || null,
-        body_text: body.body_text || null,
-        features: body.features || [],
-        cta_text: body.cta_text || null,
-        cta_url: body.cta_url || null,
-        audience_filter: body.audience_filter,
-      })
+      .update(updatePayload)
       .eq("id", id)
       .select()
       .single()

@@ -81,7 +81,7 @@ export default function AdminPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
-  const [activeTab, setActiveTab] = useState<"users" | "audit" | "payments" | "banner" | "matrix" | "smtp">("users")
+  const [activeTab, setActiveTab] = useState<"users" | "audit" | "payments" | "banner" | "matrix" | "smtp" | "subscribers">("users")
   const [trialsThisWeek, setTrialsThisWeek] = useState<number | null>(null)
   
   // Edit state
@@ -92,6 +92,42 @@ export default function AdminPage() {
   const [editBanned, setEditBanned] = useState(false)
   const [editBannedReason, setEditBannedReason] = useState("")
   const [editTrialEndsAt, setEditTrialEndsAt] = useState<string | null>(null)
+
+  // Subscribers tab state
+  const [subscribers, setSubscribers] = useState<{ id: string; email: string; created_at: string }[]>([])
+  const [subscribersLoading, setSubscribersLoading] = useState(false)
+  const [subscribersSearch, setSubscribersSearch] = useState("")
+
+  const fetchSubscribers = useCallback(async () => {
+    setSubscribersLoading(true)
+    try {
+      const res = await fetch("/api/admin/subscribers")
+      const data = await res.json()
+      if (data.subscribers) setSubscribers(data.subscribers)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSubscribersLoading(false)
+    }
+  }, [])
+
+  const deleteSubscriber = async (id: string) => {
+    if (!confirm("Are you sure you want to remove this subscriber?")) return
+    try {
+      const res = await fetch("/api/admin/subscribers", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id })
+      })
+      if (res.ok) {
+        fetchSubscribers()
+      } else {
+        alert("Failed to delete subscriber")
+      }
+    } catch (err) {
+      alert("Error deleting subscriber")
+    }
+  }
 
   const fetchStats = useCallback(async () => {
     const res = await fetch("/api/admin/stats")
@@ -248,6 +284,12 @@ export default function AdminPage() {
   useEffect(() => {
     fetchUsers()
   }, [fetchUsers])
+
+  useEffect(() => {
+    if (activeTab === "subscribers") {
+      fetchSubscribers()
+    }
+  }, [activeTab, fetchSubscribers])
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient()
@@ -417,7 +459,7 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-white/[0.08] overflow-x-auto scrollbar-none">
-        {(["users", "audit", "payments", "matrix", "banner", "smtp"] as const).map((tab) => (
+        {(["users", "audit", "payments", "matrix", "banner", "smtp", "subscribers"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab as any)}
@@ -427,7 +469,7 @@ export default function AdminPage() {
                 : "text-neutral-500 hover:text-white"
             }`}
           >
-            {tab === "users" ? "Users" : tab === "audit" ? "Audit Log" : tab === "payments" ? "Payments" : tab === "matrix" ? "Plan Matrix" : tab === "banner" ? "Banner" : "SMTP Settings"}
+            {tab === "users" ? "Users" : tab === "audit" ? "Audit Log" : tab === "payments" ? "Payments" : tab === "matrix" ? "Plan Matrix" : tab === "banner" ? "Banner" : tab === "smtp" ? "SMTP Settings" : "Subscribers"}
             {tab === "payments" && pendingPayments.length > 0 && (
               <span className="absolute top-1.5 right-1 w-2 h-2 rounded-full bg-blue-500" />
             )}
@@ -1054,6 +1096,69 @@ export default function AdminPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      {activeTab === "subscribers" && (
+        <div className="border border-white/[0.08] rounded-xl p-6 bg-white/[0.02] space-y-6">
+          <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
+            <div className="flex items-center gap-3">
+              <Mail className="w-5 h-5 text-[#ffe14d]" />
+              <div>
+                <h2 className="font-mono text-sm font-bold text-white">Newsletter Subscribers</h2>
+                <p className="font-mono text-xs text-neutral-500">View and manage users who subscribed to the weekly newsletter.</p>
+              </div>
+            </div>
+            {/* Search Input */}
+            <div className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-1.5 bg-white/[0.02]">
+              <Search className="w-3.5 h-3.5 text-neutral-500" />
+              <input
+                className="bg-transparent font-mono text-xs text-white outline-none placeholder:text-neutral-600 w-48"
+                placeholder="Search email..."
+                value={subscribersSearch}
+                onChange={e => setSubscribersSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {subscribersLoading ? (
+            <div className="text-center font-mono text-neutral-500 text-xs py-8 text-white">Loading subscribers...</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/[0.08] font-mono text-[10px] text-neutral-500 uppercase tracking-wider">
+                    <th className="pb-3 pl-4">Email</th>
+                    <th className="pb-3">Subscribed At</th>
+                    <th className="pb-3 text-right pr-4">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {subscribers
+                    .filter(s => s.email.toLowerCase().includes(subscribersSearch.toLowerCase()))
+                    .map(sub => (
+                      <tr key={sub.id} className="text-xs text-neutral-300 font-mono hover:bg-white/[0.02] transition-colors">
+                        <td className="py-4 pl-4 font-bold text-white">{sub.email}</td>
+                        <td className="py-4">{new Date(sub.created_at).toLocaleString()}</td>
+                        <td className="py-4 text-right pr-4">
+                          <button
+                            onClick={() => deleteSubscriber(sub.id)}
+                            className="text-red-400 hover:text-red-300 transition-colors p-1"
+                            title="Remove Subscriber"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  {subscribers.filter(s => s.email.toLowerCase().includes(subscribersSearch.toLowerCase())).length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="text-center py-8 text-neutral-500 font-mono text-xs">No subscribers found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>

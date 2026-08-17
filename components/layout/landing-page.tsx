@@ -92,6 +92,7 @@ export function LandingPage() {
           <PillNav
             items={[
               { label: "FEATURES", href: "#features" },
+              { label: "UPDATES", href: "/updates" },
               { label: "PRICING", href: "/pricing" },
               { label: "START BUILD ->", href: "/signup" }
             ]}
