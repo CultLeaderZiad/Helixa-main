@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-import Image from "next/image"
 import { cn } from "@/lib/utils"
 import {
   Zap, LayoutDashboard, LogOut, Settings, BarChart3,

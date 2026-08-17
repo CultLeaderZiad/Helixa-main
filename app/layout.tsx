@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 
 import { GlobalBanner } from "@/components/layout/GlobalBanner"
 import { GlobalUpdatesListener } from "@/components/layout/GlobalUpdatesListener"
+import { WebVitalsReporter } from "@/components/performance/WebVitalsReporter"
 
 import { LanguageProvider } from "@/lib/i18n/LanguageContext"
 
@@ -42,6 +43,7 @@ export default function RootLayout({
           <ThemeProvider>
             <GlobalBanner />
             <GlobalUpdatesListener />
+            <WebVitalsReporter />
             {children}
             <Toaster />
           </ThemeProvider>

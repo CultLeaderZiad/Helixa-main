@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, memo } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
@@ -110,7 +110,7 @@ export function AutomationList({ automations, onDelete, onEdit, onToggle, onChan
   )
 }
 
-function RuleCard({ rule, onDelete, onEdit, onToggle, onDuplicate, index, isSpecific, mediaUrl, userRole = "admin" }: {
+const RuleCard = memo(function RuleCard({ rule, onDelete, onEdit, onToggle, onDuplicate, index, isSpecific, mediaUrl, userRole = "admin" }: {
   rule: Automation
   onDelete: (id: string) => void
   onEdit: (rule: Automation) => void
@@ -259,4 +259,4 @@ function RuleCard({ rule, onDelete, onEdit, onToggle, onDuplicate, index, isSpec
       </div>
     </div>
   )
-}
+})

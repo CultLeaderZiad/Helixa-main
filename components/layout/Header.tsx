@@ -1,5 +1,4 @@
 import Link from "next/link"
-import Image from "next/image"
 
 const NAV = [
   { href: "/pricing", label: "Pricing" },
