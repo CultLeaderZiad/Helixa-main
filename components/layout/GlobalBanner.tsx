@@ -13,12 +13,14 @@ interface BannerState {
   content?: string
 }
 
+import { useIsMobile } from "@/components/ui/use-mobile"
 import dynamic from 'next/dynamic'
 const Lanyard = dynamic(() => import('@/components/ui/Lanyard'), { ssr: false })
 
 export function GlobalBanner() {
   const [banner, setBanner] = useState<BannerState | null>(null)
   const [isVisible, setIsVisible] = useState(false)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     // Check if dismissed in this session
@@ -45,7 +47,7 @@ export function GlobalBanner() {
 
   return (
     <>
-      {banner.type === 'lanyard' ? (
+      {banner.type === 'lanyard' && !isMobile ? (
         <div className="fixed top-0 right-4 md:right-12 w-64 h-[80vh] z-[100] pointer-events-none">
           {/* We wrap the Canvas in a container that allows pointer events so users can interact with the 3D card */}
           <div className="w-full h-full pointer-events-auto">

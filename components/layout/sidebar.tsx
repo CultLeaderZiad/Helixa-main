@@ -241,7 +241,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
             <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
               {profilePic ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={profilePic} alt={username} className="w-full h-full rounded-full object-cover" />
+                <img src={profilePic} alt={username} className="w-full h-full rounded-full object-cover" loading="lazy" decoding="async" />
               ) : (
                 <span className="text-[10px] font-bold text-white">{username.charAt(0).toUpperCase()}</span>
               )}

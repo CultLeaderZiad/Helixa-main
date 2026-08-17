@@ -131,7 +131,12 @@ const DepthText = ({
       window.addEventListener('blur', handlePointerLeave);
     }
 
+    let isVisible = true;
+    let observer: IntersectionObserver | undefined;
+
     const tick = (now: number) => {
+      if (!isVisible) return;
+
       if ((!canTrackPointer || !activePointer) && autoOrbit) {
         const elapsed = (now - startTime) / 1000;
         const orbit = elapsed * safeOrbitSpeed * Math.PI * 2;
@@ -146,8 +151,29 @@ const DepthText = ({
       frameId = requestAnimationFrame(tick);
     };
 
+    const startLoop = () => {
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(tick);
+    };
+
     applyTransform();
-    frameId = requestAnimationFrame(tick);
+    
+    if (typeof IntersectionObserver !== 'undefined') {
+      observer = new IntersectionObserver(
+        ([entry]) => {
+          isVisible = entry.isIntersecting;
+          if (isVisible) {
+            startLoop();
+          } else {
+            cancelAnimationFrame(frameId);
+          }
+        },
+        { threshold: 0 }
+      );
+      observer.observe(root);
+    } else {
+      startLoop();
+    }
 
     return () => {
       if (canTrackPointer) {
@@ -156,6 +182,7 @@ const DepthText = ({
         window.removeEventListener('blur', handlePointerLeave);
       }
       cancelAnimationFrame(frameId);
+      observer?.disconnect();
       startTime = 0;
     };
   }, [autoOrbit, baseRotation, pointerTracking, safeOrbitSpeed, safeSmoothing, safeTilt]);

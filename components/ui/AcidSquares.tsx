@@ -215,7 +215,7 @@ const AcidSquares: React.FC<AcidSquaresProps> = ({
       alpha: true,
       premultipliedAlpha: true,
       antialias: false,
-      dpr: Math.min(window.devicePixelRatio || 1, 2)
+      dpr: Math.min(window.devicePixelRatio || 1, 0.75)
     });
 
     const gl = renderer.gl;

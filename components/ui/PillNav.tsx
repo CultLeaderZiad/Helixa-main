@@ -3,7 +3,6 @@
 import React, { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { gsap } from "gsap"
 import "./PillNav.css"
 
 export type PillNavItem = {
@@ -46,11 +45,6 @@ export default function PillNav({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [currentActive, setCurrentActive] = useState<string | null>(activeHref || null)
 
-  const circleRefs = useRef<Array<HTMLSpanElement | null>>([])
-  const tlRefs = useRef<Array<gsap.core.Timeline | null>>([])
-  const activeTweenRefs = useRef<Array<gsap.core.Tween | null>>([])
-  const hamburgerRef = useRef<HTMLButtonElement | null>(null)
-  const mobileMenuRef = useRef<HTMLDivElement | null>(null)
   const navItemsRef = useRef<HTMLDivElement | null>(null)
 
   // Sync active href based on props or pathname or intersection observer
@@ -96,153 +90,8 @@ export default function PillNav({
     }
   }, [items, activeHref, pathname])
 
-  // GSAP layout & hover timelines calculation
-  useEffect(() => {
-    const layout = () => {
-      circleRefs.current.forEach((circle) => {
-        if (!circle?.parentElement) return
-
-        const pill = circle.parentElement as HTMLElement
-        const rect = pill.getBoundingClientRect()
-        const { width: w, height: h } = rect
-        if (w === 0 || h === 0) return
-
-        const R = ((w * w) / 4 + h * h) / (2 * h)
-        const D = Math.ceil(2 * R) + 2
-        const delta = Math.ceil(R - Math.sqrt(Math.max(0, R * R - (w * w) / 4))) + 1
-        const originY = D - delta
-
-        circle.style.width = `${D}px`
-        circle.style.height = `${D}px`
-        circle.style.bottom = `-${delta}px`
-
-        gsap.set(circle, {
-          xPercent: -50,
-          scale: 0,
-          transformOrigin: `50% ${originY}px`,
-        })
-
-        const label = pill.querySelector<HTMLElement>(".pill-label")
-        const white = pill.querySelector<HTMLElement>(".pill-label-hover")
-
-        if (label) gsap.set(label, { y: 0 })
-        if (white) gsap.set(white, { y: h + 12, opacity: 0 })
-
-        const index = circleRefs.current.indexOf(circle)
-        if (index === -1) return
-
-        tlRefs.current[index]?.kill()
-        const tl = gsap.timeline({ paused: true })
-
-        tl.to(circle, { scale: 1.2, xPercent: -50, duration: 0.4, ease, overwrite: "auto" }, 0)
-
-        if (label) {
-          tl.to(label, { y: -(h + 8), duration: 0.4, ease, overwrite: "auto" }, 0)
-        }
-
-        if (white) {
-          gsap.set(white, { y: Math.ceil(h + 12), opacity: 0 })
-          tl.to(white, { y: 0, opacity: 1, duration: 0.4, ease, overwrite: "auto" }, 0)
-        }
-
-        tlRefs.current[index] = tl
-      })
-    }
-
-    // Run layout calculation after render
-    const timer = setTimeout(layout, 50)
-
-    const onResize = () => layout()
-    window.addEventListener("resize", onResize)
-
-    if (document.fonts?.ready) {
-      document.fonts.ready.then(layout).catch(() => {})
-    }
-
-    const menu = mobileMenuRef.current
-    if (menu) {
-      gsap.set(menu, { visibility: "hidden", opacity: 0 })
-    }
-
-    if (initialLoadAnimation && navItemsRef.current) {
-      gsap.fromTo(
-        navItemsRef.current,
-        { scale: 0.9, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.5, ease }
-      )
-    }
-
-    return () => {
-      clearTimeout(timer)
-      window.removeEventListener("resize", onResize)
-      tlRefs.current.forEach((tl) => tl?.kill())
-      activeTweenRefs.current.forEach((tw) => tw?.kill())
-    }
-  }, [items, ease, initialLoadAnimation])
-
-  const handleEnter = (i: number) => {
-    const tl = tlRefs.current[i]
-    if (!tl) return
-    activeTweenRefs.current[i]?.kill()
-    activeTweenRefs.current[i] = tl.tweenTo(tl.duration(), {
-      duration: 0.3,
-      ease,
-      overwrite: "auto",
-    })
-  }
-
-  const handleLeave = (i: number) => {
-    const tl = tlRefs.current[i]
-    if (!tl) return
-    activeTweenRefs.current[i]?.kill()
-    activeTweenRefs.current[i] = tl.tweenTo(0, {
-      duration: 0.25,
-      ease,
-      overwrite: "auto",
-    })
-  }
-
   const toggleMobileMenu = () => {
-    const newState = !isMobileMenuOpen
-    setIsMobileMenuOpen(newState)
-
-    const hamburger = hamburgerRef.current
-    const menu = mobileMenuRef.current
-
-    if (hamburger) {
-      const lines = hamburger.querySelectorAll(".hamburger-line")
-      if (lines.length >= 2) {
-        if (newState) {
-          gsap.to(lines[0], { rotation: 45, y: 3, duration: 0.3, ease })
-          gsap.to(lines[1], { rotation: -45, y: -3, duration: 0.3, ease })
-        } else {
-          gsap.to(lines[0], { rotation: 0, y: 0, duration: 0.3, ease })
-          gsap.to(lines[1], { rotation: 0, y: 0, duration: 0.3, ease })
-        }
-      }
-    }
-
-    if (menu) {
-      if (newState) {
-        gsap.set(menu, { visibility: "visible" })
-        gsap.fromTo(
-          menu,
-          { opacity: 0, y: -10 },
-          { opacity: 1, y: 0, duration: 0.3, ease }
-        )
-      } else {
-        gsap.to(menu, {
-          opacity: 0,
-          y: -10,
-          duration: 0.2,
-          ease,
-          onComplete: () => {
-            gsap.set(menu, { visibility: "hidden" })
-          },
-        })
-      }
-    }
-
+    setIsMobileMenuOpen(!isMobileMenuOpen)
     onMobileMenuClick?.()
   }
 
@@ -294,7 +143,7 @@ export default function PillNav({
           </div>
         )}
 
-        <div className="pill-nav-items desktop-only" ref={navItemsRef}>
+        <div className={`pill-nav-items desktop-only ${initialLoadAnimation ? "initial-load" : ""}`} ref={navItemsRef}>
           <ul className="pill-list" role="menubar">
             {items.map((item, i) => {
               let targetHref = item.href
@@ -313,15 +162,10 @@ export default function PillNav({
                     className={`pill${isActive ? " is-active" : ""}`}
                     aria-label={item.ariaLabel || item.label}
                     onClick={(e) => handleNavClick(e, item.href)}
-                    onMouseEnter={() => handleEnter(i)}
-                    onMouseLeave={() => handleLeave(i)}
                   >
                     <span
                       className="hover-circle"
                       aria-hidden="true"
-                      ref={(el) => {
-                        circleRefs.current[i] = el
-                      }}
                     />
                     <span className="label-stack">
                       <span className="pill-label">{item.label}</span>
@@ -337,10 +181,9 @@ export default function PillNav({
         </div>
 
         <button
-          className="mobile-menu-button mobile-only"
+          className={`mobile-menu-button mobile-only ${isMobileMenuOpen ? "is-open" : ""}`}
           onClick={toggleMobileMenu}
           aria-label="Toggle menu"
-          ref={hamburgerRef}
         >
           <span className="hamburger-line" />
           <span className="hamburger-line" />
@@ -348,8 +191,7 @@ export default function PillNav({
       </nav>
 
       <div
-        className="mobile-menu-popover mobile-only"
-        ref={mobileMenuRef}
+        className={`mobile-menu-popover mobile-only ${isMobileMenuOpen ? "is-open" : ""}`}
         style={cssVars}
       >
         <ul className="mobile-menu-list">
