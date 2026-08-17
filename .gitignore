@@ -44,3 +44,6 @@ used-knowledge.md
 walkthrough-*.md
 remove_bg.py
 test-db.ts
+
+.vercel
+.env*
