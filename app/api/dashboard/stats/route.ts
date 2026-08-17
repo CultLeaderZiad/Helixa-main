@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
         // 5. Recent Activity (Last 5 messages sent by bot)
         const { data: recentMessages } = await supabase
             .from("messages")
-            .select("id, content, created_at, sender_username, conversation_id, recipient:conversations(recipient_username)")
+            .select("id, content, created_at, sender_username, conversation_id, platform, recipient:conversations(recipient_username, platform)")
             .eq("user_id", igUserId)
             .eq("is_from_instagram", false)
             .order("created_at", { ascending: false })

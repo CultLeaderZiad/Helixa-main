@@ -6,13 +6,13 @@ import Image from "next/image"
 import dynamic from "next/dynamic"
 import TextPressure from "@/components/ui/text-pressure"
 import { DeferredMount, InViewMount } from "@/components/ui/mount-lazy"
-import MaskedHeading from "@/components/ui/MaskedHeading"
 import DepthText from "@/components/ui/DepthText"
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import PillNav from "@/components/ui/PillNav"
 import { DashboardBackground } from "@/components/layout/DashboardBackground"
 const ScrollFloat = dynamic(() => import("@/components/ui/ScrollFloat"), { ssr: false })
+const MaskedHeading = dynamic(() => import("@/components/ui/MaskedHeading"), { ssr: false })
 import CurvedLoop from "@/components/ui/CurvedLoop"
 import CurvedInput from "@/components/ui/CurvedInput"
 import {
@@ -20,6 +20,9 @@ import {
   Send, AtSign, Brain, Inbox, Lock, Terminal,
   Loader2, Linkedin,
 } from "lucide-react"
+
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 const TELEGRAM_URL = "https://t.me/cultleaderziad"
 const GITHUB_URL = "https://github.com/CultLeaderZiad"
@@ -29,6 +32,20 @@ export function LandingPage() {
   const [stars, setStars] = useState<number | null>(null)
   const router = useRouter()
   const { t } = useLanguage()
+  const [updatesContent, setUpdatesContent] = useState<string>("")
+  const [isLoadingUpdates, setIsLoadingUpdates] = useState(true)
+
+  useEffect(() => {
+    fetch("/api/settings/banner")
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.content) {
+          setUpdatesContent(data.content)
+        }
+      })
+      .catch(err => console.error("Failed to load updates", err))
+      .finally(() => setIsLoadingUpdates(false))
+  }, [])
 
   useEffect(() => {
     fetch("https://api.github.com/repos/CultLeaderZiad/insta-p8")
@@ -88,12 +105,12 @@ export function LandingPage() {
           />
         </div>
 
-        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center z-50">
+        <div className="flex absolute left-1/2 -translate-x-1/2 items-center z-50">
           <PillNav
             items={[
               { label: "FEATURES", href: "#features" },
-              { label: "UPDATES", href: "/updates" },
               { label: "PRICING", href: "/pricing" },
+              { label: "UPDATES", href: "#updates" },
               { label: "START BUILD ->", href: "/signup" }
             ]}
             baseColor="rgba(255, 255, 255, 0.03)"
@@ -238,6 +255,31 @@ export function LandingPage() {
               HELIXA
             </ScrollFloat>
           </InViewMount>
+        </section>
+
+        {/* Updates Section */}
+        <section id="updates" className="px-5 md:px-10 py-16 max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="font-serif-display text-4xl md:text-5xl mb-3 text-white">Latest Updates</h2>
+            <p className="text-neutral-500 text-sm">See what we've been building behind the scenes</p>
+          </div>
+          
+          <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-8 md:p-12 shadow-2xl relative overflow-hidden backdrop-blur-md">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#ffe14d]/[0.01] via-transparent to-transparent pointer-events-none" />
+            <div className="prose prose-invert prose-yellow max-w-none font-mono text-sm leading-relaxed text-neutral-300">
+              {isLoadingUpdates ? (
+                <div className="flex items-center justify-center py-12 text-neutral-500">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading updates...
+                </div>
+              ) : updatesContent ? (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {updatesContent}
+                </ReactMarkdown>
+              ) : (
+                <p className="text-neutral-500 text-center py-6">No recent updates published.</p>
+              )}
+            </div>
+          </div>
         </section>
 
         {/* Newsletter Subscription */}

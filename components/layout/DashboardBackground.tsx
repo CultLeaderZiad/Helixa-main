@@ -1,8 +1,6 @@
 "use client";
 
-/**
- * Full-screen background using the AcidSquares WebGL component.
- */
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useIsMobile } from "@/components/ui/use-mobile";
 
@@ -10,10 +8,16 @@ const AcidSquares = dynamic(() => import("@/components/ui/AcidSquares"), { ssr: 
 
 export function DashboardBackground() {
   const isMobile = useIsMobile();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(false); // Reset on unmount
+    setMounted(true);
+  }, []);
 
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden bg-[#03010A] pointer-events-none select-none">
-      {!isMobile ? (
+      {mounted && !isMobile ? (
         <div className="absolute inset-0 pointer-events-none opacity-40">
           <AcidSquares
             color1="#ffe14d"

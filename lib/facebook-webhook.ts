@@ -169,6 +169,53 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
         const isPostback = !!event.postback
         const text = event.message?.text || event.postback?.payload || ""
 
+        // Handle Conversation and Incoming Message Logging
+        let conv = null
+        try {
+          const { data: existing } = await supabase
+            .from("conversations")
+            .select("id, recipient_username")
+            .eq("user_id", user.id)
+            .eq("recipient_id", senderId)
+            .eq("platform", "messenger")
+            .maybeSingle()
+            
+          if (!existing) {
+            const { data: newConv } = await supabase
+              .from("conversations")
+              .insert({
+                user_id: user.id,
+                recipient_id: senderId,
+                recipient_username: "Facebook User",
+                platform: "messenger"
+              })
+              .select("id, recipient_username")
+              .single()
+            conv = newConv
+          } else {
+            conv = existing
+            await supabase
+              .from("conversations")
+              .update({ last_message_at: new Date().toISOString() })
+              .eq("id", existing.id)
+          }
+
+          if (conv && text) {
+            await supabase.from("messages").insert({
+              id: event.message?.mid || `mid_${Date.now()}_${Math.random()}`,
+              conversation_id: conv.id,
+              user_id: user.id,
+              sender_id: senderId,
+              sender_username: "Facebook User",
+              content: text,
+              is_from_instagram: true,
+              platform: "messenger"
+            })
+          }
+        } catch (err) {
+          console.error("[fb-webhook] Failed to save incoming message", err)
+        }
+
         for (const rule of automations) {
           let matched = false
           if (isPostback && rule.trigger_type === "postback" && rule.trigger_value === text) {
@@ -201,6 +248,30 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
             }
 
             await sendAutomationResponse(fbToken, { id: senderId }, responseContent)
+            
+            // Log outgoing message to Inbox
+            if (conv) {
+              try {
+                let replyPreview = ""
+                if (typeof responseContent === "string") replyPreview = responseContent
+                else if (responseContent.message) replyPreview = responseContent.message
+                else if (responseContent.card) replyPreview = `[Card: ${responseContent.card.title || "Sent"}]`
+                
+                await supabase.from("messages").insert({
+                  id: `mid_reply_${Date.now()}_${Math.random()}`,
+                  conversation_id: conv.id,
+                  user_id: user.id,
+                  sender_id: connection.page_id,
+                  sender_username: user.username || "Bot",
+                  content: replyPreview,
+                  is_from_instagram: false,
+                  platform: "messenger"
+                })
+              } catch (e) {
+                console.error("[fb-webhook] Failed to save outgoing message", e)
+              }
+            }
+
             await logAutomationEvent(supabase, user.id, rule.id, "dm_reply", senderId, "messenger", variantId)
             break
           }

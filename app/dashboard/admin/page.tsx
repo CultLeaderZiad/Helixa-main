@@ -877,17 +877,15 @@ export default function AdminPage() {
               </select>
             </div>
 
-            {bannerState.type === "lanyard" && (
-              <div className="space-y-3 pt-2">
-                <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider block">Update Page Content (Markdown)</label>
-                <textarea
-                  className="w-full h-48 border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600 resize-none"
-                  placeholder="# New Updates\n\n- Feature A..."
-                  value={bannerState.content || ""}
-                  onChange={e => setBannerState(s => ({ ...s, content: e.target.value }))}
-                />
-              </div>
-            )}
+            <div className="space-y-3 pt-2">
+              <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider block">Update Page Content (Markdown)</label>
+              <textarea
+                className="w-full h-48 border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600 resize-none"
+                placeholder="# New Updates\n\n- Feature A..."
+                value={bannerState.content || ""}
+                onChange={e => setBannerState(s => ({ ...s, content: e.target.value }))}
+              />
+            </div>
 
             <div className="pt-4 flex justify-end">
               <button

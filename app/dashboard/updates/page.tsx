@@ -1,6 +1,8 @@
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 import CardSwap, { Card } from "@/components/ui/CardSwap"
 import { Sparkles, Brain, Inbox, MessageCircle } from "lucide-react"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 export const dynamic = 'force-dynamic'
 
@@ -8,13 +10,22 @@ export default async function UpdatesPage() {
   const supabase = await getSupabaseServerClient()
   
   // Fetch the updates_page setting
-  const { data } = await supabase
+  const { data: updatesPageData } = await supabase
     .from("app_settings")
     .select("value")
     .eq("key", "updates_page")
     .single()
 
-  const isEnabled = data?.value?.isEnabled ?? true // Default to true if not found
+  const isEnabled = updatesPageData?.value?.isEnabled ?? true // Default to true if not found
+
+  // Fetch the updates banner/markdown details
+  const { data: updateBannerData } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", "update_banner")
+    .single()
+
+  const bannerState = updateBannerData?.value || { content: "" }
 
   if (!isEnabled) {
     return (
@@ -37,12 +48,21 @@ export default async function UpdatesPage() {
 
       <div className="flex-1 w-full flex items-center justify-center -mt-10">
         <div style={{ height: '500px', width: '100%', position: 'relative' }}>
-          <CardSwap
-            cardDistance={20}
-            verticalDistance={30}
-            delay={5000}
-            pauseOnHover={true}
-          >
+          {bannerState.content ? (
+            <div className="w-full max-w-2xl mx-auto bg-[#111110] border border-white/10 rounded-2xl p-8 md:p-12 shadow-2xl overflow-y-auto max-h-[500px]">
+              <div className="prose prose-invert prose-yellow max-w-none font-mono text-sm leading-relaxed text-neutral-300">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {bannerState.content}
+                </ReactMarkdown>
+              </div>
+            </div>
+          ) : (
+            <CardSwap
+              cardDistance={20}
+              verticalDistance={30}
+              delay={5000}
+              pauseOnHover={true}
+            >
             {/* Card 1 */}
             <Card>
               <div className="flex-1 flex flex-col justify-between">
@@ -119,6 +139,7 @@ export default async function UpdatesPage() {
               </div>
             </Card>
           </CardSwap>
+          )}
         </div>
       </div>
     </div>

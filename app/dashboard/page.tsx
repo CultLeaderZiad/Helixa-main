@@ -10,7 +10,6 @@ import useSWR from "swr"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
 import TextPressure from "@/components/ui/text-pressure"
-import SplitText from "@/components/ui/SplitText"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 
 interface DashboardStats {
@@ -226,18 +225,9 @@ export default function DashboardPage() {
                 </div>
 
                 <p className="font-mono-ui text-[10px] uppercase tracking-[0.3em] text-[#ffe14d] mb-3 font-bold">{t.overviewLabel}</p>
-                <SplitText
-                    text={`Hey, ${username || "creator"}.`}
-                    className="font-serif-display text-4xl md:text-5xl text-white leading-none mb-4"
-                    delay={30}
-                    duration={0.8}
-                    ease="power3.out"
-                    splitType="words, chars"
-                    from={{ opacity: 0, y: 20 }}
-                    to={{ opacity: 1, y: 0 }}
-                    tag="h1"
-                    textAlign="left"
-                />
+                <h1 className="font-serif-display text-4xl md:text-5xl text-white leading-none mb-4">
+                    Hey, {username || "creator"}.
+                </h1>
                 <p className="text-neutral-400 text-sm">{t.overviewSubtitle}</p>
             </div>
 

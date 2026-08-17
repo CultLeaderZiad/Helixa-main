@@ -107,66 +107,73 @@ export async function sendCampaign(campaignId: string, supabase: any, targetAcco
 
     const recipientMap = new Map(insertedRecipients?.map((r: any) => [isNewsletter ? r.subscriber_id : r.account_id, r.id]) || [])
 
-    // Process Emails
-    for (const customer of customers) {
-      const html = generateEmailHtml({
-        template: campaign.template,
-        subject: campaign.subject,
-        previewText: campaign.preview_text,
-        heroImage: campaign.hero_image,
-        heading: campaign.heading,
-        subheading: campaign.subheading,
-        bodyText: campaign.body_text,
-        features: campaign.features,
-        ctaText: campaign.cta_text,
-        ctaUrl: campaign.cta_url,
-        customerName: customer.full_name || customer.email.split('@')[0],
-      })
-
-      const sendResult = await sendEmail({
-        to: customer.email,
-        subject: campaign.subject,
-        html,
-      })
-
-      const recipientId = recipientMap.get(customer.id)
-
-      if (sendResult.success) {
-        successCount++
-        if (recipientId) {
-          await supabase.from("email_campaign_recipients").update({
-            status: "sent",
-            provider_message_id: sendResult.messageId,
-            sent_at: new Date().toISOString()
-          }).eq("id", recipientId)
-        }
-
-        // Add to email_logs
-        await supabase.from("email_logs").insert({
-          campaign_id: campaign.id,
-          account_id: isNewsletter ? null : customer.id,
-          subscriber_id: isNewsletter ? customer.id : null,
-          email: customer.email,
-          status: "sent",
-          provider_message_id: sendResult.messageId
+    // Process Emails in batches to avoid timeouts
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < customers.length; i += BATCH_SIZE) {
+      const batch = customers.slice(i, i + BATCH_SIZE);
+      
+      const promises = batch.map(async (customer) => {
+        const html = generateEmailHtml({
+          template: campaign.template,
+          subject: campaign.subject,
+          previewText: campaign.preview_text,
+          heroImage: campaign.hero_image,
+          heading: campaign.heading,
+          subheading: campaign.subheading,
+          bodyText: campaign.body_text,
+          features: campaign.features,
+          ctaText: campaign.cta_text,
+          ctaUrl: campaign.cta_url,
+          customerName: customer.full_name || customer.email.split('@')[0],
         })
-      } else {
-        if (recipientId) {
-          await supabase.from("email_campaign_recipients").update({
+
+        const sendResult = await sendEmail({
+          to: customer.email,
+          subject: campaign.subject,
+          html,
+        })
+
+        const recipientId = recipientMap.get(customer.id)
+
+        if (sendResult.success) {
+          successCount++
+          if (recipientId) {
+            await supabase.from("email_campaign_recipients").update({
+              status: "sent",
+              provider_message_id: sendResult.messageId,
+              sent_at: new Date().toISOString()
+            }).eq("id", recipientId)
+          }
+
+          // Add to email_logs
+          await supabase.from("email_logs").insert({
+            campaign_id: campaign.id,
+            account_id: isNewsletter ? null : customer.id,
+            subscriber_id: isNewsletter ? customer.id : null,
+            email: customer.email,
+            status: "sent",
+            provider_message_id: sendResult.messageId
+          })
+        } else {
+          if (recipientId) {
+            await supabase.from("email_campaign_recipients").update({
+              status: "failed",
+              error_message: sendResult.error
+            }).eq("id", recipientId)
+          }
+
+          await supabase.from("email_logs").insert({
+            campaign_id: campaign.id,
+            account_id: isNewsletter ? null : customer.id,
+            subscriber_id: isNewsletter ? customer.id : null,
+            email: customer.email,
             status: "failed",
             error_message: sendResult.error
-          }).eq("id", recipientId)
+          })
         }
-
-        await supabase.from("email_logs").insert({
-          campaign_id: campaign.id,
-          account_id: isNewsletter ? null : customer.id,
-          subscriber_id: isNewsletter ? customer.id : null,
-          email: customer.email,
-          status: "failed",
-          error_message: sendResult.error
-        })
-      }
+      });
+      
+      await Promise.allSettled(promises);
     }
 
     // 5. Mark Campaign Completed

@@ -9,11 +9,11 @@ import { sendCampaign } from "@/lib/campaign-sender"
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const secret = searchParams.get("secret")
+    const authHeader = request.headers.get("authorization")
+    const expectedAuth = `Bearer ${process.env.CRON_SECRET}`
     
     // Validate security secret if configured
-    if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
+    if (process.env.CRON_SECRET && authHeader !== expectedAuth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 

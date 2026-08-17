@@ -30,3 +30,17 @@ next-env.d.ts
 # video files (test/generated)
 *.mp4
 /washed_videos/
+
+# Debug/scratch files from agent sessions
+*.log
+debug_*.txt
+scratch_*.js
+temp_*.txt
+db
+performance_results.json
+transcript_*.txt
+prompt_line.txt
+used-knowledge.md
+walkthrough-*.md
+remove_bg.py
+test-db.ts

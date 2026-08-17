@@ -23,18 +23,14 @@ export default async function UpdatesPage() {
     console.error("[UpdatesPage] Server fetch error:", err)
   }
 
-  if (!bannerState.isActive || bannerState.type !== "lanyard") {
-    redirect("/dashboard")
-  }
-
   return (
     <div className="min-h-screen bg-[#03010A] text-white py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         <Link
-          href="/dashboard"
+          href="/"
           className="inline-block mb-8 text-[#ffe14d] hover:text-white font-mono text-sm tracking-wider transition-colors"
         >
-          &larr; Back to Dashboard
+          &larr; Back to Home
         </Link>
         
         <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-8 sm:p-12 shadow-2xl">

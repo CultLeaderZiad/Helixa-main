@@ -71,6 +71,53 @@ export async function POST(
         payload: update
       })
 
+      // Handle Conversation and Incoming Message Logging
+      let conv = null
+      try {
+        const { data: existing } = await supabase
+          .from("conversations")
+          .select("id, recipient_username")
+          .eq("user_id", userId)
+          .eq("recipient_id", senderId)
+          .eq("platform", "telegram")
+          .maybeSingle()
+          
+        if (!existing) {
+          const { data: newConv } = await supabase
+            .from("conversations")
+            .insert({
+              user_id: userId,
+              recipient_id: senderId,
+              recipient_username: update.message.from?.username || "Telegram User",
+              platform: "telegram"
+            })
+            .select("id, recipient_username")
+            .single()
+          conv = newConv
+        } else {
+          conv = existing
+          await supabase
+            .from("conversations")
+            .update({ last_message_at: new Date().toISOString() })
+            .eq("id", existing.id)
+        }
+
+        if (conv && messageText) {
+          await supabase.from("messages").insert({
+            id: update.message?.message_id?.toString() || `mid_${Date.now()}_${Math.random()}`,
+            conversation_id: conv.id,
+            user_id: userId,
+            sender_id: senderId,
+            sender_username: update.message.from?.username || "Telegram User",
+            content: messageText,
+            is_from_instagram: true,
+            platform: "telegram"
+          })
+        }
+      } catch (err) {
+        console.error("[Telegram Webhook] Failed to save incoming message", err)
+      }
+
       // 5. Fetch automations for this user
       const { data: automations } = await supabase
         .from("automations")
@@ -115,6 +162,24 @@ export async function POST(
           if (responseText) {
             await sendTelegramMessage(rawToken, chatId, responseText)
             
+            // Log outgoing message to Inbox
+            if (conv) {
+              try {
+                await supabase.from("messages").insert({
+                  id: `mid_reply_${Date.now()}_${Math.random()}`,
+                  conversation_id: conv.id,
+                  user_id: userId,
+                  sender_id: botId,
+                  sender_username: "Bot",
+                  content: responseText,
+                  is_from_instagram: false,
+                  platform: "telegram"
+                })
+              } catch (e) {
+                console.error("[Telegram Webhook] Failed to save outgoing message", e)
+              }
+            }
+
             await supabase.from("automation_events").insert({
                automation_id: matchedAutomation.id,
                user_id: userId,

@@ -157,6 +157,53 @@ export async function POST(request: NextRequest) {
 
           if (!text) continue
 
+          // Handle Conversation and Incoming Message Logging
+          let conv = null
+          try {
+            const { data: existing } = await supabase
+              .from("conversations")
+              .select("id, recipient_username")
+              .eq("user_id", user.id)
+              .eq("recipient_id", senderPhone)
+              .eq("platform", "whatsapp")
+              .maybeSingle()
+              
+            if (!existing) {
+              const { data: newConv } = await supabase
+                .from("conversations")
+                .insert({
+                  user_id: user.id,
+                  recipient_id: senderPhone,
+                  recipient_username: message.contacts?.[0]?.profile?.name || "WhatsApp User",
+                  platform: "whatsapp"
+                })
+                .select("id, recipient_username")
+                .single()
+              conv = newConv
+            } else {
+              conv = existing
+              await supabase
+                .from("conversations")
+                .update({ last_message_at: new Date().toISOString() })
+                .eq("id", existing.id)
+            }
+
+            if (conv && text) {
+              await supabase.from("messages").insert({
+                id: msgId || `mid_${Date.now()}_${Math.random()}`,
+                conversation_id: conv.id,
+                user_id: user.id,
+                sender_id: senderPhone,
+                sender_username: message.contacts?.[0]?.profile?.name || "WhatsApp User",
+                content: text,
+                is_from_instagram: true,
+                platform: "whatsapp"
+              })
+            }
+          } catch (err) {
+            console.error("[wa-webhook] Failed to save incoming message", err)
+          }
+
           for (const rule of automations) {
             let matched = false
             if (isPostback && rule.trigger_type === "postback" && rule.trigger_value === text) {
@@ -202,6 +249,24 @@ export async function POST(request: NextRequest) {
                 if (!result.ok && result.error === "OUTSIDE_WINDOW") {
                   console.error(`[wa-webhook] ❌ Failed to send to ${senderPhone}: Outside 24h window (template required)`)
                   // Could optionally store this failure in automation_events
+                }
+                
+                // Log outgoing message to Inbox
+                if (result.ok && conv) {
+                  try {
+                    await supabase.from("messages").insert({
+                      id: `mid_reply_${Date.now()}_${Math.random()}`,
+                      conversation_id: conv.id,
+                      user_id: user.id,
+                      sender_id: phoneNumberId,
+                      sender_username: user.username || "Bot",
+                      content: sendText,
+                      is_from_instagram: false,
+                      platform: "whatsapp"
+                    })
+                  } catch (e) {
+                    console.error("[wa-webhook] Failed to save outgoing message", e)
+                  }
                 }
               }
 

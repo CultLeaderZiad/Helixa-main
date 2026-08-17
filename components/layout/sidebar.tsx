@@ -9,7 +9,6 @@ import {
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import TextPressure from "@/components/ui/text-pressure"
-import MaskedHeading from "@/components/ui/MaskedHeading"
 import DepthText from "@/components/ui/DepthText"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"

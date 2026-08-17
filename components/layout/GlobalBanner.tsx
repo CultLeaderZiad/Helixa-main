@@ -21,8 +21,10 @@ export function GlobalBanner() {
   const [banner, setBanner] = useState<BannerState | null>(null)
   const [isVisible, setIsVisible] = useState(false)
   const isMobile = useIsMobile()
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     // Check if dismissed in this session
     if (sessionStorage.getItem("banner_dismissed") === "true") return
 
@@ -47,7 +49,7 @@ export function GlobalBanner() {
 
   return (
     <>
-      {banner.type === 'lanyard' && !isMobile ? (
+      {banner.type === 'lanyard' && mounted && !isMobile ? (
         <div className="fixed top-0 right-4 md:right-12 w-64 h-[80vh] z-[100] pointer-events-none">
           {/* We wrap the Canvas in a container that allows pointer events so users can interact with the 3D card */}
           <div className="w-full h-full pointer-events-auto">
