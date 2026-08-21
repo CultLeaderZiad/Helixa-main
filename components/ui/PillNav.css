@@ -244,15 +244,15 @@
 .mobile-menu-popover {
   position: absolute;
   top: 3.5em;
-  left: 0.5rem;
-  right: 0.5rem;
+  left: 50%;
+  width: calc(100vw - 2rem);
+  transform: translateX(-50%) translateY(-10px);
   background: var(--base, #0a0a0a);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 20px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
   z-index: 998;
   opacity: 0;
-  transform: translateY(-10px);
   visibility: hidden;
   backdrop-filter: blur(16px);
   transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
@@ -260,7 +260,7 @@
 
 .mobile-menu-popover.is-open {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateX(-50%) translateY(0);
   visibility: visible;
 }
 
