@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Loader2, Lock, KeyRound, CheckCircle2 } from "lucide-react"
+import { useState } from "react"
+import { Loader2, Lock, KeyRound, CheckCircle2, Bot, Sparkles, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
@@ -37,7 +37,7 @@ interface Agent {
 
 export default function DashboardAgentsPage() {
   const { data: agentsData, error: swrError, isLoading: loading, mutate: mutateAgents } = useSWR("/api/agents", fetcher)
-  const agents = agentsData?.agents || []
+  const agents: Agent[] = agentsData?.agents || []
   const error = swrError?.message || ""
   const { t } = useLanguage()
 
@@ -49,7 +49,6 @@ export default function DashboardAgentsPage() {
 
   const handleToggleAgent = async (agentId: string, currentState: boolean) => {
     try {
-      // Optimistic update
       mutateAgents((prev: any) => ({
         ...prev,
         agents: prev?.agents?.map((a: Agent) => a.id === agentId ? { ...a, settings: { ...a.settings, is_enabled: !currentState } } : a)
@@ -98,7 +97,6 @@ export default function DashboardAgentsPage() {
     setByokDialog(true)
   }
 
-  // Group by category
   const groupedAgents = agents.reduce((acc: Record<string, Agent[]>, agent: Agent) => {
     const cat = agent.category || "General"
     if (!acc[cat]) acc[cat] = []
@@ -109,12 +107,20 @@ export default function DashboardAgentsPage() {
   if (loading) return <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-white/20" /></div>
 
   return (
-    <div className="p-8 animate-in fade-in duration-700">
-      <div className="mb-8">
-        <h1 className="font-serif-display text-4xl text-white mb-2">{t.aiAgentsTitle}</h1>
-        <p className="text-neutral-400 text-sm">
-          {t.aiAgentsDesc}
-        </p>
+    <div className="p-8 animate-in fade-in duration-700 max-w-7xl mx-auto">
+      <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/10 pb-6">
+        <div>
+          <h1 className="font-serif-display text-4xl text-white mb-2">{t.aiAgentsTitle}</h1>
+          <p className="text-neutral-400 text-sm">
+            {t.aiAgentsDesc}
+          </p>
+        </div>
+        <Link href="/dashboard/billing">
+          <Button variant="outline" className="border-white/10 bg-white/[0.03] text-white hover:bg-white/10 text-xs font-semibold">
+            <Sparkles className="w-3.5 h-3.5 mr-2 text-[#ffe14d]" />
+            Manage Tier & Access
+          </Button>
+        </Link>
       </div>
 
       {error && (
@@ -123,26 +129,49 @@ export default function DashboardAgentsPage() {
         </div>
       )}
 
+      {agents.length === 0 && !loading && !error && (
+        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center max-w-xl mx-auto my-12">
+          <div className="w-16 h-16 mx-auto mb-4 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
+            <Bot className="w-7 h-7 text-neutral-400" />
+          </div>
+          <h3 className="text-base font-bold text-white mb-1">No AI Agents Configured Yet</h3>
+          <p className="text-sm text-neutral-400 mb-6">
+            AI agents supercharge your conversations with automated responses and lead capture. You can create custom trigger rules while agents are configured.
+          </p>
+          <Link href="/dashboard/automations">
+            <Button className="bg-[#ffe14d] text-black hover:brightness-110 text-xs font-semibold">
+              Create an Automation Rule
+              <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+            </Button>
+          </Link>
+        </div>
+      )}
+
       {Object.entries(groupedAgents).map(([category, catAgents]) => (
         <div key={category} className="mb-12">
-          <h2 className="text-lg font-bold text-white mb-4 capitalize">{category} Agents</h2>
+          <h2 className="text-lg font-bold text-white mb-4 capitalize flex items-center gap-2">
+            <span>{category} Agents</span>
+            <span className="bg-white/10 text-xs text-neutral-300 px-2 py-0.5 rounded-full font-mono font-normal">
+              {catAgents.length}
+            </span>
+          </h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {(catAgents as Agent[]).map((agent: Agent) => (
+            {catAgents.map((agent: Agent) => (
               <div
                 key={agent.id}
-                className={`border border-white/10 bg-white/[0.03] rounded-xl p-6 flex flex-col gap-4 relative overflow-hidden ${
+                className={`border border-white/10 bg-[#0a0a0a] rounded-xl p-6 flex flex-col gap-4 relative overflow-hidden transition-all hover:border-white/20 ${
                   !agent.is_unlocked ? "opacity-75" : ""
                 }`}
               >
                 {!agent.is_unlocked && (
-                  <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center p-6 text-center">
+                  <div className="absolute inset-0 bg-black/75 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center p-6 text-center">
                     <Lock className="w-8 h-8 text-neutral-500 mb-3" />
                     <h4 className="font-bold text-white mb-1">{t.planUpgradeRequired}</h4>
                     <p className="text-xs text-neutral-400 mb-4">
                       {t.agentNotInPlan}
                     </p>
                     <Link href="/dashboard/billing">
-                      <Button className="bg-[#ffe14d] text-black hover:brightness-110 h-8 text-xs">
+                      <Button className="bg-[#ffe14d] text-black hover:brightness-110 h-8 text-xs font-semibold">
                         {t.viewPlans}
                       </Button>
                     </Link>
@@ -151,8 +180,8 @@ export default function DashboardAgentsPage() {
                 
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-bold text-white">{agent.name}</h3>
-                    <p className="text-xs text-neutral-400 mt-1 line-clamp-3">
+                    <h3 className="font-bold text-white text-base">{agent.name}</h3>
+                    <p className="text-xs text-neutral-400 mt-1 line-clamp-3 leading-relaxed">
                       {agent.description}
                     </p>
                   </div>
@@ -161,7 +190,7 @@ export default function DashboardAgentsPage() {
                 <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">
                   {agent.requires_byok ? (
                     agent.settings?.byok_connected_at ? (
-                      <div className="flex items-center gap-1.5 text-xs text-green-400">
+                      <div className="flex items-center gap-1.5 text-xs text-green-400 font-medium">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         {t.keyConnected}
                       </div>
@@ -169,11 +198,11 @@ export default function DashboardAgentsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 text-xs border-white/10 hover:bg-white/5"
+                        className="h-8 text-xs border-white/10 hover:bg-white/10"
                         onClick={() => openByok(agent)}
                         disabled={!agent.is_unlocked}
                       >
-                        <KeyRound className="w-3.5 h-3.5 mr-1.5" />
+                        <KeyRound className="w-3.5 h-3.5 mr-1.5 text-[#ffe14d]" />
                         {t.connectApiKey}
                       </Button>
                     )
@@ -185,7 +214,7 @@ export default function DashboardAgentsPage() {
 
                   <div className="flex items-center gap-2">
                     <span
-                      className={`text-[10px] uppercase tracking-wider ${
+                      className={`text-[10px] uppercase tracking-wider font-semibold ${
                         agent.settings?.is_enabled ? "text-green-400" : "text-neutral-500"
                       }`}
                     >
@@ -216,7 +245,7 @@ export default function DashboardAgentsPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-neutral-300">{t.provider}</label>
               <select
-                className="w-full bg-black border border-white/10 rounded-md p-2 text-sm text-white"
+                className="w-full bg-black border border-white/10 rounded-md p-2 text-sm text-white focus:border-[#ffe14d] outline-none"
                 value={byokProvider}
                 onChange={(e) => setByokProvider(e.target.value)}
               >
@@ -238,7 +267,7 @@ export default function DashboardAgentsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setByokDialog(false)}>{t.cancel}</Button>
-            <Button onClick={handleSaveByok} disabled={savingKey || !byokKey}>
+            <Button onClick={handleSaveByok} disabled={savingKey || !byokKey} className="bg-[#ffe14d] text-black font-semibold hover:brightness-110">
               {savingKey ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               {t.secureAndConnect}
             </Button>

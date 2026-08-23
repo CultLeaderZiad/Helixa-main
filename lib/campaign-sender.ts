@@ -27,35 +27,48 @@ export async function sendCampaign(campaignId: string, supabase: any, targetAcco
 
     // 3. Fetch Audience
     let customers: any[] = []
-    let isNewsletter = false
+    const isNewsletter = campaign.audience_filter === "newsletter"
 
-    if (targetAccountIds !== undefined && targetAccountIds.length > 0) {
-      if (campaign.audience_filter === "newsletter") {
-        isNewsletter = true
-        const { data, error } = await supabase.from("newsletter_subscribers").select("id, email").in("id", targetAccountIds)
+    if (targetAccountIds !== undefined) {
+      if (targetAccountIds.length === 0) {
+        customers = []
+      } else if (isNewsletter) {
+        const { data, error } = await supabase
+          .from("newsletter_subscribers")
+          .select("id, email")
+          .in("id", targetAccountIds)
         if (error) {
           await supabase.from("email_campaigns").update({ status: "failed" }).eq("id", campaign.id)
           throw new Error("Failed to fetch newsletter audience")
         }
         customers = data || []
       } else {
-        const { data, error } = await supabase.from("accounts").select("id, email, full_name, role, plan").in("id", targetAccountIds)
+        const { data, error } = await supabase
+          .from("accounts")
+          .select("id, email, full_name, role, plan")
+          .in("id", targetAccountIds)
         if (error) {
           await supabase.from("email_campaigns").update({ status: "failed" }).eq("id", campaign.id)
           throw new Error("Failed to fetch audience")
         }
         customers = data || []
       }
-    } else if (campaign.audience_filter === "newsletter") {
-      isNewsletter = true
-      const { data, error } = await supabase.from("newsletter_subscribers").select("id, email")
+    } else if (isNewsletter) {
+      const { data, error } = await supabase
+        .from("newsletter_subscribers")
+        .select("id, email")
+        .order("created_at", { ascending: false })
       if (error) {
         await supabase.from("email_campaigns").update({ status: "failed" }).eq("id", campaign.id)
         throw new Error("Failed to fetch newsletter audience")
       }
       customers = data || []
     } else {
-      let query = supabase.from("accounts").select("id, email, full_name, role, plan").eq("role", "user")
+      let query = supabase
+        .from("accounts")
+        .select("id, email, full_name, role, plan, subscription_status, is_flagged")
+        .neq("role", "admin")
+        .order("created_at", { ascending: false })
 
       if (campaign.audience_filter === "trial") {
         query = query.eq("plan", "trial")
@@ -67,6 +80,12 @@ export async function sendCampaign(campaignId: string, supabase: any, targetAcco
         query = query.eq("plan", "expired")
       } else if (campaign.audience_filter === "paid") {
         query = query.in("plan", ["monthly", "one_time"])
+      } else if (campaign.audience_filter === "active") {
+        query = query.in("subscription_status", ["active", "trialing"])
+      } else if (campaign.audience_filter === "inactive") {
+        query = query.in("subscription_status", ["canceled", "unpaid", "past_due"])
+      } else if (campaign.audience_filter === "flagged") {
+        query = query.eq("is_flagged", true)
       }
 
       const { data, error } = await query
@@ -78,18 +97,21 @@ export async function sendCampaign(campaignId: string, supabase: any, targetAcco
     }
 
     if (!customers || customers.length === 0) {
-      await supabase.from("email_campaigns").update({ status: "completed", recipient_count: 0 }).eq("id", campaign.id)
+      await supabase
+        .from("email_campaigns")
+        .update({ status: "completed", recipient_count: 0, sent_at: new Date().toISOString() })
+        .eq("id", campaign.id)
       return { recipientCount: 0, successCount: 0 }
     }
 
     let successCount = 0
 
     // Create initial pending recipient records
-    const recipientRecords = customers.map(c => ({
+    const recipientRecords = customers.map((c) => ({
       campaign_id: campaign.id,
       account_id: isNewsletter ? null : c.id,
       subscriber_id: isNewsletter ? c.id : null,
-      status: "pending"
+      status: "pending",
     }))
 
     await supabase.from("email_campaigns").update({ recipient_count: customers.length }).eq("id", campaign.id)
@@ -105,13 +127,15 @@ export async function sendCampaign(campaignId: string, supabase: any, targetAcco
       .select("id, account_id, subscriber_id")
       .eq("campaign_id", campaign.id)
 
-    const recipientMap = new Map(insertedRecipients?.map((r: any) => [isNewsletter ? r.subscriber_id : r.account_id, r.id]) || [])
+    const recipientMap = new Map(
+      insertedRecipients?.map((r: any) => [isNewsletter ? r.subscriber_id : r.account_id, r.id]) || [],
+    )
 
-    // Process Emails in batches to avoid timeouts
-    const BATCH_SIZE = 10;
+    // Process Emails in batches to avoid provider timeouts
+    const BATCH_SIZE = 10
     for (let i = 0; i < customers.length; i += BATCH_SIZE) {
-      const batch = customers.slice(i, i + BATCH_SIZE);
-      
+      const batch = customers.slice(i, i + BATCH_SIZE)
+
       const promises = batch.map(async (customer) => {
         const html = generateEmailHtml({
           template: campaign.template,
@@ -124,7 +148,7 @@ export async function sendCampaign(campaignId: string, supabase: any, targetAcco
           features: campaign.features,
           ctaText: campaign.cta_text,
           ctaUrl: campaign.cta_url,
-          customerName: customer.full_name || customer.email.split('@')[0],
+          customerName: customer.full_name || customer.email.split("@")[0],
         })
 
         const sendResult = await sendEmail({
@@ -138,11 +162,14 @@ export async function sendCampaign(campaignId: string, supabase: any, targetAcco
         if (sendResult.success) {
           successCount++
           if (recipientId) {
-            await supabase.from("email_campaign_recipients").update({
-              status: "sent",
-              provider_message_id: sendResult.messageId,
-              sent_at: new Date().toISOString()
-            }).eq("id", recipientId)
+            await supabase
+              .from("email_campaign_recipients")
+              .update({
+                status: "sent",
+                provider_message_id: sendResult.messageId,
+                sent_at: new Date().toISOString(),
+              })
+              .eq("id", recipientId)
           }
 
           // Add to email_logs
@@ -152,14 +179,17 @@ export async function sendCampaign(campaignId: string, supabase: any, targetAcco
             subscriber_id: isNewsletter ? customer.id : null,
             email: customer.email,
             status: "sent",
-            provider_message_id: sendResult.messageId
+            provider_message_id: sendResult.messageId,
           })
         } else {
           if (recipientId) {
-            await supabase.from("email_campaign_recipients").update({
-              status: "failed",
-              error_message: sendResult.error
-            }).eq("id", recipientId)
+            await supabase
+              .from("email_campaign_recipients")
+              .update({
+                status: "failed",
+                error_message: sendResult.error,
+              })
+              .eq("id", recipientId)
           }
 
           await supabase.from("email_logs").insert({
@@ -168,19 +198,22 @@ export async function sendCampaign(campaignId: string, supabase: any, targetAcco
             subscriber_id: isNewsletter ? customer.id : null,
             email: customer.email,
             status: "failed",
-            error_message: sendResult.error
+            error_message: sendResult.error,
           })
         }
-      });
-      
-      await Promise.allSettled(promises);
+      })
+
+      await Promise.allSettled(promises)
     }
 
     // 5. Mark Campaign Completed
-    await supabase.from("email_campaigns").update({
-      status: "completed",
-      sent_at: new Date().toISOString()
-    }).eq("id", campaign.id)
+    await supabase
+      .from("email_campaigns")
+      .update({
+        status: "completed",
+        sent_at: new Date().toISOString(),
+      })
+      .eq("id", campaign.id)
 
     return { recipientCount: customers.length, successCount }
   } catch (error: any) {

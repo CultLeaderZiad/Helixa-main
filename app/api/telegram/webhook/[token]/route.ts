@@ -1,14 +1,77 @@
 export const dynamic = 'force-dynamic'
+/* @ts-nocheck */
+
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { decryptString } from "@/lib/crypto"
-import { sendTelegramMessage } from "@/lib/telegram-api"
+import {
+  sendTelegramAutomationResponse,
+  sendTelegramMessage,
+  answerTelegramCallbackQuery,
+} from "@/lib/telegram-api"
+
+function parseContent(raw: any) {
+  if (!raw) return {}
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw)
+    } catch {
+      return { message: raw }
+    }
+  }
+  return raw
+}
+
+function pickVariant(rule: any): { content: any; variantId: string | null } {
+  let responseContent = rule.response_content
+  let variantId = null
+  if (rule.automation_variants && rule.automation_variants.length > 0) {
+    const allOptions = [
+      {
+        id: null,
+        content: rule.response_content,
+        weight: 100 - rule.automation_variants.reduce((sum: number, v: any) => sum + (v.traffic_weight || 0), 0),
+      },
+      ...rule.automation_variants.map((v: any) => ({
+        id: v.id,
+        content: v.response_config,
+        weight: v.traffic_weight || 50,
+      })),
+    ]
+    const random = Math.random() * 100
+    let sum = 0
+    for (const opt of allOptions) {
+      sum += Math.max(0, opt.weight)
+      if (random <= sum) {
+        responseContent = opt.content
+        variantId = opt.id
+        break
+      }
+    }
+  }
+  return { content: responseContent, variantId }
+}
+
+function keywordMatches(triggerValue: string, text: string): boolean {
+  if (!triggerValue) return false
+  return triggerValue
+    .split(",")
+    .map((k: string) => k.trim())
+    .filter(Boolean)
+    .some((k: string) => {
+      try {
+        return new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(text)
+      } catch {
+        return text.toLowerCase().includes(k.toLowerCase())
+      }
+    })
+}
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ token: string }> }
+  { params }: { params: Promise<{ token: string }> },
 ) {
-  const resolvedParams = await params;
+  const resolvedParams = await params
   const rawToken = resolvedParams.token
   if (!rawToken) {
     return NextResponse.json({ error: "No token provided" }, { status: 400 })
@@ -28,8 +91,8 @@ export async function POST(
       .from("platform_connections")
       .select("*")
       .eq("platform", "telegram")
-      .eq("page_id", botId)
-      .single()
+      .or(`page_id.eq.${botId},external_account_id.eq.${botId}`)
+      .maybeSingle()
 
     if (connError || !connection) {
       console.warn(`[Telegram Webhook] Unknown bot ID: ${botId}`)
@@ -45,7 +108,45 @@ export async function POST(
 
     const userId = connection.user_id
 
-    // 4. Parse the Telegram Update
+    // Fetch user & account to check plan / bans
+    const { data: user } = await supabase.from("users").select("*").eq("id", userId).single()
+    if (!user) {
+      return NextResponse.json({ success: true })
+    }
+
+    if (user.account_id) {
+      const { data: account } = await supabase
+        .from("accounts")
+        .select("id, plan, trial_ends_at, trial_exempt, is_banned")
+        .eq("id", user.account_id)
+        .single()
+
+      if (account) {
+        if (account.is_banned) {
+          console.log(`[Telegram Webhook] 🛑 Account ${account.id} is banned. Skipping.`)
+          return NextResponse.json({ success: true })
+        }
+
+        let effectivePlan = account.plan
+        if (account.plan === "trial" && account.trial_ends_at && !account.trial_exempt) {
+          const trialEnded = new Date(account.trial_ends_at) < new Date()
+          if (trialEnded) {
+            effectivePlan = "expired"
+            await supabase
+              .from("accounts")
+              .update({ plan: "expired", updated_at: new Date().toISOString() })
+              .eq("id", account.id)
+            console.log(`[Telegram Webhook] ⚠️ Account ${account.id} trial expired. Set plan=expired.`)
+          }
+        }
+
+        if (effectivePlan === "expired") {
+          return NextResponse.json({ success: true })
+        }
+      }
+    }
+
+    // 4. Parse Telegram Update
     let update: any
     try {
       update = await request.json()
@@ -53,145 +154,243 @@ export async function POST(
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
     }
 
-    // We only process message updates
-    if (update.message && update.message.text) {
-      const messageText = update.message.text
-      const senderId = update.message.from?.id?.toString()
-      const chatId = update.message.chat?.id?.toString()
-      
-      if (!senderId || !chatId) {
-        return NextResponse.json({ success: true }) // Acknowledge to stop retries
+    let senderId: string | null = null
+    let chatId: string | null = null
+    let senderUsername = "Telegram User"
+    let triggerType = "keyword"
+    let triggerValue = ""
+
+    if (update.callback_query) {
+      senderId = update.callback_query.from?.id?.toString()
+      chatId = update.callback_query.message?.chat?.id?.toString() || senderId
+      senderUsername =
+        update.callback_query.from?.username ||
+        update.callback_query.from?.first_name ||
+        "Telegram User"
+      triggerType = "postback"
+      triggerValue = update.callback_query.data || ""
+
+      // Acknowledge callback query
+      await answerTelegramCallbackQuery(rawToken, update.callback_query.id)
+    } else if (update.message) {
+      senderId = update.message.from?.id?.toString()
+      chatId = update.message.chat?.id?.toString()
+      senderUsername =
+        update.message.from?.username ||
+        update.message.from?.first_name ||
+        "Telegram User"
+      triggerType = "keyword"
+      triggerValue = update.message.text || update.message.caption || ""
+    }
+
+    if (!senderId || !chatId || !triggerValue) {
+      return NextResponse.json({ success: true })
+    }
+
+    console.log(`[Telegram Webhook] 📩 Message from ${senderUsername} (${senderId}): "${triggerValue}"`)
+
+    // 5. Persist Conversation & Incoming Message
+    let conv: any = null
+    try {
+      const { data: existing } = await supabase
+        .from("conversations")
+        .select("id, recipient_username")
+        .eq("user_id", userId)
+        .eq("recipient_id", senderId)
+        .eq("platform", "telegram")
+        .maybeSingle()
+
+      if (!existing) {
+        const { data: newConv } = await supabase
+          .from("conversations")
+          .insert({
+            user_id: userId,
+            recipient_id: senderId,
+            recipient_username: senderUsername,
+            platform: "telegram",
+            last_message_at: new Date().toISOString(),
+          })
+          .select("id, recipient_username")
+          .single()
+        conv = newConv
+      } else {
+        conv = existing
+        await supabase
+          .from("conversations")
+          .update({
+            recipient_username: senderUsername,
+            last_message_at: new Date().toISOString(),
+          })
+          .eq("id", existing.id)
       }
 
-      // Log the event
-      await supabase.from("webhook_events").insert({
-        user_id: userId,
-        platform: "telegram",
-        event_type: "message",
-        payload: update
-      })
+      if (conv) {
+        await supabase.from("messages").insert({
+          id: update.message?.message_id?.toString() || `tg_${Date.now()}_${Math.random()}`,
+          conversation_id: conv.id,
+          user_id: userId,
+          sender_id: senderId,
+          sender_username: senderUsername,
+          content: triggerValue,
+          is_from_instagram: false,
+          platform: "telegram",
+        })
+      }
+    } catch (err) {
+      console.error("[Telegram Webhook] Failed to save incoming message:", err)
+    }
 
-      // Handle Conversation and Incoming Message Logging
-      let conv = null
-      try {
-        const { data: existing } = await supabase
-          .from("conversations")
-          .select("id, recipient_username")
-          .eq("user_id", userId)
-          .eq("recipient_id", senderId)
-          .eq("platform", "telegram")
-          .maybeSingle()
-          
-        if (!existing) {
-          const { data: newConv } = await supabase
-            .from("conversations")
-            .insert({
-              user_id: userId,
-              recipient_id: senderId,
-              recipient_username: update.message.from?.username || "Telegram User",
-              platform: "telegram"
-            })
-            .select("id, recipient_username")
-            .single()
-          conv = newConv
+    // 6. Fetch Active Automations for User
+    const { data: automations } = await supabase
+      .from("automations")
+      .select("*, automation_variants(*)")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .or("platform.eq.telegram,platform.is.null")
+
+    let match: any = null
+
+    if (automations && automations.length > 0) {
+      const dmAutomations = automations.filter(
+        (a: any) => a.trigger_source === "dm" || !a.trigger_source,
+      )
+
+      if (triggerType === "postback") {
+        if (triggerValue.startsWith("UNLOCK_CONTENT_")) {
+          const ruleId = triggerValue.replace("UNLOCK_CONTENT_", "")
+          match = automations.find((a: any) => a.id === ruleId)
+        } else if (triggerValue.startsWith("SYS_CARD_")) {
+          const parts = triggerValue.split("_")
+          const ruleId = parts[2]
+          const variantId = parts.length > 3 && parts[3] !== "default" ? parts.slice(3).join("_") : null
+          const rule = automations.find((a: any) => a.id === ruleId)
+          if (rule) {
+            let responseContent = rule.response_content
+            if (variantId && rule.automation_variants) {
+              const v = rule.automation_variants.find((v: any) => v.id === variantId)
+              if (v) responseContent = v.response_config
+            }
+            match = { id: rule.id, name: "System Card Reply", response_content: responseContent }
+          }
         } else {
-          conv = existing
-          await supabase
-            .from("conversations")
-            .update({ last_message_at: new Date().toISOString() })
-            .eq("id", existing.id)
+          match = dmAutomations.find((a: any) => a.trigger_type === "postback" && a.trigger_value === triggerValue)
+          if (!match) {
+            match = dmAutomations.find(
+              (a: any) => a.trigger_type === "keyword" && keywordMatches(a.trigger_value, triggerValue),
+            )
+          }
         }
+      } else {
+        match = dmAutomations.find(
+          (a: any) => a.trigger_type === "keyword" && keywordMatches(a.trigger_value, triggerValue),
+        )
+        if (!match) {
+          match = dmAutomations.find((a: any) => a.trigger_type === "reply_all")
+        }
+      }
+    }
 
-        if (conv && messageText) {
+    // 7. AI Auto-Reply fallback if no match and user has AI enabled
+    if (!match && user.ai_enabled) {
+      try {
+        const { generateGroqCompletion } = await import("@/lib/groq-client")
+        const prompt = `You are a helpful customer service AI assistant on Telegram for @${user.username || "our business"}.
+Context/Instructions: ${user.ai_context || "Be helpful, concise, and polite."}
+The customer sent: "${triggerValue}"
+Provide a brief, helpful response.`
+
+        const aiReply = await generateGroqCompletion(user.id, "auto_reply", {
+          messages: [{ role: "system", content: prompt }],
+        })
+
+        if (aiReply) {
+          await sendTelegramMessage(rawToken, chatId, aiReply)
+
+          if (conv) {
+            try {
+              await supabase.from("messages").insert({
+                id: `tg_ai_${Date.now()}_${Math.random()}`,
+                conversation_id: conv.id,
+                user_id: userId,
+                sender_id: botId,
+                sender_username: "AI Assistant",
+                content: aiReply,
+                is_from_instagram: false,
+                platform: "telegram",
+              })
+            } catch (e) {}
+          }
+
+          try {
+            await supabase.from("automation_events").insert({
+              user_id: userId,
+              automation_id: "AI_AUTO_REPLY",
+              event_type: "sent",
+              platform: "telegram",
+            })
+          } catch (e) {}
+
+          console.log(`[Telegram Webhook] 🤖 AI Auto-reply sent to ${senderId}`)
+          return NextResponse.json({ success: true })
+        }
+      } catch (e) {
+        console.error("[Telegram Webhook] AI Auto-reply error:", e)
+      }
+    }
+
+    if (!match) {
+      return NextResponse.json({ success: true })
+    }
+
+    // 8. Execute Matched Automation
+    const { content: rawContent, variantId } = pickVariant(match)
+    const content = parseContent(rawContent)
+    console.log(`[Telegram Webhook] ✅ Triggering automation "${match.name}" (variant: ${variantId || "default"})`)
+
+    const sendResult = await sendTelegramAutomationResponse(rawToken, chatId, content, {
+      automationId: match.id,
+      variantId,
+    })
+
+    if (sendResult.ok) {
+      // Log outgoing message to conversation
+      if (conv) {
+        try {
+          let replyPreview = ""
+          if (typeof content === "string") replyPreview = content
+          else if (content.message) replyPreview = content.message
+          else if (content.card) replyPreview = `[Card: ${content.card.title || "Sent"}]`
+          else if (content.media?.url) replyPreview = `[Media: ${content.media.type || "image"}]`
+
           await supabase.from("messages").insert({
-            id: update.message?.message_id?.toString() || `mid_${Date.now()}_${Math.random()}`,
+            id: `tg_reply_${Date.now()}_${Math.random()}`,
             conversation_id: conv.id,
             user_id: userId,
-            sender_id: senderId,
-            sender_username: update.message.from?.username || "Telegram User",
-            content: messageText,
-            is_from_instagram: true,
-            platform: "telegram"
+            sender_id: botId,
+            sender_username: "Bot",
+            content: replyPreview || "[Automated Reply]",
+            is_from_instagram: false,
+            platform: "telegram",
           })
-        }
-      } catch (err) {
-        console.error("[Telegram Webhook] Failed to save incoming message", err)
-      }
-
-      // 5. Fetch automations for this user
-      const { data: automations } = await supabase
-        .from("automations")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("is_active", true)
-        .eq("trigger_source", "dm")
-        
-      if (automations && automations.length > 0) {
-        const messageTextLower = messageText.toLowerCase()
-        
-        // Find matching automation
-        let matchedAutomation = null
-        for (const automation of automations) {
-          // If the rule specifies a platform, it must match
-          if (automation.platform && automation.platform !== "telegram") continue
-          
-          if (!automation.trigger_keywords || automation.trigger_keywords.length === 0) {
-            matchedAutomation = automation
-            break
-          }
-          
-          const hasKeywordMatch = automation.trigger_keywords.some((keyword: string) => 
-            messageTextLower.includes(keyword.toLowerCase())
-          )
-          
-          if (hasKeywordMatch) {
-            matchedAutomation = automation
-            break
-          }
-        }
-
-        // Trigger action
-        if (matchedAutomation) {
-          console.log(`[Telegram Webhook] Triggering automation ${matchedAutomation.id}`)
-          
-          let responseText = matchedAutomation.response_text
-          if (matchedAutomation.response_type === "card" && matchedAutomation.card_title) {
-             responseText = `*${matchedAutomation.card_title}*\n${matchedAutomation.card_subtitle || ""}`
-          }
-
-          if (responseText) {
-            await sendTelegramMessage(rawToken, chatId, responseText)
-            
-            // Log outgoing message to Inbox
-            if (conv) {
-              try {
-                await supabase.from("messages").insert({
-                  id: `mid_reply_${Date.now()}_${Math.random()}`,
-                  conversation_id: conv.id,
-                  user_id: userId,
-                  sender_id: botId,
-                  sender_username: "Bot",
-                  content: responseText,
-                  is_from_instagram: false,
-                  platform: "telegram"
-                })
-              } catch (e) {
-                console.error("[Telegram Webhook] Failed to save outgoing message", e)
-              }
-            }
-
-            await supabase.from("automation_events").insert({
-               automation_id: matchedAutomation.id,
-               user_id: userId,
-               platform: "telegram",
-               trigger_type: "dm",
-               action_taken: "sent_message",
-               target_id: senderId,
-               metadata: { sent_text: responseText }
-            })
-          }
+        } catch (e) {
+          console.error("[Telegram Webhook] Failed to save outgoing message:", e)
         }
       }
+
+      // Log automation event with valid schema
+      try {
+        await supabase.from("automation_events").insert({
+          user_id: userId,
+          automation_id: match.id,
+          event_type: "sent",
+          platform: "telegram",
+          variant_id: variantId,
+        })
+      } catch (e) {
+        console.error("[Telegram Webhook] Failed to log automation_event:", e)
+      }
+    } else {
+      console.error("[Telegram Webhook] Failed to send Telegram response:", sendResult.error)
     }
 
     return NextResponse.json({ success: true })

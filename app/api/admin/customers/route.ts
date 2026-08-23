@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       const mapped = subscribers?.map(s => ({
         id: s.id,
         email: s.email,
-        full_name: "Subscriber",
+        full_name: "Newsletter Subscriber",
         plan: "newsletter",
         created_at: s.created_at,
         subscription_status: "active"
@@ -37,10 +37,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ customers: mapped })
     }
 
+    // Exclude administrators so all customer accounts (role = 'user', 'customer', etc.) are included
     let query = supabase
       .from("accounts")
-      .select("id, email, full_name, plan, created_at, subscription_status")
-      .eq("role", "user")
+      .select("id, email, full_name, role, plan, created_at, subscription_status, is_flagged")
+      .neq("role", "admin")
       .order("created_at", { ascending: false })
 
     if (filter !== "all") {
@@ -58,6 +59,8 @@ export async function GET(request: NextRequest) {
         query = query.in("subscription_status", ["active", "trialing"])
       } else if (filter === "inactive") {
         query = query.in("subscription_status", ["canceled", "unpaid", "past_due"])
+      } else if (filter === "flagged") {
+        query = query.eq("is_flagged", true)
       }
     }
 
@@ -74,4 +77,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
-

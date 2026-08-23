@@ -102,6 +102,16 @@ export default function AdminEnterprisePage() {
         <div className="flex items-center justify-center p-12">
           <Loader2 className="w-8 h-8 animate-spin text-neutral-500" />
         </div>
+      ) : inquiries.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-white/10 bg-[#0a0a0a] p-12 text-center max-w-xl mx-auto my-8">
+          <div className="w-16 h-16 mx-auto mb-4 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
+            <CheckCircle className="w-7 h-7 text-neutral-400" />
+          </div>
+          <h3 className="text-base font-bold text-white mb-1">No Enterprise Inquiries</h3>
+          <p className="text-sm text-neutral-400">
+            Enterprise custom plan requests submitted from the public pricing page will appear here for review and follow-up.
+          </p>
+        </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {inquiries.map((inq) => (

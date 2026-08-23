@@ -77,12 +77,16 @@ export default function CampaignsPage() {
 
   const formatAudience = (filter: string) => {
     const map: Record<string, string> = {
-      'all': t.allCustomers,
-      'paid': t.allPaid,
-      'trial': t.freeTrial,
-      'monthly': t.monthlyPlan,
-      'one_time': t.oneTimePlan,
-      'expired': t.expiredSubs
+      'all': t.allCustomers || "All Customers",
+      'paid': t.allPaid || "Paid Customers",
+      'trial': t.freeTrial || "Free Trial",
+      'monthly': t.monthlyPlan || "Monthly Plan",
+      'one_time': t.oneTimePlan || "One-Time Plan",
+      'expired': t.expiredSubs || "Expired Subscriptions",
+      'newsletter': "Newsletter Subscribers",
+      'active': "Active Subscribers",
+      'inactive': "Inactive Subscribers",
+      'flagged': "Flagged Accounts",
     }
     return map[filter] || filter
   }
@@ -95,7 +99,7 @@ export default function CampaignsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            <Mail className="w-6 h-6 text-brand-400" />
+            <Mail className="w-6 h-6 text-[#ffe14d]" />
             {t.communicationCenter}
           </h2>
           <p className="text-zinc-400 text-sm mt-1">
@@ -104,7 +108,7 @@ export default function CampaignsPage() {
         </div>
         <Button 
           onClick={() => router.push("/dashboard/admin/campaigns/create")}
-          className="bg-[#ccff00] hover:bg-[#b3e600] text-black font-semibold"
+          className="bg-[#ffe14d] hover:bg-[#e6c738] text-black font-semibold"
         >
           <Plus className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />
           {t.newCampaign}

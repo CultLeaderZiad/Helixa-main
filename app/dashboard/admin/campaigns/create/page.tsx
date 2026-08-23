@@ -120,6 +120,9 @@ export default function CreateCampaignPage() {
                     <SelectItem value="one_time">{t.oneTimeOnly}</SelectItem>
                     <SelectItem value="expired">{t.expiredSubs}</SelectItem>
                     <SelectItem value="newsletter">Newsletter Subscribers</SelectItem>
+                    <SelectItem value="active">Active Customers</SelectItem>
+                    <SelectItem value="inactive">Inactive Customers</SelectItem>
+                    <SelectItem value="flagged">Flagged Accounts</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
