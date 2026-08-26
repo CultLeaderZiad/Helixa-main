@@ -23,59 +23,52 @@ export async function GET(request: NextRequest) {
   let defaultProfilePic = "/agency-avatar.png";
   if (userRole === "admin") {
     defaultProfilePic = "/admin-avatar.png";
-  }
+  }    let hasValidPayment = false;
+    let isTrialExpired = false;
+    let isPastDeadline = false;
 
-  let hasValidPayment = false;
-  let isTrialExpired = false;
-  let isPastDeadline = false;
+    const currentPlan = igUser?.plan ?? account.plan;
+    const trialEnds = igUser?.trial_ends_at ?? account.trial_ends_at;
 
-  const currentPlan = igUser?.plan ?? account.plan;
-  const trialEnds = igUser?.trial_ends_at ?? account.trial_ends_at;
-
-  if (trialEnds) {
-    const trialDate = new Date(trialEnds);
-    const now = new Date();
-    if (trialDate < now) {
-      isTrialExpired = true;
-      // 24 hour deadline after expiration
-      if (now.getTime() - trialDate.getTime() > 24 * 60 * 60 * 1000) {
-        isPastDeadline = true;
-      }
+    if (trialEnds) {
+        const trialDate = new Date(trialEnds);
+        const now = new Date();
+        if (trialDate < now) {
+            isTrialExpired = true;
+            // 24 hour deadline after expiration
+            if (now.getTime() - trialDate.getTime() > 24 * 60 * 60 * 1000) {
+                isPastDeadline = true;
+            }
+        }
     }
-  }
 
-  // Admin bypass
-  if (userRole === "admin" || account.email === "cultleaderzoz.dev@gmail.com") {
-    hasValidPayment = true;
-    isTrialExpired = false;
-    isPastDeadline = false;
-  } else if (currentPlan && currentPlan !== "trial" && igUser) {
-    const supabase = await getSupabaseBypassClient();
-    // Check manual payments
-    const { data: payment } = await supabase
-      .from("payment_submissions")
-      .select("id")
-      .eq("user_id", igUser.id)
-      .eq("status", "approved")
-      .limit(1)
-      .maybeSingle();
-
-    if (payment) {
-      hasValidPayment = true;
-    } else {
-      // Check Stripe subscriptions fallback
-      const { data: sub } = await supabase
-        .from("subscriptions")
-        .select("id")
-        .eq("user_id", igUser.id)
-        .eq("status", "active")
-        .limit(1)
-        .maybeSingle();
-      if (sub) {
+    // Admin bypass
+    if (userRole === "admin" || account.email === "cultleaderzoz.dev@gmail.com") {
         hasValidPayment = true;
-      }
+        isTrialExpired = false;
+        isPastDeadline = false;
+    } else if (currentPlan && currentPlan !== "trial" && igUser) {
+        const supabase = await getSupabaseBypassClient();
+        // Check both payment sources in parallel instead of sequentially
+        const [paymentResult, subResult] = await Promise.all([
+            supabase
+                .from("payment_submissions")
+                .select("id")
+                .eq("user_id", igUser.id)
+                .eq("status", "approved")
+                .limit(1)
+                .maybeSingle(),
+            supabase
+                .from("subscriptions")
+                .select("id")
+                .eq("user_id", igUser.id)
+                .eq("status", "active")
+                .limit(1)
+                .maybeSingle()
+        ]);
+
+        hasValidPayment = !!(paymentResult.data || subResult.data);
     }
-  }
 
     return NextResponse.json({
       authenticated: true,

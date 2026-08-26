@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseServerClient, getSupabaseBypassClient } from "@/lib/supabase-server"
 
 /**
  * Reads the Supabase Auth session, looks up the matching row in the
@@ -75,12 +75,8 @@ export async function getSessionUser(request?: NextRequest) {
  * couldn't read their own rows, so identity reads MUST go through this client.
  */
 async function createAdminClient() {
-  const { createClient } = await import("@supabase/supabase-js")
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } }
-  )
+  // Reuse the bypass client which is already a service-role client
+  return getSupabaseBypassClient()
 }
 
 /**

@@ -1,55 +1,50 @@
 export const dynamic = 'force-dynamic'
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { requireInstagramUser } from "@/lib/auth"
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url)
-    const userId = searchParams.get("userId")
-    const automationId = searchParams.get("automationId")
-
-    if (!userId) {
-      return NextResponse.json({ error: "Missing userId" }, { status: 400 })
-    }
+    const result = await requireInstagramUser(req)
+    if (result.response) return result.response
+    const igUserId = result.igUser.id
 
     const supabase = await getSupabaseBypassClient()
     
-    // Instead of querying automation_events (which may not exist), we query messages for basic funnel metrics
-    const { count: triggeredCount, error: err1 } = await supabase
-      .from("messages")
-      .select("*", { count: 'exact', head: true })
-      .eq("user_id", userId)
+    // Run all counts in parallel for better performance
+    const [triggeredResult, sentResult, replyResult, convResult] = await Promise.all([
+      supabase.from("messages").select("*", { count: 'exact', head: true }).eq("user_id", igUserId),
+      supabase.from("messages").select("*", { count: 'exact', head: true }).eq("user_id", igUserId).eq("is_from_instagram", false),
+      supabase.from("messages").select("*", { count: 'exact', head: true }).eq("user_id", igUserId).eq("is_from_instagram", true),
+      supabase.from("conversations").select("*", { count: 'exact', head: true }).eq("user_id", igUserId)
+    ]);
 
-    if (err1) {
-      console.error("Failed to fetch messages count", err1)
-      // Fallback gracefully rather than throwing 500 if schema isn't fully ready
+    // Try to get link_click count separately — table may not exist
+    let clickCount = 0
+    try {
+      const clickResult = await supabase.from("automation_events").select("*", { count: 'exact', head: true }).eq("user_id", igUserId).eq("event_type", "link_click")
+      clickCount = clickResult.count || 0
+    } catch {
+      // Table may not exist, default to 0
     }
+
+    const triggeredCount = triggeredResult.count || 0
+    const sentCount = sentResult.count || 0
+    const repliedCount = replyResult.count || 0
+    const convCount = convResult.count || 0
 
     // Process data for Funnel
-    // Typical funnel stages: triggered -> sent -> replied -> link_clicked -> converted
     const funnelStages = {
-      triggered: triggeredCount || 0,
-      sent: Math.floor((triggeredCount || 0) * 0.8),
-      replied: Math.floor((triggeredCount || 0) * 0.4),
-      link_clicked: Math.floor((triggeredCount || 0) * 0.2),
-      converted: Math.floor((triggeredCount || 0) * 0.05)
-    }
-
-    // Process data for Variants
-    const variants: Record<string, { id: string, name: string, sent: number, replied: number, converted: number }> = {}
-    
-    // Add "default" variant
-    variants["default"] = { 
-      id: "default", 
-      name: "Default Variant", 
-      sent: funnelStages.sent, 
-      replied: funnelStages.replied, 
-      converted: funnelStages.converted 
+      triggered: triggeredCount,
+      sent: sentCount,
+      replied: repliedCount,
+      link_clicked: clickCount,
+      converted: convCount
     }
 
     return NextResponse.json({
       funnel: funnelStages,
-      variants: Object.values(variants)
+      variants: [{ id: "default", name: "Default Variant", sent: sentCount, replied: repliedCount, converted: convCount }]
     })
   } catch (error) {
     console.error("Funnel API error", error)

@@ -255,9 +255,15 @@ export async function POST(request: NextRequest) {
       }
 
       if (!user) {
-        const { data: allUsers } = await supabase.from("users").select("*")
-        if (allUsers) {
-          for (const candidate of allUsers) {
+        // Last-resort fallback: look up users with recent activity to avoid N+1 on all users
+        const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+        const { data: recentUsers } = await supabase
+          .from("users")
+          .select("*")
+          .gte("updated_at", oneWeekAgo)
+          .limit(50)
+        if (recentUsers) {
+          for (const candidate of recentUsers) {
             if (!candidate.access_token) continue
             if (await verifyIdOwnership(candidate.access_token, webhookId)) {
               await supabase.from("users").update({ page_id: webhookId }).eq("id", candidate.id)

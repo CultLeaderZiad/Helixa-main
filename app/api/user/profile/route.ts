@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/auth"
-import { createClient } from "@supabase/supabase-js"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 export async function PUT(request: NextRequest) {
   try {
@@ -26,11 +26,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "No fields to update" }, { status: 400 })
     }
 
-    const adminSupabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { persistSession: false, autoRefreshToken: false } }
-    )
+    const adminSupabase = await getSupabaseBypassClient()
 
     const { error } = await adminSupabase
       .from("accounts")
