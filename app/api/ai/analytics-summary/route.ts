@@ -1,14 +1,14 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireUser } from "@/lib/auth"
+import { requireSessionUser } from "@/lib/auth"
 import { generateGroqCompletion } from "@/lib/groq-client"
 
 export async function POST(request: NextRequest) {
   try {
-    const result = await requireUser(request)
+    const result = await requireSessionUser(request)
     if (result.response) return result.response
-    const { user: account } = result
+    const { user: account, igUser } = result
 
     const supabase = await getSupabaseBypassClient()
 
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const { data: events, error } = await supabase
       .from("automation_events")
       .select("event_type, platform")
-      .eq("user_id", account.id)
+      .eq("user_id", igUser?.id || account.id)
       .gte("created_at", thirtyDaysAgo.toISOString())
 
     if (error) {

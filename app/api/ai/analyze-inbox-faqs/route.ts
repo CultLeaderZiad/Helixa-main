@@ -1,15 +1,15 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireUser } from "@/lib/auth"
+import { requireSessionUser } from "@/lib/auth"
 import { generateCompletion } from "@/lib/llm-provider"
 
 // GET: fetch current FAQ suggestions (re-analyze if stale or ?force=true)
 export async function GET(request: NextRequest) {
   try {
-    const result = await requireUser(request)
+    const result = await requireSessionUser(request)
     if (result.response) return result.response
-    const { user: account } = result
+    const { user: account, igUser } = result
 
     const supabase = await getSupabaseBypassClient()
     const { searchParams } = new URL(request.url)
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const { data: userData, error: userError } = await supabase
       .from("users")
       .select("ai_faq_last_analyzed_at")
-      .eq("id", account.id)
+      .eq("account_id", account.id)
       .single()
 
     const lastAnalyzed = (!userError && userData) ? userData.ai_faq_last_analyzed_at : null;
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       const { data: faqs } = await supabase
         .from("ai_faq_suggestions")
         .select("*")
-        .eq("user_id", account.id)
+        .eq("user_id", igUser?.id || account.id)
         .eq("is_dismissed", false)
         .order("count", { ascending: false })
       return NextResponse.json({ faqs: faqs || [], last_analyzed_at: lastAnalyzed, is_stale: false })
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     const { data: messagesData, error: messagesError } = await supabase
       .from("messages")
       .select("content")
-      .eq("user_id", account.id)
+      .eq("user_id", igUser?.id || account.id)
       .eq("is_from_instagram", true)
       .gte("created_at", fourteenDaysAgo.toISOString())
 
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
       const { data: existingFaqs } = await supabase
         .from("ai_faq_suggestions")
         .select("*")
-        .eq("user_id", account.id)
+        .eq("user_id", igUser?.id || account.id)
         .eq("is_dismissed", false)
         .order("count", { ascending: false })
       return NextResponse.json({
@@ -87,7 +87,7 @@ Return ONLY a valid JSON object with a "faqs" array.`
 
     const completion = await generateCompletion(
       String(account.id),
-      result.user.id, // accountId
+      igUser?.id || account.id, // accountId
       "analyze_faqs",
       "faq_detector", // agentKey
       {
@@ -102,7 +102,7 @@ Return ONLY a valid JSON object with a "faqs" array.`
       const { data: existingFaqs } = await supabase
         .from("ai_faq_suggestions")
         .select("*")
-        .eq("user_id", account.id)
+        .eq("user_id", igUser?.id || account.id)
         .eq("is_dismissed", false)
         .order("count", { ascending: false })
       return NextResponse.json({ faqs: existingFaqs || [], last_analyzed_at: lastAnalyzed, is_stale: true, error: "Rate limit or AI unavailable" })
@@ -117,7 +117,7 @@ Return ONLY a valid JSON object with a "faqs" array.`
     }
 
     if (parsed && Array.isArray(parsed) && parsed.length > 0) {
-      await supabase.from("ai_faq_suggestions").delete().eq("user_id", account.id)
+      await supabase.from("ai_faq_suggestions").delete().eq("user_id", igUser?.id || account.id)
 
       const rows = parsed.map(f => ({
         user_id: account.id,
@@ -129,12 +129,12 @@ Return ONLY a valid JSON object with a "faqs" array.`
 
       await supabase.from("ai_faq_suggestions").insert(rows)
       const now = new Date().toISOString()
-      await supabase.from("users").update({ ai_faq_last_analyzed_at: now }).eq("id", account.id)
+      await supabase.from("users").update({ ai_faq_last_analyzed_at: now }).eq("account_id", account.id)
 
       const { data: faqs } = await supabase
         .from("ai_faq_suggestions")
         .select("*")
-        .eq("user_id", account.id)
+        .eq("user_id", igUser?.id || account.id)
         .eq("is_dismissed", false)
         .order("count", { ascending: false })
       return NextResponse.json({ faqs: faqs || [], last_analyzed_at: now, is_stale: false })
@@ -164,9 +164,9 @@ export async function POST(request: NextRequest) {
 // PATCH: dismiss an FAQ
 export async function PATCH(request: NextRequest) {
   try {
-    const result = await requireUser(request)
+    const result = await requireSessionUser(request)
     if (result.response) return result.response
-    const { user: account } = result
+    const { user: account, igUser } = result
 
     const { faqId, dismiss } = await request.json()
     if (!faqId) return NextResponse.json({ error: "FAQ ID is required" }, { status: 400 })
@@ -176,7 +176,7 @@ export async function PATCH(request: NextRequest) {
       .from("ai_faq_suggestions")
       .update({ is_dismissed: dismiss ?? true })
       .eq("id", faqId)
-      .eq("user_id", account.id)
+      .eq("user_id", igUser?.id || account.id)
 
     if (error) throw error
 

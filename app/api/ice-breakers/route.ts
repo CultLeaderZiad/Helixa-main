@@ -1,13 +1,14 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireUser } from "@/lib/auth"
+import { requireSessionUser } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
     try {
-        const result = await requireUser(request)
+        const result = await requireSessionUser(request)
         if (result.response) return result.response
-        const igUserId = result.user.id
+        const { user: account, igUser } = result
+    const igUserId = igUser?.id || account.id
 
         const supabase = await getSupabaseBypassClient()
         const { data, error } = await supabase
@@ -27,9 +28,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const result = await requireUser(request)
+        const result = await requireSessionUser(request)
         if (result.response) return result.response
-        const igUserId = result.user.id
+        const { user: account, igUser } = result
+    const igUserId = igUser?.id || account.id
 
         const body = await request.json()
         const { iceBreakers } = body // Array of ice breakers

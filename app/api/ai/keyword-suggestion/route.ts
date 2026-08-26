@@ -1,14 +1,14 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireUser } from "@/lib/auth"
+import { requireSessionUser } from "@/lib/auth"
 import { generateGroqCompletion } from "@/lib/groq-client"
 
 export async function POST(request: NextRequest) {
   try {
-    const result = await requireUser(request)
+    const result = await requireSessionUser(request)
     if (result.response) return result.response
-    const { user: account } = result
+    const { user: account, igUser } = result
 
     const { automationId, keywords, intent } = await request.json()
     if (!keywords) {
@@ -81,9 +81,9 @@ Return ONLY the comma-separated string. No markdown, no explanations.`
 // Endpoint to mark a keyword suggestion as accepted
 export async function PATCH(request: NextRequest) {
   try {
-    const result = await requireUser(request)
+    const result = await requireSessionUser(request)
     if (result.response) return result.response
-    const { user: account } = result
+    const { user: account, igUser } = result
 
     const { suggestionId, accepted } = await request.json()
     if (!suggestionId) return NextResponse.json({ error: "Suggestion ID is required" }, { status: 400 })

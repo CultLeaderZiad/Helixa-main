@@ -213,3 +213,27 @@ export async function requireUser(request?: NextRequest): Promise<
   }
   return { user: account }
 }
+
+/**
+ * Multi-platform auth gate. Returns the authenticated session plus the
+ * linked Instagram `users` row (if it exists), WITHOUT requiring it.
+ *
+ * Use this for routes that should work for ALL connected platforms
+ * (Facebook, Telegram, WhatsApp) but may also need Instagram data.
+ *
+ * Business tables key by `igUser.id` (int64). If igUser is null, the
+ * route should fall back to platform_connections or return gracefully.
+ */
+export async function requireSessionUser(request?: NextRequest): Promise<
+  { user: any; igUser: any | null; response?: never } | { user?: never; igUser?: never; response: NextResponse }
+> {
+  const session = await getSessionInstagramUser(request)
+  if (!session) {
+    return { response: NextResponse.json({ error: "Not authenticated" }, { status: 401 }) }
+  }
+  if (session.account.is_banned) {
+    return { response: NextResponse.json({ error: "Account is banned", isBanned: true }, { status: 403 }) }
+  }
+  // igUser may be null if Instagram is not connected — that's OK
+  return { user: session.account, igUser: session.igUser || null }
+}

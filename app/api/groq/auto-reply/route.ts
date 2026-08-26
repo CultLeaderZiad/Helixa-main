@@ -1,14 +1,14 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from "next/server"
-import { requireUser } from "@/lib/auth"
+import { requireSessionUser } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 export async function GET(request: Request) {
     try {
         const nextReq = request as any
-        const result = await requireUser(nextReq)
+        const result = await requireSessionUser(nextReq)
         if (result.response) return result.response
-        const { user: account } = result
+        const { user: account, igUser } = result
 
         const { searchParams } = new URL(request.url)
         const paramUserId = searchParams.get("userId")
@@ -43,9 +43,9 @@ export async function GET(request: Request) {
 export async function PUT(request: Request) {
     try {
         const nextReq = request as any
-        const result = await requireUser(nextReq)
+        const result = await requireSessionUser(nextReq)
         if (result.response) return result.response
-        const { user: account } = result
+        const { user: account, igUser } = result
 
         const body = await request.json()
         const { userId, enabled, ai_context } = body

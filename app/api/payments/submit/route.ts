@@ -1,13 +1,13 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireUser } from "@/lib/auth"
+import { requireSessionUser } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
-    const result = await requireUser(request)
+    const result = await requireSessionUser(request)
     if (result.response) return result.response
-    const { user: account } = result
+    const { user: account, igUser } = result
 
     const supabase = await getSupabaseBypassClient()
 
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     const { error: insertError } = await supabase
       .from("payment_submissions")
       .insert({
-        user_id: account.id,
+        user_id: igUser?.id || account.id,
         transaction_reference,
         proof_note: proof_note || note || null,
         amount,

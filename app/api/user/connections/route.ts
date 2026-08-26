@@ -14,41 +14,45 @@ export async function GET(request: NextRequest) {
 
   const supabase = await getSupabaseBypassClient()
 
-  // Fetch platform connections (Facebook, Telegram, WhatsApp, Messenger)
-  const { data: rawConnections, error } = await supabase
-    .from("platform_connections")
-    .select("id, platform, page_id, metadata, connected_at")
-    .eq("user_id", account.id)
-
-  if (error) {
-    console.error("Error fetching platform connections:", error)
-  }
-
-  // Map to the shape the frontend expects
-  const connections = (rawConnections || []).map((c: any) => ({
-    id: c.id,
-    platform: c.platform,
-    page_id: c.page_id,
-    metadata: c.metadata || { name: c.page_id },
-    created_at: c.connected_at,
-  }))
-
-  // Check if Instagram account exists in users table
+  // First, look up the linked Instagram user (if any)
   const { data: igUser } = await supabase
     .from("users")
     .select("id, business_account_id, page_id, username, created_at")
-    .eq("id", account.id)
+    .eq("account_id", account.id)
     .single()
+
+  const connections: any[] = []
 
   // Surface Instagram connection if it exists
   if (igUser) {
-    connections.unshift({
-      id: `ig_${account.id}`,
+    connections.push({
+      id: `ig_${igUser.id}`,
       platform: "instagram",
       page_id: igUser.business_account_id?.toString() || igUser.page_id?.toString() || "",
       metadata: { username: igUser.username || `user_${account.id}` },
       created_at: igUser.created_at,
     })
+
+    // Fetch platform connections (Facebook, Telegram, WhatsApp, Messenger)
+    // These are keyed by igUser.id (the int64 Instagram user ID)
+    const { data: rawConnections, error } = await supabase
+      .from("platform_connections")
+      .select("id, platform, page_id, metadata, connected_at")
+      .eq("user_id", igUser.id)
+
+    if (error) {
+      console.error("Error fetching platform connections:", error)
+    }
+
+    for (const c of rawConnections || []) {
+      connections.push({
+        id: c.id,
+        platform: c.platform,
+        page_id: c.page_id,
+        metadata: c.metadata || { name: c.page_id },
+        created_at: c.connected_at,
+      })
+    }
   }
 
   return NextResponse.json({ connections })
@@ -78,12 +82,23 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Cannot disconnect your primary Instagram account" }, { status: 400 })
     }
 
-    // Delete from platform_connections
+    // Look up igUser to get the correct user_id
+    const { data: igUser } = await supabase
+      .from("users")
+      .select("id")
+      .eq("account_id", account.id)
+      .single()
+
+    if (!igUser) {
+      return NextResponse.json({ error: "Instagram account not found" }, { status: 400 })
+    }
+
+    // Delete from platform_connections using igUser.id
     const { error } = await supabase
       .from("platform_connections")
       .delete()
       .eq("id", connectionId)
-      .eq("user_id", account.id)
+      .eq("user_id", igUser.id)
 
     if (error) {
       console.error("Error disconnecting platform:", error)

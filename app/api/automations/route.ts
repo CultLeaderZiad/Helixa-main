@@ -1,13 +1,14 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireUser } from "@/lib/auth"
+import { requireSessionUser } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
   try {
-    const result = await requireUser(request)
+    const result = await requireSessionUser(request)
     if (result.response) return result.response
-    const igUserId = result.user.id
+    const { user: account, igUser } = result
+    const igUserId = igUser?.id || account.id
 
     const supabase = await getSupabaseBypassClient()
 
@@ -27,12 +28,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const result = await requireUser(request)
+    const result = await requireSessionUser(request)
     if (result.response) return result.response
     if (result.user.permission_level === "viewer") {
       return NextResponse.json({ error: "Viewers cannot create automations" }, { status: 403 })
     }
-    const igUserId = result.user.id
+    const { user: account, igUser } = result
+    const igUserId = igUser?.id || account.id
 
     const requestBody = await request.json()
     const { name, trigger_source, trigger_type, trigger_value, content, specific_media_id, variants, platform } = requestBody
@@ -98,12 +100,13 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const result = await requireUser(request)
+    const result = await requireSessionUser(request)
     if (result.response) return result.response
     if (result.user.permission_level === "viewer") {
       return NextResponse.json({ error: "Viewers cannot delete automations" }, { status: 403 })
     }
-    const igUserId = result.user.id
+    const { user: account, igUser } = result
+    const igUserId = igUser?.id || account.id
 
     const id = request.nextUrl.searchParams.get("id")
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
@@ -132,12 +135,13 @@ export async function DELETE(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const result = await requireUser(request)
+    const result = await requireSessionUser(request)
     if (result.response) return result.response
     if (result.user.permission_level === "viewer") {
       return NextResponse.json({ error: "Viewers cannot update automations" }, { status: 403 })
     }
-    const igUserId = result.user.id
+    const { user: account, igUser } = result
+    const igUserId = igUser?.id || account.id
 
     const requestBody = await request.json()
     const { id, name, trigger_source, trigger_type, trigger_value, content, specific_media_id, variants, platform } = requestBody
@@ -206,12 +210,13 @@ export async function PUT(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const result = await requireUser(request)
+    const result = await requireSessionUser(request)
     if (result.response) return result.response
     if (result.user.permission_level === "viewer") {
       return NextResponse.json({ error: "Viewers cannot modify automations" }, { status: 403 })
     }
-    const igUserId = result.user.id
+    const { user: account, igUser } = result
+    const igUserId = igUser?.id || account.id
 
     const { id, is_active, action } = await request.json()
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
