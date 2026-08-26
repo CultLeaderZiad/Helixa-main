@@ -71,11 +71,7 @@ export async function generateCompletion(
   let responseText: string | null = null
 
   if (provider === "gemini") {
-    // Execute Gemini API call (Simplified for this example)
-    // Normally use @google/generative-ai
-    console.log(`[llm-provider] Executing Gemini for ${feature}`)
-    // ... Mocking response for architecture validation
-    responseText = JSON.stringify({ result: "Gemini response placeholder" })
+    responseText = await callGeminiAPI(options, apiKey)
 
   } else if (provider === "groq" || provider === "openrouter") {
     // Try Groq, fallback to OpenRouter
@@ -104,7 +100,50 @@ export async function generateCompletion(
   return responseText
 }
 
-// Low-level HTTP Callers (to keep dependencies minimal in this prompt)
+// Low-level HTTP Callers
+
+async function callGeminiAPI(options: GroqCompletionRequest, apiKey: string) {
+  const model = options.model || "gemini-2.0-flash"
+
+  // Convert OpenAI-style messages to Gemini's contents format
+  const contents: Array<{ role: string; parts: Array<{ text: string }> }> = []
+  for (const msg of options.messages) {
+    const role = msg.role === "assistant" ? "model" : "user"
+    // Gemini expects alternating user/model roles.
+    // If the last entry is already the same role, merge into it.
+    if (contents.length > 0 && contents[contents.length - 1].role === role) {
+      contents[contents.length - 1].parts[0].text += "\n" + msg.content
+    } else {
+      contents.push({ role, parts: [{ text: msg.content }] })
+    }
+  }
+
+  const generationConfig: Record<string, unknown> = {}
+  if (options.temperature != null) generationConfig.temperature = options.temperature
+  if (options.max_tokens != null) generationConfig.maxOutputTokens = options.max_tokens
+  if (options.response_format?.type === "json_object") {
+    generationConfig.responseMimeType = "application/json"
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ contents, generationConfig })
+  })
+
+  if (!res.ok) {
+    const txt = await res.text()
+    throw new Error(`Gemini API Error: ${res.status} - ${txt}`)
+  }
+
+  const data = await res.json()
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+  if (!text) {
+    throw new Error(`Gemini API returned no text. Response: ${JSON.stringify(data)}`)
+  }
+  return text
+}
 
 async function callGroqAPI(options: GroqCompletionRequest, apiKey: string) {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {

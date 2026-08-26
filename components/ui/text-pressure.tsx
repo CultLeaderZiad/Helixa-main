@@ -43,7 +43,7 @@ const debounce = (func: (...args: any[]) => void, delay: number) => {
 const TextPressure: React.FC<TextPressureProps> = ({
   text = 'Compressa',
   fontFamily = 'Roboto Flex',
-  fontUrl = 'https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&display=swap',
+  fontUrl = '',
   width = true,
   weight = true,
   italic = true,
@@ -214,8 +214,6 @@ const TextPressure: React.FC<TextPressureProps> = ({
   const styleElement = useMemo(() => {
     return (
       <style>{`
-        @import url('${fontUrl}');
-
         .flex {
           display: flex;
           justify-content: space-between;

@@ -1,11 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
-
-const getSupabase = () => createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-key"
-)
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 export async function GET(req: Request) {
   try {
@@ -17,7 +12,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Missing userId" }, { status: 400 })
     }
 
-    const supabase = getSupabase()
+    const supabase = await getSupabaseBypassClient()
     
     // Instead of querying automation_events (which may not exist), we query messages for basic funnel metrics
     const { count: triggeredCount, error: err1 } = await supabase

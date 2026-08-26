@@ -71,8 +71,8 @@ export function LandingPage() {
   return (
     <div className="min-h-screen bg-transparent text-[#ededed] selection:bg-[#ffe14d] selection:text-black overflow-x-hidden antialiased">
       <style>{`
-        .font-serif-display { font-family: 'Instrument Serif', Georgia, serif; }
-        .font-mono-ui { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+        .font-serif-display { font-family: var(--font-instrument-serif), Georgia, serif; }
+        .font-mono-ui { font-family: var(--font-jetbrains-mono), ui-monospace, monospace; }
         @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         .marquee-track { animation: marquee 30s linear infinite; }
         @keyframes fade-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }

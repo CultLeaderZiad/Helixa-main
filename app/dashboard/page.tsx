@@ -44,44 +44,12 @@ export default function DashboardPage() {
         (url) => fetch(url).then(r => r.json())
     )
 
-    // Fetch payment status using SWR
-    const { data: paymentStatus } = useSWR(
-        userId ? ['paymentStatus', userId] : null,
-        async () => {
-            const supabase = getSupabaseBrowserClient()
-            const { data: pending } = await supabase
-                .from("payment_submissions")
-                .select("id")
-                .eq("user_id", userId!)
-                .eq("status", "pending")
-                .limit(1)
-
-            const { data: sub } = await supabase
-                .from("subscriptions")
-                .select("payment_method, current_period_end")
-                .eq("user_id", userId!)
-                .single()
-
-            let needsManualRenewal = false
-            let daysToRenew = 0
-
-            if (sub && sub.payment_method === 'vodafone_cash' && sub.current_period_end) {
-                const diff = new Date(sub.current_period_end).getTime() - new Date().getTime()
-                daysToRenew = Math.ceil(diff / (1000 * 60 * 60 * 24))
-                if (daysToRenew <= 3 && daysToRenew > 0) {
-                    needsManualRenewal = true
-                }
-            }
-
-            return {
-                hasPendingSubmission: !!(pending && pending.length > 0),
-                needsManualRenewal,
-                daysToRenew
-            }
-        }
-    )
+    // paymentStatus is now included in the stats API response
 
     const [stats, setStats] = useState<DashboardStats | null>(null)
+    // paymentStatus from the stats API
+    const paymentStatus = statsData?.paymentStatus
+
     // Sync SWR data to local state for Realtime updates
     useEffect(() => {
         if (statsData && !statsData.error) {

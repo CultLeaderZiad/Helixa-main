@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { createBrowserClient } from "@supabase/ssr"
+import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import dynamic from "next/dynamic"
 import BackToHome from "@/components/ui/back-to-home"
 
@@ -16,23 +16,23 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-  
-  // We don't want to crash the whole page if env vars are missing, we just show an error.
-  const isMissingEnvVars = !supabaseUrl || !supabaseAnonKey
-
-  const supabase = createBrowserClient(
-    supabaseUrl || "https://placeholder.supabase.co",
-    supabaseAnonKey || "placeholder-key"
-  )
+  let supabase: ReturnType<typeof getSupabaseBrowserClient>
+  try {
+    supabase = getSupabaseBrowserClient()
+  } catch (e) {
+    console.error("[login] Failed to initialize Supabase client:", e)
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#03010A]">
+        <div className="text-center space-y-4 max-w-md p-8">
+          <h1 className="text-2xl font-bold text-red-500">Application Configuration Error</h1>
+          <p className="text-neutral-400">This application is not properly configured. Please contact the administrator.</p>
+        </div>
+      </div>
+    )
+  }
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (isMissingEnvVars) {
-      setError("Vercel Environment Variables missing: NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY.")
-      return
-    }
     setLoading(true)
     setError(null)
 
@@ -50,10 +50,6 @@ export default function LoginPage() {
   }
 
   const handleGoogleLogin = async () => {
-    if (isMissingEnvVars) {
-      setError("Vercel Environment Variables missing: NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY.")
-      return
-    }
     setLoading(true)
     setError(null)
     const { error } = await supabase.auth.signInWithOAuth({
