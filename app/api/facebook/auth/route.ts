@@ -16,7 +16,7 @@ export async function GET() {
 
   if (!clientId || !redirectUri) {
     console.error("[FB Auth] Missing configuration: App ID or Redirect URI is not set.")
-    return NextResponse.json({ error: "Missing Facebook configuration in environment variables." }, { status: 500 })
+    return NextResponse.json({ error: "Facebook integration is not configured. Please contact support." }, { status: 503 })
   }
 
   // IMPORTANT: `business_management` was removed from this scope list.

@@ -74,7 +74,7 @@ Return ONLY the comma-separated string. No markdown, no explanations.`
     if (error.name === "GroqAPIError") {
       return NextResponse.json({ error: `AI request failed: ${error.message}` }, { status: error.status || 500 })
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Something went wrong generating keywords. Please try again." }, { status: 500 })
   }
 }
 
@@ -103,7 +103,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error("[keyword-suggestion] Patch server error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 })
   }
 }
 

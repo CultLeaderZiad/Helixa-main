@@ -38,11 +38,22 @@ export async function generateCompletion(
     throw new GroqRateLimitError("AI limit exceeded for today.")
   }
 
-  // 2. Fetch Agent Config
+  // 2. Fetch Agent Config — fall back to default Groq if agent row doesn't exist
   const supabase = await getSupabaseBypassClient()
-  const { data: agent } = await supabase.from("agents").select("id, provider, requires_byok").eq("agent_key", agentKey).single()
-  if (!agent) {
-    throw new Error(`Unknown agent: ${agentKey}`)
+  const { data: agent, error: agentError } = await supabase.from("agents").select("id, provider, requires_byok").eq("agent_key", agentKey).single()
+  
+  // If agent not found or DB error, default to Groq directly (most common case)
+  if (!agent || agentError) {
+    console.warn(`[llm-provider] Agent "${agentKey}" not found in DB, defaulting to Groq provider. Error:`, agentError?.message || "not found")
+    if (!GROQ_API_KEY) {
+      throw new GroqAPIError(500, "GROQ_API_KEY is not configured. Please add it to your Vercel environment variables at https://vercel.com/dashboard.")
+    }
+    const responseText = await callGroqAPI(options, GROQ_API_KEY)
+    if (responseText) {
+      const estTokens = Math.floor(responseText.length / 4)
+      await logAIUsage(userId, feature, "groq", estTokens)
+    }
+    return responseText
   }
 
   let apiKey: string | undefined
@@ -52,10 +63,18 @@ export async function generateCompletion(
   if (agent.requires_byok) {
     const key = await fetchByokKey(accountId, agent.id)
     if (!key) {
-      throw new Error(`Agent ${agentKey} requires a connected BYOK API key.`)
+      console.warn(`[llm-provider] BYOK key missing for agent "${agentKey}", falling back to Groq.`)
+      if (!GROQ_API_KEY) {
+        throw new GroqAPIError(500, "GROQ_API_KEY is not configured. Please add it to your Vercel environment variables at https://vercel.com/dashboard.")
+      }
+      const responseText = await callGroqAPI(options, GROQ_API_KEY)
+      if (responseText) {
+        const estTokens = Math.floor(responseText.length / 4)
+        await logAIUsage(userId, feature, "groq", estTokens)
+      }
+      return responseText
     }
     apiKey = key
-    // Provider could be overridden by BYOK settings, but we'll assume standard provider mapping or dynamic
   } else {
     // Helixa Managed Keys
     if (provider === "groq") apiKey = GROQ_API_KEY
@@ -64,35 +83,50 @@ export async function generateCompletion(
   }
 
   if (!apiKey) {
-    throw new GroqAPIError(500, `${provider.toUpperCase()}_API_KEY is missing.`)
+    // Fallback to Groq if the configured provider's key is missing
+    console.warn(`[llm-provider] ${provider.toUpperCase()}_API_KEY missing, falling back to Groq.`)
+    if (!GROQ_API_KEY) {
+      throw new GroqAPIError(500, `${provider.toUpperCase()}_API_KEY is not configured and GROQ_API_KEY fallback is also missing. Please add GROQ_API_KEY to your Vercel environment variables at https://vercel.com/dashboard.`)
+    }
+    const responseText = await callGroqAPI(options, GROQ_API_KEY)
+    if (responseText) {
+      const estTokens = Math.floor(responseText.length / 4)
+      await logAIUsage(userId, feature, "groq", estTokens)
+    }
+    return responseText
   }
 
   // 4. Execute based on Provider
   let responseText: string | null = null
 
   if (provider === "gemini") {
-    responseText = await callGeminiAPI(options, apiKey)
+    try {
+      responseText = await callGeminiAPI(options, apiKey)
+    } catch (err: any) {
+      console.warn(`[llm-provider] Gemini failed for ${feature}, falling back to Groq. Error:`, err.message)
+      if (!GROQ_API_KEY) throw new GroqAPIError(500, "AI provider failed and no fallback available.")
+      responseText = await callGroqAPI(options, GROQ_API_KEY)
+      provider = "groq"
+    }
 
   } else if (provider === "groq" || provider === "openrouter") {
     // Try Groq, fallback to OpenRouter
     try {
-      if (provider === "groq" && !GROQ_API_KEY) throw new Error("No Groq Key")
       responseText = await callGroqAPI(options, apiKey)
     } catch (err: any) {
       console.warn(`[llm-provider] Groq failed for ${feature}. Falling back to OpenRouter. Error:`, err.message)
       
       // Fallback to OpenRouter
       if (!OPENROUTER_API_KEY) {
-        throw new GroqAPIError(500, "OPENROUTER_API_KEY is missing for fallback.")
+        throw new GroqAPIError(500, "AI request failed and no fallback API key is configured.")
       }
       responseText = await callOpenRouterAPI(options, OPENROUTER_API_KEY)
-      provider = "openrouter" // For logging
+      provider = "openrouter"
     }
   }
 
   // 5. Log usage
   if (responseText) {
-    // Estimating tokens for logging
     const estTokens = Math.floor(responseText.length / 4)
     await logAIUsage(userId, feature, provider, estTokens)
   }
@@ -153,7 +187,7 @@ async function callGroqAPI(options: GroqCompletionRequest, apiKey: string) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: options.model || "openai/gpt-oss-20b",
+      model: options.model || "qwen/qwen3.8-27b",
       messages: options.messages,
       temperature: options.temperature,
       max_tokens: options.max_tokens,
@@ -180,7 +214,7 @@ async function callOpenRouterAPI(options: GroqCompletionRequest, apiKey: string)
       "X-Title": "Helixa"
     },
     body: JSON.stringify({
-      model: "openai/gpt-oss-20b", // equivalent fallback
+      model: options.model || "meta-llama/llama-3.3-70b-instruct", // OpenRouter model
       messages: options.messages,
       temperature: options.temperature,
       max_tokens: options.max_tokens,

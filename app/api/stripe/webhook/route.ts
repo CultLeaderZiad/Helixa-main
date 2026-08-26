@@ -3,7 +3,8 @@ import { type NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy", {
+const stripeKey = process.env.STRIPE_SECRET_KEY
+const stripe = new Stripe(stripeKey || "sk_test_placeholder_do_not_use", {
   apiVersion: "2026-07-29.dahlia",
 })
 
@@ -37,12 +38,22 @@ async function upsertSubscription(supabase: any, payload: any) {
  * This is a separate file from the Instagram webhook — DO NOT merge them.
  */
 export async function POST(request: NextRequest) {
+  if (!stripeKey || stripeKey === "sk_test_placeholder_do_not_use") {
+    console.error("[stripe/webhook] STRIPE_SECRET_KEY is not configured. Ignoring webhook.")
+    return NextResponse.json({ error: "Payments not configured" }, { status: 503 })
+  }
+
   const body = await request.text()
   const sig = request.headers.get("stripe-signature")!
 
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    console.error("[stripe/webhook] STRIPE_WEBHOOK_SECRET is not configured.")
+    return NextResponse.json({ error: "Webhook not configured" }, { status: 503 })
+  }
+
   let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
+    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET)
   } catch (err: any) {
     console.error("[stripe/webhook] Signature verification failed:", err.message)
     return NextResponse.json({ error: "Webhook signature verification failed" }, { status: 400 })

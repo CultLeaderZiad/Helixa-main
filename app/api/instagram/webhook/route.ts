@@ -5,6 +5,7 @@ import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { processLeadCapture } from "@/lib/lead-capture"
+import { parseContent, pickRandom, pickVariant, keywordMatches, responsePreviewText, checkTrialStatus } from "@/lib/webhook-utils"
 import {
   sendTextDM,
   sendCardDM,
@@ -52,57 +53,7 @@ export async function GET(request: NextRequest) {
 // ============================================================
 // Content parsing — response_content may be object or JSON string
 // ============================================================
-function parseContent(raw: any) {
-  if (!raw) return {}
-  if (typeof raw === "string") {
-    try {
-      return JSON.parse(raw)
-    } catch {
-      return { message: raw }
-    }
-  }
-  return raw
-}
 
-function pickRandom<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)]
-}
-
-function pickVariant(rule: any): { content: any, variantId: string | null } {
-  let responseContent = rule.response_content
-  let variantId = null
-  if (rule.automation_variants && rule.automation_variants.length > 0) {
-    const allOptions = [
-      { id: null, content: rule.response_content, weight: 100 - rule.automation_variants.reduce((sum: number, v: any) => sum + (v.traffic_weight || 0), 0) },
-      ...rule.automation_variants.map((v: any) => ({ id: v.id, content: v.response_config, weight: v.traffic_weight || 50 }))
-    ]
-    const random = Math.random() * 100
-    let sum = 0
-    for (const opt of allOptions) {
-      sum += Math.max(0, opt.weight)
-      if (random <= sum) {
-        responseContent = opt.content
-        variantId = opt.id
-        break
-      }
-    }
-  }
-  return { content: responseContent, variantId }
-}
-
-function keywordMatches(triggerValue: string, text: string): boolean {
-  return triggerValue
-    .split(",")
-    .map((k: string) => k.trim())
-    .filter(Boolean)
-    .some((k: string) => {
-      try {
-        return new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(text)
-      } catch {
-        return text.includes(k.toLowerCase())
-      }
-    })
-}
 
 // ============================================================
 // Unified response sender — handles text, card, media, quick
@@ -172,12 +123,7 @@ async function sendAutomationResponse(
   return result
 }
 
-function responsePreviewText(content: any): string {
-  if (content.message) return content.message
-  if (content.card) return `[Card] ${content.card.title}`
-  if (content.media?.url) return `[${content.media.type || "media"}]`
-  return "[automation]"
-}
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -311,19 +257,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Plan enforcement: check expired OR trial-past-end
-      let effectivePlan = account.plan
-      if (account.plan === "trial" && account.trial_ends_at && !account.trial_exempt) {
-        const trialEnded = new Date(account.trial_ends_at) < new Date()
-        if (trialEnded) {
-          // On-the-fly: mark as expired so it's consistent in DB too
-          effectivePlan = "expired"
-          await supabase
-            .from("accounts")
-            .update({ plan: "expired", updated_at: new Date().toISOString() })
-            .eq("id", account.id)
-          console.log(`[webhook] ⚠️ Account ${account.id} trial expired. Set plan=expired, skipping automations.`)
-        }
-      }
+      const effectivePlan = await checkTrialStatus(supabase, account)
       
       if (effectivePlan === "expired") {
         console.log(`[webhook] ⚠️ Account ${account.id} plan is expired. Skipping automations.`)

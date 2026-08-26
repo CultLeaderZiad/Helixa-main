@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("[v0] Send message error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Something went wrong sending the message. Please try again." }, { status: 500 })
   }
 }
 

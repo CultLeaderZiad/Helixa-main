@@ -14,8 +14,8 @@ export async function GET() {
 
   if (!clientId || !redirectUri) {
     return NextResponse.json(
-      { error: "Missing config: NEXT_PUBLIC_INSTAGRAM_APP_ID or NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI" },
-      { status: 500 }
+      { error: "Instagram integration is not configured. Please contact support." },
+      { status: 503 }
     )
   }
 

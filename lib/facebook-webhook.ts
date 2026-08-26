@@ -10,69 +10,9 @@ import {
   sleep,
 } from "./facebook-api"
 import { processLeadCapture } from "./lead-capture"
+import { parseContent, pickRandom, pickVariant, keywordMatches, checkTrialStatus } from "./webhook-utils"
 
 const DEFAULT_PUBLIC_REPLIES = ["Check your inbox! 📥", "Sent you a message! 🔥", "Check your DMs! ✨"]
-
-function parseContent(raw: any) {
-  if (!raw) return {}
-  if (typeof raw === "string") {
-    try {
-      return JSON.parse(raw)
-    } catch {
-      return { message: raw }
-    }
-  }
-  return raw
-}
-
-function pickRandom<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)]
-}
-
-function pickVariant(rule: any): { content: any; variantId: string | null } {
-  let responseContent = rule.response_content
-  let variantId = null
-  if (rule.automation_variants && rule.automation_variants.length > 0) {
-    const allOptions = [
-      {
-        id: null,
-        content: rule.response_content,
-        weight: 100 - rule.automation_variants.reduce((sum: number, v: any) => sum + (v.traffic_weight || 0), 0),
-      },
-      ...rule.automation_variants.map((v: any) => ({
-        id: v.id,
-        content: v.response_config,
-        weight: v.traffic_weight || 50,
-      })),
-    ]
-    const random = Math.random() * 100
-    let sum = 0
-    for (const opt of allOptions) {
-      sum += Math.max(0, opt.weight)
-      if (random <= sum) {
-        responseContent = opt.content
-        variantId = opt.id
-        break
-      }
-    }
-  }
-  return { content: responseContent, variantId }
-}
-
-function keywordMatches(triggerValue: string, text: string): boolean {
-  if (!triggerValue) return false
-  return triggerValue
-    .split(",")
-    .map((k: string) => k.trim())
-    .filter(Boolean)
-    .some((k: string) => {
-      try {
-        return new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(text)
-      } catch {
-        return text.toLowerCase().includes(k.toLowerCase())
-      }
-    })
-}
 
 async function sendAutomationResponse(
   token: string,
@@ -188,18 +128,7 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
       continue
     }
 
-    let effectivePlan = account.plan
-    if (account.plan === "trial" && account.trial_ends_at && !account.trial_exempt) {
-      const trialEnded = new Date(account.trial_ends_at) < new Date()
-      if (trialEnded) {
-        effectivePlan = "expired"
-        await supabase
-          .from("accounts")
-          .update({ plan: "expired", updated_at: new Date().toISOString() })
-          .eq("id", account.id)
-        console.log(`[fb-webhook] ⚠️ Account ${account.id} trial expired. Set plan=expired, skipping automations.`)
-      }
-    }
+    const effectivePlan = await checkTrialStatus(supabase, account)
     if (effectivePlan === "expired") {
       continue
     }

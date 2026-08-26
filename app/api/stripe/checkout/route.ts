@@ -4,7 +4,11 @@ import Stripe from "stripe"
 import { requireInstagramUser } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy", {
+const stripeKey = process.env.STRIPE_SECRET_KEY
+if (!stripeKey) {
+  console.error("[stripe/checkout] STRIPE_SECRET_KEY is not configured. Payments will not work.")
+}
+const stripe = new Stripe(stripeKey || "sk_test_placeholder_do_not_use", {
   apiVersion: "2026-07-29.dahlia",
 })
 
@@ -31,6 +35,10 @@ export async function POST(request: NextRequest) {
   const { user: account, igUser } = result
 
   try {
+    if (!stripeKey) {
+      return NextResponse.json({ error: "Payments are not configured. Please contact support." }, { status: 503 })
+    }
+
     const { planType } = await request.json()
 
     if (!planType || !PLANS[planType as keyof typeof PLANS]) {

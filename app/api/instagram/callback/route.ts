@@ -36,7 +36,8 @@ export async function POST(request: NextRequest) {
     const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI || `${appUrl}/api/instagram/callback`
 
     if (!clientId || !clientSecret || !redirectUri) {
-      throw new Error("Missing Env Vars: Check INSTAGRAM_APP_ID")
+      console.error("[instagram/callback] Missing env vars: INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET, or NEXT_PUBLIC_APP_URL")
+      return NextResponse.json({ error: "Instagram integration is not configured. Please contact support." }, { status: 503 })
     }
 
     // 2. Exchange Code for Short Token

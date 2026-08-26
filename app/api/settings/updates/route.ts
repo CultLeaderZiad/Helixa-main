@@ -47,6 +47,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error("[api/settings/updates] Server error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Something went wrong updating settings. Please try again." }, { status: 500 })
   }
 }

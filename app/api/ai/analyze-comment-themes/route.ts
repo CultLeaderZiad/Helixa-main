@@ -149,7 +149,7 @@ Return ONLY a valid JSON object with a "themes" array.`
     if (error.name === "GroqAPIError") {
       return NextResponse.json({ error: `AI request failed: ${error.message}` }, { status: error.status || 500 })
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Something went wrong analyzing themes. Please try again." }, { status: 500 })
   }
 }
 

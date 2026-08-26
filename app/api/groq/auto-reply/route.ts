@@ -5,7 +5,8 @@ import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 export async function GET(request: Request) {
     try {
-        const result = await requireInstagramUser()
+        const nextReq = request as any
+        const result = await requireInstagramUser(nextReq)
         if (result.response) return result.response
         const { igUser } = result
 
@@ -41,7 +42,8 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
     try {
-        const result = await requireInstagramUser()
+        const nextReq = request as any
+        const result = await requireInstagramUser(nextReq)
         if (result.response) return result.response
         const { igUser } = result
 

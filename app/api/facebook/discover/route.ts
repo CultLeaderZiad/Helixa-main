@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
   if (!clientId || !clientSecret) {
     console.error("[FB Discover] Missing App ID or App Secret in env vars")
-    return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
+    return NextResponse.json({ error: "Facebook integration is not configured. Please contact support." }, { status: 503 })
   }
 
   try {
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("[FB Discover] Unexpected error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Something went wrong connecting to Facebook. Please try again." }, { status: 500 })
   }
 }
 

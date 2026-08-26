@@ -93,6 +93,6 @@ export async function GET(request: NextRequest) {
     })
   } catch (error: any) {
     console.error("[auth/me] Error:", error)
-    return NextResponse.json({ authenticated: false, error: "Internal Server Error" }, { status: 500 })
+    return NextResponse.json({ authenticated: false, error: "Something went wrong. Please try again." }, { status: 500 })
   }
 }

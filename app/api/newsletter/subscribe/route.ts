@@ -54,6 +54,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, message: "Subscribed successfully" });
   } catch (error) {
     console.error("[api/newsletter/subscribe] Server error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Something went wrong subscribing. Please try again." }, { status: 500 });
   }
 }

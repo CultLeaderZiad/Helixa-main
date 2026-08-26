@@ -90,8 +90,8 @@ export async function generateGroqCompletion(
   console.log("[groq-client] API Key present:", !!GROQ_API_KEY)
 
   if (!GROQ_API_KEY) {
-    console.error("[groq-client] GROQ_API_KEY is missing.")
-    throw new GroqAPIError(500, "GROQ_API_KEY is not configured.")
+    console.error("[groq-client] GROQ_API_KEY is missing. Add it to your Vercel environment variables.")
+    throw new GroqAPIError(500, "GROQ_API_KEY is not configured. Please add GROQ_API_KEY to your Vercel environment variables at https://vercel.com/dashboard.")
   }
 
   const isWithinLimit = await checkAILimit(userId)
@@ -100,7 +100,7 @@ export async function generateGroqCompletion(
     throw new GroqRateLimitError("AI limit exceeded for today.")
   }
 
-  const model = options.model || "openai/gpt-oss-20b"
+  const model = options.model || "qwen/qwen3.8-27b"
 
   try {
     const res = await fetch(GROQ_API_URL, {
@@ -120,6 +120,9 @@ export async function generateGroqCompletion(
     if (!res.ok) {
       const errorText = await res.text()
       console.error(`[groq-client] API error (${res.status}):`, errorText)
+      if (res.status === 401) {
+        throw new GroqAPIError(401, `AI request failed: Groq API returned 401: ${errorText}. Your GROQ_API_KEY may be invalid or expired. Get a new key at https://console.groq.com/keys and update it in your Vercel environment variables.`)
+      }
       if (res.status === 429) {
         throw new GroqRateLimitError(`Groq API rate limit reached: ${errorText}`)
       }

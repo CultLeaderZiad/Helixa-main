@@ -9,63 +9,7 @@ import {
   sendTelegramMessage,
   answerTelegramCallbackQuery,
 } from "@/lib/telegram-api"
-
-function parseContent(raw: any) {
-  if (!raw) return {}
-  if (typeof raw === "string") {
-    try {
-      return JSON.parse(raw)
-    } catch {
-      return { message: raw }
-    }
-  }
-  return raw
-}
-
-function pickVariant(rule: any): { content: any; variantId: string | null } {
-  let responseContent = rule.response_content
-  let variantId = null
-  if (rule.automation_variants && rule.automation_variants.length > 0) {
-    const allOptions = [
-      {
-        id: null,
-        content: rule.response_content,
-        weight: 100 - rule.automation_variants.reduce((sum: number, v: any) => sum + (v.traffic_weight || 0), 0),
-      },
-      ...rule.automation_variants.map((v: any) => ({
-        id: v.id,
-        content: v.response_config,
-        weight: v.traffic_weight || 50,
-      })),
-    ]
-    const random = Math.random() * 100
-    let sum = 0
-    for (const opt of allOptions) {
-      sum += Math.max(0, opt.weight)
-      if (random <= sum) {
-        responseContent = opt.content
-        variantId = opt.id
-        break
-      }
-    }
-  }
-  return { content: responseContent, variantId }
-}
-
-function keywordMatches(triggerValue: string, text: string): boolean {
-  if (!triggerValue) return false
-  return triggerValue
-    .split(",")
-    .map((k: string) => k.trim())
-    .filter(Boolean)
-    .some((k: string) => {
-      try {
-        return new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(text)
-      } catch {
-        return text.toLowerCase().includes(k.toLowerCase())
-      }
-    })
-}
+import { parseContent, pickVariant, keywordMatches, checkTrialStatus } from "@/lib/webhook-utils"
 
 export async function POST(
   request: NextRequest,
@@ -127,19 +71,7 @@ export async function POST(
           return NextResponse.json({ success: true })
         }
 
-        let effectivePlan = account.plan
-        if (account.plan === "trial" && account.trial_ends_at && !account.trial_exempt) {
-          const trialEnded = new Date(account.trial_ends_at) < new Date()
-          if (trialEnded) {
-            effectivePlan = "expired"
-            await supabase
-              .from("accounts")
-              .update({ plan: "expired", updated_at: new Date().toISOString() })
-              .eq("id", account.id)
-            console.log(`[Telegram Webhook] ⚠️ Account ${account.id} trial expired. Set plan=expired.`)
-          }
-        }
-
+        const effectivePlan = await checkTrialStatus(supabase, account)
         if (effectivePlan === "expired") {
           return NextResponse.json({ success: true })
         }
@@ -396,6 +328,7 @@ Provide a brief, helpful response.`
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("[Telegram Webhook] Error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    // MUST return 200 to prevent Telegram from retrying (which causes duplicate messages)
+    return NextResponse.json({ ok: true })
   }
 }

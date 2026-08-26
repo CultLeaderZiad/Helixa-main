@@ -150,7 +150,7 @@ Return ONLY a valid JSON object with a "faqs" array.`
     if (error.name === "GroqAPIError") {
       return NextResponse.json({ error: `AI request failed: ${error.message}` }, { status: error.status || 500 })
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Something went wrong analyzing FAQs. Please try again." }, { status: 500 })
   }
 }
 
@@ -183,7 +183,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error("[analyze-inbox-faqs] PATCH error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 })
   }
 }
 

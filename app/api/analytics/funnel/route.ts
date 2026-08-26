@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
     })
   } catch (error) {
     console.error("Funnel API error", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Something went wrong loading analytics. Please try again." }, { status: 500 })
   }
 }
 

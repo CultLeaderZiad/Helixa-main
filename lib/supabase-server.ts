@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr"
+import { createClient, SupabaseClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 
 /**
@@ -33,6 +34,17 @@ export async function getSupabaseServerClient() {
 }
 
 /**
+ * Cached singleton for the Supabase service-role (RLS-bypass) client.
+ *
+ * Previous implementation created a new client on every call, which on Vercel
+ * serverless meant a fresh `import("@supabase/supabase-js")` dynamic import
+ * (~100-300ms cold start) plus a new TCP connection to Supabase. This module-
+ * level cache reuses a single client across all requests in the same Lambda
+ * invocation, dramatically reducing latency.
+ */
+let _bypassClient: SupabaseClient | null = null
+
+/**
  * Create a Supabase data-access client that bypasses RLS.
  *
  * The SSR client (`getSupabaseServerClient`) attaches the logged-in user's JWT
@@ -51,11 +63,22 @@ export async function getSupabaseServerClient() {
  * Keep `getSupabaseServerClient()` ONLY where a real auth session is required
  * (sign-in callbacks, confirm, logout, `auth.getUser()`).
  */
-export async function getSupabaseBypassClient() {
-  const { createClient } = await import("@supabase/supabase-js")
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } }
-  )
+export async function getSupabaseBypassClient(): Promise<SupabaseClient> {
+  if (_bypassClient) return _bypassClient
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !serviceKey) {
+    throw new Error(
+      "Missing Supabase env vars. Set NEXT_PUBLIC_SUPABASE_URL and " +
+      "SUPABASE_SERVICE_ROLE_KEY in your Vercel environment variables."
+    )
+  }
+
+  _bypassClient = createClient(supabaseUrl, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+
+  return _bypassClient
 }
