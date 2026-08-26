@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
-import { requireInstagramUser } from "@/lib/auth"
+import { requireUser } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 const stripeKey = process.env.STRIPE_SECRET_KEY
@@ -30,9 +30,9 @@ const PLANS = {
  * Body: { planType: "monthly" | "one_time" }
  */
 export async function POST(request: NextRequest) {
-  const result = await requireInstagramUser(request)
+  const result = await requireUser(request)
   if (result.response) return result.response
-  const { user: account, igUser } = result
+  const { user: account } = result
 
   try {
     if (!stripeKey) {
@@ -50,10 +50,10 @@ export async function POST(request: NextRequest) {
 
     // Get or create Stripe customer. Source of truth is accounts; mirrored to users
     // so webhook lookups (users.stripe_customer_id) keep working.
-    let customerId = account.stripe_customer_id || igUser.stripe_customer_id
+    let customerId = account.stripe_customer_id
     if (!customerId) {
       const customer = await stripe.customers.create({
-        metadata: { userId: String(igUser.id), accountId: account.id, username: igUser.username },
+        metadata: { userId: String(account.id), accountId: account.id, email: account.email },
       })
       customerId = customer.id
       await supabase
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       await supabase
         .from("users")
         .update({ stripe_customer_id: customerId })
-        .eq("id", igUser.id)
+        .eq("id", account.id)
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL
@@ -75,9 +75,9 @@ export async function POST(request: NextRequest) {
       success_url: `${appUrl}/billing?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/billing?canceled=true`,
       metadata: {
-        userId: String(igUser.id),
+        userId: String(account.id),
         accountId: account.id,
-        username: igUser.username,
+        email: account.email,
         planType,
       },
     })

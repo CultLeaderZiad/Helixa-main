@@ -1,14 +1,13 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireInstagramUser } from "@/lib/auth"
+import { requireUser } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
     try {
-        const result = await requireInstagramUser(request)
+        const result = await requireUser(request)
         if (result.response) return result.response
-        const igUser = result.igUser
-        const igUserId = igUser.id
+        const igUserId = result.user.id
 
         const body = await request.json()
         const { recipientId, message, attachment } = body
@@ -28,9 +27,20 @@ export async function POST(request: NextRequest) {
             apiBody.message = { attachment }
         }
 
+        // Fetch Instagram user data for API call
+        const { data: igUserData } = await supabase
+            .from("users")
+            .select("access_token, business_account_id, username")
+            .eq("id", igUserId)
+            .single()
+
+        if (!igUserData?.access_token) {
+            return NextResponse.json({ error: "Instagram not connected" }, { status: 400 })
+        }
+
         // Send to Instagram
         const res = await fetch(
-            `https://graph.instagram.com/v24.0/me/messages?access_token=${igUser.access_token}`,
+            `https://graph.instagram.com/v24.0/me/messages?access_token=${igUserData.access_token}`,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -58,8 +68,8 @@ export async function POST(request: NextRequest) {
                 id: `mid_out_${Date.now()}_${Math.random()}`,
                 conversation_id: conv.id,
                 user_id: igUserId,
-                sender_id: igUser.business_account_id,
-                sender_username: igUser.username,
+                sender_id: igUserData.business_account_id,
+                sender_username: igUserData.username,
                 content: message || "[Attachment]",
                 is_from_instagram: false
             })

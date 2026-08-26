@@ -5,10 +5,9 @@ import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
-import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
-import { useLanguage } from "@/lib/i18n/LanguageContext"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
+import { useLanguage } from "@/lib/i18n/LanguageContext"
 
 function timeAgo(isoString: string | null): string {
     if (!isoString) return "Never"
@@ -23,27 +22,33 @@ function timeAgo(isoString: string | null): string {
 export default function AnalyticsPage() {
     const router = useRouter()
     const { t } = useLanguage()
-    const { userId, isLoading: isSessionLoading } = useInstagramSession()
+    const { userId, isLoading: isSessionLoading, plan } = useInstagramSession()
     const [summary, setSummary] = useState<string>("")
     const [loading, setLoading] = useState<boolean>(false)
     const [hasLoaded, setHasLoaded] = useState<boolean>(false)
+
+    // Fetch connected platforms to show analytics for any connected platform
+    const { data: connectionsData } = useSWR("/api/user/connections", fetcher)
+    const connections = connectionsData?.connections || []
+    const hasAnyConnection = connections.length > 0
+
     const { data: funnelData, isLoading: funnelLoading } = useSWR(
         userId ? `/api/analytics/funnel?userId=${userId}` : null,
         fetcher
     )
 
-    // Comment Themes
+    // Comment Themes — available for any connected platform
     const { data: themesData, isLoading: themesLoading, mutate: mutateThemes } = useSWR(
-        userId ? "/api/ai/analyze-comment-themes" : null,
+        hasAnyConnection ? "/api/ai/analyze-comment-themes" : null,
         fetcher
     )
     const themes = themesData?.themes || []
     const themesLastAnalyzed = themesData?.last_analyzed_at || null
     const [themesRefreshing, setThemesRefreshing] = useState(false)
 
-    // FAQ Suggestions
+    // FAQ Suggestions — available for any connected platform
     const { data: faqsData, isLoading: faqsLoading, mutate: mutateFaqs } = useSWR(
-        userId ? "/api/ai/analyze-inbox-faqs" : null,
+        hasAnyConnection ? "/api/ai/analyze-inbox-faqs" : null,
         fetcher
     )
     const faqs = faqsData?.faqs || []
@@ -133,10 +138,16 @@ export default function AnalyticsPage() {
 
     if (isSessionLoading) return <div className="h-screen flex items-center justify-center bg-[#03010A]"><div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>
 
-    if (!userId) {
+    if (!hasAnyConnection) {
         return (
             <div className="min-h-[calc(100vh-64px)] bg-transparent p-4 flex items-center justify-center">
-                <ConnectPlatformEmptyState description="You need to connect your professional Instagram account to view analytics." />
+                <div className="text-center max-w-md">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/[0.06] border border-white/10 flex items-center justify-center">
+                        <Activity className="w-8 h-8 text-[#ffe14d]" />
+                    </div>
+                    <h2 className="text-xl font-bold text-white mb-2">Connect a Platform</h2>
+                    <p className="text-sm text-neutral-500">Connect at least one platform (Instagram, Facebook, or Telegram) to view analytics and AI insights.</p>
+                </div>
             </div>
         )
     }

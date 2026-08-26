@@ -187,7 +187,17 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
                                 )}>
                                     {isMe && <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />}
                                     <div className="relative z-10">
-                                        {msg.content}
+                                        {msg.content.startsWith('SYS_CARD_') || msg.content.startsWith('UNLOCK_CONTENT_') ? (
+                                            <span className="italic opacity-70">
+                                                {msg.content.startsWith('SYS_CARD_') ? '[Card message sent]' : '[Content gate triggered]'}
+                                            </span>
+                                        ) : msg.content.startsWith('[Card]') ? (
+                                            <span>{msg.content.replace('[Card] ', '')}</span>
+                                        ) : msg.content.startsWith('[Locked Content Gate]') ? (
+                                            <span className="italic opacity-70">🔒 Content locked — follow required</span>
+                                        ) : (
+                                            msg.content
+                                        )}
                                     </div>
                                     <div className={cn(
                                         "text-[10px] mt-1 relative z-10 opacity-70 transition-opacity group-hover:opacity-100",

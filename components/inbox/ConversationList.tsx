@@ -94,7 +94,12 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
                                         "text-xs truncate transition-colors",
                                         isSelected ? "text-neutral-300" : "text-neutral-500 group-hover:text-neutral-400"
                                     )}>
-                                        Click to view conversation...
+                                        {conv.last_message_preview
+                                            ? conv.last_message_preview.length > 40
+                                                ? conv.last_message_preview.slice(0, 40) + "..."
+                                                : conv.last_message_preview
+                                            : "No messages yet"
+                                        }
                                     </p>
                                 </div>
                             </div>

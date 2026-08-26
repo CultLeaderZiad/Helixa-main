@@ -1,14 +1,14 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireInstagramUser } from "@/lib/auth"
+import { requireUser } from "@/lib/auth"
 import { generateGroqCompletion } from "@/lib/groq-client"
 
 export async function POST(request: NextRequest) {
   try {
-    const result = await requireInstagramUser(request)
+    const result = await requireUser(request)
     if (result.response) return result.response
-    const { igUser } = result
+    const { user: account } = result
 
     const { automationId, keywords, intent } = await request.json()
     if (!keywords) {
@@ -28,7 +28,7 @@ Return ONLY the comma-separated string. No markdown, no explanations.`
       }
     ]
 
-    const completion = await generateGroqCompletion(igUser.id, "keyword_suggestion", {
+    const completion = await generateGroqCompletion(account.id, "keyword_suggestion", {
       messages: messages as any,
       temperature: 0.6,
       max_tokens: 150
@@ -49,7 +49,7 @@ Return ONLY the comma-separated string. No markdown, no explanations.`
     if (automationId) {
       const supabase = await getSupabaseBypassClient()
       const { data, error } = await supabase.from("ai_keyword_suggestions").insert({
-        user_id: igUser.id,
+        user_id: account.id,
         automation_id: automationId,
         suggested_keywords: suggestedKeywords,
         accepted: null
@@ -81,9 +81,9 @@ Return ONLY the comma-separated string. No markdown, no explanations.`
 // Endpoint to mark a keyword suggestion as accepted
 export async function PATCH(request: NextRequest) {
   try {
-    const result = await requireInstagramUser(request)
+    const result = await requireUser(request)
     if (result.response) return result.response
-    const { igUser } = result
+    const { user: account } = result
 
     const { suggestionId, accepted } = await request.json()
     if (!suggestionId) return NextResponse.json({ error: "Suggestion ID is required" }, { status: 400 })
@@ -93,7 +93,7 @@ export async function PATCH(request: NextRequest) {
       .from("ai_keyword_suggestions")
       .update({ accepted })
       .eq("id", suggestionId)
-      .eq("user_id", igUser.id)
+      .eq("user_id", account.id)
 
     if (error) {
       console.error("[keyword-suggestion] Patch error:", error)

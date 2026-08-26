@@ -383,7 +383,11 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
   }
 
   useEffect(() => {
-    if (!userId) return
+    if (!userId || platform !== "instagram") {
+      // Non-Instagram platforms don't need to fetch reels
+      setLoadingReels(false)
+      return
+    }
     let cancelled = false
     setLoadingReels(true)
     fetch(`/api/instagram/media?userId=${userId}`)
@@ -396,7 +400,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
       .catch(() => {})
       .finally(() => !cancelled && setLoadingReels(false))
     return () => { cancelled = true }
-  }, [userId])
+  }, [userId, platform])
 
   /* Prefill on edit */
   useEffect(() => {
@@ -719,6 +723,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                   setSpecificMediaUrl={setSpecificMediaUrl}
                   resolvingUrl={resolvingUrl}
                   handleResolveMediaUrl={handleResolveMediaUrl}
+                  platform={platform}
                 />
               )}
 

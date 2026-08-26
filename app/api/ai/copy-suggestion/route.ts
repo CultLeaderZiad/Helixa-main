@@ -1,14 +1,14 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireInstagramUser } from "@/lib/auth"
+import { requireUser } from "@/lib/auth"
 import { generateGroqCompletion } from "@/lib/groq-client"
 
 export async function POST(request: NextRequest) {
   try {
-    const result = await requireInstagramUser(request)
+    const result = await requireUser(request)
     if (result.response) return result.response
-    const { igUser } = result
+    const { user: account } = result
 
     const { automationId, text, context } = await request.json()
     if (!text) {
@@ -28,7 +28,7 @@ Return ONLY a JSON array of 3 strings. Do not include markdown formatting or exp
       }
     ]
 
-    const completion = await generateGroqCompletion(igUser.id, "copy_suggestion", {
+    const completion = await generateGroqCompletion(account.id, "copy_suggestion", {
       messages: messages as any,
       temperature: 0.7,
       max_tokens: 300
@@ -56,7 +56,7 @@ Return ONLY a JSON array of 3 strings. Do not include markdown formatting or exp
     if (automationId && suggestions.length > 0) {
       const supabase = await getSupabaseBypassClient()
       const rows = suggestions.map((s) => ({
-        user_id: igUser.id,
+        user_id: account.id,
         automation_id: automationId,
         prompt_context: text,
         suggested_text: s,
@@ -94,9 +94,9 @@ Return ONLY a JSON array of 3 strings. Do not include markdown formatting or exp
 // Endpoint to mark a suggestion as accepted
 export async function PATCH(request: NextRequest) {
   try {
-    const result = await requireInstagramUser(request)
+    const result = await requireUser(request)
     if (result.response) return result.response
-    const { igUser } = result
+    const { user: account } = result
 
     const { suggestionId, accepted } = await request.json()
     if (!suggestionId) return NextResponse.json({ error: "Suggestion ID is required" }, { status: 400 })
@@ -106,7 +106,7 @@ export async function PATCH(request: NextRequest) {
       .from("ai_copy_suggestions")
       .update({ accepted })
       .eq("id", suggestionId)
-      .eq("user_id", igUser.id)
+      .eq("user_id", account.id)
 
     if (error) {
       console.error("[copy-suggestion] Patch error:", error)

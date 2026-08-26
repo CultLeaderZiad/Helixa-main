@@ -1,15 +1,15 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireInstagramUser } from "@/lib/auth"
+import { requireUser } from "@/lib/auth"
 import { generateCompletion } from "@/lib/llm-provider"
 
 // GET: fetch current themes (and re-analyze if 24h+ old or ?force=true)
 export async function GET(request: NextRequest) {
   try {
-    const result = await requireInstagramUser(request)
+    const result = await requireUser(request)
     if (result.response) return result.response
-    const { igUser } = result
+    const { user: account } = result
 
     const supabase = await getSupabaseBypassClient()
     const { searchParams } = new URL(request.url)
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const { data: userData, error: userError } = await supabase
       .from("users")
       .select("ai_themes_last_analyzed_at")
-      .eq("id", igUser.id)
+      .eq("id", account.id)
       .single()
 
     const lastAnalyzed = (!userError && userData) ? userData.ai_themes_last_analyzed_at : null;
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       const { data: themes } = await supabase
         .from("ai_comment_themes")
         .select("*")
-        .eq("user_id", igUser.id)
+        .eq("user_id", account.id)
         .order("count", { ascending: false })
       return NextResponse.json({ themes: themes || [], last_analyzed_at: lastAnalyzed, is_stale: false })
     }
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     const { data: events, error: eventsError } = await supabase
       .from("webhook_events")
       .select("data")
-      .eq("user_id", igUser.id)
+      .eq("user_id", account.id)
       .gte("processed_at", fourteenDaysAgo.toISOString())
 
     if (eventsError) {
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       const { data: existingThemes } = await supabase
         .from("ai_comment_themes")
         .select("*")
-        .eq("user_id", igUser.id)
+        .eq("user_id", account.id)
         .order("count", { ascending: false })
       return NextResponse.json({
         themes: existingThemes || [],
@@ -87,7 +87,7 @@ Return ONLY a valid JSON object with a "themes" array.`
     ]
 
     const completion = await generateCompletion(
-      String(igUser.id),
+      String(account.id),
       result.user.id, // accountId
       "analyze_themes",
       "comment_themes", // agentKey
@@ -103,7 +103,7 @@ Return ONLY a valid JSON object with a "themes" array.`
       const { data: existingThemes } = await supabase
         .from("ai_comment_themes")
         .select("*")
-        .eq("user_id", igUser.id)
+        .eq("user_id", account.id)
         .order("count", { ascending: false })
       return NextResponse.json({ themes: existingThemes || [], last_analyzed_at: lastAnalyzed, is_stale: true, error: "Rate limit or AI unavailable" })
     }
@@ -117,10 +117,10 @@ Return ONLY a valid JSON object with a "themes" array.`
     }
 
     if (parsed && Array.isArray(parsed) && parsed.length > 0) {
-      await supabase.from("ai_comment_themes").delete().eq("user_id", igUser.id)
+      await supabase.from("ai_comment_themes").delete().eq("user_id", account.id)
 
       const rows = parsed.map(t => ({
-        user_id: igUser.id,
+        user_id: account.id,
         theme: t.theme || "General",
         keywords: t.keywords || "",
         examples: t.examples || "",
@@ -129,12 +129,12 @@ Return ONLY a valid JSON object with a "themes" array.`
 
       await supabase.from("ai_comment_themes").insert(rows)
       const now = new Date().toISOString()
-      await supabase.from("users").update({ ai_themes_last_analyzed_at: now }).eq("id", igUser.id)
+      await supabase.from("users").update({ ai_themes_last_analyzed_at: now }).eq("id", account.id)
 
       const { data: themes } = await supabase
         .from("ai_comment_themes")
         .select("*")
-        .eq("user_id", igUser.id)
+        .eq("user_id", account.id)
         .order("count", { ascending: false })
       return NextResponse.json({ themes: themes || [], last_analyzed_at: now, is_stale: false })
     }

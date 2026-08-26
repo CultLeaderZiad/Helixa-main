@@ -1,20 +1,20 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from "next/server"
-import { requireInstagramUser } from "@/lib/auth"
+import { requireUser } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 export async function GET(request: Request) {
     try {
         const nextReq = request as any
-        const result = await requireInstagramUser(nextReq)
+        const result = await requireUser(nextReq)
         if (result.response) return result.response
-        const { igUser } = result
+        const { user: account } = result
 
         const { searchParams } = new URL(request.url)
         const paramUserId = searchParams.get("userId")
         
         // Ensure the requested userId matches the logged-in user's ig_user_id
-        if (paramUserId && paramUserId !== igUser.id.toString()) {
+        if (paramUserId && paramUserId !== account.id.toString()) {
             return NextResponse.json({ error: "Unauthorized userId" }, { status: 403 })
         }
 
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
         const { data, error } = await supabase
             .from("users")
             .select("ai_enabled, ai_context")
-            .eq("id", igUser.id)
+            .eq("id", account.id)
             .single()
 
         if (error) {
@@ -43,14 +43,14 @@ export async function GET(request: Request) {
 export async function PUT(request: Request) {
     try {
         const nextReq = request as any
-        const result = await requireInstagramUser(nextReq)
+        const result = await requireUser(nextReq)
         if (result.response) return result.response
-        const { igUser } = result
+        const { user: account } = result
 
         const body = await request.json()
         const { userId, enabled, ai_context } = body
 
-        if (userId && userId.toString() !== igUser.id.toString()) {
+        if (userId && userId.toString() !== account.id.toString()) {
             return NextResponse.json({ error: "Unauthorized userId" }, { status: 403 })
         }
 
@@ -63,7 +63,7 @@ export async function PUT(request: Request) {
         const { error } = await supabase
             .from("users")
             .update(updateData)
-            .eq("id", igUser.id)
+            .eq("id", account.id)
 
         if (error) {
             return NextResponse.json({ error: error.message }, { status: 500 })

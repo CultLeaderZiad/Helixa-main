@@ -1,14 +1,14 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireInstagramUser } from "@/lib/auth"
+import { requireUser } from "@/lib/auth"
 import { generateGroqCompletion } from "@/lib/groq-client"
 
 export async function POST(request: NextRequest) {
   try {
-    const result = await requireInstagramUser(request)
+    const result = await requireUser(request)
     if (result.response) return result.response
-    const { igUser } = result
+    const { user: account } = result
 
     const { description } = await request.json()
     if (!description) {
@@ -35,7 +35,7 @@ Return ONLY a valid JSON object. Do not include markdown formatting or explanati
       }
     ]
 
-    const completion = await generateGroqCompletion(igUser.id, "parse_intent", {
+    const completion = await generateGroqCompletion(account.id, "parse_intent", {
       messages: messages as any,
       temperature: 0.1,
       max_tokens: 300,

@@ -1,14 +1,14 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireInstagramUser } from "@/lib/auth"
+import { requireUser } from "@/lib/auth"
 import { generateGroqCompletion } from "@/lib/groq-client"
 
 export async function POST(request: NextRequest) {
   try {
-    const result = await requireInstagramUser(request)
+    const result = await requireUser(request)
     if (result.response) return result.response
-    const { igUser } = result
+    const { user: account } = result
 
     const supabase = await getSupabaseBypassClient()
 
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const { data: events, error } = await supabase
       .from("automation_events")
       .select("event_type, platform")
-      .eq("user_id", igUser.id)
+      .eq("user_id", account.id)
       .gte("created_at", thirtyDaysAgo.toISOString())
 
     if (error) {
@@ -58,7 +58,7 @@ Review the provided data and return a compact, plain-language summary followed b
       }
     ]
 
-    const completion = await generateGroqCompletion(igUser.id, "analytics_summary", {
+    const completion = await generateGroqCompletion(account.id, "analytics_summary", {
       messages,
       temperature: 0.5,
       max_tokens: 300

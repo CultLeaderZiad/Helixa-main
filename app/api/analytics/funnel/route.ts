@@ -1,13 +1,13 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireInstagramUser } from "@/lib/auth"
+import { requireUser } from "@/lib/auth"
 
 export async function GET(req: NextRequest) {
   try {
-    const result = await requireInstagramUser(req)
+    const result = await requireUser(req)
     if (result.response) return result.response
-    const igUserId = result.igUser.id
+    const igUserId = result.user.id
 
     const supabase = await getSupabaseBypassClient()
     

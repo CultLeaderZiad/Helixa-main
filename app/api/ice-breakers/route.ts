@@ -1,14 +1,13 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireInstagramUser } from "@/lib/auth"
+import { requireUser } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
     try {
-        const result = await requireInstagramUser(request)
+        const result = await requireUser(request)
         if (result.response) return result.response
-        const igUser = result.igUser
-        const igUserId = igUser.id
+        const igUserId = result.user.id
 
         const supabase = await getSupabaseBypassClient()
         const { data, error } = await supabase
@@ -28,10 +27,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const result = await requireInstagramUser(request)
+        const result = await requireUser(request)
         if (result.response) return result.response
-        const igUser = result.igUser
-        const igUserId = igUser.id
+        const igUserId = result.user.id
 
         const body = await request.json()
         const { iceBreakers } = body // Array of ice breakers
@@ -62,15 +60,22 @@ export async function POST(request: NextRequest) {
 
         if (insertError) throw insertError
 
-        // Sync to Instagram
-        if (igUser.access_token && igUser.page_id) {
+        // Sync to Instagram/Messenger if access token exists
+        const supabase2 = await getSupabaseBypassClient()
+        const { data: igUserData } = await supabase2
+            .from("users")
+            .select("access_token, page_id")
+            .eq("id", igUserId)
+            .single()
+
+        if (igUserData?.access_token && igUserData?.page_id) {
             const ice_breakers = inserted.map((ib: any) => ({
                 question: ib.question,
                 payload: `ICE_BREAKER_${ib.id}`
             }))
 
             const response = await fetch(
-                `https://graph.instagram.com/v21.0/me/messenger_profile?access_token=${igUser.access_token}`,
+                `https://graph.instagram.com/v21.0/me/messenger_profile?access_token=${igUserData.access_token}`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
