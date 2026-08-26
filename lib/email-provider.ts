@@ -63,6 +63,12 @@ export async function sendEmail({
       subject,
       html,
       replyTo: finalReplyTo,
+      headers: {
+        "List-Unsubscribe": `<mailto:${finalFromEmail}?subject=unsubscribe>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        "Precedence": "bulk",
+        "X-Mailer": "Helixa-Mailer/1.0",
+      },
     });
 
     return { success: true, messageId: info.messageId };

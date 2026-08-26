@@ -94,7 +94,7 @@ export default function AdminPage() {
   const [editTrialEndsAt, setEditTrialEndsAt] = useState<string | null>(null)
 
   // Subscribers tab state
-  const [subscribers, setSubscribers] = useState<{ id: string; email: string; created_at: string }[]>([])
+  const [subscribers, setSubscribers] = useState<{ id: string; email: string; name: string | null; created_at: string }[]>([])
   const [subscribersLoading, setSubscribersLoading] = useState(false)
   const [subscribersSearch, setSubscribersSearch] = useState("")
 
@@ -1125,17 +1125,19 @@ export default function AdminPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-white/[0.08] font-mono text-[10px] text-neutral-500 uppercase tracking-wider">
-                    <th className="pb-3 pl-4">Email</th>
+                    <th className="pb-3 pl-4">Name</th>
+                    <th className="pb-3">Email</th>
                     <th className="pb-3">Subscribed At</th>
                     <th className="pb-3 text-right pr-4">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04]">
                   {subscribers
-                    .filter(s => s.email.toLowerCase().includes(subscribersSearch.toLowerCase()))
+                    .filter(s => s.email.toLowerCase().includes(subscribersSearch.toLowerCase()) || (s.name && s.name.toLowerCase().includes(subscribersSearch.toLowerCase())))
                     .map(sub => (
                       <tr key={sub.id} className="text-xs text-neutral-300 font-mono hover:bg-white/[0.02] transition-colors">
-                        <td className="py-4 pl-4 font-bold text-white">{sub.email}</td>
+                        <td className="py-4 pl-4 font-bold text-white">{sub.name || "—"}</td>
+                        <td className="py-4 font-bold text-white">{sub.email}</td>
                         <td className="py-4">{new Date(sub.created_at).toLocaleString()}</td>
                         <td className="py-4 text-right pr-4">
                           <button
@@ -1148,9 +1150,9 @@ export default function AdminPage() {
                         </td>
                       </tr>
                     ))}
-                  {subscribers.filter(s => s.email.toLowerCase().includes(subscribersSearch.toLowerCase())).length === 0 && (
+                  {subscribers.filter(s => s.email.toLowerCase().includes(subscribersSearch.toLowerCase()) || (s.name && s.name.toLowerCase().includes(subscribersSearch.toLowerCase()))).length === 0 && (
                     <tr>
-                      <td colSpan={3} className="text-center py-8 text-neutral-500 font-mono text-xs">No subscribers found.</td>
+                      <td colSpan={4} className="text-center py-8 text-neutral-500 font-mono text-xs">No subscribers found.</td>
                     </tr>
                   )}
                 </tbody>

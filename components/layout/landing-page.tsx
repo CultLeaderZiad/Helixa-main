@@ -13,6 +13,7 @@ import PillNav from "@/components/ui/PillNav"
 import { DashboardBackground } from "@/components/layout/DashboardBackground"
 const ScrollFloat = dynamic(() => import("@/components/ui/ScrollFloat"), { ssr: false })
 const MaskedHeading = dynamic(() => import("@/components/ui/MaskedHeading"), { ssr: false })
+const GradientWaves = dynamic(() => import("@/components/ui/GradientWaves"), { ssr: false })
 import CurvedLoop from "@/components/ui/CurvedLoop"
 import CurvedInput from "@/components/ui/CurvedInput"
 import {
@@ -127,9 +128,34 @@ export function LandingPage() {
 
         {/* Hero — Split Layout */}
         <section className="relative overflow-hidden bg-transparent w-full">
-          <div className="absolute inset-0 bg-gradient-to-t from-[#03010A] via-[#03010A]/80 to-[#03010A]/30 pointer-events-none" />
+          {/* Gradient Waves Background */}
+          <div className="absolute inset-0 z-0">
+            <GradientWaves
+              horizonColor="#1a0a3e"
+              waveColor="#5227FF"
+              crestColor="#ffe14d"
+              speed={0.3}
+              amplitude={1.8}
+              waveScale={0.5}
+              waveRatio={0.85}
+              swell={30}
+              turbulence={18}
+              tilt={1.05}
+              zoom={0.9}
+              height={4.5}
+              fogDepth={12}
+              detail="low"
+              brightness={0.7}
+              opacity={0.6}
+              mouseInteraction={true}
+              parallaxStrength={0.3}
+              grain={true}
+              grainIntensity={0.03}
+            />
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#03010A] via-[#03010A]/60 to-[#03010A]/40 pointer-events-none z-[1]" />
 
-          <div className="relative px-5 md:px-10 pt-20 md:pt-32 pb-24 max-w-6xl mx-auto">
+          <div className="relative px-5 md:px-10 pt-20 md:pt-32 pb-24 max-w-6xl mx-auto z-[2]">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-10 md:gap-16">
 
               {/* Left — Helixa Logo */}

@@ -154,7 +154,7 @@ export default function DashboardPage() {
                         <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
                         <p className="font-mono text-sm text-red-400">{t.vodafoneExpires.replace('{{days}}', String(paymentStatus.daysToRenew))}</p>
                     </div>
-                    <a href="/billing" className="font-mono text-xs bg-red-500/20 text-red-400 px-3 py-1 rounded hover:bg-red-500/30 transition-colors">
+                    <a href="/dashboard/billing" className="font-mono text-xs bg-red-500/20 text-red-400 px-3 py-1 rounded hover:bg-red-500/30 transition-colors">
                         {t.renewNow}
                     </a>
                 </div>
@@ -264,10 +264,10 @@ export default function DashboardPage() {
                             <Zap className="w-6 h-6 text-muted-foreground group-hover:text-[#ffe14d] mb-2" />
                             <span className="text-xs font-medium text-muted-foreground">{t.newRule}</span>
                         </Link>
-                        <div className="h-24 rounded-xl border border-dashed border-white/20 flex flex-col items-center justify-center hover:bg-white/5 cursor-pointer transition-colors group">
+                        <Link href="/dashboard/analytics" className="h-24 rounded-xl border border-dashed border-white/20 flex flex-col items-center justify-center hover:bg-white/5 cursor-pointer transition-colors group">
                             <Users className="w-6 h-6 text-muted-foreground group-hover:text-[#ffe14d] mb-2" />
                             <span className="text-xs font-medium text-muted-foreground">{t.viewAudience}</span>
-                        </div>
+                        </Link>
                     </div>
                 </Card>
             </div>

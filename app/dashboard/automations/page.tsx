@@ -42,12 +42,17 @@ function AutomationsPageContent() {
     const [editRule, setEditRule] = useState<Automation | null>(null)
 
     useEffect(() => {
+        // Check for platform query param (from platform dashboard "New Rule" button)
+        const platformParam = searchParams?.get("platform")
+        if (platformParam && availablePlatforms.includes(platformParam)) {
+            setSelectedPlatform(platformParam)
+        }
         // Check for intent query param to open form
         const intent = searchParams?.get("intent")
         if (intent) {
             setShowCreateForm(true)
         }
-    }, [searchParams])
+    }, [searchParams])  // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleDeleteRule = async (id: string) => {
         await fetch(`/api/automations?id=${id}`, { method: "DELETE" })

@@ -39,10 +39,19 @@ export async function GET(req: NextRequest) {
     let planAgents: string[] = []
     
     if (account?.role === 'admin') {
+      // Admins get all agents unlocked
       planAgents = agents?.map((a: any) => a.id) || []
     } else if (account?.plan) {
-      const { data: pa, error: paError } = await supabase.from("plan_agents").select("agent_id").eq("plan_id", account.plan)
-      if (pa && !paError) planAgents = pa.map((p: any) => p.agent_id)
+      // Paid users (monthly, one_time, yearly) get ALL agents unlocked by default
+      // Only trial users are restricted to plan_agents table entries
+      const paidPlans = ['monthly', 'one_time', 'yearly']
+      if (paidPlans.includes(account.plan)) {
+        planAgents = agents?.map((a: any) => a.id) || []
+      } else {
+        // Trial/free users: check plan_agents table
+        const { data: pa, error: paError } = await supabase.from("plan_agents").select("agent_id").eq("plan_id", account.plan)
+        if (pa && !paError) planAgents = pa.map((p: any) => p.agent_id)
+      }
     }
 
     const settingsMap = (!settingsError && settings ? settings : []).reduce((acc: any, s: any) => {

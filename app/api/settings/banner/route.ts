@@ -15,7 +15,11 @@ export async function GET() {
       return NextResponse.json({ isActive: false, message: "", link: "" })
     }
 
-    return NextResponse.json(data.value)
+    return NextResponse.json(data.value, {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    })
   } catch (error) {
     console.error("[api/settings/banner] GET error:", error)
     return NextResponse.json({ isActive: false, message: "", link: "" })

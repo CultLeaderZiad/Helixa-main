@@ -4,7 +4,6 @@ import { useState } from "react"
 import { CheckCircle, Zap, Star } from "lucide-react"
 import Link from "next/link"
 import ElectricBorder from "@/components/ui/ElectricBorder"
-import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -71,7 +70,14 @@ export default function PricingClient({ plans }: { plans: any[] }) {
   }
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-12 relative">
+      {/* CSS gradient background — fast, no WebGL */}
+      <div className="absolute inset-0 z-0 overflow-hidden rounded-2xl pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0520] via-[#1a0a3e] to-[#03010A]" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#5227FF]/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-[600px] h-[300px] bg-[#ffe14d]/10 rounded-full blur-[100px]" />
+      </div>
+      <div className="relative z-[1]">
       {/* Toggle */}
       {mainPlan && mainPlan.price_yearly && (
         <div className="flex items-center justify-center gap-4">
@@ -260,6 +266,7 @@ export default function PricingClient({ plans }: { plans: any[] }) {
           </form>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   )
 }

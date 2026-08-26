@@ -11,6 +11,7 @@ interface CurvedInputProps {
   bend?: number;
   height?: number;
   className?: string;
+  showNameField?: boolean;
 }
 
 export default function CurvedInput({
@@ -20,7 +21,9 @@ export default function CurvedInput({
   bend = 28,
   height = 64,
   className = "",
+  showNameField = true,
 }: CurvedInputProps) {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -33,13 +36,14 @@ export default function CurvedInput({
       const res = await fetch("/api/newsletter/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, name: name.trim() || undefined }),
       });
 
       if (!res.ok) throw new Error("Failed to subscribe");
 
       toast.success("Subscribed successfully!");
       setEmail("");
+      setName("");
     } catch (error) {
       toast.error("Failed to subscribe. Please try again.");
     } finally {
@@ -53,37 +57,55 @@ export default function CurvedInput({
   const text = isDark ? "#ffffff" : "#000000";
   const buttonBg = isDark ? "#ffffff" : "#000000";
   const buttonTextCol = isDark ? "#000000" : "#ffffff";
+  const subBg = isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)";
 
   return (
     <div className={`relative max-w-md w-full mx-auto ${className}`}>
-      <form onSubmit={handleSubmit} className="relative w-full flex" style={{ height: `${height}px` }}>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder={placeholder}
-          required
-          className="w-full h-full pl-6 pr-[120px] rounded-full outline-none transition-all duration-300"
-          style={{
-            backgroundColor: bg,
-            color: text,
-            border: `1px solid ${border}`,
-            borderRadius: `${bend}px`,
-          }}
-        />
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="absolute right-2 top-2 bottom-2 px-4 rounded-full font-medium transition-transform hover:scale-105 active:scale-95 disabled:opacity-70 disabled:hover:scale-100 flex items-center justify-center"
-          style={{
-            backgroundColor: buttonBg,
-            color: buttonTextCol,
-            borderRadius: `${bend - 8}px`,
-            minWidth: "100px"
-          }}
-        >
-          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : buttonText}
-        </button>
+      <form onSubmit={handleSubmit} className="relative w-full flex flex-col gap-3">
+        {showNameField && (
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Your name (optional)"
+            className="w-full h-12 pl-6 pr-6 outline-none transition-all duration-300"
+            style={{
+              backgroundColor: subBg,
+              color: text,
+              border: `1px solid ${border}`,
+              borderRadius: `${bend}px`,
+            }}
+          />
+        )}
+        <div className="relative w-full flex" style={{ height: `${height}px` }}>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder={placeholder}
+            required
+            className="w-full h-full pl-6 pr-[120px] rounded-full outline-none transition-all duration-300"
+            style={{
+              backgroundColor: bg,
+              color: text,
+              border: `1px solid ${border}`,
+              borderRadius: `${bend}px`,
+            }}
+          />
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="absolute right-2 top-2 bottom-2 px-4 rounded-full font-medium transition-transform hover:scale-105 active:scale-95 disabled:opacity-70 disabled:hover:scale-100 flex items-center justify-center"
+            style={{
+              backgroundColor: buttonBg,
+              color: buttonTextCol,
+              borderRadius: `${bend - 8}px`,
+              minWidth: "100px"
+            }}
+          >
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : buttonText}
+          </button>
+        </div>
       </form>
     </div>
   );

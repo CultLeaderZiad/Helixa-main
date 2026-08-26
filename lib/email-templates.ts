@@ -242,10 +242,13 @@ export function generateEmailHtml(data: EmailTemplateData): string {
           <p style="margin: 0 0 10px 0;">
             © ${new Date().getFullYear()} ${appName}. All rights reserved.
           </p>
-          <p style="margin: 0;">
+          <p style="margin: 0 0 6px 0;">
             <a href="${websiteUrl}" style="color: #71717a; text-decoration: underline;">Helixa.app</a>
             &nbsp;•&nbsp;
-            <a href="${websiteUrl}/unsubscribe" style="color: #71717a; text-decoration: underline;">Unsubscribe</a>
+            <a href="mailto:unsubscribe@helixa.app?subject=unsubscribe" style="color: #71717a; text-decoration: underline;">Unsubscribe</a>
+          </p>
+          <p style="margin: 0; font-size: 11px; color: #52525b;">
+            ${appName}, Instagram Automation Platform.
           </p>
         </td>
       </tr>

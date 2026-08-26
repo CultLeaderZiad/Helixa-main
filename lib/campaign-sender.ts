@@ -35,7 +35,7 @@ export async function sendCampaign(campaignId: string, supabase: any, targetAcco
       } else if (isNewsletter) {
         const { data, error } = await supabase
           .from("newsletter_subscribers")
-          .select("id, email")
+          .select("id, email, name")
           .in("id", targetAccountIds)
         if (error) {
           await supabase.from("email_campaigns").update({ status: "failed" }).eq("id", campaign.id)
@@ -56,7 +56,7 @@ export async function sendCampaign(campaignId: string, supabase: any, targetAcco
     } else if (isNewsletter) {
       const { data, error } = await supabase
         .from("newsletter_subscribers")
-        .select("id, email")
+        .select("id, email, name")
         .order("created_at", { ascending: false })
       if (error) {
         await supabase.from("email_campaigns").update({ status: "failed" }).eq("id", campaign.id)
@@ -148,7 +148,7 @@ export async function sendCampaign(campaignId: string, supabase: any, targetAcco
           features: campaign.features,
           ctaText: campaign.cta_text,
           ctaUrl: campaign.cta_url,
-          customerName: customer.full_name || customer.email.split("@")[0],
+          customerName: customer.full_name || customer.name || customer.email.split("@")[0],
         })
 
         const sendResult = await sendEmail({
