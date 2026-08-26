@@ -1,4 +1,0 @@
-allowBuilds:
-  sharp: true
-minimumReleaseAgeExclude:
-  - swr@2.5.1
