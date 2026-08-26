@@ -110,11 +110,24 @@ export default function CampaignDetailsPage() {
       const campData = await resCamp.json()
       setCampaign(campData.campaign)
 
-      // 2. Fetch Audience Preview
-      const resAud = await fetch(`/api/admin/customers?filter=${campData.campaign.audience_filter}`)
+      // 2. Fetch Audience Preview — always fetch with 'all' filter first, then apply campaign filter client-side
+      const filterParam = campData.campaign.audience_filter === 'newsletter' ? 'newsletter' : 'all'
+      const resAud = await fetch(`/api/admin/customers?filter=${filterParam}`)
       if (resAud.ok) {
         const audData = await resAud.json()
-        const customers = audData.customers || []
+        let customers = audData.customers || []
+        // Apply campaign-specific filter client-side
+        const af = campData.campaign.audience_filter
+        if (af && af !== 'all' && af !== 'newsletter') {
+          if (af === 'trial') customers = customers.filter((c: any) => c.plan === 'trial')
+          else if (af === 'monthly') customers = customers.filter((c: any) => c.plan === 'monthly')
+          else if (af === 'one_time') customers = customers.filter((c: any) => c.plan === 'one_time')
+          else if (af === 'expired') customers = customers.filter((c: any) => c.plan === 'expired')
+          else if (af === 'paid') customers = customers.filter((c: any) => ['monthly', 'one_time'].includes(c.plan))
+          else if (af === 'active') customers = customers.filter((c: any) => ['active', 'trialing'].includes(c.subscription_status))
+          else if (af === 'inactive') customers = customers.filter((c: any) => ['canceled', 'unpaid', 'past_due'].includes(c.subscription_status))
+          else if (af === 'flagged') customers = customers.filter((c: any) => c.is_flagged)
+        }
         setAudience(customers)
         setSelectedCustomerIds(new Set(customers.map((c: any) => c.id)))
       }

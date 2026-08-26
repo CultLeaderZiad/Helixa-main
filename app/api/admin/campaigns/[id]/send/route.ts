@@ -24,6 +24,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const { recipientCount, successCount } = await sendCampaign(id, supabase, targetAccountIds)
 
+    if (recipientCount === 0) {
+      return NextResponse.json({
+        ok: true,
+        recipient_count: 0,
+        success_count: 0,
+        message: "No recipients matched the audience filter. Check your campaign audience settings.",
+      })
+    }
+
     return NextResponse.json({ ok: true, recipient_count: recipientCount, success_count: successCount })
   } catch (err: any) {
     console.error("[api/admin/campaigns/[id]/send] Server error:", err)

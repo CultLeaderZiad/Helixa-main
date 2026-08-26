@@ -44,7 +44,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     })
 
     if (!sendResult.success) {
-      return NextResponse.json({ error: sendResult.error || "Failed to send test email" }, { status: 500 })
+      // Provide specific guidance based on the error
+      const isSmtpMissing = sendResult.error?.includes("Missing SMTP") || sendResult.error?.includes("Incomplete SMTP")
+      return NextResponse.json({
+        error: sendResult.error || "Failed to send test email",
+        hint: isSmtpMissing ? "Configure SMTP in Admin → Settings → SMTP Settings" : undefined,
+      }, { status: isSmtpMissing ? 503 : 500 })
     }
 
     return NextResponse.json({ ok: true, messageId: sendResult.messageId })

@@ -38,9 +38,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Exclude administrators so all customer accounts (role = 'user', 'customer', etc.) are included
+    // Use select('*') to avoid failures when columns like full_name or subscription_status don't exist
     let query = supabase
       .from("accounts")
-      .select("id, email, full_name, role, plan, created_at, subscription_status, is_flagged")
+      .select("*")
       .neq("role", "admin")
       .order("created_at", { ascending: false })
 
@@ -71,7 +72,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to fetch customers" }, { status: 500 })
     }
 
-    return NextResponse.json({ customers: customers || [] })
+    // Map to consistent shape — handle missing columns gracefully
+    const mapped = (customers || []).map((c: any) => ({
+      id: c.id,
+      email: c.email,
+      full_name: c.full_name || c.raw_user_meta_data?.full_name || c.email?.split("@")[0] || "User",
+      plan: c.plan || "trial",
+      role: c.role || "customer",
+      created_at: c.created_at,
+      subscription_status: c.subscription_status || "active",
+      is_flagged: c.is_flagged || false,
+    }))
+
+    return NextResponse.json({ customers: mapped })
   } catch (err) {
     console.error("[api/admin/customers] Server error:", err)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
