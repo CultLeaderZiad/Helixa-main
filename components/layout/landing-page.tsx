@@ -10,6 +10,7 @@ import DepthText from "@/components/ui/DepthText"
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import PillNav from "@/components/ui/PillNav"
+import { HelixaLogo } from "@/components/ui/HelixaLogo"
 import { DashboardBackground } from "@/components/layout/DashboardBackground"
 const ScrollFloat = dynamic(() => import("@/components/ui/ScrollFloat"), { ssr: false })
 const MaskedHeading = dynamic(() => import("@/components/ui/MaskedHeading"), { ssr: false })
@@ -88,25 +89,14 @@ export function LandingPage() {
       <div className="grain" />
 
       {/* Nav */}
-      <nav className="relative z-50 flex items-center justify-between px-5 md:px-10 h-16 border-b border-white/[0.08]">
-        <div className="flex items-center gap-2 md:gap-3 pointer-events-auto" style={{ position: 'relative', height: '40px', width: '120px' }}>
-          <DepthText
-            text="HELIXA"
-            className=""
-            layers={8}
-            depth={1.5}
-            faceColor="#ffe14d"
-            depthColor="#a18110"
-            tilt={5}
-            perspective={600}
-            autoOrbit={false}
-            fontSize="24px"
-            fontWeight={900}
-            shadow={false}
-          />
+      <nav className="relative z-50 flex items-center justify-between px-4 sm:px-6 md:px-10 h-16 border-b border-white/[0.08] backdrop-blur-md bg-black/40">
+        {/* Left: Helixa Logo */}
+        <div className="flex items-center">
+          <HelixaLogo size="md" href="/" />
         </div>
 
-        <div className="flex absolute left-1/2 -translate-x-1/2 items-center z-50">
+        {/* Center: Desktop PillNav */}
+        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center z-50">
           <PillNav
             items={[
               { label: "FEATURES", href: "#features" },
@@ -114,15 +104,32 @@ export function LandingPage() {
               { label: "UPDATES", href: "#updates" },
               { label: "START BUILD ->", href: "/signup" }
             ]}
-            baseColor="rgba(255, 255, 255, 0.03)"
+            baseColor="rgba(14, 14, 18, 0.85)"
             pillColor="#ffe14d"
             hoveredPillTextColor="#ffffff"
             pillTextColor="#000000"
+            ease="power2.out"
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Right: Language Switcher & Mobile PillNav */}
+        <div className="flex items-center gap-2 sm:gap-3">
           <LanguageSwitcher />
+          <div className="md:hidden">
+            <PillNav
+              items={[
+                { label: "FEATURES", href: "#features" },
+                { label: "PRICING", href: "/pricing" },
+                { label: "UPDATES", href: "#updates" },
+                { label: "START BUILD ->", href: "/signup" }
+              ]}
+              baseColor="rgba(14, 14, 18, 0.85)"
+              pillColor="#ffe14d"
+              hoveredPillTextColor="#ffffff"
+              pillTextColor="#000000"
+              ease="power2.out"
+            />
+          </div>
         </div>
       </nav>
 

@@ -10,6 +10,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import TextPressure from "@/components/ui/text-pressure"
 import DepthText from "@/components/ui/DepthText"
+import { HelixaLogo } from "@/components/ui/HelixaLogo"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"
 
@@ -41,24 +42,9 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
     <aside className={cn("flex flex-col bg-[#0a0a09]", className)} {...props}>
 
       {/* Logo */}
-      <Link href="/dashboard" className="block px-4 pt-4 pb-2">
-        <div className="relative h-[44px] w-full pointer-events-auto" dir="ltr">
-          <DepthText
-            text="HELIXA"
-            className=""
-            layers={8}
-            depth={1.5}
-            faceColor="#ffe14d"
-            depthColor="#a18110"
-            tilt={5}
-            perspective={600}
-            autoOrbit={false}
-            fontSize="28px"
-            fontWeight={900}
-            shadow={false}
-          />
-        </div>
-      </Link>
+      <div className="px-5 pt-5 pb-3">
+        <HelixaLogo size="md" href="/dashboard" />
+      </div>
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto overflow-x-hidden">
