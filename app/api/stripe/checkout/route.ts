@@ -9,7 +9,7 @@ if (!stripeKey) {
   console.error("[stripe/checkout] STRIPE_SECRET_KEY is not configured. Payments will not work.")
 }
 const stripe = new Stripe(stripeKey || "sk_test_placeholder_do_not_use", {
-  apiVersion: "2026-07-29.dahlia",
+  apiVersion: "2026-08-26.dahlia",
 })
 
 const PLANS = {

@@ -5,7 +5,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server"
 
 const stripeKey = process.env.STRIPE_SECRET_KEY
 const stripe = new Stripe(stripeKey || "sk_test_placeholder_do_not_use", {
-  apiVersion: "2026-07-29.dahlia",
+  apiVersion: "2026-08-26.dahlia",
 })
 
 async function getAccountIdForUser(supabase: any, userId: number) {
