@@ -86,7 +86,7 @@ export function LandingPage() {
           to { transform: translateX(-50%); }
         }
         .marquee-track {
-          animation: marquee 40s linear infinite;
+          animation: marquee 20s linear infinite;
         }
         @media (prefers-reduced-motion: reduce) {
           html { scroll-behavior: auto; }
