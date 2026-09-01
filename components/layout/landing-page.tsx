@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { HelixaLogo } from "@/components/ui/HelixaLogo"
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import CurvedInput from "@/components/ui/CurvedInput"
+import PillNav from "@/components/ui/PillNav"
 import {
   MessageCircle, Sparkles, ArrowUpRight, Github, Star,
   Send, AtSign, Brain, Inbox, Lock, Terminal,
@@ -48,6 +49,26 @@ export function LandingPage() {
     router.push("/signup")
   }
 
+  // Parallax on HELIXA wordmark — lightweight scroll listener
+  const heroRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    let ticking = false
+    const onScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          if (heroRef.current) {
+            const y = window.scrollY
+            heroRef.current.style.setProperty("--py", `${y * 0.35}px`)
+          }
+          ticking = false
+        })
+        ticking = true
+      }
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
   return (
     <div className="min-h-screen bg-[#03010A] text-[#ededed] selection:bg-[#ffe14d] selection:text-black overflow-x-hidden antialiased">
 
@@ -59,6 +80,7 @@ export function LandingPage() {
 
       {/* ─── Inline styles for CSS animations ─── */}
       <style>{`
+        html { scroll-behavior: smooth; scroll-padding-top: 4rem; }
         @keyframes marquee {
           from { transform: translateX(0); }
           to { transform: translateX(-50%); }
@@ -67,10 +89,13 @@ export function LandingPage() {
           animation: marquee 40s linear infinite;
         }
         @media (prefers-reduced-motion: reduce) {
+          html { scroll-behavior: auto; }
           .marquee-track { animation: none; }
           .hero-fade { animation: none !important; opacity: 1 !important; transform: none !important; }
           .feature-card { transition: none !important; }
           .feature-card:hover { transform: none !important; }
+          .pill-indicator { transition: none !important; }
+          .cta-glow { animation: none !important; }
         }
         @keyframes fade-in-up {
           from { opacity: 0; transform: translateY(20px); }
@@ -85,57 +110,68 @@ export function LandingPage() {
         .hero-fade-delay-2 {
           animation: fade-in-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
         }
+        /* Hero text clip reveal — premium left-to-right wipe */
+        @keyframes clip-reveal {
+          from { clip-path: inset(0 100% 0 0); }
+          to   { clip-path: inset(0 0% 0 0); }
+        }
+        .hero-text-reveal {
+          animation: clip-reveal 1s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+        }
+        .hero-text-reveal-accent {
+          animation: clip-reveal 1s cubic-bezier(0.22, 1, 0.36, 1) 0.45s both;
+        }
+        /* Feature grid stagger */
+        .feature-grid .feature-card { opacity: 0; animation: fade-in-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        .feature-grid .feature-card:nth-child(1) { animation-delay: 0ms; }
+        .feature-grid .feature-card:nth-child(2) { animation-delay: 60ms; }
+        .feature-grid .feature-card:nth-child(3) { animation-delay: 120ms; }
+        .feature-grid .feature-card:nth-child(4) { animation-delay: 180ms; }
+        .feature-grid .feature-card:nth-child(5) { animation-delay: 240ms; }
+        .feature-grid .feature-card:nth-child(6) { animation-delay: 300ms; }
+        .feature-grid .feature-card:nth-child(7) { animation-delay: 360ms; }
+        .feature-grid .feature-card:nth-child(8) { animation-delay: 420ms; }
+        .feature-grid .feature-card:nth-child(9) { animation-delay: 480ms; }
+        /* Ensure hover still works after animation completes */
+        .feature-grid .feature-card { animation-fill-mode: forwards; }
+        /* CTA glow pulse */
+        @keyframes glow-pulse {
+          0%, 100% { box-shadow: 0 0 20px rgba(255,225,77,0.15), 0 0 40px rgba(255,225,77,0.05); }
+          50%      { box-shadow: 0 0 28px rgba(255,225,77,0.3),  0 0 60px rgba(255,225,77,0.1); }
+        }
+        .cta-glow {
+          animation: glow-pulse 3s ease-in-out infinite;
+        }
+        .cta-glow:hover {
+          animation: none;
+          box-shadow: 0 0 32px rgba(255,225,77,0.4), 0 4px 16px rgba(0,0,0,0.3);
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .cta-glow { animation: none; }
+        }
         .grain-overlay {
           position: fixed; inset: 0; z-index: 5; pointer-events: none; opacity: 0.035;
           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
         }
-        .nav-pill {
-          display: inline-flex;
-          align-items: center;
-          padding: 6px 14px;
-          border-radius: 9999px;
-          font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
-          font-size: 12px;
-          font-weight: 700;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
-          background: #ffe14d;
-          color: #000;
-          text-decoration: none;
-          transition: transform 0.15s ease, box-shadow 0.15s ease;
-          white-space: nowrap;
-        }
-        .nav-pill:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(255, 225, 77, 0.25);
-        }
-        .nav-pill:active {
-          transform: translateY(0);
-        }
-        .nav-pill-secondary {
-          background: rgba(14, 14, 18, 0.85);
-          color: #ffe14d;
-          border: 1px solid rgba(255, 225, 77, 0.2);
-        }
-        .nav-pill-secondary:hover {
-          background: rgba(14, 14, 18, 1);
-          border-color: rgba(255, 225, 77, 0.4);
-          box-shadow: 0 4px 12px rgba(255, 225, 77, 0.1);
-        }
       `}</style>
 
       {/* ═══════════════════════════════════════════ NAV ═══════════════════════════════════════════ */}
-      <nav className="relative z-50 flex items-center justify-between px-4 sm:px-6 md:px-10 h-16 border-b border-white/[0.08] bg-[#03010A]/80 backdrop-blur-sm">
+      <nav className="relative z-50 flex items-center justify-between px-4 sm:px-6 md:px-10 h-16 border-b border-white/[0.04] bg-[#03010A]/70 backdrop-blur-xl">
         <div className="flex items-center">
           <HelixaLogo size="md" href="/" />
         </div>
 
-        {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
-          <a href="#features" className="nav-pill nav-pill-secondary">FEATURES</a>
-          <a href="/pricing" className="nav-pill nav-pill-secondary">PRICING</a>
-          <a href="#updates" className="nav-pill nav-pill-secondary">UPDATES</a>
-          <a href="/signup" className="nav-pill">START BUILD →</a>
+        {/* Desktop Nav — CSS-only animated pill indicator */}
+        <div className="hidden md:flex items-center absolute left-1/2 -translate-x-1/2">
+          <PillNav
+            items={[
+              { label: 'Features', href: '#features' },
+              { label: 'Pricing', href: '/pricing' },
+              { label: 'Updates', href: '#updates' },
+              { label: 'Start Build', href: '/signup' },
+            ]}
+            activeHref="/"
+          />
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -148,8 +184,8 @@ export function LandingPage() {
         <div className="relative px-5 md:px-10 pt-20 md:pt-32 pb-24 max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-10 md:gap-16">
 
-            {/* Left — Clean HELIXA wordmark */}
-            <div className="hidden md:flex w-full md:w-1/2 flex-col justify-center items-center hero-fade">
+            {/* Left — Clean HELIXA wordmark with parallax */}
+            <div ref={heroRef} className="hidden md:flex w-full md:w-1/2 flex-col justify-center items-center hero-fade" style={{ transform: "translateY(calc(var(--py, 0px) * -1))", willChange: "transform" }}>
               <span
                 className="font-serif-display font-black text-[clamp(6rem,18vw,12rem)] leading-[0.85] tracking-[-0.04em] text-[#ffe14d] select-none"
                 style={{
@@ -162,10 +198,10 @@ export function LandingPage() {
 
             {/* Right — Copy + CTAs */}
             <div className="w-full md:w-1/2 flex flex-col items-center md:items-end text-center md:text-right">
-              <div className="w-full max-w-[500px] mb-8 hero-fade-delay">
+              <div className="w-full max-w-[500px] mb-8">
                 <h1 className="font-serif-display text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight">
-                  {t.heroTitle1}{" "}
-                  <span className="text-[#ffe14d]">{t.heroTitle2}</span>
+                  <span className="hero-text-reveal inline-block">{t.heroTitle1}{" "}</span>
+                  <span className="text-[#ffe14d] hero-text-reveal-accent inline-block">{t.heroTitle2}</span>
                 </h1>
               </div>
 
@@ -181,7 +217,7 @@ export function LandingPage() {
               <div className="flex flex-wrap items-center gap-3 hero-fade-delay-2">
                 <button
                   onClick={handleSignup}
-                  className="group flex items-center gap-2 bg-[#ffe14d] text-black font-mono-ui text-sm font-bold px-7 py-4 rounded-full hover:scale-[1.03] active:scale-[0.98] transition-transform"
+                  className="cta-glow group flex items-center gap-2 bg-[#ffe14d] text-black font-mono-ui text-sm font-bold px-7 py-4 rounded-full hover:scale-[1.03] active:scale-[0.98] transition-transform"
                 >
                   <span>{t.heroCta}</span>
                   <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -218,7 +254,7 @@ export function LandingPage() {
           <span className="hidden md:block font-mono-ui text-xs text-neutral-600">$0/month</span>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-px bg-white/[0.04] border border-white/[0.08] rounded-2xl overflow-hidden">
+        <div className="feature-grid grid md:grid-cols-3 gap-px bg-white/[0.04] border border-white/[0.08] rounded-2xl overflow-hidden">
           <Feature icon={<MessageCircle className="w-4 h-4" />} title="Comment → DM funnels"
             desc="Keyword or reply-all triggers on any post. Choose DM only, public reply only, or both — with your own rotating public replies." />
           <Feature icon={<Send className="w-4 h-4" />} title="DM keyword automation"
