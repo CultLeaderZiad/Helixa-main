@@ -16,7 +16,7 @@ export function Header() {
       items={NAV}
       baseColor="#0c0d0e"
       pillColor="#181a1b"
-      hoverCircleColor="#ccff00"
+      hoverCircleColor="#ffe14d"
       hoveredPillTextColor="#000000"
       pillTextColor="#ffffff"
       sticky={true}

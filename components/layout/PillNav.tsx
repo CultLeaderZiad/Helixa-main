@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, ReactNode } from "react"
 import Link from "next/link"
 import "./PillNav.css"
 
@@ -26,6 +26,7 @@ export interface PillNavProps {
   initialLoadAnimation?: boolean
   sticky?: boolean
   stickyScrollThreshold?: number
+  rightSlot?: ReactNode
 }
 
 export function PillNav({
@@ -36,13 +37,14 @@ export function PillNav({
   className = "",
   baseColor = "#0c0d0e",
   pillColor = "#181a1b",
-  hoverCircleColor = "#ccff00",
+  hoverCircleColor = "#ffe14d",
   hoveredPillTextColor = "#000000",
   pillTextColor = "#ffffff",
   onMobileMenuClick,
   initialLoadAnimation = true,
   sticky = false,
   stickyScrollThreshold = 100,
+  rightSlot,
 }: PillNavProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isStickyVisible, setIsStickyVisible] = useState(false)
@@ -55,7 +57,6 @@ export function PillNav({
   // Trigger entrance animation on mount
   useEffect(() => {
     if (initialLoadAnimation && !hasAnimated) {
-      // Immediate trigger
       setHasAnimated(true)
     }
   }, [initialLoadAnimation, hasAnimated])
@@ -220,6 +221,9 @@ export function PillNav({
           </ul>
         </div>
 
+        {/* Right slot (e.g., LanguageSwitcher) */}
+        {rightSlot && <div className="pill-nav-right desktop-only">{rightSlot}</div>}
+
         {/* Mobile Menu Button */}
         <button
           className={`mobile-menu-button mobile-only${isMobileMenuOpen ? " is-open" : ""}`}
@@ -258,6 +262,12 @@ export function PillNav({
               )}
             </li>
           ))}
+          {/* Mobile Language Switcher */}
+          {rightSlot && (
+            <li className="mobile-language-switcher">
+              {rightSlot}
+            </li>
+          )}
         </ul>
       </div>
     </div>
