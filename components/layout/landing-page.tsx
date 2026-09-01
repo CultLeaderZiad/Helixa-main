@@ -6,7 +6,7 @@ import { HelixaLogo } from "@/components/ui/HelixaLogo"
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import CurvedInput from "@/components/ui/CurvedInput"
-import PillNav from "@/components/ui/PillNav"
+import { PillNav } from "@/components/layout/PillNav"
 import {
   MessageCircle, Sparkles, ArrowUpRight, Github, Star,
   Send, AtSign, Brain, Inbox, Lock, Terminal,
@@ -102,13 +102,13 @@ export function LandingPage() {
           to { opacity: 1; transform: translateY(0); }
         }
         .hero-fade {
-          animation: fade-in-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+          animation: fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         .hero-fade-delay {
-          animation: fade-in-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+          animation: fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
         }
         .hero-fade-delay-2 {
-          animation: fade-in-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+          animation: fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
         }
         /* Hero text clip reveal — premium left-to-right wipe */
         @keyframes clip-reveal {
@@ -116,22 +116,22 @@ export function LandingPage() {
           to   { clip-path: inset(0 0% 0 0); }
         }
         .hero-text-reveal {
-          animation: clip-reveal 1s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+          animation: clip-reveal 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
         }
         .hero-text-reveal-accent {
-          animation: clip-reveal 1s cubic-bezier(0.22, 1, 0.36, 1) 0.45s both;
+          animation: clip-reveal 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
         }
         /* Feature grid stagger */
-        .feature-grid .feature-card { opacity: 0; animation: fade-in-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        .feature-grid .feature-card { opacity: 0; animation: fade-in-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
         .feature-grid .feature-card:nth-child(1) { animation-delay: 0ms; }
-        .feature-grid .feature-card:nth-child(2) { animation-delay: 60ms; }
-        .feature-grid .feature-card:nth-child(3) { animation-delay: 120ms; }
-        .feature-grid .feature-card:nth-child(4) { animation-delay: 180ms; }
-        .feature-grid .feature-card:nth-child(5) { animation-delay: 240ms; }
-        .feature-grid .feature-card:nth-child(6) { animation-delay: 300ms; }
-        .feature-grid .feature-card:nth-child(7) { animation-delay: 360ms; }
-        .feature-grid .feature-card:nth-child(8) { animation-delay: 420ms; }
-        .feature-grid .feature-card:nth-child(9) { animation-delay: 480ms; }
+        .feature-grid .feature-card:nth-child(2) { animation-delay: 30ms; }
+        .feature-grid .feature-card:nth-child(3) { animation-delay: 60ms; }
+        .feature-grid .feature-card:nth-child(4) { animation-delay: 90ms; }
+        .feature-grid .feature-card:nth-child(5) { animation-delay: 120ms; }
+        .feature-grid .feature-card:nth-child(6) { animation-delay: 150ms; }
+        .feature-grid .feature-card:nth-child(7) { animation-delay: 180ms; }
+        .feature-grid .feature-card:nth-child(8) { animation-delay: 210ms; }
+        .feature-grid .feature-card:nth-child(9) { animation-delay: 240ms; }
         /* Ensure hover still works after animation completes */
         .feature-grid .feature-card { animation-fill-mode: forwards; }
         /* CTA glow pulse */
@@ -156,28 +156,24 @@ export function LandingPage() {
       `}</style>
 
       {/* ═══════════════════════════════════════════ NAV ═══════════════════════════════════════════ */}
-      <nav className="relative z-50 flex items-center justify-between px-4 sm:px-6 md:px-10 h-16 border-b border-white/[0.04] bg-[#03010A]/70 backdrop-blur-xl">
-        <div className="flex items-center">
-          <HelixaLogo size="md" href="/" />
-        </div>
-
-        {/* Desktop Nav — CSS-only animated pill indicator */}
-        <div className="hidden md:flex items-center absolute left-1/2 -translate-x-1/2">
-          <PillNav
-            items={[
-              { label: 'Features', href: '#features' },
-              { label: 'Pricing', href: '/pricing' },
-              { label: 'Updates', href: '#updates' },
-              { label: 'Start Build', href: '/signup' },
-            ]}
-            activeHref="/"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 sm:gap-3">
-          <LanguageSwitcher />
-        </div>
-      </nav>
+      <PillNav
+        logo="/helix-logo.svg"
+        logoAlt="Helixa Logo"
+        items={[
+          { label: 'Features', href: '#features' },
+          { label: 'Pricing', href: '/pricing' },
+          { label: 'Updates', href: '#updates' },
+          { label: 'Start Build', href: '/signup', isPrimary: true },
+        ]}
+        activeHref="/"
+        baseColor="#0c0d0e"
+        pillColor="#181a1b"
+        hoverCircleColor="#ccff00"
+        hoveredPillTextColor="#000000"
+        pillTextColor="#ffffff"
+        sticky={true}
+        stickyScrollThreshold={80}
+      />
 
       {/* ═══════════════════════════════════════════ HERO ═══════════════════════════════════════════ */}
       <section className="relative overflow-hidden bg-transparent w-full">
