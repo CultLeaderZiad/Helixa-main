@@ -152,7 +152,7 @@ export function PillNav({
   const navContent = (
     <div className={`pill-nav-container ${hasAnimated ? "pill-nav-animate" : ""}`}>
       <nav className={`pill-nav ${className}`} aria-label="Primary" style={cssVars}>
-        {/* Logo — positioned absolutely left */}
+        {/* Logo — positioned absolutely left on desktop, in-flow on mobile */}
         <div className="pill-logo-wrap">
           {isRouterLink(items?.[0]?.href) ? (
             <Link className="pill-logo" href={items[0].href} aria-label="Home">
@@ -165,8 +165,8 @@ export function PillNav({
           )}
         </div>
 
-        {/* Pill items — absolutely centered */}
-        <div className="pill-nav-items-wrap desktop-only" ref={(el) => { /* no-op ref */ }}>
+        {/* Pill items — absolutely centered on desktop */}
+        <div className="pill-nav-items-wrap desktop-only">
           <div className="pill-nav-items">
             <ul className="pill-list" role="menubar">
               {items.map((item, i) => (
@@ -205,10 +205,10 @@ export function PillNav({
           </div>
         </div>
 
-        {/* Right slot — positioned absolutely right */}
+        {/* Right slot — positioned absolutely right on desktop */}
         {rightSlot && <div className="pill-nav-right-wrap desktop-only">{rightSlot}</div>}
 
-        {/* Mobile Menu Button */}
+        {/* Mobile Menu Button — shown on right side on mobile */}
         <button
           className={`mobile-menu-button mobile-only${isMobileMenuOpen ? " is-open" : ""}`}
           onClick={toggleMobileMenu}
