@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -210,9 +209,7 @@ export default function CampaignsPage() {
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
                     {campaigns.filter(c => c.status !== 'draft').map((campaign) => (
-                      <motion.tr 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                      <tr 
                         key={campaign.id} 
                         className="hover:bg-zinc-900/50 transition-colors group cursor-pointer"
                         onClick={() => router.push(`/dashboard/admin/campaigns/${campaign.id}`)}
@@ -244,7 +241,7 @@ export default function CampaignsPage() {
                             <ArrowRight className="w-4 h-4 ml-1" />
                           </Button>
                         </td>
-                      </motion.tr>
+                      </tr>
                     ))}
                     {campaigns.filter(c => c.status !== 'draft').length === 0 && !loading && (
                       <tr>
@@ -293,9 +290,7 @@ export default function CampaignsPage() {
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
                     {campaigns.filter(c => c.status === 'scheduled').map((campaign) => (
-                      <motion.tr 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                      <tr 
                         key={campaign.id} 
                         className="hover:bg-zinc-900/50 transition-colors group cursor-pointer"
                         onClick={() => router.push(`/dashboard/admin/campaigns/${campaign.id}`)}
@@ -322,7 +317,7 @@ export default function CampaignsPage() {
                             <ArrowRight className="w-4 h-4 ml-1" />
                           </Button>
                         </td>
-                      </motion.tr>
+                      </tr>
                     ))}
                   </tbody>
                 </table>
@@ -364,9 +359,7 @@ export default function CampaignsPage() {
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
                     {campaigns.filter(c => c.status === 'draft').map((campaign) => (
-                      <motion.tr 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                      <tr 
                         key={campaign.id} 
                         className="hover:bg-zinc-900/50 transition-colors group cursor-pointer"
                         onClick={() => router.push(`/dashboard/admin/campaigns/${campaign.id}`)}
@@ -395,7 +388,7 @@ export default function CampaignsPage() {
                             <ArrowRight className="w-4 h-4 ml-1" />
                           </Button>
                         </td>
-                      </motion.tr>
+                      </tr>
                     ))}
                   </tbody>
                 </table>

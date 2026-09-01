@@ -9,7 +9,6 @@ import Link from "next/link"
 import useSWR from "swr"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
-import TextPressure from "@/components/ui/text-pressure"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 
 interface DashboardStats {
@@ -38,19 +37,15 @@ interface PaymentStatus {
 export default function DashboardPage() {
     const { username, userId, isLoading: isSessionLoading } = useInstagramSession()
     
-    // Fetch stats using SWR
     const { data: statsData, mutate: mutateStats } = useSWR(
         userId ? `/api/dashboard/stats?userId=${userId}` : null,
         (url) => fetch(url).then(r => r.json())
     )
 
-    // paymentStatus is now included in the stats API response
-
-    const [stats, setStats] = useState<DashboardStats | null>(null)
-    // paymentStatus from the stats API
     const paymentStatus = statsData?.paymentStatus
 
-    // Sync SWR data to local state for Realtime updates
+    const [stats, setStats] = useState<DashboardStats | null>(null)
+
     useEffect(() => {
         if (statsData && !statsData.error) {
             setStats(statsData)
@@ -81,7 +76,6 @@ export default function DashboardPage() {
         }
         fetchThemes()
 
-        // Realtime Subscription
         const supabase = getSupabaseBrowserClient()
         
         const eventsSubscription = supabase.channel('dashboard-events')
@@ -162,34 +156,8 @@ export default function DashboardPage() {
 
             {/* Greeting */}
             <div className="mb-10 mt-4 relative">
-                {/* Top-right HELIXA logo */}
-                <div className="absolute top-0 right-0 h-[36px] w-[100px] pointer-events-auto hidden md:block">
-                    <TextPressure
-                        text="HELIXA"
-                        flex={true}
-                        alpha={false}
-                        stroke={false}
-                        width={true}
-                        weight={true}
-                        italic={false}
-                        textColor="#ffe14d"
-                        minFontSize={10}
-                    />
-                </div>
-
-                {/* Logo above Overview label */}
                 <div className="h-[36px] w-[80px] pointer-events-auto mb-3">
-                    <TextPressure
-                        text="HELIXA"
-                        flex={true}
-                        alpha={false}
-                        stroke={false}
-                        width={true}
-                        weight={true}
-                        italic={false}
-                        textColor="#ffe14d"
-                        minFontSize={10}
-                    />
+                    <span className="font-mono-ui font-black text-lg text-[#ffe14d] tracking-widest">HELIXA</span>
                 </div>
 
                 <p className="font-mono-ui text-[10px] uppercase tracking-[0.3em] text-[#ffe14d] mb-3 font-bold">{t.overviewLabel}</p>

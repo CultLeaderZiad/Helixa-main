@@ -1,5 +1,27 @@
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import BackToHome from "@/components/ui/back-to-home"
+
+const FAQ_ITEMS = [
+  {
+    q: "What does Helixa do?",
+    a: "Helixa is an AI-powered automation tool for Instagram and Facebook. It allows you to automatically reply to DMs, comments, and story mentions using custom rules or AI generated responses (powered by Groq)."
+  },
+  {
+    q: "How does the trial work?",
+    a: "When you sign up, you automatically receive a free trial period. During this time, you have full access to all features to test the automations. Once the trial expires, automations will pause until you upgrade to a paid plan."
+  },
+  {
+    q: "How does billing work?",
+    a: "We offer two main payment methods:\n\n• Stripe: Pay securely with a credit card for instant access and automatic monthly renewals.\n• Vodafone Cash: A manual payment option specifically for users in Egypt. You submit a transaction reference number, and our team will manually review and approve your payment to activate your plan."
+  },
+  {
+    q: "What happens if my payment isn't renewed?",
+    a: "If your Stripe payment fails or your Vodafone Cash subscription expires without a manual renewal, your account will transition to an 'expired' state. Your data will be preserved, but your automations will stop firing until you renew."
+  },
+  {
+    q: "Which platforms are supported?",
+    a: "Currently, Helixa supports Instagram Professional accounts and Facebook Pages (including Messenger). We plan to add support for WhatsApp in the future."
+  }
+]
 
 export default function FAQPage() {
   return (
@@ -11,48 +33,23 @@ export default function FAQPage() {
           <p className="text-neutral-400">Everything you need to know about Helixa and how it works.</p>
         </div>
 
-        <Accordion type="single" collapsible className="w-full">
-          <AccordionItem value="item-1">
-            <AccordionTrigger className="text-lg">What does Helixa do?</AccordionTrigger>
-            <AccordionContent className="text-neutral-300">
-              Helixa is an AI-powered automation tool for Instagram and Facebook. It allows you to automatically reply to DMs, comments, and story mentions using custom rules or AI generated responses (powered by Groq).
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="item-2">
-            <AccordionTrigger className="text-lg">How does the trial work?</AccordionTrigger>
-            <AccordionContent className="text-neutral-300">
-              When you sign up, you automatically receive a free trial period. During this time, you have full access to all features to test the automations. Once the trial expires, automations will pause until you upgrade to a paid plan.
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="item-3">
-            <AccordionTrigger className="text-lg">How does billing work?</AccordionTrigger>
-            <AccordionContent className="text-neutral-300">
-              We offer two main payment methods:
-              <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li><strong>Stripe:</strong> Pay securely with a credit card for instant access and automatic monthly renewals.</li>
-                <li><strong>Vodafone Cash:</strong> A manual payment option specifically for users in Egypt. You submit a transaction reference number, and our team will manually review and approve your payment to activate your plan.</li>
-              </ul>
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="item-4">
-            <AccordionTrigger className="text-lg">What happens if my payment isn't renewed?</AccordionTrigger>
-            <AccordionContent className="text-neutral-300">
-              If your Stripe payment fails or your Vodafone Cash subscription expires without a manual renewal, your account will transition to an &apos;expired&apos; state. Your data will be preserved, but your automations will stop firing until you renew.
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="item-5">
-            <AccordionTrigger className="text-lg">Which platforms are supported?</AccordionTrigger>
-            <AccordionContent className="text-neutral-300">
-              Currently, Helixa supports Instagram Professional accounts and Facebook Pages (including Messenger). We plan to add support for WhatsApp in the future.
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+        <div className="space-y-3">
+          {FAQ_ITEMS.map((item, i) => (
+            <details
+              key={i}
+              className="group border border-white/10 rounded-xl bg-white/[0.02] overflow-hidden [&_summary]:cursor-pointer"
+            >
+              <summary className="flex items-center justify-between px-6 py-4 text-lg font-medium text-white list-none [&::-webkit-details-marker]:hidden">
+                {item.q}
+                <span className="text-neutral-500 group-open:rotate-45 transition-transform duration-200 text-xl">+</span>
+              </summary>
+              <div className="px-6 pb-5 text-neutral-300 text-sm leading-relaxed whitespace-pre-line">
+                {item.a}
+              </div>
+            </details>
+          ))}
+        </div>
       </main>
-
     </div>
   )
 }

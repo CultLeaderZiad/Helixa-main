@@ -4,75 +4,85 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Minimal B/W Theme */
-  --background: oklch(0.05 0 0); /* Pure black */
-  --foreground: oklch(0.98 0 0); /* White */
+  /* ─── Color Tokens ─── */
+  --background: oklch(0.05 0 0);
+  --foreground: oklch(0.98 0 0);
   --accent-yellow: #ffe14d;
-  
-  --card: oklch(0.08 0 0);
+
+  --card: oklch(0.07 0 0);
   --card-foreground: oklch(0.98 0 0);
-  
-  --popover: oklch(0.08 0 0);
+
+  --popover: oklch(0.07 0 0);
   --popover-foreground: oklch(0.98 0 0);
 
-  /* Primary is now White for high contrast */
   --primary: oklch(0.98 0 0);
   --primary-foreground: oklch(0.05 0 0);
 
-  /* Secondary is Dark Gray */
-  --secondary: oklch(0.2 0 0);
+  --secondary: oklch(0.14 0 0);
   --secondary-foreground: oklch(0.98 0 0);
 
-  --muted: oklch(0.15 0 0);
-  --muted-foreground: oklch(0.6 0 0);
-  
-  --accent: oklch(0.15 0 0);
+  --muted: oklch(0.14 0 0);
+  --muted-foreground: oklch(0.55 0 0);
+
+  --accent: oklch(0.14 0 0);
   --accent-foreground: oklch(0.98 0 0);
 
-  --destructive: oklch(0.5 0.2 27); /* Keeping red for errors but slightly desaturated */
+  --destructive: oklch(0.55 0.18 27);
   --destructive-foreground: oklch(0.98 0 0);
 
-  --border: oklch(0.15 0 0);
-  --input: oklch(0.15 0 0);
+  --border: oklch(0.14 0 0);
+  --input: oklch(0.14 0 0);
   --ring: oklch(0.25 0 0);
 
-  --radius: 0.5rem;
+  --radius: 0.625rem;
 
+  /* ─── Sidebar Tokens ─── */
   --sidebar: oklch(0.05 0 0);
-  --sidebar-foreground: oklch(0.7 0 0);
+  --sidebar-foreground: oklch(0.65 0 0);
   --sidebar-primary: oklch(0.98 0 0);
+  --sidebar-primary-foreground: oklch(0.05 0 0);
   --sidebar-border: oklch(0.12 0 0);
-  --sidebar-accent: oklch(0.12 0 0);
+  --sidebar-accent: oklch(0.10 0 0);
   --sidebar-accent-foreground: oklch(0.98 0 0);
   --sidebar-ring: oklch(0.25 0 0);
+
+  /* ─── Brand ─── */
+  --brand: #ffe14d;
+  --brand-hover: #e6c51b;
+  --brand-glow: rgba(255, 225, 77, 0.12);
+
+  /* ─── Surfaces ─── */
+  --surface-0: #03010A;
+  --surface-1: #0a0a09;
+  --surface-2: #0f0f0e;
+  --surface-3: #161615;
 }
 
 .dark {
-  /* Same as root since we are enforcing Dark Mode B/W */
   --background: oklch(0.05 0 0);
   --foreground: oklch(0.98 0 0);
-  --card: oklch(0.08 0 0);
+  --card: oklch(0.07 0 0);
   --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0.08 0 0);
+  --popover: oklch(0.07 0 0);
   --popover-foreground: oklch(0.98 0 0);
   --primary: oklch(0.98 0 0);
   --primary-foreground: oklch(0.05 0 0);
-  --secondary: oklch(0.2 0 0);
+  --secondary: oklch(0.14 0 0);
   --secondary-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.15 0 0);
-  --muted-foreground: oklch(0.6 0 0);
-  --accent: oklch(0.15 0 0);
+  --muted: oklch(0.14 0 0);
+  --muted-foreground: oklch(0.55 0 0);
+  --accent: oklch(0.14 0 0);
   --accent-foreground: oklch(0.98 0 0);
-  --destructive: oklch(0.5 0.2 27);
+  --destructive: oklch(0.55 0.18 27);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.15 0 0);
-  --input: oklch(0.15 0 0);
+  --border: oklch(0.14 0 0);
+  --input: oklch(0.14 0 0);
   --ring: oklch(0.25 0 0);
   --sidebar: oklch(0.05 0 0);
-  --sidebar-foreground: oklch(0.7 0 0);
+  --sidebar-foreground: oklch(0.65 0 0);
   --sidebar-primary: oklch(0.98 0 0);
   --sidebar-primary-foreground: oklch(0.05 0 0);
-  --sidebar-accent: oklch(0.12 0 0);
+  --sidebar-accent: oklch(0.10 0 0);
   --sidebar-accent-foreground: oklch(0.98 0 0);
   --sidebar-border: oklch(0.12 0 0);
   --sidebar-ring: oklch(0.25 0 0);
@@ -117,54 +127,33 @@
   --color-brand-600: #e6c51b;
 }
 
+/* ─── Base Layer ─── */
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground antialiased selection:bg-white/20;
+    @apply bg-background text-foreground antialiased selection:bg-[#ffe14d]/20 selection:text-white;
   }
 }
 
-/* Minimal Utilities */
-.glass-panel {
-  @apply bg-black/40 backdrop-blur-md border border-white/10;
-}
-
-/* Removed Instagram gradients, replaced with minimal text styles if needed */
-.text-minimal-gradient {
-  @apply text-white;
-}
-
-.hover-glow {
-  @apply transition-colors duration-200;
-}
-.hover-glow:hover {
-  @apply bg-white/5;
-}
-
-.vercel-row-hover {
-  @apply transition-colors cursor-pointer;
-}
-.vercel-row-hover:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-
-/* Minimal Scrollbar */
+/* ─── Scrollbar ─── */
 ::-webkit-scrollbar {
-  width: 4px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-transparent;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-white/10 rounded-full transition-colors;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-white/20;
+  background: rgba(255, 255, 255, 0.15);
 }
 
-/* Editorial type utilities (shared across app) */
+/* ─── Typography Utilities ─── */
 .font-serif-display {
   font-family: var(--font-instrument-serif), Georgia, serif;
 }
@@ -172,3 +161,91 @@
   font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
+/* ─── Surface Utilities ─── */
+.surface-0 { background-color: var(--surface-0); }
+.surface-1 { background-color: var(--surface-1); }
+.surface-2 { background-color: var(--surface-2); }
+.surface-3 { background-color: var(--surface-3); }
+
+/* ─── Card System ─── */
+.card-base {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+}
+
+.card-hover {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* ─── Glass ─── */
+.glass {
+  background: rgba(3, 1, 10, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ─── Brand Glow ─── */
+.brand-glow {
+  box-shadow: 0 0 0 1px rgba(255, 225, 77, 0.15), 0 0 20px rgba(255, 225, 77, 0.06);
+}
+
+/* ─── Focus Ring ─── */
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  box-shadow: 0 0 0 2px var(--surface-0), 0 0 0 4px var(--brand);
+}
+
+/* ─── Lightweight Motion Utilities ─── */
+/* Pure CSS transitions — zero JS, GPU-composited */
+
+/* Fade in */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.motion-fade-in {
+  animation: fadeIn 0.3s ease-out both;
+}
+
+/* Fade in + slide up */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.motion-fade-in-up {
+  animation: fadeInUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Fade in + scale */
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+.motion-fade-in-scale {
+  animation: fadeInScale 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Stagger delays — apply to children */
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 50ms; }
+.stagger > *:nth-child(3) { animation-delay: 100ms; }
+.stagger > *:nth-child(4) { animation-delay: 150ms; }
+.stagger > *:nth-child(5) { animation-delay: 200ms; }
+.stagger > *:nth-child(6) { animation-delay: 250ms; }
+
+/* ─── Reduced Motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

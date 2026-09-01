@@ -8,8 +8,6 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import TextPressure from "@/components/ui/text-pressure"
-import DepthText from "@/components/ui/DepthText"
 import { HelixaLogo } from "@/components/ui/HelixaLogo"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"

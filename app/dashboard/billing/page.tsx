@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { CreditCard, AlertTriangle, CheckCircle, Package } from "lucide-react"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
-import ElectricBorder from "@/components/ui/ElectricBorder"
 
 interface Subscription {
     id: string
@@ -237,7 +236,7 @@ export default function BillingPage() {
                                       BEST VALUE
                                   </div>
                               )}
-                              <ElectricBorder color={isFeatured ? "#ffffff" : "#ffe14d"} speed={isFeatured ? 6 : 2} chaos={0.12} thickness={2} containerClassName="rounded-[2rem] flex-col flex h-full">
+                              <div className={`rounded-[2rem] flex-col flex h-full border ${isFeatured ? 'border-white/15 shadow-[0_0_30px_rgba(255,255,255,0.04)]' : 'border-[#ffe14d]/15 shadow-[0_0_30px_rgba(255,225,77,0.06)]'} bg-white/[0.03]`}>
                                 <div className={`relative h-full ${isFeatured ? 'bg-white/[0.03]' : 'bg-white/[0.03]'} border border-white/10 p-8 rounded-[2rem] flex flex-col`}>
                                     <div className="mb-6">
                                         <h3 className={`text-xl font-bold ${titleColor} mb-2`}>{plan.name}</h3>
@@ -263,7 +262,7 @@ export default function BillingPage() {
                                         Select {plan.name}
                                     </button>
                                 </div>
-                              </ElectricBorder>
+                              </div>
                             </div>
                         )
                     })}

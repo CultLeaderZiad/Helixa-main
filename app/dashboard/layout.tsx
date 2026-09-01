@@ -7,7 +7,6 @@ import { MobileNav } from "@/components/layout/mobile-nav"
 import Image from "next/image"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { Loader2 } from "lucide-react"
-import TextPressure from "@/components/ui/text-pressure"
 import { TrialBanner } from "@/components/layout/TrialBanner"
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"
 import { DashboardBackground } from "@/components/layout/DashboardBackground"
@@ -21,9 +20,6 @@ export default function DashboardLayout({
 
     const router = useRouter()
 
-    // Redirect to /login once we know the session is fully loaded and there is
-    // no authenticated account. Doing this in an effect (instead of during
-    // render) avoids "Cannot update a component while rendering another".
     useEffect(() => {
         if (!isLoading) {
             if (!accountId) {
@@ -100,13 +96,12 @@ export default function DashboardLayout({
 
     return (
         <div className="flex min-h-screen bg-[#03010A] text-foreground relative">
-            {/* AcidSquares animated background */}
             <DashboardBackground />
 
             {/* Desktop Sidebar */}
             <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 md:start-0 z-50">
                 <Sidebar
-                    className="h-full border-e border-white/10 bg-[#03010A]/50 backdrop-blur-xl"
+                    className="h-full border-e border-white/[0.06] bg-[#03010A]/80"
                     username={username || "User"}
                     profilePic={profilePic}
                     email={email}
@@ -117,23 +112,11 @@ export default function DashboardLayout({
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col md:ps-64 transition-all duration-300">
-                {/* Mobile Header (Visible only on small screens) */}
+                {/* Mobile Header */}
                 <header className="md:hidden h-16 border-b border-white/10 bg-[#03010A] flex items-center justify-between px-4 sticky top-0 z-40">
                     <div className="flex items-center gap-3">
                         <MobileNav username={username || "User"} profilePic={profilePic} email={email} userRole={role} onLogout={logout} />
-                        <div style={{ position: 'relative', height: '36px', width: '90px' }} dir="ltr">
-                            <TextPressure
-                                text="HELIXA"
-                                flex={true}
-                                alpha={false}
-                                stroke={false}
-                                width={true}
-                                weight={true}
-                                italic={false}
-                                textColor="#ffe14d"
-                                minFontSize={10}
-                            />
-                        </div>
+                        <span className="font-mono-ui font-black text-sm text-[#ffe14d] tracking-widest">HELIXA</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <LanguageSwitcher />
