@@ -1,7 +1,9 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback, ReactNode } from "react"
+import React, { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { useLanguage } from "@/lib/i18n/LanguageContext"
 import "./PillNav.css"
 
 export type PillNavItem = {
@@ -12,254 +14,279 @@ export type PillNavItem = {
 }
 
 export interface PillNavProps {
-  logo: string
+  logo?: string
+  logoText?: string
   logoAlt?: string
-  items: PillNavItem[]
+  items?: PillNavItem[]
   activeHref?: string
   className?: string
-  baseColor?: string
-  pillColor?: string
-  hoverCircleColor?: string
-  hoveredPillTextColor?: string
-  pillTextColor?: string
   onMobileMenuClick?: () => void
-  initialLoadAnimation?: boolean
-  sticky?: boolean
-  stickyScrollThreshold?: number
-  rightSlot?: ReactNode
 }
 
 export function PillNav({
-  logo,
-  logoAlt = "Logo",
-  items = [],
+  logo = "/helix-logo.svg",
+  logoText = "HLX",
+  logoAlt = "Helix Auto DM Logo",
+  items,
   activeHref,
   className = "",
-  baseColor = "#0c0d0e",
-  pillColor = "#181a1b",
-  hoverCircleColor = "#ffe14d",
-  hoveredPillTextColor = "#000000",
-  pillTextColor = "#ffffff",
   onMobileMenuClick,
-  initialLoadAnimation = true,
-  sticky = false,
-  stickyScrollThreshold = 100,
-  rightSlot,
 }: PillNavProps) {
+  const pathname = usePathname()
+  const { language, setLanguage, t } = useLanguage()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isStickyVisible, setIsStickyVisible] = useState(false)
-  const [isScrolledPast, setIsScrolledPast] = useState(false)
-  const [hasAnimated, setHasAnimated] = useState(false)
   const circleRefs = useRef<Array<HTMLSpanElement | null>>([])
-  const lastScrollY = useRef(0)
+  const ctaCircleRef = useRef<HTMLSpanElement | null>(null)
+  const langCircleRef = useRef<HTMLSpanElement | null>(null)
 
+  const defaultItems: PillNavItem[] = [
+    { label: t.features || "Features", href: "/#features" },
+    { label: t.howItWorks || "How It Works", href: "/#how" },
+    { label: t.pricing || "Pricing", href: "/pricing" },
+    { label: t.updates || "Updates", href: "/updates" },
+    { label: t.faq || "FAQ", href: "/faq" },
+  ]
+  const effectiveItems = items || defaultItems
+
+  // Current active path or hash
+  const currentActive = activeHref || pathname || "/"
+
+  const toggleLanguage = useCallback(() => {
+    setLanguage(language === "en" ? "ar" : "en")
+  }, [language, setLanguage])
+
+  // Close mobile menu on route change
   useEffect(() => {
-    if (initialLoadAnimation && !hasAnimated) {
-      setHasAnimated(true)
-    }
-  }, [initialLoadAnimation, hasAnimated])
+    setIsMobileMenuOpen(false)
+  }, [pathname])
 
+  // Calculate geometric bubble origin on pills
   useEffect(() => {
     const layout = () => {
-      circleRefs.current.forEach((circle) => {
+      const allCircles = [...circleRefs.current, ctaCircleRef.current, langCircleRef.current]
+      allCircles.forEach((circle) => {
         if (!circle?.parentElement) return
         const pill = circle.parentElement as HTMLElement
         const rect = pill.getBoundingClientRect()
         const { width: w, height: h } = rect
+        if (w === 0 || h === 0) return
         const R = ((w * w) / 4 + h * h) / (2 * h)
-        const D = Math.ceil(2 * R) + 2
-        const delta = Math.ceil(R - Math.sqrt(Math.max(0, R * R - (w * w) / 4))) + 1
+        const D = Math.ceil(2 * R) + 4
+        const delta = Math.ceil(R - Math.sqrt(Math.max(0, R * R - (w * w) / 4))) + 2
         const originY = D - delta
+
         circle.style.width = `${D}px`
         circle.style.height = `${D}px`
         circle.style.bottom = `-${delta}px`
-        circle.style.setProperty("--origin-y", `${originY}px`)
+        circle.style.transformOrigin = `50% ${originY}px`
       })
     }
 
     layout()
-    const onResize = () => layout()
-    window.addEventListener("resize", onResize)
-    if (document.fonts?.ready) {
+    window.addEventListener("resize", layout)
+    if (typeof document !== "undefined" && document.fonts?.ready) {
       document.fonts.ready.then(layout).catch(() => {})
     }
-    return () => window.removeEventListener("resize", onResize)
-  }, [items])
-
-  // Sticky scroll behavior
-  useEffect(() => {
-    if (!sticky) return
-
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY
-      if (currentScrollY > stickyScrollThreshold) {
-        setIsScrolledPast(true)
-        if (currentScrollY < lastScrollY.current) {
-          setIsStickyVisible(true)
-        } else if (currentScrollY > lastScrollY.current + 10) {
-          setIsStickyVisible(false)
-          setIsMobileMenuOpen(false)
-        }
-      } else {
-        setIsScrolledPast(false)
-        setIsStickyVisible(false)
-      }
-      lastScrollY.current = currentScrollY
-    }
-
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [sticky, stickyScrollThreshold])
+    return () => window.removeEventListener("resize", layout)
+  }, [items, language])
 
   const toggleMobileMenu = useCallback(() => {
-    setIsMobileMenuOpen(!isMobileMenuOpen)
+    setIsMobileMenuOpen((prev) => !prev)
     onMobileMenuClick?.()
-  }, [isMobileMenuOpen, onMobileMenuClick])
+  }, [onMobileMenuClick])
 
-  const handleHashClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (href.startsWith("#")) {
-      e.preventDefault()
-      const target = document.querySelector(href)
-      if (target) {
-        const headerOffset = 80
-        const elementPosition = target.getBoundingClientRect().top
-        const offsetPosition = elementPosition + window.scrollY - headerOffset
-        window.scrollTo({ top: offsetPosition, behavior: "smooth" })
+  const handleLinkClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    setIsMobileMenuOpen(false)
+    if (href.startsWith("#") || (href.startsWith("/#") && pathname === "/")) {
+      const hash = href.includes("#") ? `#${href.split("#")[1]}` : href
+      const el = document.querySelector(hash)
+      if (el) {
+        e.preventDefault()
+        const offset = 80
+        const bodyRect = document.body.getBoundingClientRect().top
+        const elementRect = el.getBoundingClientRect().top
+        const elementPosition = elementRect - bodyRect
+        const offsetPosition = elementPosition - offset
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth",
+        })
       }
-      setIsMobileMenuOpen(false)
     }
-  }, [])
+  }, [pathname])
 
-  const isExternalLink = (href: string) =>
-    href &&
-    (href.startsWith("http://") ||
-      href.startsWith("https://") ||
-      href.startsWith("//") ||
-      href.startsWith("mailto:") ||
-      href.startsWith("tel:") ||
-      href.startsWith("#"))
+  const isActiveLink = (href: string) => {
+    if (href === currentActive) return true
+    if (href !== "/" && href !== "/#features" && href !== "/#how" && currentActive.startsWith(href)) return true
+    return false
+  }
 
-  const isRouterLink = (href?: string) => href && !isExternalLink(href)
+  const nextLangLabel = language === "en" ? "AR" : "EN"
 
-  const cssVars = {
-    "--base": baseColor,
-    "--pill-bg": pillColor,
-    "--hover-circle": hoverCircleColor,
-    "--hover-text": hoveredPillTextColor,
-    "--pill-text": pillTextColor,
-  } as React.CSSProperties
-
-  const navContent = (
-    <div className={`pill-nav-container ${hasAnimated ? "pill-nav-animate" : ""}`}>
-      <nav className={`pill-nav ${className}`} aria-label="Primary" style={cssVars}>
-        {/* Logo — positioned absolutely left on desktop, in-flow on mobile */}
-        <div className="pill-logo-wrap">
-          {isRouterLink(items?.[0]?.href) ? (
-            <Link className="pill-logo" href={items[0].href} aria-label="Home">
-              <img src={logo} alt={logoAlt} />
-            </Link>
-          ) : (
-            <a className="pill-logo" href={items?.[0]?.href || "#"} aria-label="Home">
-              <img src={logo} alt={logoAlt} />
-            </a>
-          )}
-        </div>
-
-        {/* Pill items — absolutely centered on desktop */}
-        <div className="pill-nav-items-wrap desktop-only">
-          <div className="pill-nav-items">
-            <ul className="pill-list" role="menubar">
-              {items.map((item, i) => (
-                <li key={item.href} role="none">
-                  {isRouterLink(item.href) ? (
-                    <Link
-                      role="menuitem"
-                      href={item.href}
-                      className={`pill${activeHref === item.href ? " is-active" : ""}${item.isPrimary ? " pill-primary" : ""}`}
-                      aria-label={item.ariaLabel || item.label}
-                    >
-                      <span className="hover-circle" aria-hidden="true" ref={(el) => { circleRefs.current[i] = el }} />
-                      <span className="label-stack">
-                        <span className="pill-label">{item.label}</span>
-                        <span className="pill-label-hover" aria-hidden="true">{item.label}</span>
-                      </span>
-                    </Link>
-                  ) : (
-                    <a
-                      role="menuitem"
-                      href={item.href}
-                      className={`pill${activeHref === item.href ? " is-active" : ""}${item.isPrimary ? " pill-primary" : ""}`}
-                      aria-label={item.ariaLabel || item.label}
-                      onClick={(e) => handleHashClick(e, item.href)}
-                    >
-                      <span className="hover-circle" aria-hidden="true" ref={(el) => { circleRefs.current[i] = el }} />
-                      <span className="label-stack">
-                        <span className="pill-label">{item.label}</span>
-                        <span className="pill-label-hover" aria-hidden="true">{item.label}</span>
-                      </span>
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Right slot — positioned absolutely right on desktop */}
-        {rightSlot && <div className="pill-nav-right-wrap desktop-only">{rightSlot}</div>}
-
-        {/* Mobile Menu Button — shown on right side on mobile */}
-        <button
-          className={`mobile-menu-button mobile-only${isMobileMenuOpen ? " is-open" : ""}`}
-          onClick={toggleMobileMenu}
-          aria-label="Toggle menu"
+  return (
+    <div className="pill-nav-container">
+      <nav className={`pill-nav ${className}`} aria-label="Primary">
+        {/* Left: HLX Logo with App Icon */}
+        <Link
+          href="/"
+          className="pill-logo"
+          aria-label="Helix Auto DM Home"
+          id="pillLogo"
+          onClick={(e) => handleLinkClick(e, "/")}
         >
-          <span className="hamburger-line" />
-          <span className="hamburger-line" />
-        </button>
+          {logo && <img src={logo} alt={logoAlt} className="pill-logo-icon" />}
+          <span className="pill-logo-text">{logoText}</span>
+        </Link>
+
+        {/* Center: Desktop Navigation Items Track */}
+        <div className="pill-nav-items desktop-only" id="navItems">
+          <ul className="pill-list" role="menubar">
+            {effectiveItems.map((item, i) => {
+              const active = isActiveLink(item.href)
+
+              return (
+                <li key={item.href} role="none">
+                  <Link
+                    href={item.href}
+                    className={`pill ${active ? "is-active" : ""}`}
+                    aria-label={item.ariaLabel || item.label}
+                    role="menuitem"
+                    onClick={(e) => handleLinkClick(e, item.href)}
+                  >
+                    <span
+                      className="hover-circle"
+                      aria-hidden="true"
+                      ref={(el) => {
+                        circleRefs.current[i] = el
+                      }}
+                    />
+                    <span className="label-stack">
+                      <span className="pill-label">{item.label}</span>
+                      <span className="pill-label-hover" aria-hidden="true">
+                        {item.label}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              )
+            })}
+
+            {/* Desktop Start Build Silver CTA */}
+            <li role="none" style={{ marginLeft: "1.25rem" }}>
+              <Link
+                href="/signup"
+                className="pill pill-silver"
+                role="menuitem"
+                aria-label={t.startBuild || "Start Build"}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <span className="hover-circle" aria-hidden="true" ref={ctaCircleRef} />
+                <span className="label-stack">
+                  <span className="pill-label">
+                    {t.startBuild || "Start Build"}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                  </span>
+                  <span className="pill-label-hover" aria-hidden="true">
+                    {t.startBuild || "Start Build"}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                  </span>
+                </span>
+              </Link>
+            </li>
+
+            {/* Desktop Language Switcher Pill */}
+            <li role="none" style={{ marginLeft: "0.5rem" }}>
+              <button
+                type="button"
+                className="pill pill-lang"
+                role="menuitem"
+                onClick={toggleLanguage}
+                aria-label={`Switch to ${nextLangLabel}`}
+                title={`Switch to ${language === "en" ? "Arabic" : "English"}`}
+              >
+                <span className="hover-circle" aria-hidden="true" ref={langCircleRef} />
+                <span className="label-stack">
+                  <span className="pill-label">{nextLangLabel}</span>
+                  <span className="pill-label-hover" aria-hidden="true">
+                    {nextLangLabel}
+                  </span>
+                </span>
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        {/* Mobile: Start Build CTA shown directly in nav */}
+        <Link href="/signup" className="mobile-nav-cta" onClick={() => setIsMobileMenuOpen(false)}>
+          <span>{t.startBuild || "Start Build"}</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </Link>
+
+        {/* Mobile: Right Actions (Language + Hamburger) */}
+        <div className="mobile-right-actions">
+          <button
+            type="button"
+            className="mobile-lang-btn"
+            onClick={toggleLanguage}
+            aria-label={`Switch to ${nextLangLabel}`}
+          >
+            {nextLangLabel}
+          </button>
+
+          <button
+            type="button"
+            id="hamburgerBtn"
+            className={`mobile-menu-button ${isMobileMenuOpen ? "is-open" : ""}`}
+            onClick={toggleMobileMenu}
+            aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={isMobileMenuOpen}
+          >
+            <span className="hamburger-line" />
+            <span className="hamburger-line" />
+          </button>
+        </div>
       </nav>
 
-      {/* Mobile Menu Popover */}
-      <div className={`mobile-menu-popover mobile-only${isMobileMenuOpen ? " is-open" : ""}`} style={cssVars}>
+      {/* Mobile Popover Menu */}
+      <div className={`mobile-menu-popover mobile-only ${isMobileMenuOpen ? "is-open" : ""}`}>
         <ul className="mobile-menu-list">
-          {items.map((item) => (
-            <li key={item.href}>
-              {isRouterLink(item.href) ? (
+          {effectiveItems.map((item) => {
+            const active = isActiveLink(item.href)
+
+            return (
+              <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`mobile-menu-link${activeHref === item.href ? " is-active" : ""}${item.isPrimary ? " is-primary" : ""}`}
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`mobile-menu-link ${active ? "is-active" : ""}`}
+                  onClick={(e) => handleLinkClick(e, item.href)}
                 >
                   {item.label}
                 </Link>
-              ) : (
-                <a
-                  href={item.href}
-                  className={`mobile-menu-link${activeHref === item.href ? " is-active" : ""}${item.isPrimary ? " is-primary" : ""}`}
-                  onClick={(e) => { handleHashClick(e, item.href); setIsMobileMenuOpen(false) }}
-                >
-                  {item.label}
-                </a>
-              )}
-            </li>
-          ))}
-          {rightSlot && (
-            <li className="mobile-language-switcher">{rightSlot}</li>
-          )}
+              </li>
+            )
+          })}
+          <li>
+            <Link
+              href="/signup"
+              className="mobile-menu-link is-cta"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <span>{t.startBuild || "Start Build"}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </li>
         </ul>
       </div>
     </div>
   )
-
-  if (sticky) {
-    return (
-      <div className={`pill-nav-sticky ${isScrolledPast ? (isStickyVisible ? "pill-nav-visible" : "pill-nav-hidden") : ""}`}>
-        {navContent}
-      </div>
-    )
-  }
-
-  return navContent
 }
 
 export default PillNav

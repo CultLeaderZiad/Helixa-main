@@ -3,6 +3,7 @@ import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { redirect } from "next/navigation"
 import CheckoutClient from "./CheckoutClient"
 import BackToHome from "@/components/ui/back-to-home"
+import { FrontBackground } from "@/components/layout/FrontBackground"
 
 export default async function CheckoutPage(props: { 
   params: Promise<{ plan_id: string }>,
@@ -35,7 +36,8 @@ export default async function CheckoutPage(props: {
   const isYearly = searchParams.cycle === "yearly"
 
   return (
-    <div className="min-h-screen bg-[#03010A] text-white py-24 px-6 relative">
+    <div className="min-h-screen bg-[#03010A] text-white py-24 px-6 relative overflow-hidden">
+      <FrontBackground />
       <BackToHome />
       <div className="max-w-xl mx-auto space-y-8 relative z-10">
         <h1 className="text-3xl font-bold text-center">Complete your checkout</h1>

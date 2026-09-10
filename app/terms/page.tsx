@@ -1,11 +1,13 @@
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
+import { FrontBackground } from "@/components/layout/FrontBackground"
 
 export default function TermsPage() {
     return (
-        <main className="min-h-screen bg-black text-white selection:bg-[#ffe14d] selection:text-black">
-            <Header />
-            <div className="max-w-3xl mx-auto px-4 py-24 sm:py-32">
+        <main className="min-h-screen bg-[#03010A] text-white selection:bg-[#ffe14d] selection:text-black relative">
+            <FrontBackground />
+            <Header activeHref="/terms" />
+            <div className="max-w-3xl mx-auto px-4 py-24 sm:py-32 relative z-10">
                 <h1 className="text-4xl md:text-5xl font-serif-display mb-8 tracking-tight">Terms of Service</h1>
                 
                 <div className="prose prose-invert max-w-none space-y-6 text-neutral-300">

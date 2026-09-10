@@ -232,7 +232,7 @@ export default function AdminPage() {
           const agentsData = await agentsRes.json()
           if (Array.isArray(agentsData)) setAgents(agentsData)
 
-          const mappingRes = await fetch("/api/admin/plan_agents")
+          const mappingRes = await fetch("/api/admin/plan-agents")
           const mappingData = await mappingRes.json()
           
           if (Array.isArray(mappingData)) {
@@ -255,7 +255,7 @@ export default function AdminPage() {
               const parts = key.split('-')
               const plan_id = parts[0]
               const agent_id = parts.slice(1).join('-')
-              return fetch("/api/admin/plan_agents", {
+              return fetch("/api/admin/plan-agents", {
                   method: "PUT",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ plan_id, agent_id, is_enabled })

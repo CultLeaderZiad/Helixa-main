@@ -187,7 +187,7 @@ async function callGroqAPI(options: GroqCompletionRequest, apiKey: string) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: options.model || "qwen/qwen3.8-27b",
+      model: options.model || "llama-3.3-70b-versatile",
       messages: options.messages,
       temperature: options.temperature,
       max_tokens: options.max_tokens,

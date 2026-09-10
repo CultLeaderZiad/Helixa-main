@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Geist, Instrument_Serif, JetBrains_Mono } from "next/font/google"
+import { Geist, Instrument_Serif, JetBrains_Mono, Cairo } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
@@ -16,6 +16,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary"
 const _geist = Geist({ subsets: ["latin"] })
 const _instrumentSerif = Instrument_Serif({ subsets: ["latin"], weight: "400", variable: "--font-instrument-serif" })
 const _jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" })
+const _cairo = Cairo({ subsets: ["arabic", "latin"], variable: "--font-cairo", display: "swap" })
 
 export const metadata: Metadata = {
   title: "Helixa - Automate your Dm's",
@@ -35,7 +36,7 @@ export const viewport = {
   userScalable: true,
 }
 
-const fontVariables = [_instrumentSerif.variable, _jetbrainsMono.variable].filter(Boolean).join(' ')
+const fontVariables = [_instrumentSerif.variable, _jetbrainsMono.variable, _cairo.variable].filter(Boolean).join(' ')
 
 export default function RootLayout({
   children,

@@ -1,7 +1,9 @@
 import { CheckCircle, Zap, Star } from "lucide-react"
 import Link from "next/link"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import BackToHome from "@/components/ui/back-to-home"
+import { Header } from "@/components/layout/Header"
+import { Footer } from "@/components/layout/Footer"
+import { FrontBackground } from "@/components/layout/FrontBackground"
 
 import PricingClient from "./PricingClient"
 
@@ -52,19 +54,15 @@ export default async function PricingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#03010A] text-white relative">
-      <BackToHome />
-      <main className="max-w-7xl mx-auto py-24 px-6 relative z-10">
-        <div className="text-center space-y-4 mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Simple, transparent pricing</h1>
-          <p className="text-neutral-400 max-w-2xl mx-auto text-lg">
-            Start for free, then choose a plan that fits your needs. 
-            We offer automated billing via Stripe or manual payments via Vodafone Cash.
-          </p>
-        </div>
-
-        <PricingClient plans={plans} />
-      </main>
+    <div className="min-h-screen bg-[#03010A] text-white flex flex-col justify-between selection:bg-[#ffe14d] selection:text-black relative">
+      <FrontBackground />
+      <div>
+        <Header activeHref="/pricing" />
+        <main className="max-w-7xl mx-auto pt-12 pb-24 px-6 relative z-10">
+          <PricingClient plans={plans} />
+        </main>
+      </div>
+      <Footer />
     </div>
   )
 }

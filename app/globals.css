@@ -161,6 +161,33 @@
   font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
+/* ─── Arabic Typography & RTL Support ─── */
+[lang="ar"],
+[dir="rtl"],
+html[dir="rtl"],
+html[dir="rtl"] body,
+html[dir="rtl"] button,
+html[dir="rtl"] input,
+html[dir="rtl"] textarea,
+html[dir="rtl"] select,
+html[dir="rtl"] h1,
+html[dir="rtl"] h2,
+html[dir="rtl"] h3,
+html[dir="rtl"] h4,
+html[dir="rtl"] h5,
+html[dir="rtl"] h6,
+html[dir="rtl"] p,
+html[dir="rtl"] span,
+html[dir="rtl"] a {
+  font-family: var(--font-cairo), 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+html[dir="rtl"] .font-serif-display,
+html[dir="rtl"] .font-mono-ui {
+  font-family: var(--font-cairo), 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  letter-spacing: normal !important;
+}
+
 /* ─── Surface Utilities ─── */
 .surface-0 { background-color: var(--surface-0); }
 .surface-1 { background-color: var(--surface-1); }

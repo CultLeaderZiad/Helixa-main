@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { CreditCard, AlertTriangle, CheckCircle, Package } from "lucide-react"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
+import { ElectricBorder } from "@/components/ui/ElectricBorder"
 
 interface Subscription {
     id: string
@@ -225,19 +226,26 @@ export default function BillingPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
                     {plans.map((plan, idx) => {
                         const isFeatured = idx === 0;
-                        const borderColor = isFeatured ? "from-white/20" : "from-[#ffe14d]";
                         const titleColor = isFeatured ? "text-white" : "text-white";
                         
                         return (
-                            <div key={plan.id} className="relative pt-4">
+                            <div key={plan.id} className="relative pt-4 flex flex-col h-full">
                               {/* Keep Best Value badge if not featured */}
                               {!isFeatured && (
-                                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-[#ffe14d] to-[#e6c419] text-black px-4 py-1.5 rounded-full text-xs font-bold tracking-widest z-20 whitespace-nowrap shadow-xl border border-black/20">
+                                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-[#ffe14d] to-[#e6c419] text-black px-4 py-1.5 rounded-full text-xs font-bold tracking-widest z-30 whitespace-nowrap shadow-xl border border-black/20">
                                       BEST VALUE
                                   </div>
                               )}
-                              <div className={`rounded-[2rem] flex-col flex h-full border ${isFeatured ? 'border-white/15 shadow-[0_0_30px_rgba(255,255,255,0.04)]' : 'border-[#ffe14d]/15 shadow-[0_0_30px_rgba(255,225,77,0.06)]'} bg-white/[0.03]`}>
-                                <div className={`relative h-full ${isFeatured ? 'bg-white/[0.03]' : 'bg-white/[0.03]'} border border-white/10 p-8 rounded-[2rem] flex flex-col`}>
+                              <ElectricBorder
+                                color="#7df9ff"
+                                speed={1}
+                                chaos={0.12}
+                                thickness={2}
+                                borderRadius={16}
+                                style={{ borderRadius: 16 }}
+                                className="h-full flex flex-col"
+                              >
+                                <div className="relative h-full bg-[#08070d]/90 border border-white/10 p-8 rounded-2xl flex flex-col shadow-2xl backdrop-blur-md">
                                     <div className="mb-6">
                                         <h3 className={`text-xl font-bold ${titleColor} mb-2`}>{plan.name}</h3>
                                         <p className="text-sm text-neutral-400">{plan.description}</p>
@@ -262,7 +270,7 @@ export default function BillingPage() {
                                         Select {plan.name}
                                     </button>
                                 </div>
-                              </div>
+                              </ElectricBorder>
                             </div>
                         )
                     })}

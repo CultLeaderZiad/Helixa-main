@@ -161,23 +161,78 @@ export function ReelPostPicker({
           value={specificMediaUrl}
           onChange={(e) => setSpecificMediaUrl(e.target.value)}
           placeholder={platformInfo.placeholder}
-          className="flex-1 h-9 bg-white/[0.02] border border-white/10 rounded-xl px-3 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#ffe14d]/50 transition-all"
+          className="flex-1 h-9 bg-white/[0.02] border border-white/10 rounded-xl px-3 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#ffe14d]/50 transition-all font-mono-ui"
         />
         <button
           type="button"
           onClick={handleResolveMediaUrl}
           disabled={!specificMediaUrl.trim() || resolvingUrl}
-          className="h-9 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition-all disabled:opacity-50"
+          className="h-9 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition-all disabled:opacity-50 flex items-center gap-1.5"
         >
           {resolvingUrl ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Link"}
         </button>
       </div>
 
-      {/* Show selected URL if resolved */}
-      {selectedReel && hasSelectedReelOption && specificMediaUrl && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#ffe14d]/5 border border-[#ffe14d]/20">
-          <Check className="w-3.5 h-3.5 text-[#ffe14d]" />
-          <span className="text-[10px] text-[#ffe14d] font-mono-ui truncate">{specificMediaUrl}</span>
+      {/* Confirmed Resolved Post Card — Shows customer what was actually found */}
+      {selectedReel && hasSelectedReelOption && selectedReel.id && (
+        <div className="relative rounded-xl border border-[#ffe14d]/30 bg-gradient-to-br from-[#ffe14d]/[0.08] to-transparent p-4 space-y-3 animate-in fade-in zoom-in-95 duration-200">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#ffe14d]/10 border border-[#ffe14d]/20 flex items-center justify-center text-[#ffe14d] shrink-0">
+                {platformInfo.icon || <Film className="w-4 h-4" />}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-bold text-white">
+                    {selectedReel.author_name || selectedReel.author || `${platformInfo.label} Post`}
+                  </p>
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#10b981]/15 text-[#10b981] text-[9px] font-mono-ui font-semibold border border-[#10b981]/30">
+                    <Check className="w-2.5 h-2.5 stroke-[3]" /> Target Confirmed
+                  </span>
+                </div>
+                <p className="text-[10px] font-mono-ui text-neutral-400 mt-0.5">
+                  ID: <span className="text-white">{selectedReel.id}</span>
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedReel(null)
+                setHasSelectedReelOption(false)
+                setSpecificMediaUrl("")
+              }}
+              className="text-[10px] text-neutral-500 hover:text-red-400 transition-colors px-2 py-1 rounded-md hover:bg-white/5"
+            >
+              Clear
+            </button>
+          </div>
+
+          <div className="flex gap-3 items-start pt-1">
+            {selectedReel.image_url || selectedReel.thumbnail_url ? (
+              <img
+                src={selectedReel.image_url || selectedReel.thumbnail_url}
+                alt=""
+                className="w-16 h-16 rounded-lg object-cover border border-white/10 shrink-0 bg-neutral-900"
+              />
+            ) : null}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-neutral-300 line-clamp-2 leading-relaxed">
+                {selectedReel.caption || "No caption text provided for this post."}
+              </p>
+              {selectedReel.permalink && (
+                <a
+                  href={selectedReel.permalink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] text-[#ffe14d] hover:underline mt-1 font-mono-ui"
+                >
+                  View live post &rarr;
+                </a>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

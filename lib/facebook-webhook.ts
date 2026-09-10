@@ -14,6 +14,18 @@ import { parseContent, pickRandom, pickVariant, keywordMatches, checkTrialStatus
 
 const DEFAULT_PUBLIC_REPLIES = ["Check your inbox! 📥", "Sent you a message! 🔥", "Check your DMs! ✨"]
 
+/**
+ * Robust Facebook post ID matcher handling both raw IDs and {page_id}_{post_id} formats.
+ */
+function matchesSpecificPost(specificMediaId?: string | null, eventPostId?: string | null): boolean {
+  if (!specificMediaId || !eventPostId) return false
+  const s = String(specificMediaId).trim()
+  const e = String(eventPostId).trim()
+  if (s === e) return true
+  if (e.endsWith(`_${s}`) || s.endsWith(`_${e}`)) return true
+  return false
+}
+
 async function sendAutomationResponse(
   token: string,
   recipient: { id?: string; comment_id?: string },
@@ -179,20 +191,21 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
         )
 
         // Priority matching:
-        // 1. Specific post reply-all
-        // 2. Specific post keyword
-        // 3. Global keyword
-        // 4. Global reply-all
+        // 1. Specific post keyword (ONLY if postId matches this specific automation)
+        // 2. Specific post reply-all (ONLY if postId matches this specific automation)
+        // 3. Global keyword (ONLY if automation has NO specific_media_id)
+        // 4. Global reply-all (ONLY if automation has NO specific_media_id)
         let match = commentAutomations.find(
-          (a: any) => postId && a.specific_media_id === postId && a.trigger_type === "reply_all",
+          (a: any) =>
+            matchesSpecificPost(a.specific_media_id, postId) &&
+            a.trigger_type === "keyword" &&
+            keywordMatches(a.trigger_value, text),
         )
         if (!match) {
           match = commentAutomations.find(
             (a: any) =>
-              postId &&
-              a.specific_media_id === postId &&
-              a.trigger_type === "keyword" &&
-              keywordMatches(a.trigger_value, text),
+              matchesSpecificPost(a.specific_media_id, postId) &&
+              a.trigger_type === "reply_all",
           )
         }
         if (!match) {
@@ -209,7 +222,10 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
           )
         }
 
-        if (!match) continue
+        if (!match) {
+          console.log(`[fb-webhook] No automation matched for comment ${commentId} on post ${postId}`)
+          continue
+        }
 
         const { content: rawContent, variantId } = pickVariant(match)
         const content = parseContent(rawContent)
@@ -217,7 +233,7 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
         // Skip nested replies unless opted in
         if (parentId && content.include_replies !== true) continue
 
-        console.log(`[fb-webhook] ✅ Comment match: "${match.name}" (variant: ${variantId || "default"})`)
+        console.log(`[fb-webhook] ✅ Comment match: "${match.name}" (variant: ${variantId || "default"}, post: ${postId || "global"})`)
 
         const replyMode = content.reply_mode || "both"
 
@@ -262,9 +278,20 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
             platform: "facebook",
             variant_id: variantId,
             comment_id: commentId,
+            post_id: postId ? String(postId) : null,
+            metadata: { post_id: postId, comment_text: text },
           })
         } catch (e) {
           console.error("[fb-webhook] Failed to log automation_event:", e)
+        }
+
+        // Asynchronously analyze comment sentiment via Groq and cache in comment_sentiment
+        if (postId && text && account?.id) {
+          import("./sentiment-analyzer").then(({ classifyAndCacheCommentSentiment }) => {
+            classifyAndCacheCommentSentiment(supabase, account.id, String(postId), String(commentId), text).catch((err) =>
+              console.warn("[fb-webhook] Background comment sentiment classification error:", err)
+            )
+          }).catch(() => {})
         }
       }
     }

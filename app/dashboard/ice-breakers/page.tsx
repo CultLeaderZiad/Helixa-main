@@ -1,9 +1,5 @@
-import { IceBreakersManager } from "@/components/dashboard/IceBreakersManager"
+import { redirect } from "next/navigation"
 
 export default function IceBreakersPage() {
-    return (
-        <div className="p-4 md:p-8">
-            <IceBreakersManager />
-        </div>
-    )
+  redirect("/dashboard/ai-engine?tab=ice-breakers")
 }

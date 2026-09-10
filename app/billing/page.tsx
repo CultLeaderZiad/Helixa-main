@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Shield, Zap, Star, AlertCircle, ArrowUpRight, CheckCircle, XCircle } from "lucide-react"
+import { ElectricBorder } from "@/components/ui/ElectricBorder"
 
 type PlanType = "trial" | "monthly" | "one_time" | "expired"
 
@@ -249,103 +250,127 @@ export default function BillingPage() {
                 </form>
               </div>
             ) : (
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-2 gap-6 items-stretch">
                 {/* Monthly */}
-                <div className="border border-white/[0.08] rounded-2xl p-6 bg-white/[0.02] hover:border-green-500/30 transition-colors group">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 rounded-lg border border-green-500/20 bg-green-500/10">
-                      <Zap className="w-5 h-5 text-green-400" />
-                    </div>
+                <ElectricBorder
+                  color="#7df9ff"
+                  speed={1}
+                  chaos={0.12}
+                  thickness={2}
+                  borderRadius={16}
+                  style={{ borderRadius: 16 }}
+                  className="h-full flex flex-col"
+                >
+                  <div className="border border-white/10 rounded-2xl p-6 bg-[#08070d]/90 shadow-2xl backdrop-blur-md h-full flex flex-col justify-between">
                     <div>
-                      <h3 className="font-mono text-lg font-bold text-white">Monthly</h3>
-                      <p className="font-mono text-xs text-neutral-500">Cancel anytime</p>
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 rounded-lg border border-green-500/20 bg-green-500/10">
+                          <Zap className="w-5 h-5 text-green-400" />
+                        </div>
+                        <div>
+                          <h3 className="font-mono text-lg font-bold text-white">Monthly</h3>
+                          <p className="font-mono text-xs text-neutral-500">Cancel anytime</p>
+                        </div>
+                      </div>
+
+                      <ul className="space-y-2 mb-8">
+                        {[
+                          "Unlimited automations",
+                          "Comment → DM funnels",
+                          "AI auto-reply",
+                          "Live inbox",
+                          "Story triggers",
+                          "Priority support",
+                        ].map(f => (
+                          <li key={f} className="font-mono text-xs text-neutral-400 flex items-center gap-2">
+                            <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="space-y-3 pt-4 border-t border-white/5">
+                      <button
+                        onClick={() => checkout("monthly")}
+                        disabled={checkoutLoading !== null}
+                        className="w-full bg-green-500 text-black font-mono text-sm font-bold py-3 rounded-xl hover:bg-green-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {checkoutLoading === "monthly" ? "Redirecting..." : (
+                          <>Subscribe Monthly ($15) <ArrowUpRight className="w-4 h-4" /></>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setShowVCForm("monthly")}
+                        className="w-full border border-[#e60000]/30 text-[#e60000] font-mono text-sm font-bold py-3 rounded-xl hover:bg-[#e60000]/10 transition-colors flex items-center justify-center gap-2"
+                      >
+                        Pay via Vodafone Cash
+                      </button>
                     </div>
                   </div>
-
-                  <ul className="space-y-2 mb-8">
-                    {[
-                      "Unlimited automations",
-                      "Comment → DM funnels",
-                      "AI auto-reply",
-                      "Live inbox",
-                      "Story triggers",
-                      "Priority support",
-                    ].map(f => (
-                      <li key={f} className="font-mono text-xs text-neutral-400 flex items-center gap-2">
-                        <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-
-                  <div className="space-y-3">
-                    <button
-                      onClick={() => checkout("monthly")}
-                      disabled={checkoutLoading !== null}
-                      className="w-full bg-green-500 text-black font-mono text-sm font-bold py-3 rounded-xl hover:bg-green-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {checkoutLoading === "monthly" ? "Redirecting..." : (
-                        <>Subscribe Monthly ($15) <ArrowUpRight className="w-4 h-4" /></>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => setShowVCForm("monthly")}
-                      className="w-full border border-[#e60000]/30 text-[#e60000] font-mono text-sm font-bold py-3 rounded-xl hover:bg-[#e60000]/10 transition-colors flex items-center justify-center gap-2"
-                    >
-                      Pay via Vodafone Cash
-                    </button>
-                  </div>
-                </div>
+                </ElectricBorder>
 
                 {/* One-time */}
-                <div className="border border-[#ffe14d]/20 rounded-2xl p-6 bg-[#ffe14d]/[0.02] hover:border-[#ffe14d]/40 transition-colors group">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 rounded-lg border border-[#ffe14d]/20 bg-[#ffe14d]/10">
-                      <Star className="w-5 h-5 text-[#ffe14d]" />
-                    </div>
+                <ElectricBorder
+                  color="#7df9ff"
+                  speed={1}
+                  chaos={0.12}
+                  thickness={2}
+                  borderRadius={16}
+                  style={{ borderRadius: 16 }}
+                  className="h-full flex flex-col"
+                >
+                  <div className="border border-white/10 rounded-2xl p-6 bg-[#08070d]/90 shadow-2xl backdrop-blur-md h-full flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-mono text-lg font-bold text-white">Lifetime</h3>
-                        <span className="font-mono text-[10px] text-[#ffe14d] border border-[#ffe14d]/30 rounded-full px-2 py-0.5">BEST VALUE</span>
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 rounded-lg border border-[#ffe14d]/20 bg-[#ffe14d]/10">
+                          <Star className="w-5 h-5 text-[#ffe14d]" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-mono text-lg font-bold text-white">Lifetime</h3>
+                            <span className="font-mono text-[10px] text-[#ffe14d] border border-[#ffe14d]/30 rounded-full px-2 py-0.5">BEST VALUE</span>
+                          </div>
+                          <p className="font-mono text-xs text-neutral-500">Pay once, own forever</p>
+                        </div>
                       </div>
-                      <p className="font-mono text-xs text-neutral-500">Pay once, own forever</p>
+
+                      <ul className="space-y-2 mb-8">
+                        {[
+                          "Everything in Monthly",
+                          "Lifetime access — no recurring fees",
+                          "All future updates included",
+                          "First access to new features",
+                          "Founding member badge",
+                          "Priority support forever",
+                        ].map(f => (
+                          <li key={f} className="font-mono text-xs text-neutral-400 flex items-center gap-2">
+                            <CheckCircle className="w-3.5 h-3.5 text-[#ffe14d] flex-shrink-0" />
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="space-y-3 pt-4 border-t border-white/5">
+                      <button
+                        onClick={() => checkout("one_time")}
+                        disabled={checkoutLoading !== null}
+                        className="w-full bg-[#ffe14d] text-black font-mono text-sm font-bold py-3 rounded-xl hover:brightness-110 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {checkoutLoading === "one_time" ? "Redirecting..." : (
+                          <>Get Lifetime Access ($199) <ArrowUpRight className="w-4 h-4" /></>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setShowVCForm("one_time")}
+                        className="w-full border border-[#e60000]/30 text-[#e60000] font-mono text-sm font-bold py-3 rounded-xl hover:bg-[#e60000]/10 transition-colors flex items-center justify-center gap-2"
+                      >
+                        Pay via Vodafone Cash
+                      </button>
                     </div>
                   </div>
-
-                  <ul className="space-y-2 mb-8">
-                    {[
-                      "Everything in Monthly",
-                      "Lifetime access — no recurring fees",
-                      "All future updates included",
-                      "First access to new features",
-                      "Founding member badge",
-                      "Priority support forever",
-                    ].map(f => (
-                      <li key={f} className="font-mono text-xs text-neutral-400 flex items-center gap-2">
-                        <CheckCircle className="w-3.5 h-3.5 text-[#ffe14d] flex-shrink-0" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-
-                  <div className="space-y-3">
-                    <button
-                      onClick={() => checkout("one_time")}
-                      disabled={checkoutLoading !== null}
-                      className="w-full bg-[#ffe14d] text-black font-mono text-sm font-bold py-3 rounded-xl hover:brightness-110 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {checkoutLoading === "one_time" ? "Redirecting..." : (
-                        <>Get Lifetime Access ($199) <ArrowUpRight className="w-4 h-4" /></>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => setShowVCForm("one_time")}
-                      className="w-full border border-[#e60000]/30 text-[#e60000] font-mono text-sm font-bold py-3 rounded-xl hover:bg-[#e60000]/10 transition-colors flex items-center justify-center gap-2"
-                    >
-                      Pay via Vodafone Cash
-                    </button>
-                  </div>
-                </div>
+                </ElectricBorder>
               </div>
             )}
           </>

@@ -30,16 +30,16 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem("helixa-language", lang);
-    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
-    document.documentElement.lang = lang;
+    try {
+      localStorage.setItem("helixa-language", lang);
+    } catch {}
+    if (typeof document !== "undefined") {
+      document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+      document.documentElement.lang = lang;
+    }
   };
 
   const t = language === "ar" ? ar : en;
-
-  if (!mounted) {
-    return <>{children}</>;
-  }
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>

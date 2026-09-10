@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import BackToHome from "@/components/ui/back-to-home"
+import { FrontBackground } from "@/components/layout/FrontBackground"
 import { PasswordInput } from "@/components/ui/password-input"
 
 export default function UpdatePasswordPage() {
@@ -108,6 +109,7 @@ export default function UpdatePasswordPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#03010A] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       <BackToHome />
+      <FrontBackground />
       <div className="absolute inset-0 bg-gradient-to-br from-[#ffe14d]/[0.07] via-[#5227FF]/[0.05] to-[#03010A] pointer-events-none" />
 
       <div className="w-full max-w-md space-y-8 bg-[#03010A]/60 backdrop-blur-md p-8 rounded-2xl border border-white/10 relative z-10">

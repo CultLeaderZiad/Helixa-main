@@ -1,26 +1,37 @@
+"use client"
+
 import { PillNav } from "./PillNav"
+import { useLanguage } from "@/lib/i18n/LanguageContext"
 
-const NAV = [
-  { href: "/pricing", label: "Pricing" },
-  { href: "/privacy", label: "Privacy" },
-  { href: "/terms", label: "Terms" },
-  { href: "/login", label: "Log in" },
-  { href: "/pricing", label: "Get Started", isPrimary: true },
-]
+export interface HeaderProps {
+  activeHref?: string
+  className?: string
+}
 
-export function Header() {
+export function Header({ activeHref = "/", className = "" }: HeaderProps) {
+  const { t } = useLanguage()
+
+  const items = [
+    { label: t.features || "Features", href: "/#features" },
+    { label: t.howItWorks || "How It Works", href: "/#how" },
+    { label: t.pricing || "Pricing", href: "/pricing" },
+    { label: t.updates || "Updates", href: "/updates" },
+    { label: t.faq || "FAQ", href: "/faq" },
+  ]
+
   return (
-    <PillNav
-      logo="/helix-logo.svg"
-      logoAlt="Helixa Logo"
-      items={NAV}
-      baseColor="#0c0d0e"
-      pillColor="#181a1b"
-      hoverCircleColor="#ffe14d"
-      hoveredPillTextColor="#000000"
-      pillTextColor="#ffffff"
-      sticky={true}
-      stickyScrollThreshold={100}
-    />
+    <header className={`sticky top-3 sm:top-4 z-50 w-full flex justify-center px-3 sm:px-4 pointer-events-none ${className}`}>
+      <div className="pointer-events-auto">
+        <PillNav
+          logo="/helix-logo.svg"
+          logoText="HLX"
+          logoAlt="Helix Auto DM"
+          items={items}
+          activeHref={activeHref}
+        />
+      </div>
+    </header>
   )
 }
+
+export default Header

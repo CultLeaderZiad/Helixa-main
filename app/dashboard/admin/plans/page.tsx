@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { ElectricBorder } from "@/components/ui/ElectricBorder"
 
 interface Plan {
   id: string
@@ -278,60 +279,71 @@ export default function DashboardAdminPlansPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 items-stretch">
           {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className={`border border-white/10 bg-white/[0.03] rounded-xl p-6 flex flex-col gap-4 ${
-                !plan.is_active ? "opacity-60" : ""
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-bold text-white">{plan.name}</h3>
-                  <p className="text-xs text-neutral-400 mt-1 line-clamp-2">
-                    {plan.description || "No description"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => openEdit(plan)}
-                    className="p-2 hover:bg-white/10 rounded-lg transition-colors text-neutral-400 hover:text-white"
-                    title="Edit plan"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(plan.id)}
-                    className="p-2 hover:bg-red-500/10 rounded-lg transition-colors text-neutral-400 hover:text-red-400"
-                    title="Delete plan"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+            <div key={plan.id} className="relative flex flex-col h-full">
+              <ElectricBorder
+                color="#7df9ff"
+                speed={1}
+                chaos={0.12}
+                thickness={2}
+                borderRadius={16}
+                style={{ borderRadius: 16 }}
+                className="h-full flex flex-col"
+              >
+                <div
+                  className={`border border-white/10 bg-[#08070d]/90 rounded-2xl p-6 flex flex-col justify-between gap-4 h-full shadow-2xl backdrop-blur-md ${
+                    !plan.is_active ? "opacity-60" : ""
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-bold text-white text-lg">{plan.name}</h3>
+                      <p className="text-xs text-neutral-400 mt-1 line-clamp-2">
+                        {plan.description || "No description"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => openEdit(plan)}
+                        className="p-2 hover:bg-white/10 rounded-lg transition-colors text-neutral-400 hover:text-white"
+                        title="Edit plan"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(plan.id)}
+                        className="p-2 hover:bg-red-500/10 rounded-lg transition-colors text-neutral-400 hover:text-red-400"
+                        title="Delete plan"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
 
-              <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">
-                <div className="flex items-baseline gap-1">
-                  <span className="font-mono text-xl text-white">${plan.price_usd}</span>
-                  <span className="text-[10px] text-neutral-500 uppercase tracking-wider">
-                    {plan.billing_cycle}
-                  </span>
+                  <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-mono text-2xl text-white font-bold">${plan.price_usd}</span>
+                      <span className="text-[10px] text-neutral-500 uppercase tracking-wider">
+                        /{plan.billing_cycle}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-[10px] uppercase tracking-wider font-bold ${
+                          plan.is_active ? "text-green-400" : "text-neutral-500"
+                        }`}
+                      >
+                        {plan.is_active ? "Live" : "Hidden"}
+                      </span>
+                      <Switch
+                        checked={plan.is_active}
+                        onCheckedChange={() => handleToggleActive(plan)}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`text-[10px] uppercase tracking-wider ${
-                      plan.is_active ? "text-green-400" : "text-neutral-500"
-                    }`}
-                  >
-                    {plan.is_active ? "Live" : "Hidden"}
-                  </span>
-                  <Switch
-                    checked={plan.is_active}
-                    onCheckedChange={() => handleToggleActive(plan)}
-                  />
-                </div>
-              </div>
+              </ElectricBorder>
             </div>
           ))}
           {plans.length === 0 && (

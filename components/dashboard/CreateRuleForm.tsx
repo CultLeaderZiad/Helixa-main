@@ -296,21 +296,35 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
     if (!specificMediaUrl.trim()) return
     setResolvingUrl(true)
     try {
-      const res = await fetch("/api/instagram/media", {
+      const isFb = platform === "facebook" || platform === "messenger" || specificMediaUrl.includes("facebook.com") || specificMediaUrl.includes("fb.watch") || specificMediaUrl.includes("fb.me")
+      const endpoint = isFb ? "/api/facebook/fetch-post" : "/api/instagram/fetch-post"
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: specificMediaUrl, userId })
+        body: JSON.stringify({ url: specificMediaUrl.trim() })
       })
       const data = await res.json()
-      if (data.id) {
-        setSelectedReel({ id: data.id, caption: "Post from URL", image_url: data.image_url || null, media_type: data.media_type || "POST" })
+      
+      const post = data.post || data
+      if (post?.id || post?.external_post_id) {
+        const resolvedId = String(post.external_post_id || post.id)
+        setSelectedReel({
+          id: resolvedId,
+          caption: post.caption || "Targeted Post",
+          image_url: post.thumbnail_url || post.image_url || null,
+          thumbnail_url: post.thumbnail_url || post.image_url || null,
+          author_name: post.author_name || null,
+          permalink: post.permalink || null,
+          media_type: post.media_type || "POST",
+        })
         setHasSelectedReelOption(true)
-        toast.success("Post linked!")
+        toast.success(`${isFb ? "Facebook" : "Instagram"} post linked and verified!`)
       } else {
-        toast.error("Could not find post. Make sure the URL is public.")
+        toast.error(data.error || "Could not find post. Make sure the URL is public.")
       }
     } catch {
-      toast.error("Failed to resolve URL")
+      toast.error("Failed to resolve URL. Please verify your connection.")
     }
     setResolvingUrl(false)
   }

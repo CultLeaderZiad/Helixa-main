@@ -100,7 +100,7 @@ export async function generateGroqCompletion(
     throw new GroqRateLimitError("AI limit exceeded for today.")
   }
 
-  const model = options.model || "qwen/qwen3.8-27b"
+  const model = options.model || "llama-3.3-70b-versatile"
 
   try {
     const res = await fetch(GROQ_API_URL, {

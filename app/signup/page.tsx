@@ -8,7 +8,7 @@ import { Suspense } from "react"
 import dynamic from "next/dynamic"
 import BackToHome from "@/components/ui/back-to-home"
 
-import { DashboardBackground } from "@/components/layout/DashboardBackground"
+import { FrontBackground } from "@/components/layout/FrontBackground"
 import { PasswordInput } from "@/components/ui/password-input"
 function SignupForm() {
   const [email, setEmail] = useState("")
@@ -84,7 +84,7 @@ function SignupForm() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#03010A] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       <BackToHome />
-      <DashboardBackground />
+      <FrontBackground />
       <div className="absolute inset-0 bg-gradient-to-t from-[#03010A] via-[#03010A]/80 to-[#03010A]/30 pointer-events-none" />
 
       <div className="w-full max-w-md space-y-8 bg-[#03010A]/60 backdrop-blur-md p-8 rounded-2xl border border-white/10 relative z-10">
