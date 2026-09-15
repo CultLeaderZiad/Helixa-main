@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireInstagramUser } from "@/lib/auth"
+import { requireSessionUser } from "@/lib/auth"
 
 /**
  * POST /api/facebook/connect
@@ -15,9 +15,9 @@ import { requireInstagramUser } from "@/lib/auth"
  * 3. Upsert into platform_connections (facebook + messenger)
  */
 export async function POST(request: NextRequest) {
-  const result = await requireInstagramUser(request)
+  const result = await requireSessionUser(request)
   if (result.response) return result.response
-  const { igUser } = result
+  const { user: account, igUser } = result
 
   let body: { page_id?: string; _token?: string }
   try {
@@ -29,6 +29,34 @@ export async function POST(request: NextRequest) {
   const { page_id, _token } = body
   if (!page_id || !_token) {
     return NextResponse.json({ error: "Missing page_id or _token in body" }, { status: 400 })
+  }
+
+  const supabase = await getSupabaseBypassClient()
+  let userId = igUser?.id
+
+  if (!userId) {
+    const { data: existingUser } = await supabase
+      .from("users")
+      .select("id")
+      .eq("account_id", account.id)
+      .maybeSingle()
+
+    if (existingUser) {
+      userId = existingUser.id
+    } else {
+      const fallbackId = Math.floor(1000000000 + Math.random() * 9000000000)
+      const { data: newUser } = await supabase
+        .from("users")
+        .insert({
+          id: fallbackId,
+          account_id: account.id,
+          username: account.email?.split("@")[0] || `user_${account.id.slice(0, 8)}`,
+          access_token: "facebook_managed",
+        })
+        .select("id")
+        .maybeSingle()
+      userId = newUser?.id || fallbackId
+    }
   }
 
   try {
@@ -72,10 +100,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Upsert into platform_connections
-    const supabase = await getSupabaseBypassClient()
-
     const fbData = {
-      user_id: igUser.id,
+      user_id: userId,
       platform: "facebook",
       page_id: page_id,
       external_account_id: page_id,
@@ -84,7 +110,7 @@ export async function POST(request: NextRequest) {
     }
     
     const { data: existingFb } = await supabase.from("platform_connections")
-      .select("id").eq("user_id", igUser.id).eq("platform", "facebook").eq("page_id", page_id).maybeSingle()
+      .select("id").eq("user_id", userId).eq("platform", "facebook").eq("page_id", page_id).maybeSingle()
       
     let fbResult;
     if (existingFb) {
@@ -100,7 +126,7 @@ export async function POST(request: NextRequest) {
 
     // Also create a messenger connection with the same token (matches old callback behavior)
     const msgData = {
-      user_id: igUser.id,
+      user_id: userId,
       platform: "messenger",
       page_id: page_id,
       external_account_id: page_id,
@@ -109,7 +135,7 @@ export async function POST(request: NextRequest) {
     }
     
     const { data: existingMsg } = await supabase.from("platform_connections")
-      .select("id").eq("user_id", igUser.id).eq("platform", "messenger").eq("page_id", page_id).maybeSingle()
+      .select("id").eq("user_id", userId).eq("platform", "messenger").eq("page_id", page_id).maybeSingle()
       
     let msgResult;
     if (existingMsg) {
@@ -123,7 +149,7 @@ export async function POST(request: NextRequest) {
       // Don't throw — FB connection was saved, messenger is secondary
     }
 
-    console.log(`[FB Connect] Successfully connected page ${page_id} (${pageName}) for user ${igUser.id}`)
+    console.log(`[FB Connect] Successfully connected page ${page_id} (${pageName}) for user ${userId}`)
 
     return NextResponse.json({
       success: true,

@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireInstagramUser } from "@/lib/auth"
+import { requireSessionUser } from "@/lib/auth"
 
 /**
  * POST /api/facebook/discover
@@ -13,9 +12,10 @@ import { requireInstagramUser } from "@/lib/auth"
  * Never returns raw access tokens to the client.
  */
 export async function POST(request: NextRequest) {
-  const result = await requireInstagramUser(request)
+  const result = await requireSessionUser(request)
   if (result.response) return result.response
-  const { igUser } = result
+  const { user: account, igUser } = result
+  const resolvedUserId = igUser?.id || account.id
 
   let body: { accessToken?: string }
   try {
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       category: page.category || "Unknown",
     }))
 
-    console.log(`[FB Discover] Found ${pages.length} pages for user ${igUser.id}`)
+    console.log(`[FB Discover] Found ${pages.length} pages for user ${resolvedUserId}`)
 
     // Return pages + the long-lived token (the client will pass it back to /connect)
     // The token is short-lived context only used in the next step, travels over HTTPS.

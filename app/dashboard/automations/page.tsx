@@ -31,8 +31,9 @@ function AutomationsPageContent() {
         fetcher
     )
     const connections = connectionsData?.connections || []
-    const availablePlatforms = Array.from(new Set(connections.map((c: any) => c.platform))) as string[]
-    if (userId && !availablePlatforms.includes("instagram")) availablePlatforms.unshift("instagram")
+    const connectionPlatforms = connections.map((c: any) => c.platform)
+    const automationPlatforms = automations.map((a: any) => a.platform || "instagram")
+    const availablePlatforms = Array.from(new Set([...connectionPlatforms, ...automationPlatforms, "instagram"])) as string[]
 
     const [selectedPlatform, setSelectedPlatform] = useState<string>("instagram")
     const isLoading = isSessionLoading || isAutomationsLoading
@@ -44,7 +45,7 @@ function AutomationsPageContent() {
     useEffect(() => {
         // Check for platform query param (from platform dashboard "New Rule" button)
         const platformParam = searchParams?.get("platform")
-        if (platformParam && availablePlatforms.includes(platformParam)) {
+        if (platformParam) {
             setSelectedPlatform(platformParam)
         }
         // Check for intent query param to open form
@@ -52,7 +53,7 @@ function AutomationsPageContent() {
         if (intent) {
             setShowCreateForm(true)
         }
-    }, [searchParams])  // eslint-disable-line react-hooks/exhaustive-deps
+    }, [searchParams])
 
     const handleDeleteRule = async (id: string) => {
         await fetch(`/api/automations?id=${id}`, { method: "DELETE" })
@@ -60,6 +61,9 @@ function AutomationsPageContent() {
     }
 
     const handleEditRule = (rule: Automation) => {
+        if (rule.platform) {
+            setSelectedPlatform(rule.platform)
+        }
         setEditRule(rule)
         setShowCreateForm(true)
     }

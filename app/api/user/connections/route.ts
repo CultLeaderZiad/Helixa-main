@@ -14,17 +14,17 @@ export async function GET(request: NextRequest) {
 
   const supabase = await getSupabaseBypassClient()
 
-  // First, look up the linked Instagram user (if any)
+  // First, look up the linked user row (if any)
   const { data: igUser } = await supabase
     .from("users")
-    .select("id, business_account_id, page_id, username, created_at")
+    .select("id, business_account_id, page_id, username, created_at, access_token")
     .eq("account_id", account.id)
-    .single()
+    .maybeSingle()
 
   const connections: any[] = []
 
-  // Surface Instagram connection if it exists
-  if (igUser) {
+  // Surface Instagram connection if real Instagram account is connected
+  if (igUser && (igUser.business_account_id || igUser.page_id || (igUser.access_token && igUser.access_token !== "facebook_managed" && igUser.access_token !== "telegram_managed"))) {
     connections.push({
       id: `ig_${igUser.id}`,
       platform: "instagram",
@@ -32,27 +32,30 @@ export async function GET(request: NextRequest) {
       metadata: { username: igUser.username || `user_${account.id}` },
       created_at: igUser.created_at,
     })
+  }
 
-    // Fetch platform connections (Facebook, Telegram, WhatsApp, Messenger)
-    // These are keyed by igUser.id (the int64 Instagram user ID)
-    const { data: rawConnections, error } = await supabase
-      .from("platform_connections")
-      .select("id, platform, page_id, metadata, connected_at")
-      .eq("user_id", igUser.id)
+  // Fetch platform connections (Facebook, Telegram, WhatsApp, Messenger)
+  const userIdsToQuery: any[] = []
+  if (igUser?.id) userIdsToQuery.push(igUser.id)
+  if (account.id) userIdsToQuery.push(account.id)
 
-    if (error) {
-      console.error("Error fetching platform connections:", error)
-    }
+  const { data: rawConnections, error } = await supabase
+    .from("platform_connections")
+    .select("id, platform, page_id, metadata, connected_at")
+    .in("user_id", userIdsToQuery)
 
-    for (const c of rawConnections || []) {
-      connections.push({
-        id: c.id,
-        platform: c.platform,
-        page_id: c.page_id,
-        metadata: c.metadata || { name: c.page_id },
-        created_at: c.connected_at,
-      })
-    }
+  if (error) {
+    console.error("Error fetching platform connections:", error)
+  }
+
+  for (const c of rawConnections || []) {
+    connections.push({
+      id: c.id,
+      platform: c.platform,
+      page_id: c.page_id,
+      metadata: c.metadata || { name: c.page_id },
+      created_at: c.connected_at,
+    })
   }
 
   return NextResponse.json({ connections })

@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireInstagramUser } from "@/lib/auth"
+import { requireSessionUser } from "@/lib/auth"
 import { getBotInfo, setWebhook } from "@/lib/telegram-api"
 import { encryptString } from "@/lib/crypto"
 
@@ -12,9 +12,9 @@ import { encryptString } from "@/lib/crypto"
  * and securely saving the encrypted token in platform_connections.
  */
 export async function POST(request: NextRequest) {
-  const result = await requireInstagramUser(request)
+  const result = await requireSessionUser(request)
   if (result.response) return result.response
-  const { igUser } = result
+  const { user: account, igUser } = result
 
   let body: { botToken?: string }
   try {
@@ -26,6 +26,34 @@ export async function POST(request: NextRequest) {
   const { botToken } = body
   if (!botToken || typeof botToken !== "string") {
     return NextResponse.json({ error: "Missing or invalid botToken" }, { status: 400 })
+  }
+
+  const supabase = await getSupabaseBypassClient()
+  let userId = igUser?.id
+
+  if (!userId) {
+    const { data: existingUser } = await supabase
+      .from("users")
+      .select("id")
+      .eq("account_id", account.id)
+      .maybeSingle()
+
+    if (existingUser) {
+      userId = existingUser.id
+    } else {
+      const fallbackId = Math.floor(1000000000 + Math.random() * 9000000000)
+      const { data: newUser } = await supabase
+        .from("users")
+        .insert({
+          id: fallbackId,
+          account_id: account.id,
+          username: account.email?.split("@")[0] || `user_${account.id.slice(0, 8)}`,
+          access_token: "telegram_managed",
+        })
+        .select("id")
+        .maybeSingle()
+      userId = newUser?.id || fallbackId
+    }
   }
 
   try {
@@ -68,11 +96,10 @@ export async function POST(request: NextRequest) {
     const encryptedToken = encryptString(botToken)
 
     // 4. Save to platform_connections
-    const supabase = await getSupabaseBypassClient()
     const pageId = botInfo.id.toString()
 
     const telegramData = {
-      user_id: igUser.id,
+      user_id: userId,
       platform: "telegram",
       page_id: pageId, // Using the bot's user ID as page_id
       external_account_id: pageId,
@@ -86,7 +113,7 @@ export async function POST(request: NextRequest) {
     }
     
     const { data: existingTg } = await supabase.from("platform_connections")
-      .select("id").eq("user_id", igUser.id).eq("platform", "telegram").eq("page_id", pageId).maybeSingle()
+      .select("id").eq("user_id", userId).eq("platform", "telegram").eq("page_id", pageId).maybeSingle()
       
     let upsertError;
     if (existingTg) {
@@ -102,7 +129,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to save connection to database" }, { status: 500 })
     }
 
-    console.log(`[Telegram Connect] Successfully connected bot @${botInfo.username} for user ${igUser.id}`)
+    console.log(`[Telegram Connect] Successfully connected bot @${botInfo.username} for user ${userId}`)
 
     return NextResponse.json({
       success: true,

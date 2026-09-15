@@ -284,13 +284,16 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
           const platforms = data.connections.map((c: any) => c.platform)
           const available = new Set<string>(["instagram"])
           if (platforms.includes("messenger")) available.add("messenger")
-          if (platforms.includes("facebook") && platforms.length > 1) available.add("facebook")
+          if (platforms.includes("facebook")) available.add("facebook")
           if (platforms.includes("telegram")) available.add("telegram")
+          if (platforms.includes("whatsapp")) available.add("whatsapp")
+          if (editRule?.platform) available.add(editRule.platform)
+          if (defaultPlatform) available.add(defaultPlatform)
           setAvailablePlatforms(Array.from(available))
         }
       })
       .catch(console.error)
-  }, [])
+  }, [editRule, defaultPlatform])
 
   const handleResolveMediaUrl = async () => {
     if (!specificMediaUrl.trim()) return
@@ -397,14 +400,15 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
   }
 
   useEffect(() => {
-    if (!userId || platform !== "instagram") {
-      // Non-Instagram platforms don't need to fetch reels
+    if (!userId || (platform !== "instagram" && platform !== "facebook")) {
       setLoadingReels(false)
+      setReels([])
       return
     }
     let cancelled = false
     setLoadingReels(true)
-    fetch(`/api/instagram/media?userId=${userId}`)
+    const endpoint = platform === "facebook" ? `/api/facebook/posts` : `/api/instagram/media?userId=${userId}`
+    fetch(endpoint)
       .then((r) => r.json())
       .then((j) => {
         if (cancelled) return
@@ -456,13 +460,17 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
       setCapturePhone(!!content.lead_capture.require_phone)
     }
 
-    setPlatform(editRule.platform || "instagram")
+    if (editRule.platform) {
+      setPlatform(editRule.platform as any)
+    }
 
     if (editRule.specific_media_id) {
       setSelectedReel({ id: editRule.specific_media_id, caption: "Selected post" })
       setHasSelectedReelOption(true)
     } else {
-      setHasSelectedReelOption(false)
+      // Global rule ("All Posts") -> selectedReel is null, but hasSelectedReelOption is true so Phase 1 is valid
+      setSelectedReel(null)
+      setHasSelectedReelOption(true)
     }
 
     setVariants((editRule.automation_variants || []).map((v: any) => ({
@@ -470,10 +478,6 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
       text: v.response_config?.message || v.response_config?.reply_text || "Variant message",
       weight: v.traffic_weight || 50
     })))
-
-    if ((editRule as any).platform) {
-      setPlatform((editRule as any).platform)
-    }
   }, [editRule])
 
   /* Auto name */
@@ -505,7 +509,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
 
   const whenValid = triggerSource === "comment"
     ? hasSelectedReelOption
-    : !needsKeywords || triggers.length > 0
+    : true
 
   const thenValid =
     replyMode === "public_only" ||
@@ -520,12 +524,12 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
 
   /* Plain-language summary sentence */
   const summary = useMemo(() => {
-    const isReplyAll = triggerSource === "comment" && triggers.length === 0
+    const isReplyAll = (triggerSource === "comment" || triggerSource === "dm") && triggers.length === 0
     const who =
       triggerSource === "comment"
         ? isReplyAll ? "anyone comments on your post" : `someone comments ${triggers.length ? `"${triggers[0]}"` : "a keyword"}`
         : triggerSource === "dm"
-          ? `someone DMs you ${triggers.length ? `"${triggers[0]}"` : "a keyword"}`
+          ? isReplyAll ? "anyone DMs you" : `someone DMs you ${triggers.length ? `"${triggers[0]}"` : "a keyword"}`
           : storyTriggerType === "mention" ? "someone mentions you in a story"
             : storyTriggerType === "reaction" ? "someone reacts to your story"
               : "someone replies to your story"
@@ -542,7 +546,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
     if (!canSave || saving) return
     setSaving(true)
 
-    const isReplyAll = triggerSource === "comment" && triggers.length === 0
+    const isReplyAll = (triggerSource === "comment" || triggerSource === "dm") && triggers.length === 0
 
     const content: any = { check_follow: checkFollow }
     if (delaySeconds > 0) content.delay_seconds = delaySeconds
@@ -595,7 +599,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
       name,
       trigger_source: triggerSource,
       trigger_type: isReplyAll ? "reply_all" : triggerSource === "story" ? storyTriggerType : "keyword",
-      trigger_value: isReplyAll ? "ALL_COMMENTS"
+      trigger_value: isReplyAll ? (triggerSource === "comment" ? "ALL_COMMENTS" : "ALL")
         : triggerSource === "story" && storyTriggerType === "mention" ? "ALL_MENTIONS"
           : triggerSource === "story" && storyTriggerType === "reaction" && triggers.length === 0 ? "ALL_REACTIONS"
             : triggers.length > 0 ? triggers.join(", ") : "ALL",

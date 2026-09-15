@@ -75,13 +75,13 @@ export function ReelPostPicker({
         </div>
       </button>
 
-      {/* Instagram-specific: show post grid */}
-      {isInstagram && (
+      {/* Post Grid for Instagram and Facebook */}
+      {(isInstagram || platform === "facebook") && (
         <>
           {loadingReels ? (
             <div className="p-8 flex flex-col items-center justify-center gap-3 border border-white/5 rounded-2xl bg-white/[0.01]">
               <Loader2 className="w-6 h-6 animate-spin text-[#ffe14d]" />
-              <span className="text-xs text-neutral-500 font-mono-ui">Fetching Instagram feed...</span>
+              <span className="text-xs text-neutral-500 font-mono-ui">Fetching {platformInfo.label} posts...</span>
             </div>
           ) : reels.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-1">
@@ -101,9 +101,9 @@ export function ReelPostPicker({
                         : "border-white/10 hover:border-white/25 bg-[#0e0e0e]"
                     }`}
                   >
-                    {reel.image_url ? (
+                    {reel.image_url || reel.thumbnail_url ? (
                       <img
-                        src={reel.image_url}
+                        src={reel.image_url || reel.thumbnail_url}
                         alt=""
                         className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity"
                       />
@@ -137,20 +137,24 @@ export function ReelPostPicker({
                 )
               })}
             </div>
-          ) : null}
+          ) : !loadingReels && (
+            <div className="p-4 rounded-xl border border-dashed border-white/10 bg-white/[0.01] text-center">
+              <p className="text-xs text-neutral-400">No recent {platformInfo.label} posts found.</p>
+              <p className="text-[10px] text-neutral-500 mt-0.5">You can target all posts above or paste a specific post URL below.</p>
+            </div>
+          )}
         </>
       )}
 
-      {/* Non-Instagram platforms: show URL input as primary */}
-      {!isInstagram && (
+      {/* Non-Instagram/Non-Facebook platforms (e.g. Telegram/Messenger direct links) */}
+      {!isInstagram && platform !== "facebook" && (
         <div className="p-4 rounded-xl border border-white/5 bg-white/[0.01] space-y-3">
           <div className="flex items-center gap-2 text-neutral-400">
             <Link2 className="w-4 h-4" />
-            <span className="text-xs font-semibold">Paste a {platformInfo.label} post or content link</span>
+            <span className="text-xs font-semibold">Paste a {platformInfo.label} content link (optional)</span>
           </div>
           <p className="text-[10px] text-neutral-500">
-            Paste the URL of the specific {platformInfo.label} post, page, or message you want to automate.
-            The system will use it as the trigger reference for your automation rule.
+            Paste the URL of the specific {platformInfo.label} link or select &quot;All {platformInfo.label} Posts&quot; above.
           </p>
         </div>
       )}
