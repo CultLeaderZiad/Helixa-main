@@ -19,7 +19,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
           >
             Try again
           </button>
-          <Link href="/" className="bg-[#ffe14d] text-black hover:bg-[#e6c738] px-6 py-2 rounded-lg font-medium transition-colors">
+          <Link href="/" className="bg-[#e5a93c] text-black hover:bg-[#d4952b] px-6 py-2 rounded-lg font-medium transition-colors shadow-[0_0_15px_rgba(229,169,60,0.2)]">
             Return Home
           </Link>
         </div>

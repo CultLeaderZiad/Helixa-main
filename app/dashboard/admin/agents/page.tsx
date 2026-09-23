@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Loader2, Pencil, Bot, Sparkles, RefreshCw, CheckCircle2 } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -71,7 +72,7 @@ export default function DashboardAdminAgentsPage() {
       if (!res.ok) throw new Error("Failed to update status")
     } catch (err) {
       fetchAgents()
-      alert("Failed to update status")
+      toast.error("Failed to update status")
     }
   }
 
@@ -105,7 +106,7 @@ export default function DashboardAdminAgentsPage() {
       setDialogOpen(false)
       fetchAgents()
     } catch (err: any) {
-      alert(err.message)
+      toast.error(err.message)
     } finally {
       setSaving(false)
     }
@@ -148,7 +149,7 @@ export default function DashboardAdminAgentsPage() {
           <p className="text-sm text-neutral-400 mb-6">
             There are currently no AI agents registered in the database catalog. Run the database migration script <code>32-schema-agents-system.sql</code> to register default agent models.
           </p>
-          <Button onClick={fetchAgents} className="bg-[#ffe14d] text-black font-semibold hover:brightness-110 text-xs">
+          <Button onClick={fetchAgents} className="bg-[#e5a93c] hover:bg-[#d4952b] text-black font-semibold text-xs shadow-[0_0_15px_rgba(229,169,60,0.2)]">
             <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Check Again
           </Button>
         </div>
@@ -177,7 +178,7 @@ export default function DashboardAdminAgentsPage() {
                     <td className="px-6 py-4 text-neutral-400 font-mono text-xs">{agent.provider}</td>
                     <td className="px-6 py-4">
                       {agent.requires_byok ? (
-                        <span className="bg-[#ffe14d]/10 text-[#ffe14d] border border-[#ffe14d]/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Required</span>
+                        <span className="bg-[#e5a93c]/10 text-[#e5a93c] border border-[#e5a93c]/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Required</span>
                       ) : (
                         <span className="text-neutral-500 text-xs">Included</span>
                       )}
@@ -235,7 +236,7 @@ export default function DashboardAdminAgentsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveEdit} disabled={saving} className="bg-[#ffe14d] text-black font-semibold hover:brightness-110">
+            <Button onClick={handleSaveEdit} disabled={saving} className="bg-[#e5a93c] hover:bg-[#d4952b] text-black font-semibold shadow-[0_0_15px_rgba(229,169,60,0.2)]">
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Save Changes
             </Button>

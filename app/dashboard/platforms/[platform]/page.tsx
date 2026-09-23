@@ -22,6 +22,7 @@ import {
 import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
+import { toast } from "sonner"
 import type { Automation } from "@/lib/types"
 
 const PLATFORM_CONFIG: Record<string, { name: string; color: string; icon: string; description: string }> = {
@@ -100,7 +101,7 @@ export default function PlatformDashboardPage() {
       if (res.ok) {
         router.push("/dashboard/connected-platforms")
       } else {
-        alert("Failed to disconnect")
+        toast.error("Failed to disconnect")
       }
     } catch (err) {
       console.error("Disconnect failed:", err)
@@ -188,7 +189,7 @@ export default function PlatformDashboardPage() {
         <div className="flex items-center gap-2">
           <Link
             href={`/dashboard/automations?platform=${platform}`}
-            className="flex items-center gap-2 px-4 py-2 bg-[#ffe14d] hover:bg-[#ffe14d]/90 text-black rounded-lg text-sm font-bold transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-[#e5a93c] hover:bg-[#d4952b] text-black rounded-lg text-sm font-bold transition-all shadow-[0_0_15px_rgba(229,169,60,0.15)]"
           >
             <Zap className="w-4 h-4" />
             New Rule
@@ -246,7 +247,7 @@ export default function PlatformDashboardPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="p-5 bg-[#0b0b0a] border-white/10">
           <div className="flex items-center gap-2 mb-3">
-            <Zap className="w-4 h-4 text-[#ffe14d]" />
+            <Zap className="w-4 h-4 text-[#e5a93c]" />
             <span className="text-xs text-neutral-500 uppercase tracking-wider">Automations</span>
           </div>
           <p className="font-serif-display text-3xl text-white">{platformAutomations.length}</p>
@@ -284,10 +285,10 @@ export default function PlatformDashboardPage() {
       <div className="rounded-2xl border border-white/10 bg-[#0b0b0a] p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Zap className="w-5 h-5 text-[#ffe14d]" />
+            <Zap className="w-5 h-5 text-[#e5a93c]" />
             {config.name} Automations
           </h2>
-          <Link href={`/dashboard/automations?platform=${platform}`} className="text-xs text-[#ffe14d] hover:underline">
+          <Link href={`/dashboard/automations?platform=${platform}`} className="text-xs text-[#e5a93c] hover:underline">
             View All →
           </Link>
         </div>
@@ -339,7 +340,7 @@ export default function PlatformDashboardPage() {
       {/* Recent Activity */}
       <div className="rounded-2xl border border-white/10 bg-[#0b0b0a] p-6">
         <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-5">
-          <BarChart3 className="w-5 h-5 text-[#ffe14d]" />
+          <BarChart3 className="w-5 h-5 text-[#e5a93c]" />
           Recent Activity
         </h2>
         {isLoading ? (
@@ -350,7 +351,7 @@ export default function PlatformDashboardPage() {
           <div className="space-y-3">
             {recentActivity.slice(0, 8).map((event: any) => (
               <div key={event.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
-                <div className="w-8 h-8 rounded-full bg-[#ffe14d]/10 flex items-center justify-center text-[#ffe14d] shrink-0">
+                <div className="w-8 h-8 rounded-full bg-[#e5a93c]/10 flex items-center justify-center text-[#e5a93c] shrink-0">
                   <MessageCircle className="w-4 h-4" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -372,17 +373,17 @@ export default function PlatformDashboardPage() {
       {/* Quick Links */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <Link href={`/dashboard/automations?platform=${platform}`} className="p-5 rounded-2xl border border-white/10 bg-[#0b0b0a] hover:border-white/20 transition-colors group">
-          <Zap className="w-6 h-6 text-neutral-400 group-hover:text-[#ffe14d] mb-3 transition-colors" />
+          <Zap className="w-6 h-6 text-neutral-400 group-hover:text-[#e5a93c] mb-3 transition-colors" />
           <p className="text-sm text-white font-medium">Automations</p>
           <p className="text-xs text-neutral-500">Manage rules for {config.name}</p>
         </Link>
         <Link href={`/dashboard/inbox?platform=${platform}`} className="p-5 rounded-2xl border border-white/10 bg-[#0b0b0a] hover:border-white/20 transition-colors group">
-          <MessageCircle className="w-6 h-6 text-neutral-400 group-hover:text-[#ffe14d] mb-3 transition-colors" />
+          <MessageCircle className="w-6 h-6 text-neutral-400 group-hover:text-[#e5a93c] mb-3 transition-colors" />
           <p className="text-sm text-white font-medium">Inbox</p>
           <p className="text-xs text-neutral-500">View {config.name} conversations</p>
         </Link>
         <Link href="/dashboard/connected-platforms" className="p-5 rounded-2xl border border-white/10 bg-[#0b0b0a] hover:border-white/20 transition-colors group">
-          <Settings className="w-6 h-6 text-neutral-400 group-hover:text-[#ffe14d] mb-3 transition-colors" />
+          <Settings className="w-6 h-6 text-neutral-400 group-hover:text-[#e5a93c] mb-3 transition-colors" />
           <p className="text-sm text-white font-medium">Settings</p>
           <p className="text-xs text-neutral-500">Manage connections</p>
         </Link>

@@ -27,7 +27,7 @@ export default async function UpdatesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#03010A] text-white flex flex-col justify-between selection:bg-[#ffe14d] selection:text-black relative">
+    <div className="min-h-screen bg-[#03010A] text-white flex flex-col justify-between selection:bg-[#e5a93c] selection:text-black relative">
       <FrontBackground />
       <div>
         <Header activeHref="/updates" />
@@ -36,14 +36,14 @@ export default async function UpdatesPage() {
           <div className="mb-8">
             <Link
               href="/"
-              className="inline-flex items-center gap-1.5 text-xs font-mono-ui text-neutral-400 hover:text-[#ffe14d] transition-colors mb-6"
+              className="inline-flex items-center gap-1.5 text-xs font-mono-ui text-neutral-400 hover:text-[#e5a93c] transition-colors mb-6"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Home</span>
             </Link>
 
             <div className="flex items-center gap-2 mb-2">
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#ffe14d]/10 text-[#ffe14d] text-[10px] font-mono-ui font-semibold border border-[#ffe14d]/25 tracking-wider uppercase">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#e5a93c]/10 text-[#e5a93c] text-[10px] font-mono-ui font-semibold border border-[#e5a93c]/25 tracking-wider uppercase">
                 <Sparkles className="w-3 h-3" /> Official Changelog
               </span>
             </div>
@@ -58,7 +58,7 @@ export default async function UpdatesPage() {
           <div className="bg-gradient-to-b from-[#0c0c14] to-[#06060a] border border-white/10 rounded-2xl p-6 sm:p-10 shadow-2xl space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-white/[0.08] text-xs font-mono-ui text-neutral-500">
               <span className="flex items-center gap-1.5 text-neutral-300">
-                <Calendar className="w-3.5 h-3.5 text-[#ffe14d]" />
+                <Calendar className="w-3.5 h-3.5 text-[#e5a93c]" />
                 Latest Release
               </span>
               <span className="text-emerald-400">Live in Production</span>

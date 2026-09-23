@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 import type { Automation } from "@/lib/types"
 import { toast } from "sonner"
+import { EmptyState } from "@/components/ui/EmptyState"
 
 interface AutomationListProps {
   automations: Automation[]
@@ -20,9 +21,11 @@ interface AutomationListProps {
   userId: string
   userRole?: string
   platform?: string
+  onNewRule?: () => void
 }
 
-export function AutomationList({ automations, onDelete, onEdit, onToggle, onChanged, userId, userRole = "admin", platform = "instagram" }: AutomationListProps) {
+export function AutomationList({ automations, onDelete, onEdit, onToggle, onChanged, userId, userRole = "admin", platform = "instagram", onNewRule }: AutomationListProps) {
+
   const [mediaMap, setMediaMap] = useState<Record<string, string>>({})
 
   const globalRules = automations.filter((rule) => !rule.specific_media_id)
@@ -62,15 +65,16 @@ export function AutomationList({ automations, onDelete, onEdit, onToggle, onChan
 
   if (automations.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center">
-        <div className="w-16 h-16 mx-auto mb-4 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
-          <Zap className="w-7 h-7 text-neutral-600" />
-        </div>
-        <h3 className="text-base font-bold text-white mb-1">No automations yet</h3>
-        <p className="text-sm text-neutral-500 max-w-sm mx-auto">
-          Create your first automation above — it just takes 30 seconds.
-        </p>
-      </div>
+      <EmptyState
+        icon={Zap}
+        title="No automations yet"
+        description="Create your first rule above to automatically reply to comments, trigger DMs, or handle incoming messages."
+        action={onNewRule ? {
+          label: "New Rule",
+          onClick: onNewRule,
+          icon: Zap,
+        } : undefined}
+      />
     )
   }
 
@@ -224,7 +228,7 @@ const RuleCard = memo(function RuleCard({ rule, onDelete, onEdit, onToggle, onDu
               ) : isMedia ? (
                 <ImageIcon className="w-3 h-3 text-pink-400" />
               ) : (
-                <MessageCircle className="w-3 h-3 text-[#ffe14d]" />
+                <MessageCircle className="w-3 h-3 text-[#e5a93c]" />
               )}
               <span className="text-[11px] text-neutral-400 truncate max-w-[120px]">{responsePreview}</span>
             </div>
@@ -245,7 +249,7 @@ const RuleCard = memo(function RuleCard({ rule, onDelete, onEdit, onToggle, onDu
               </Badge>
             )}
             {content.check_follow && (
-              <Badge variant="secondary" className="bg-[#ffe14d]/10 text-[#ffe14d] border border-[#ffe14d]/20 text-[10px] px-1.5 py-0">
+              <Badge variant="secondary" className="bg-[#e5a93c]/10 text-[#e5a93c] border border-[#e5a93c]/20 text-[10px] px-1.5 py-0">
                 <Lock className="w-2.5 h-2.5 mr-0.5" /> Follow
               </Badge>
             )}

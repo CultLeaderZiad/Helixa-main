@@ -61,7 +61,7 @@ export function AiCoachPanel() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-mono-ui font-bold text-sm uppercase tracking-wider text-white flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-[#ffe14d]" /> Weekly Coach Digest
+              <TrendingUp className="w-4 h-4 text-[#e5a93c]" /> Weekly Coach Digest
             </h3>
             <p className="text-xs text-neutral-400 mt-0.5">
               Generated automatically every week from your account&apos;s real activity.
@@ -78,7 +78,7 @@ export function AiCoachPanel() {
 
         {digestLoading ? (
           <div className="flex items-center gap-2 text-xs text-neutral-500 font-mono-ui py-4">
-            <Loader2 className="w-4 h-4 animate-spin text-[#ffe14d]" /> Loading digest…
+            <Loader2 className="w-4 h-4 animate-spin text-[#e5a93c]" /> Loading digest…
           </div>
         ) : digestData?.hasData ? (
           <div className="space-y-3">
@@ -91,7 +91,7 @@ export function AiCoachPanel() {
                 </div>
                 <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-center font-mono-ui">
                   <span className="text-[9px] uppercase tracking-wider text-neutral-500 block">Messages</span>
-                  <span className="text-lg font-bold text-[#ffe14d]">{digestData.metrics.messages ?? 0}</span>
+                  <span className="text-lg font-bold text-[#e5a93c]">{digestData.metrics.messages ?? 0}</span>
                 </div>
                 <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-center font-mono-ui">
                   <span className="text-[9px] uppercase tracking-wider text-neutral-500 block">Conversations</span>
@@ -127,14 +127,14 @@ export function AiCoachPanel() {
           onChange={(e) => setHookCaption(e.target.value)}
           rows={3}
           placeholder="Paste your Reel caption or opening line…"
-          className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#ffe14d]/50 transition-all resize-none"
+          className="w-full bg-white/[0.02] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#e5a93c]/50 transition-all resize-none"
         />
 
         <div className="flex items-center gap-3">
           <button
             onClick={analyseHook}
             disabled={hookLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-[#ffe14d] text-black rounded-xl text-xs font-bold font-mono-ui uppercase tracking-wider hover:brightness-110 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-[#e5a93c] text-black rounded-xl text-xs font-bold font-mono-ui uppercase tracking-wider hover:brightness-110 transition-all disabled:opacity-50"
           >
             {hookLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             {hookLoading ? "Analysing…" : "Score my hook"}
@@ -224,7 +224,7 @@ export function AiCoachPanel() {
 
         {nicheLoading ? (
           <div className="flex items-center gap-2 text-xs text-neutral-500 font-mono-ui py-4">
-            <Loader2 className="w-4 h-4 animate-spin text-[#ffe14d]" /> Analysing posts…
+            <Loader2 className="w-4 h-4 animate-spin text-[#e5a93c]" /> Analysing posts…
           </div>
         ) : nicheData?.hasData ? (
           <div className="space-y-3">
@@ -235,7 +235,7 @@ export function AiCoachPanel() {
               </div>
               <div>
                 <span className="text-[10px] uppercase tracking-wider text-neutral-500 font-mono-ui block">Consistency</span>
-                <span className="text-sm font-bold text-[#ffe14d] font-mono-ui">
+                <span className="text-sm font-bold text-[#e5a93c] font-mono-ui">
                   {nicheData.consistency_score ?? "—"}{nicheData.consistency_score !== null ? "/100" : ""}
                 </span>
               </div>
@@ -257,7 +257,7 @@ export function AiCoachPanel() {
             )}
 
             {nicheData.recommendation && (
-              <div className="bg-[#ffe14d]/[0.06] border border-[#ffe14d]/20 rounded-xl px-3 py-2.5">
+              <div className="bg-[#e5a93c]/[0.06] border border-[#e5a93c]/20 rounded-xl px-3 py-2.5">
                 <p className="text-xs text-neutral-200">{nicheData.recommendation}</p>
               </div>
             )}

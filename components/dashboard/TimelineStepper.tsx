@@ -38,7 +38,7 @@ export function TimelineStepper({
                 <div
                   className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold transition-all duration-300 ${
                     isCompleted
-                      ? "bg-[#ffe14d] text-black shadow-[0_0_15px_rgba(255,225,77,0.3)]"
+                      ? "bg-[#e5a93c] text-black shadow-[0_0_15px_rgba(229,169,60,0.3)]"
                       : isActive
                       ? "bg-white text-black ring-4 ring-white/10"
                       : "bg-neutral-800 text-neutral-500 border border-white/5"
@@ -60,7 +60,7 @@ export function TimelineStepper({
               {i < STEPS.length - 1 && (
                 <div className="flex-1 h-[2px] mx-2 relative bg-neutral-800 rounded-full overflow-hidden">
                   <div
-                    className={`absolute inset-y-0 left-0 transition-all duration-500 bg-[#ffe14d] ${
+                    className={`absolute inset-y-0 left-0 transition-all duration-500 bg-[#e5a93c] ${
                       isCompleted ? "w-full" : "w-0"
                     }`}
                   />

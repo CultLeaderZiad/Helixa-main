@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { CreditCard, AlertTriangle, CheckCircle, Package } from "lucide-react"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
-import { ElectricBorder } from "@/components/ui/ElectricBorder"
+
 
 interface Subscription {
     id: string
@@ -117,7 +117,7 @@ export default function BillingPage() {
                                 <div className="bg-white/[0.03] p-5 rounded-2xl border border-white/[0.05]">
                                     <div className="flex justify-between items-center mb-3">
                                         <div className="text-2xl text-white font-black tracking-tight">{subscription.plan}</div>
-                                        <div className="text-[10px] uppercase tracking-wider font-bold text-[#ffe14d] bg-[#ffe14d]/10 border border-[#ffe14d]/20 px-3 py-1.5 rounded-full">{subscription.status}</div>
+                                        <div className="text-[10px] uppercase tracking-wider font-bold text-[#e5a93c] bg-[#e5a93c]/10 border border-[#e5a93c]/20 px-3 py-1.5 rounded-full">{subscription.status}</div>
                                     </div>
                                     <div className="text-sm text-neutral-400">
                                         {subscription.plan === "Free Trial" ? "Trial ends on" : "Renews on"} <span className="text-white font-medium">{new Date(subscription.current_period_end).toLocaleDateString()}</span>
@@ -187,11 +187,11 @@ export default function BillingPage() {
                                 </div>
                                 <h4 className="text-white font-bold text-sm mb-2">How to upgrade with Vodafone Cash:</h4>
                                 <ol className="text-xs text-neutral-300 space-y-2 list-decimal list-inside relative z-10">
-                                    <li>Transfer the plan amount to <strong className="text-[#ffe14d] font-mono text-sm px-1 bg-black/40 rounded">+20 01037312994</strong></li>
+                                    <li>Transfer the plan amount to <strong className="text-[#e5a93c] font-mono text-sm px-1 bg-black/40 rounded">+20 01037312994</strong></li>
                                     <li>Take a screenshot of the successful transfer receipt</li>
                                     <li>Send the screenshot to <a href="mailto:cultleaderzoz.dev@gmail.com" className="text-blue-400 hover:underline">cultleaderzoz.dev@gmail.com</a> or <a href="https://wa.me/201037312994?text=Hi!%20I%20transferred%20*insert%20the%20amount*%20and%20here%27s%20my%20screenshot.%20Please%20upgrade%20my%20plan." target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline font-bold">contact</a> us on WhatsApp</li>
                                     <li>Your account features will be unlocked within 24 hours</li>
-                                </ol>
+                                 </ol>
                             </div>
                         </div>
                     </div>
@@ -208,13 +208,13 @@ export default function BillingPage() {
                             <div className="bg-white/5 border border-white/10 p-1 rounded-xl flex items-center">
                                 <button 
                                 onClick={() => setIsAnnual(false)}
-                                className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${!isAnnual ? 'bg-[#ffe14d] text-black shadow-lg' : 'text-neutral-400 hover:text-white'}`}
+                                className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${!isAnnual ? 'bg-[#e5a93c] text-black shadow-lg font-semibold' : 'text-neutral-400 hover:text-white'}`}
                                 >
                                 Monthly
                                 </button>
                                 <button 
                                 onClick={() => setIsAnnual(true)}
-                                className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-all ${isAnnual ? 'bg-[#ffe14d] text-black shadow-lg' : 'text-neutral-400 hover:text-white'}`}
+                                className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-all ${isAnnual ? 'bg-[#e5a93c] text-black shadow-lg font-semibold' : 'text-neutral-400 hover:text-white'}`}
                                 >
                                 Annually <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${isAnnual ? 'bg-black/20 text-black' : 'bg-green-500/20 text-green-400'}`}>Save 20%</span>
                                 </button>
@@ -230,47 +230,36 @@ export default function BillingPage() {
                         
                         return (
                             <div key={plan.id} className="relative pt-4 flex flex-col h-full">
-                              {/* Keep Best Value badge if not featured */}
                               {!isFeatured && (
-                                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-[#ffe14d] to-[#e6c419] text-black px-4 py-1.5 rounded-full text-xs font-bold tracking-widest z-30 whitespace-nowrap shadow-xl border border-black/20">
+                                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#e5a93c] text-black px-4 py-1 rounded-full text-[11px] font-mono-ui font-bold uppercase tracking-widest z-30 whitespace-nowrap shadow-xl">
                                       BEST VALUE
                                   </div>
                               )}
-                              <ElectricBorder
-                                color="#7df9ff"
-                                speed={1}
-                                chaos={0.12}
-                                thickness={2}
-                                borderRadius={16}
-                                style={{ borderRadius: 16 }}
-                                className="h-full flex flex-col"
-                              >
-                                <div className="relative h-full bg-[#08070d]/90 border border-white/10 p-8 rounded-2xl flex flex-col shadow-2xl backdrop-blur-md">
-                                    <div className="mb-6">
-                                        <h3 className={`text-xl font-bold ${titleColor} mb-2`}>{plan.name}</h3>
-                                        <p className="text-sm text-neutral-400">{plan.description}</p>
-                                    </div>
-                                    <div className="mb-8">
-                                        <span className="text-5xl font-black text-white tracking-tighter">${isAnnual && plan.price_yearly ? plan.price_yearly : plan.price_usd}</span>
-                                        <span className="text-neutral-500">/{isAnnual && plan.price_yearly ? 'yr' : 'mo'}</span>
-                                    </div>
-                                    <ul className="space-y-4 mb-8 flex-1">
-                                        {((plan.features || []).concat(plan.active_agents?.map((a: any) => a.name) || [])).map((f: string, i: number) => (
-                                            <li key={i} className="flex items-center gap-3 text-sm text-neutral-300">
-                                                <CheckCircle className={`w-5 h-5 ${isFeatured ? 'text-indigo-400' : 'text-[#ffe14d]'}`} />
-                                                {f}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                    {renderPlatformIcons(plan)}
-                                    <button 
-                                        onClick={() => window.location.href = `/checkout/${plan.id}${isAnnual && plan.price_yearly ? '?cycle=yearly' : '?cycle=monthly'}`}
-                                        className={`w-full py-3.5 font-bold rounded-xl transition-all ${isFeatured ? 'bg-white text-black hover:bg-neutral-200' : 'bg-gradient-to-br from-[#ffe14d] to-[#e6c419] text-black font-black hover:brightness-110 shadow-[0_10px_20px_rgba(255,225,77,0.2)] hover:-translate-y-0.5 active:translate-y-0'}`}
-                                    >
-                                        Select {plan.name}
-                                    </button>
-                                </div>
-                              </ElectricBorder>
+                              <div className={`relative h-full ${!isFeatured ? 'bg-[#101217]/95 border-2 border-[#e5a93c]/50 hover:border-[#e5a93c]/80 shadow-[0_0_35px_rgba(229,169,60,0.12)]' : 'bg-[#0d0e13]/85 border border-white/[0.08] hover:border-white/[0.16] shadow-xl'} p-8 rounded-2xl flex flex-col backdrop-blur-md transition-all duration-300`}>
+                                  <div className="mb-6">
+                                      <h3 className={`text-xl font-bold ${!isFeatured ? 'text-[#e5a93c]' : 'text-white'} mb-2`}>{plan.name}</h3>
+                                      <p className="text-sm text-neutral-400">{plan.description}</p>
+                                  </div>
+                                  <div className="mb-8">
+                                      <span className="text-4xl md:text-5xl font-bold text-white tracking-tight font-mono-ui">${isAnnual && plan.price_yearly ? plan.price_yearly : plan.price_usd}</span>
+                                      <span className="text-neutral-500 text-xs">/{isAnnual && plan.price_yearly ? 'yr' : 'mo'}</span>
+                                  </div>
+                                  <ul className="space-y-4 mb-8 flex-1">
+                                      {((plan.features || []).concat(plan.active_agents?.map((a: any) => a.name) || [])).map((f: string, i: number) => (
+                                          <li key={i} className="flex items-center gap-3 text-sm text-neutral-300">
+                                              <CheckCircle className={`w-5 h-5 shrink-0 ${!isFeatured ? 'text-[#e5a93c]' : 'text-neutral-400'}`} />
+                                              <span>{f}</span>
+                                          </li>
+                                      ))}
+                                  </ul>
+                                  {renderPlatformIcons(plan)}
+                                  <button 
+                                      onClick={() => window.location.href = `/checkout/${plan.id}${isAnnual && plan.price_yearly ? '?cycle=yearly' : '?cycle=monthly'}`}
+                                      className={`w-full py-3 rounded-xl font-semibold transition-all font-mono-ui text-xs uppercase tracking-wider cursor-pointer ${!isFeatured ? 'bg-[#e5a93c] hover:bg-[#d4952b] text-black shadow-lg shadow-[#e5a93c]/20' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                                  >
+                                      Select {plan.name}
+                                  </button>
+                              </div>
                             </div>
                         )
                     })}

@@ -9,6 +9,8 @@ import BackToHome from "@/components/ui/back-to-home"
 
 import { FrontBackground } from "@/components/layout/FrontBackground"
 import { PasswordInput } from "@/components/ui/password-input"
+import HelixaLogo from "@/components/ui/HelixaLogo"
+
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -71,19 +73,25 @@ export default function LoginPage() {
       <FrontBackground />
       <div className="absolute inset-0 bg-gradient-to-t from-[#03010A] via-[#03010A]/80 to-[#03010A]/30 pointer-events-none" />
 
-      <div className="w-full max-w-md space-y-8 bg-[#03010A]/60 backdrop-blur-md p-8 rounded-2xl border border-white/10 relative z-10">
-        <div>
-          <h2 className="mt-2 text-center text-3xl font-bold tracking-tight text-white">
+      <div className="w-full max-w-md space-y-6 bg-[#03010A]/80 backdrop-blur-md p-8 rounded-2xl border border-white/10 relative z-10 shadow-2xl">
+        <div className="text-center">
+          <div className="flex justify-center mb-3">
+            <HelixaLogo size="md" />
+          </div>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white font-serif-display">
             Log in to your account
           </h2>
+          <p className="mt-1.5 text-xs text-zinc-400">
+            Welcome back to Helixa automation suite.
+          </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleEmailLogin}>
+        <form className="mt-6 space-y-5" onSubmit={handleEmailLogin}>
           {error && (
-            <div className="rounded-md bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/50 dark:text-red-200">
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-400">
               {error}
             </div>
           )}
-          <div className="space-y-4 rounded-md shadow-sm">
+          <div className="space-y-3">
             <div>
               <label htmlFor="email-address" className="sr-only">
                 Email address
@@ -94,7 +102,7 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 required
-                className="relative block w-full rounded-md border border-white/20 bg-white/5 py-1.5 px-3 text-white placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-[#ffe14d] sm:text-sm sm:leading-6"
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-2.5 px-3.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#e5a93c]/50 focus:ring-1 focus:ring-[#e5a93c]/40 transition-all"
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -102,10 +110,7 @@ export default function LoginPage() {
             </div>
             <div>
               <div className="flex items-center justify-end mb-1">
-                <label htmlFor="password" className="sr-only">
-                  Password
-                </label>
-                <Link href="/forgot-password" className="text-xs text-[#ffe14d] hover:text-[#ffb300] transition-colors">
+                <Link href="/forgot-password" className="text-xs text-[#e5a93c] hover:text-[#d4952b] transition-colors font-mono-ui">
                   Forgot your password?
                 </Link>
               </div>
@@ -125,7 +130,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative flex w-full justify-center rounded-md bg-[#ffe14d] hover:bg-[#e6c738] py-2 px-3 text-sm font-semibold text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ffe14d] disabled:opacity-50"
+              className="group relative flex w-full justify-center rounded-xl bg-[#e5a93c] hover:bg-[#d4952b] py-2.5 px-4 text-xs font-bold uppercase tracking-wider font-mono-ui text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e5a93c] disabled:opacity-50 transition-all shadow-lg shadow-[#e5a93c]/20 cursor-pointer"
             >
               {loading ? "Signing in..." : "Sign in"}
             </button>
@@ -135,20 +140,20 @@ export default function LoginPage() {
         <div className="mt-6">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300 dark:border-gray-700" />
+              <div className="w-full border-t border-white/[0.08]" />
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-[#03010A] px-2 text-sm text-gray-400">Or continue with</span>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-[#0b0c10] px-3 text-zinc-500 font-mono-ui uppercase tracking-wider">Or continue with</span>
             </div>
           </div>
 
-          <div className="mt-6">
+          <div className="mt-4">
             <button
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="flex w-full items-center justify-center gap-3 rounded-md bg-white/5 border border-white/10 px-3 py-2 text-sm font-semibold text-white hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              className="flex w-full items-center justify-center gap-3 rounded-xl bg-white/[0.04] border border-white/10 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider font-mono-ui text-white hover:bg-white/[0.08] hover:border-white/20 transition-all cursor-pointer"
             >
-              <svg className="h-5 w-5" aria-hidden="true" viewBox="0 0 24 24">
+              <svg className="h-4 w-4" aria-hidden="true" viewBox="0 0 24 24">
                 <path
                   d="M12.0003 4.75C13.7703 4.75 15.3553 5.36002 16.6053 6.54998L20.0303 3.125C17.9502 1.19 15.2353 0 12.0003 0C7.31028 0 3.25527 2.69 1.28027 6.60998L5.27028 9.70498C6.21525 6.86002 8.87028 4.75 12.0003 4.75Z"
                   fill="#EA4335"
@@ -171,9 +176,9 @@ export default function LoginPage() {
           </div>
         </div>
         
-        <p className="mt-10 text-center text-sm text-gray-500">
+        <p className="mt-8 text-center text-xs text-zinc-400">
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="font-semibold text-[#ffe14d] hover:text-[#e6c738]">
+          <Link href="/signup" className="font-semibold text-[#e5a93c] hover:text-[#d4952b] transition-colors">
             Start free trial
           </Link>
         </p>

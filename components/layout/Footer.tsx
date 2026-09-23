@@ -33,10 +33,10 @@ export function Footer() {
           {/* Brand Col */}
           <div className="md:col-span-4 lg:col-span-5 space-y-4">
             <Link href="/" className="inline-flex items-center gap-2.5 group">
-              <span className="w-8 h-8 rounded-lg bg-[#0e0e14] border border-white/10 flex items-center justify-center text-[#ffe14d] group-hover:border-[#ffe14d]/40 transition-colors">
+              <span className="w-8 h-8 rounded-lg bg-[#0e0e14] border border-white/10 flex items-center justify-center text-[#e5a93c] group-hover:border-[#e5a93c]/40 transition-colors">
                 <span className="font-mono-ui font-black text-sm">H</span>
               </span>
-              <span className="text-xl sm:text-2xl font-bold tracking-tight text-white group-hover:text-[#ffe14d] transition-colors">
+              <span className="text-xl sm:text-2xl font-bold tracking-tight text-white group-hover:text-[#e5a93c] transition-colors">
                 {isAr ? "هيليكسا أوتو دي إم" : "Helix Auto DM"}
               </span>
             </Link>

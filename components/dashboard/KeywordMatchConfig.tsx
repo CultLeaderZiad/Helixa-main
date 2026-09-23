@@ -45,17 +45,17 @@ function ToggleRow({
       type="button"
       onClick={onToggle}
       className={`w-full p-4 rounded-2xl border text-left flex items-center gap-3.5 transition-all duration-200 bg-white/[0.01] ${
-        on ? "border-[#ffe14d]/40 bg-[#ffe14d]/[0.03]" : "border-white/10 hover:border-white/20"
+        on ? "border-[#e5a93c]/40 bg-[#e5a93c]/[0.03]" : "border-white/10 hover:border-white/20"
       }`}
     >
-      <span className={on ? "text-[#ffe14d]" : "text-neutral-500"}>{icon}</span>
+      <span className={on ? "text-[#e5a93c]" : "text-neutral-500"}>{icon}</span>
       <span className="flex-1 min-w-0">
         <span className="block text-sm font-semibold text-white">{title}</span>
         <span className="block text-xs text-neutral-500 mt-0.5 leading-relaxed">{sub}</span>
       </span>
       <span
         className={`w-10 h-5.5 rounded-full relative transition-colors shrink-0 ${
-          on ? "bg-[#ffe14d]" : "bg-neutral-800"
+          on ? "bg-[#e5a93c]" : "bg-neutral-800"
         }`}
       >
         <span
@@ -89,7 +89,7 @@ export function KeywordMatchConfig({
           <FieldLabel>Keywords to match</FieldLabel>
           <p className="text-[11px] text-neutral-500">
             What keyword triggers this DM?{" "}
-            <span className="text-[#ffe14d] font-semibold">Keep empty to reply to every comment.</span>
+            <span className="text-[#e5a93c] font-semibold">Keep empty to reply to every comment.</span>
           </p>
           <TagInput
             value={triggers}
@@ -102,7 +102,7 @@ export function KeywordMatchConfig({
                 type="button"
                 onClick={handleGenerateKeywords}
                 disabled={generatingKeywords}
-                className="flex items-center gap-1.5 text-xs text-[#ffe14d] hover:text-[#ffe14d]/80 transition-colors bg-[#ffe14d]/10 px-3 py-1.5 rounded-full disabled:opacity-50"
+                className="flex items-center gap-1.5 text-xs text-[#e5a93c] hover:text-[#e5a93c]/80 transition-colors bg-[#e5a93c]/10 px-3 py-1.5 rounded-full disabled:opacity-50"
               >
                 {generatingKeywords ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -124,7 +124,7 @@ export function KeywordMatchConfig({
                         <button
                           type="button"
                           onClick={() => handleAcceptKeywords(s)}
-                          className="text-[10px] uppercase font-bold tracking-wider text-black bg-[#ffe14d] px-3 py-1.5 rounded-md hover:bg-[#ffe14d]/90"
+                          className="text-[10px] uppercase font-bold tracking-wider text-black bg-[#e5a93c] px-3 py-1.5 rounded-md hover:bg-[#e5a93c]/90"
                         >
                           Apply
                         </button>
@@ -170,7 +170,7 @@ export function KeywordMatchConfig({
                 type="button"
                 onClick={handleGenerateKeywords}
                 disabled={generatingKeywords}
-                className="flex items-center gap-1.5 text-xs text-[#ffe14d] hover:text-[#ffe14d]/80 transition-colors bg-[#ffe14d]/10 px-3 py-1.5 rounded-full disabled:opacity-50"
+                className="flex items-center gap-1.5 text-xs text-[#e5a93c] hover:text-[#e5a93c]/80 transition-colors bg-[#e5a93c]/10 px-3 py-1.5 rounded-full disabled:opacity-50"
               >
                 {generatingKeywords ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -192,7 +192,7 @@ export function KeywordMatchConfig({
                         <button
                           type="button"
                           onClick={() => handleAcceptKeywords(s)}
-                          className="text-[10px] uppercase font-bold tracking-wider text-black bg-[#ffe14d] px-3 py-1.5 rounded-md hover:bg-[#ffe14d]/90"
+                          className="text-[10px] uppercase font-bold tracking-wider text-black bg-[#e5a93c] px-3 py-1.5 rounded-md hover:bg-[#e5a93c]/90"
                         >
                           Apply
                         </button>

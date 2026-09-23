@@ -13,6 +13,8 @@ import { useLanguage } from "@/lib/i18n/LanguageContext"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 
+import { ContentCardSkeleton } from "@/components/ui/DashboardSkeleton"
+
 function AutomationsPageContent() {
     const searchParams = useSearchParams()
     const { userId, isLoading: isSessionLoading } = useInstagramSession()
@@ -86,7 +88,16 @@ function AutomationsPageContent() {
         }
     }
 
-    if (isSessionLoading) return <div className="h-screen flex items-center justify-center bg-[#03010A]"><div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>
+    if (isSessionLoading) {
+        return (
+            <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 space-y-8">
+                <div className="grid gap-4 md:grid-cols-2">
+                    <ContentCardSkeleton />
+                    <ContentCardSkeleton />
+                </div>
+            </div>
+        )
+    }
     
     if (!userId) {
         return (
@@ -131,7 +142,7 @@ function AutomationsPageContent() {
                 <div className="flex items-end justify-between gap-4 flex-wrap">
                     <div className="flex flex-col gap-1">
                         <h1 className="font-serif-display text-4xl md:text-5xl text-white leading-none">{t.automationsTitle}</h1>
-                        <p className="text-neutral-400 text-sm mt-1">{t.rulesEngine}</p>
+                        <p className="text-zinc-400 text-sm mt-1">{t.rulesEngine}</p>
                     </div>
                     <div className="flex items-center gap-2">
                         {userRole !== "viewer" && (
@@ -140,10 +151,10 @@ function AutomationsPageContent() {
                                     if (showCreateForm) setEditRule(null)
                                     setShowCreateForm(!showCreateForm)
                                 }}
-                                className={`flex items-center gap-2 h-9 px-5 rounded-full font-mono-ui text-[11px] font-bold uppercase tracking-widest transition-all active:scale-95 ${
+                                className={`flex items-center gap-2 h-9 px-5 rounded-xl font-mono-ui text-[11px] font-bold uppercase tracking-widest transition-all active:scale-95 cursor-pointer ${
                                     showCreateForm
-                                        ? 'border border-white/20 text-white hover:border-white/40'
-                                        : 'bg-[#ffe14d] text-black hover:brightness-95'
+                                        ? 'border border-white/20 text-white hover:border-white/40 bg-white/[0.04]'
+                                        : 'bg-[#e5a93c] hover:bg-[#d4952b] text-black shadow-lg shadow-[#e5a93c]/20'
                                 }`}
                             >
                                 <Plus className={`w-4 h-4 transition-transform duration-200 ${showCreateForm ? 'rotate-45' : ''}`} />
@@ -155,15 +166,15 @@ function AutomationsPageContent() {
 
                 {/* Platform Switcher */}
                 {availablePlatforms.length > 1 && (
-                    <div className="flex gap-2 bg-white/5 p-1 rounded-full w-fit mb-4">
+                    <div className="flex gap-1.5 bg-white/[0.03] border border-white/[0.07] p-1 rounded-2xl w-fit mb-4">
                         {availablePlatforms.map((platform) => (
                             <button
                                 key={platform}
                                 onClick={() => setSelectedPlatform(platform)}
-                                className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-colors ${
+                                className={`px-4 py-1.5 rounded-xl text-xs font-mono-ui font-semibold uppercase tracking-wider transition-all cursor-pointer ${
                                     selectedPlatform === platform
-                                        ? 'bg-white text-black'
-                                        : 'text-neutral-500 hover:text-white'
+                                        ? 'bg-[#e5a93c] text-black shadow-md'
+                                        : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
                                 }`}
                             >
                                 {platform}
@@ -172,23 +183,23 @@ function AutomationsPageContent() {
                     </div>
                 )}
 
-                {/* Tabs — editorial underline */}
-                <div className="flex items-center gap-6 border-b border-white/10">
+                {/* Segmented Pill Tabs */}
+                <div className="inline-flex flex-wrap items-center gap-1 p-1 rounded-2xl bg-white/[0.03] border border-white/[0.07]">
                     {tabs.map((tab) => (
                         <button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key)}
-                            className={`relative flex items-center gap-2 pb-3 -mb-px font-mono-ui text-xs uppercase tracking-widest transition-colors border-b-2 ${
+                            className={`relative flex items-center gap-2 px-4 py-2 rounded-xl font-mono-ui text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer ${
                                 activeTab === tab.key
-                                    ? 'text-white border-[#ffe14d]'
-                                    : 'text-neutral-600 border-transparent hover:text-neutral-300'
+                                    ? 'bg-[#e5a93c]/15 text-[#e5a93c] border border-[#e5a93c]/30 shadow-[0_0_20px_rgba(229,169,60,0.08)] font-bold'
+                                    : 'text-zinc-400 hover:text-white border border-transparent hover:bg-white/[0.04]'
                             }`}
                         >
                             {tab.icon}
                             <span>{tab.label}</span>
                             {tab.count > 0 && (
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                                    activeTab === tab.key ? 'bg-[#ffe14d] text-black' : 'bg-white/10 text-neutral-400'
+                                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold font-mono ${
+                                    activeTab === tab.key ? 'bg-[#e5a93c]/25 text-[#e5a93c]' : 'bg-white/10 text-zinc-400'
                                 }`}>
                                     {tab.count}
                                 </span>
@@ -199,7 +210,7 @@ function AutomationsPageContent() {
 
                 {/* Create Form (Collapsible) */}
                 {showCreateForm && (
-                    <div className="rounded-2xl border border-white/10 bg-[#0b0b0a] p-6 md:p-8 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="rounded-2xl border border-white/10 bg-[#0b0c10]/90 backdrop-blur-md p-6 md:p-8 animate-in fade-in slide-in-from-top-2 duration-300 shadow-2xl">
                         <CreateRuleForm
                             userId={userId}
                             triggerSource={editRule ? editRule.trigger_source : activeTab}
@@ -215,11 +226,11 @@ function AutomationsPageContent() {
                     </div>
                 )}
 
-
-                {/* Automation List */}
+                {/* Automation List / Skeleton */}
                 {isLoading ? (
-                    <div className="flex items-center justify-center py-16">
-                        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <ContentCardSkeleton />
+                        <ContentCardSkeleton />
                     </div>
                 ) : (
                     <AutomationList
@@ -231,6 +242,7 @@ function AutomationsPageContent() {
                         userId={userId}
                         userRole={userRole}
                         platform={selectedPlatform}
+                        onNewRule={() => setShowCreateForm(true)}
                     />
                 )}
             </div>

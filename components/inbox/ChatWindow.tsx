@@ -115,7 +115,7 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
     if (!conversationId) {
         return (
             <div className="flex-1 flex items-center justify-center flex-col gap-4 text-center bg-transparent h-full relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-[#ffe14d]/[0.02] to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-b from-[#e5a93c]/[0.02] to-transparent pointer-events-none" />
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-white/10 to-white/5 border border-white/10 shadow-[0_0_40px_rgba(255,255,255,0.05)] flex items-center justify-center animate-in zoom-in duration-700">
                     <Send className="w-8 h-8 text-white/40" />
                 </div>
@@ -132,7 +132,7 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
     return (
         <div className="flex-1 flex flex-col h-full bg-transparent relative overflow-hidden">
             {/* Background ambient glow */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[300px] bg-[#ffe14d]/[0.03] blur-[120px] rounded-full pointer-events-none" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[300px] bg-[#e5a93c]/[0.03] blur-[120px] rounded-full pointer-events-none" />
             
             {/* Header */}
             <div className="h-16 border-b border-white/5 flex items-center justify-between px-4 md:px-6 bg-white/[0.02] backdrop-blur-xl shrink-0 relative z-20 shadow-sm">
@@ -182,7 +182,7 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
                                 <div className={cn(
                                     "max-w-[85%] md:max-w-[70%] rounded-2xl px-4 py-3 text-sm shadow-sm break-words relative overflow-hidden group",
                                     isMe
-                                        ? "bg-gradient-to-br from-[#ffe14d] to-[#e6c419] text-black rounded-br-none shadow-[0_4px_20px_rgba(255,225,77,0.1)]"
+                                        ? "bg-gradient-to-br from-[#e5a93c] to-[#d4952b] text-black rounded-br-none shadow-[0_4px_20px_rgba(229,169,60,0.1)]"
                                         : "bg-white/[0.08] backdrop-blur-md text-white rounded-bl-none border border-white/10"
                                 )}>
                                     {isMe && <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />}
@@ -217,7 +217,7 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
             {isAutomationOpen && (
                 <div className="absolute bottom-20 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-[#0a0a0a]/95 border border-white/10 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-2xl p-2 z-50 animate-in zoom-in-95 duration-200">
                     <div className="px-3 py-2 text-[10px] font-bold text-neutral-500 uppercase tracking-wider flex items-center gap-2 border-b border-white/5 mb-1">
-                        <Zap className="w-3 h-3 text-[#ffe14d]" />
+                        <Zap className="w-3 h-3 text-[#e5a93c]" />
                         Quick Automations
                     </div>
                     <div className="max-h-60 overflow-y-auto space-y-1 p-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
@@ -244,14 +244,14 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
 
             {/* Input Area */}
             <div className="p-3 md:p-4 border-t border-white/5 bg-white/[0.02] backdrop-blur-xl shrink-0 relative z-20">
-                <div className="flex items-center gap-2 bg-black/40 rounded-2xl border border-white/10 p-1.5 focus-within:border-[#ffe14d]/50 focus-within:bg-black/60 focus-within:shadow-[0_0_20px_rgba(255,225,77,0.05)] transition-all duration-300">
+                <div className="flex items-center gap-2 bg-black/40 rounded-2xl border border-white/10 p-1.5 focus-within:border-[#e5a93c]/50 focus-within:bg-black/60 focus-within:shadow-[0_0_20px_rgba(229,169,60,0.05)] transition-all duration-300">
                     <Button
                         size="icon"
                         variant="ghost"
                         onClick={() => setIsAutomationOpen(!isAutomationOpen)}
-                        className={cn("h-10 w-10 hover:bg-white/10 text-neutral-400 hover:text-[#ffe14d] transition-all shrink-0 rounded-xl", isAutomationOpen && "text-[#ffe14d] bg-[#ffe14d]/10 scale-95")}
+                        className={cn("h-10 w-10 hover:bg-white/10 text-neutral-400 hover:text-[#e5a93c] transition-all shrink-0 rounded-xl", isAutomationOpen && "text-[#e5a93c] bg-[#e5a93c]/10 scale-95")}
                     >
-                        <Zap className={cn("w-5 h-5", isAutomationOpen && "fill-[#ffe14d]")} />
+                        <Zap className={cn("w-5 h-5", isAutomationOpen && "fill-[#e5a93c]")} />
                     </Button>
                     <input
                         className="flex-1 bg-transparent px-3 py-2.5 text-sm text-white focus:outline-none placeholder:text-neutral-500 min-w-0"
@@ -270,7 +270,7 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
                         onClick={() => handleSendMessage()}
                         disabled={sending || !inputText.trim()}
                         size="icon"
-                        className="h-10 w-10 bg-gradient-to-br from-[#ffe14d] to-[#e6c419] hover:brightness-110 text-black rounded-xl disabled:opacity-50 disabled:cursor-not-allowed shrink-0 transition-all hover:scale-105 active:scale-95 shadow-md"
+                        className="h-10 w-10 bg-gradient-to-br from-[#e5a93c] to-[#d4952b] hover:brightness-110 text-black rounded-xl disabled:opacity-50 disabled:cursor-not-allowed shrink-0 transition-all hover:scale-105 active:scale-95 shadow-md"
                     >
                         {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-4 h-4 ml-0.5" />}
                     </Button>

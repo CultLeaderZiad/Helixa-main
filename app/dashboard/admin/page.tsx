@@ -7,6 +7,7 @@ import {
   Activity, DollarSign, Clock, Flag, Zap, CreditCard, XCircle, Mail, Save
 } from "lucide-react"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
+import { toast } from "sonner"
 
 interface Stats {
   totalUsers: number
@@ -64,7 +65,7 @@ const PLAN_COLORS: Record<string, string> = {
 }
 
 const ROLE_COLORS: Record<string, string> = {
-  admin: "text-[#ffe14d] bg-[#ffe14d]/10 border-[#ffe14d]/20",
+  admin: "text-[#e5a93c] bg-[#e5a93c]/10 border-[#e5a93c]/20",
   user: "text-neutral-400 bg-neutral-400/10 border-neutral-400/20",
 }
 
@@ -122,10 +123,10 @@ export default function AdminPage() {
       if (res.ok) {
         fetchSubscribers()
       } else {
-        alert("Failed to delete subscriber")
+        toast.error("Failed to delete subscriber")
       }
     } catch (err) {
-      alert("Error deleting subscriber")
+      toast.error("Error deleting subscriber")
     }
   }
 
@@ -203,10 +204,10 @@ export default function AdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(smtpSettings)
       })
-      if (res.ok) alert("SMTP Settings saved!")
-      else alert("Failed to save SMTP Settings")
+      if (res.ok) toast.success("SMTP Settings saved!")
+      else toast.error("Failed to save SMTP Settings")
     } catch (err) {
-      alert("Error saving SMTP Settings")
+      toast.error("Error saving SMTP Settings")
     } finally {
       setSavingSmtp(false)
     }
@@ -263,9 +264,9 @@ export default function AdminPage() {
           })
           await Promise.all(promises)
           setMatrixDirty(false)
-          alert("Plan-Agent Matrix saved!")
+          toast.success("Plan-Agent Matrix saved!")
       } catch (err) {
-          alert("Failed to save Plan-Agent Matrix")
+          toast.error("Failed to save Plan-Agent Matrix")
       } finally {
           setSavingMatrix(false)
       }
@@ -356,9 +357,9 @@ export default function AdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(bannerState)
       })
-      alert("Banner updated!")
+      toast.success("Banner updated!")
     } catch (err) {
-      alert("Failed to save banner")
+      toast.error("Failed to save banner")
     } finally {
       setSavingBanner(false)
     }
@@ -387,11 +388,11 @@ export default function AdminPage() {
         fetchStats()
       } else {
         setPendingPayments(pendingPayments) // rollback
-        alert("Failed to process payment")
+        toast.error("Failed to process payment")
       }
     } catch (err) {
       setPendingPayments(pendingPayments) // rollback
-      alert("Error processing payment")
+      toast.error("Error processing payment")
     }
   }
 
@@ -416,7 +417,7 @@ export default function AdminPage() {
           <p className="text-xs sm:text-sm text-neutral-400 mt-0.5">Users, payments, plans, and platform health at a glance.</p>
         </div>
         <div className="flex items-center gap-2.5 self-start sm:self-center">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ffe14d]/10 border border-[#ffe14d]/25 text-[#ffe14d] text-[10px] font-mono font-bold uppercase tracking-wider">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e5a93c]/10 border border-[#e5a93c]/25 text-[#e5a93c] text-[10px] font-mono font-bold uppercase tracking-wider">
             <Shield className="w-3 h-3" /> Admin Access
           </span>
           <button
@@ -431,11 +432,11 @@ export default function AdminPage() {
 
       {/* Live Banner */}
       {trialsThisWeek !== null && (
-        <div className="bg-[#ffe14d]/10 border border-[#ffe14d]/20 rounded-xl p-4 flex items-center gap-3 animate-in fade-in duration-500">
-          <Zap className="w-5 h-5 text-[#ffe14d]" />
+        <div className="bg-[#e5a93c]/10 border border-[#e5a93c]/20 rounded-xl p-4 flex items-center gap-3 animate-in fade-in duration-500">
+          <Zap className="w-5 h-5 text-[#e5a93c]" />
           <div>
             <p className="text-white font-mono text-sm">
-              <span className="font-bold text-[#ffe14d]">{trialsThisWeek}</span> people started a trial this week.
+              <span className="font-bold text-[#e5a93c]">{trialsThisWeek}</span> people started a trial this week.
             </p>
           </div>
         </div>
@@ -469,7 +470,7 @@ export default function AdminPage() {
             { label: "One-Time", value: stats.oneTimeUsers, icon: Check, color: "text-purple-400", accent: "#c084fc" },
             { label: "Expired", value: stats.expiredUsers, icon: X, color: "text-red-400", accent: "#f87171" },
             { label: "Flagged", value: stats.flaggedUsers, icon: Flag, color: "text-orange-400", accent: "#fb923c" },
-            { label: "Automations Today", value: stats.automationsToday, icon: Activity, color: "text-[#ffe14d]", accent: "#ffe14d" },
+            { label: "Automations Today", value: stats.automationsToday, icon: Activity, color: "text-[#e5a93c]", accent: "#e5a93c" },
           ].map(({ label, value, icon: Icon, color, accent }) => (
             <div
               key={label}
@@ -508,7 +509,7 @@ export default function AdminPage() {
             onClick={() => setActiveTab(tab as any)}
             className={`relative px-4 py-2 rounded-xl font-mono text-[11px] uppercase tracking-wider transition-all whitespace-nowrap ${
               activeTab === tab
-                ? "bg-[#ffe14d]/15 text-[#ffe14d] border border-[#ffe14d]/25 shadow-[0_0_20px_rgba(255,225,77,0.08)]"
+                ? "bg-[#e5a93c]/15 text-[#e5a93c] border border-[#e5a93c]/25 shadow-[0_0_20px_rgba(229,169,60,0.12)]"
                 : "text-neutral-500 hover:text-white border border-transparent hover:bg-white/[0.04]"
             }`}
           >
@@ -784,7 +785,7 @@ export default function AdminPage() {
               <button
                 onClick={saveUser}
                 disabled={updating}
-                className="w-full bg-[#ffe14d] text-black font-mono text-xs font-bold py-2.5 rounded-lg hover:brightness-110 transition-all disabled:opacity-50"
+                className="w-full bg-[#e5a93c] text-black font-mono text-xs font-bold py-2.5 rounded-lg hover:bg-[#d4952b] transition-all disabled:opacity-50"
               >
                 {updating ? "Saving..." : "Save Changes"}
               </button>
@@ -809,7 +810,7 @@ export default function AdminPage() {
               ) : auditLogs.map(log => (
                 <tr key={log.id} className="border-b border-white/[0.04]">
                   <td className="px-4 py-3 text-neutral-500">{new Date(log.created_at).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-[#ffe14d]">{log.admin?.email || "—"}</td>
+                  <td className="px-4 py-3 text-[#e5a93c]">{log.admin?.email || "—"}</td>
                   <td className="px-4 py-3 text-white">{log.action}</td>
                   <td className="px-4 py-3 text-neutral-300">{log.target?.email || "—"}</td>
                   <td className="px-4 py-3 text-neutral-500 max-w-xs truncate">
@@ -839,7 +840,7 @@ export default function AdminPage() {
                 <tr key={payment.id} className="border-b border-white/[0.04]">
                   <td className="px-4 py-3 text-neutral-500">{new Date(payment.created_at).toLocaleString()}</td>
                   <td className="px-4 py-3 text-white font-bold">{payment.accounts?.email || `ID: ${payment.user_id}`}</td>
-                  <td className="px-4 py-3 text-[#ffe14d]">{payment.transaction_reference}</td>
+                  <td className="px-4 py-3 text-[#e5a93c]">{payment.transaction_reference}</td>
                   <td className="px-4 py-3 text-green-400">${payment.amount}</td>
                   <td className="px-4 py-3 text-blue-400 capitalize">{payment.plan_id || payment.users?.plan || "monthly"}</td>
                   <td className="px-4 py-3 text-neutral-400 max-w-[200px] truncate" title={payment.note || ""}>
@@ -934,7 +935,7 @@ export default function AdminPage() {
               <button
                 onClick={saveBanner}
                 disabled={savingBanner}
-                className="bg-[#ffe14d] text-black font-mono text-sm font-bold px-6 py-2 rounded-lg hover:brightness-110 transition-all disabled:opacity-50"
+                className="bg-[#e5a93c] text-black font-mono text-sm font-bold px-6 py-2 rounded-lg hover:bg-[#d4952b] transition-all disabled:opacity-50"
               >
                 {savingBanner ? "Saving..." : "Save Banner"}
               </button>
@@ -953,7 +954,7 @@ export default function AdminPage() {
             <button
                 onClick={savePlanAgents}
                 disabled={savingMatrix}
-                className="bg-[#ffe14d] text-black font-mono text-sm font-bold px-6 py-2 rounded-lg hover:brightness-110 transition-all disabled:opacity-50 flex items-center gap-2"
+                className="bg-[#e5a93c] text-black font-mono text-sm font-bold px-6 py-2 rounded-lg hover:bg-[#d4952b] transition-all disabled:opacity-50 flex items-center gap-2"
               >
                 {savingMatrix ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 {savingMatrix ? "Saving..." : "Save Matrix"}
@@ -1044,7 +1045,7 @@ export default function AdminPage() {
       {activeTab === "smtp" && (
         <div className="max-w-2xl border border-white/[0.08] rounded-xl p-6 bg-white/[0.02] space-y-6">
           <div className="flex items-center gap-3 border-b border-white/[0.08] pb-4">
-            <Mail className="w-5 h-5 text-[#ffe14d]" />
+            <Mail className="w-5 h-5 text-[#e5a93c]" />
             <div>
               <h2 className="font-mono text-sm font-bold text-white">SMTP Settings</h2>
               <p className="font-mono text-xs text-neutral-500">Configure outbound email provider credentials.</p>
@@ -1130,7 +1131,7 @@ export default function AdminPage() {
               <button
                 onClick={saveSmtpSettings}
                 disabled={savingSmtp}
-                className="bg-[#ffe14d] text-black font-mono text-sm font-bold px-6 py-2 rounded-lg hover:brightness-110 transition-all disabled:opacity-50 flex items-center gap-2"
+                className="bg-[#e5a93c] text-black font-mono text-sm font-bold px-6 py-2 rounded-lg hover:bg-[#d4952b] transition-all disabled:opacity-50 flex items-center gap-2"
               >
                 {savingSmtp ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {savingSmtp ? "Saving..." : "Save SMTP Settings"}
@@ -1143,7 +1144,7 @@ export default function AdminPage() {
         <div className="border border-white/[0.08] rounded-xl p-6 bg-white/[0.02] space-y-6">
           <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
             <div className="flex items-center gap-3">
-              <Mail className="w-5 h-5 text-[#ffe14d]" />
+              <Mail className="w-5 h-5 text-[#e5a93c]" />
               <div>
                 <h2 className="font-mono text-sm font-bold text-white">Newsletter Subscribers</h2>
                 <p className="font-mono text-xs text-neutral-500">View and manage users who subscribed to the weekly newsletter.</p>

@@ -88,11 +88,11 @@ export function TeamPanel() {
   }
 
   return (
-    <div className="p-6 rounded-2xl border border-white/10 bg-[#0b0b0a] hover:border-white/20 transition-colors">
+    <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#0b0b10] hover:border-white/20 transition-colors">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-            <Users className="w-5 h-5 text-purple-500" />
+          <div className="w-10 h-10 rounded-full bg-[#e5a93c]/10 border border-[#e5a93c]/20 flex items-center justify-center">
+            <Users className="w-5 h-5 text-[#e5a93c]" />
           </div>
           <div>
             <h3 className="text-white font-medium">Agency Team</h3>
@@ -110,14 +110,14 @@ export function TeamPanel() {
               placeholder="colleague@agency.com"
               value={inviteEmail}
               onChange={e => setInviteEmail(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg py-2 pl-9 pr-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-purple-500/50"
+              className="w-full bg-white/5 border border-white/10 rounded-lg py-2 pl-9 pr-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#e5a93c]/50"
               required
             />
           </div>
           <select
             value={inviteRole}
             onChange={e => setInviteRole(e.target.value)}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 text-sm text-white focus:outline-none [&>option]:bg-[#0b0b0a] [&>option]:text-white"
+            className="bg-white/5 border border-white/10 rounded-lg px-3 text-sm text-white focus:outline-none [&>option]:bg-[#0b0b10] [&>option]:text-white"
           >
             <option value="viewer">Viewer</option>
             <option value="editor">Editor</option>
@@ -126,7 +126,7 @@ export function TeamPanel() {
           <button
             type="submit"
             disabled={inviting || members.length >= limit}
-            className="bg-purple-500 hover:bg-purple-600 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+            className="bg-[#e5a93c] hover:bg-[#d4952b] disabled:opacity-50 text-black font-semibold px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(229,169,60,0.2)]"
           >
             {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             Invite

@@ -64,7 +64,7 @@ export function ReelPostPicker({
         }}
         className={`w-full p-4 rounded-xl border flex items-center gap-3 transition-all duration-200 ${
           hasSelectedReelOption && selectedReel === null
-            ? "border-[#ffe14d] bg-[#ffe14d]/[0.06] text-[#ffe14d]"
+            ? "border-[#e5a93c] bg-[#e5a93c]/[0.06] text-[#e5a93c]"
             : "border-white/10 text-neutral-400 hover:border-white/20 hover:text-white bg-white/[0.01]"
         }`}
       >
@@ -80,7 +80,7 @@ export function ReelPostPicker({
         <>
           {loadingReels ? (
             <div className="p-8 flex flex-col items-center justify-center gap-3 border border-white/5 rounded-2xl bg-white/[0.01]">
-              <Loader2 className="w-6 h-6 animate-spin text-[#ffe14d]" />
+              <Loader2 className="w-6 h-6 animate-spin text-[#e5a93c]" />
               <span className="text-xs text-neutral-500 font-mono-ui">Fetching {platformInfo.label} posts...</span>
             </div>
           ) : reels.length > 0 ? (
@@ -97,7 +97,7 @@ export function ReelPostPicker({
                     }}
                     className={`aspect-square rounded-xl border overflow-hidden relative group text-left transition-all duration-200 ${
                       isSelected
-                        ? "border-[#ffe14d] ring-2 ring-[#ffe14d]/20"
+                        ? "border-[#e5a93c] ring-2 ring-[#e5a93c]/20"
                         : "border-white/10 hover:border-white/25 bg-[#0e0e0e]"
                     }`}
                   >
@@ -120,8 +120,8 @@ export function ReelPostPicker({
 
                     {/* Selected Check overlay */}
                     {isSelected && (
-                      <div className="absolute inset-0 bg-[#ffe14d]/10 flex items-center justify-center backdrop-blur-[1px]">
-                        <div className="w-8 h-8 rounded-full bg-[#ffe14d] text-black flex items-center justify-center shadow-lg">
+                      <div className="absolute inset-0 bg-[#e5a93c]/10 flex items-center justify-center backdrop-blur-[1px]">
+                        <div className="w-8 h-8 rounded-full bg-[#e5a93c] text-black flex items-center justify-center shadow-lg">
                           <Check className="w-4 h-4 stroke-[3]" />
                         </div>
                       </div>
@@ -165,7 +165,7 @@ export function ReelPostPicker({
           value={specificMediaUrl}
           onChange={(e) => setSpecificMediaUrl(e.target.value)}
           placeholder={platformInfo.placeholder}
-          className="flex-1 h-9 bg-white/[0.02] border border-white/10 rounded-xl px-3 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#ffe14d]/50 transition-all font-mono-ui"
+          className="flex-1 h-9 bg-white/[0.02] border border-white/10 rounded-xl px-3 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#e5a93c]/50 transition-all font-mono-ui"
         />
         <button
           type="button"
@@ -179,10 +179,10 @@ export function ReelPostPicker({
 
       {/* Confirmed Resolved Post Card — Shows customer what was actually found */}
       {selectedReel && hasSelectedReelOption && selectedReel.id && (
-        <div className="relative rounded-xl border border-[#ffe14d]/30 bg-gradient-to-br from-[#ffe14d]/[0.08] to-transparent p-4 space-y-3 animate-in fade-in zoom-in-95 duration-200">
+        <div className="relative rounded-xl border border-[#e5a93c]/30 bg-gradient-to-br from-[#e5a93c]/[0.08] to-transparent p-4 space-y-3 animate-in fade-in zoom-in-95 duration-200">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#ffe14d]/10 border border-[#ffe14d]/20 flex items-center justify-center text-[#ffe14d] shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-[#e5a93c]/10 border border-[#e5a93c]/20 flex items-center justify-center text-[#e5a93c] shrink-0">
                 {platformInfo.icon || <Film className="w-4 h-4" />}
               </div>
               <div>
@@ -230,7 +230,7 @@ export function ReelPostPicker({
                   href={selectedReel.permalink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[10px] text-[#ffe14d] hover:underline mt-1 font-mono-ui"
+                  className="inline-flex items-center gap-1 text-[10px] text-[#e5a93c] hover:underline mt-1 font-mono-ui"
                 >
                   View live post &rarr;
                 </a>

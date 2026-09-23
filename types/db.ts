@@ -4,6 +4,7 @@ export interface Conversation {
     recipient_id: string
     recipient_username: string
     last_message_at: string
+    last_message_preview?: string | null
     created_at: string
     updated_at: string
 }

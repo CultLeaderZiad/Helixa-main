@@ -7,9 +7,11 @@ import { createBrowserClient } from "@supabase/ssr"
 import { Suspense } from "react"
 import dynamic from "next/dynamic"
 import BackToHome from "@/components/ui/back-to-home"
-
+import { Mail } from "lucide-react"
+import HelixaLogo from "@/components/ui/HelixaLogo"
 import { FrontBackground } from "@/components/layout/FrontBackground"
 import { PasswordInput } from "@/components/ui/password-input"
+
 function SignupForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -65,15 +67,28 @@ function SignupForm() {
 
   if (success) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 dark:bg-gray-900">
-        <div className="w-full max-w-md space-y-8 text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
-            Check your email
-          </h2>
-          <p className="text-gray-500 dark:text-gray-400">
-            We sent a confirmation link to {email}. Please click the link to activate your account.
-          </p>
-          <Link href="/login" className="font-semibold leading-6 text-indigo-600 hover:text-indigo-500">
+      <div className="flex min-h-screen items-center justify-center bg-[#03010A] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        <BackToHome />
+        <FrontBackground />
+        <div className="w-full max-w-md space-y-6 bg-[#03010A]/80 backdrop-blur-md p-8 rounded-2xl border border-white/10 text-center relative z-10 shadow-2xl">
+          <div className="flex justify-center mb-1">
+            <HelixaLogo size="md" />
+          </div>
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e5a93c]/10 border border-[#e5a93c]/20 text-[#e5a93c] shadow-[0_0_20px_rgba(229,169,60,0.08)]">
+            <Mail className="h-6 w-6" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold tracking-tight text-white font-serif-display">
+              Check your email
+            </h2>
+            <p className="text-sm text-zinc-400">
+              We sent a confirmation link to <span className="text-white font-medium">{email}</span>. Click the link to activate your account and start your 7-day trial.
+            </p>
+          </div>
+          <Link
+            href="/login"
+            className="inline-flex items-center justify-center w-full rounded-xl bg-[#e5a93c] hover:bg-[#d4952b] py-2.5 px-4 text-xs font-bold uppercase tracking-wider font-mono-ui text-black transition-all shadow-lg shadow-[#e5a93c]/20"
+          >
             Return to login
           </Link>
         </div>
@@ -87,22 +102,25 @@ function SignupForm() {
       <FrontBackground />
       <div className="absolute inset-0 bg-gradient-to-t from-[#03010A] via-[#03010A]/80 to-[#03010A]/30 pointer-events-none" />
 
-      <div className="w-full max-w-md space-y-8 bg-[#03010A]/60 backdrop-blur-md p-8 rounded-2xl border border-white/10 relative z-10">
-        <div>
-          <h2 className="mt-2 text-center text-3xl font-bold tracking-tight text-white">
+      <div className="w-full max-w-md space-y-6 bg-[#03010A]/80 backdrop-blur-md p-8 rounded-2xl border border-white/10 relative z-10 shadow-2xl">
+        <div className="text-center">
+          <div className="flex justify-center mb-3">
+            <HelixaLogo size="md" />
+          </div>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white font-serif-display">
             Start your free trial
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-400">
+          <p className="mt-1.5 text-xs text-zinc-400">
             Get 7 days of full access. No credit card required.
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleEmailSignup}>
+        <form className="mt-6 space-y-5" onSubmit={handleEmailSignup}>
           {error && (
-            <div className="rounded-md bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/50 dark:text-red-200">
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-400">
               {error}
             </div>
           )}
-          <div className="space-y-4 rounded-md shadow-sm">
+          <div className="space-y-3">
             <div>
               <label htmlFor="email-address" className="sr-only">
                 Email address
@@ -113,7 +131,7 @@ function SignupForm() {
                 type="email"
                 autoComplete="email"
                 required
-                className="relative block w-full rounded-md border border-white/20 bg-white/5 py-1.5 px-3 text-white placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-[#ffe14d] sm:text-sm sm:leading-6"
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-2.5 px-3.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#e5a93c]/50 focus:ring-1 focus:ring-[#e5a93c]/40 transition-all"
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -140,7 +158,7 @@ function SignupForm() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative flex w-full justify-center rounded-md bg-[#ffe14d] hover:bg-[#e6c738] py-2 px-3 text-sm font-semibold text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ffe14d] disabled:opacity-50"
+              className="group relative flex w-full justify-center rounded-xl bg-[#e5a93c] hover:bg-[#d4952b] py-2.5 px-4 text-xs font-bold uppercase tracking-wider font-mono-ui text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e5a93c] disabled:opacity-50 transition-all shadow-lg shadow-[#e5a93c]/20 cursor-pointer"
             >
               {loading ? "Creating account..." : "Sign up with Email"}
             </button>
@@ -150,20 +168,20 @@ function SignupForm() {
         <div className="mt-6">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300 dark:border-gray-700" />
+              <div className="w-full border-t border-white/[0.08]" />
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-[#03010A] px-2 text-sm text-gray-400">Or continue with</span>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-[#0b0c10] px-3 text-zinc-500 font-mono-ui uppercase tracking-wider">Or continue with</span>
             </div>
           </div>
 
-          <div className="mt-6">
+          <div className="mt-4">
             <button
               onClick={handleGoogleSignup}
               disabled={loading}
-              className="flex w-full items-center justify-center gap-3 rounded-md bg-white/5 border border-white/10 px-3 py-2 text-sm font-semibold text-white hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              className="flex w-full items-center justify-center gap-3 rounded-xl bg-white/[0.04] border border-white/10 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider font-mono-ui text-white hover:bg-white/[0.08] hover:border-white/20 transition-all cursor-pointer"
             >
-              <svg className="h-5 w-5" aria-hidden="true" viewBox="0 0 24 24">
+              <svg className="h-4 w-4" aria-hidden="true" viewBox="0 0 24 24">
                 <path
                   d="M12.0003 4.75C13.7703 4.75 15.3553 5.36002 16.6053 6.54998L20.0303 3.125C17.9502 1.19 15.2353 0 12.0003 0C7.31028 0 3.25527 2.69 1.28027 6.60998L5.27028 9.70498C6.21525 6.86002 8.87028 4.75 12.0003 4.75Z"
                   fill="#EA4335"
@@ -186,9 +204,9 @@ function SignupForm() {
           </div>
         </div>
 
-        <p className="mt-10 text-center text-sm text-gray-500">
+        <p className="mt-8 text-center text-xs text-zinc-400">
           Already have an account?{" "}
-          <Link href="/login" className="font-semibold text-[#ffe14d] hover:text-[#e6c738]">
+          <Link href="/login" className="font-semibold text-[#e5a93c] hover:text-[#d4952b] transition-colors">
             Log in
           </Link>
         </p>

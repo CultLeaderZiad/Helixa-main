@@ -51,7 +51,7 @@ export function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#03010A] text-[#ededed] selection:bg-[#ffe14d] selection:text-black overflow-x-hidden antialiased relative">
+    <div className="min-h-screen bg-[#03010A] text-[#ededed] selection:bg-[#e5a93c] selection:text-black overflow-x-hidden antialiased relative">
       {/* ─── Shape Grid & Ambient Background ─── */}
       <FrontBackground />
       <div className="grain-overlay" />
@@ -82,15 +82,15 @@ export function LandingPage() {
           animation: fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         @keyframes glow-pulse {
-          0%, 100% { box-shadow: 0 0 20px rgba(255,225,77,0.18), 0 0 40px rgba(255,225,77,0.08); }
-          50%      { box-shadow: 0 0 32px rgba(255,225,77,0.35),  0 0 70px rgba(255,225,77,0.15); }
+          0%, 100% { box-shadow: 0 0 20px rgba(229,169,60,0.18), 0 0 40px rgba(229,169,60,0.08); }
+          50%      { box-shadow: 0 0 32px rgba(229,169,60,0.35),  0 0 70px rgba(229,169,60,0.15); }
         }
         .cta-glow {
           animation: glow-pulse 3s ease-in-out infinite;
         }
         .cta-glow:hover {
           animation: none;
-          box-shadow: 0 0 36px rgba(255,225,77,0.5), 0 4px 20px rgba(0,0,0,0.4);
+          box-shadow: 0 0 36px rgba(229,169,60,0.5), 0 4px 20px rgba(0,0,0,0.4);
         }
         .grain-overlay {
           position: fixed; inset: 0; z-index: 5; pointer-events: none; opacity: 0.035;
@@ -107,17 +107,17 @@ export function LandingPage() {
           
           {/* Eyebrow Badge */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10 mb-6 font-mono-ui text-xs text-neutral-300 shadow-xl backdrop-blur-md">
-            <span className="w-2 h-2 rounded-full bg-[#ffe14d] animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-[#e5a93c] animate-pulse" />
             <span className="font-semibold text-white">{t.heroBadge1 || "Helix Auto DM 2.0"}</span>
             <span className="text-neutral-500">•</span>
             <span>{t.heroBadge2 || "Meta Graph API Certified Automation"}</span>
-            <ArrowUpRight className="w-3.5 h-3.5 text-[#ffe14d]" />
+            <ArrowUpRight className="w-3.5 h-3.5 text-[#e5a93c]" />
           </div>
 
           {/* Headline */}
           <h1 className="font-serif-display text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight text-white leading-[1.08] max-w-4xl mx-auto">
             {t.heroTitle || "Turn Comments & DMs Into Revenue"}{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ffe14d] via-[#fff5a0] to-[#e5a800]">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#e5a93c] via-[#f7d382] to-[#c7881e]">
               {t.heroTitleGradient || "on Autopilot."}
             </span>
           </h1>
@@ -131,7 +131,7 @@ export function LandingPage() {
           <div className="flex flex-wrap items-center justify-center gap-4 mt-8">
             <button
               onClick={handleSignup}
-              className="cta-glow group flex items-center gap-2.5 bg-[#ffe14d] text-black font-mono-ui text-sm font-extrabold px-8 py-4 rounded-full hover:scale-[1.03] active:scale-[0.98] transition-all"
+              className="cta-glow group flex items-center gap-2.5 bg-[#e5a93c] hover:bg-[#d4952b] text-black font-mono-ui text-sm font-extrabold px-8 py-4 rounded-full hover:scale-[1.03] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(229,169,60,0.3)]"
             >
               <span>{t.heroCta || "Start Automating for Free"}</span>
               <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -150,7 +150,7 @@ export function LandingPage() {
               rel="noreferrer"
               className="flex items-center gap-2 font-mono-ui text-sm text-neutral-300 border border-white/10 bg-black/40 hover:border-white/30 px-6 py-4 rounded-full transition-colors"
             >
-              <Star className="w-4 h-4 text-[#ffe14d]" />
+              <Star className="w-4 h-4 text-[#e5a93c]" />
               <span>{t.star || "Star"}</span>
               {typeof stars === "number" && (
                 <span className="px-1.5 py-0.5 rounded-full bg-white/10 text-[11px] font-bold text-white">
@@ -167,7 +167,7 @@ export function LandingPage() {
               {t.noCreditCardReq || "No Credit Card Required"}
             </span>
             <span className="flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#ffe14d]" />
+              <ShieldCheck className="w-3.5 h-3.5 text-[#e5a93c]" />
               {t.officialMetaApi || "Official Meta Graph API"}
             </span>
             <span className="flex items-center gap-1.5">
@@ -234,13 +234,13 @@ export function LandingPage() {
                     {t.step2Title || "2. Instant Private DM & Lead Capture"}
                   </span>
 
-                  <div className="bg-[#121218] border border-[#ffe14d]/30 rounded-xl p-4 space-y-3 shadow-lg">
+                  <div className="bg-[#121218] border border-[#e5a93c]/30 rounded-xl p-4 space-y-3 shadow-lg">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#ffe14d] text-black flex items-center justify-center font-bold text-[10px]">
+                      <div className="w-6 h-6 rounded-full bg-[#e5a93c] text-black flex items-center justify-center font-bold text-[10px]">
                         H
                       </div>
                       <span className="text-xs font-bold text-white">Helix Auto DM</span>
-                      <span className="text-[9px] font-mono-ui text-[#ffe14d] border border-[#ffe14d]/30 px-1 rounded">{t.verifiedBot || "Verified Bot"}</span>
+                      <span className="text-[9px] font-mono-ui text-[#e5a93c] border border-[#e5a93c]/30 px-1 rounded">{t.verifiedBot || "Verified Bot"}</span>
                     </div>
 
                     <p className="text-xs text-neutral-200 leading-relaxed">
@@ -248,7 +248,7 @@ export function LandingPage() {
                     </p>
 
                     <div className="space-y-2 pt-1">
-                      <div className="w-full py-2 px-3 rounded-lg bg-[#ffe14d] text-black font-bold text-xs text-center flex items-center justify-center gap-1.5 shadow-md">
+                      <div className="w-full py-2 px-3 rounded-lg bg-[#e5a93c] hover:bg-[#d4952b] text-black font-bold text-xs text-center flex items-center justify-center gap-1.5 shadow-md">
                         <span>{t.downloadBlueprint || "Download 2026 Blueprint (.PDF)"}</span>
                         <ArrowUpRight className="w-3.5 h-3.5" />
                       </div>
@@ -290,7 +290,7 @@ export function LandingPage() {
       <section id="features" className="px-5 md:px-10 py-24 max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-3 mb-12">
           <div>
-            <span className="font-mono-ui text-xs uppercase tracking-[0.2em] text-[#ffe14d] font-semibold block mb-2">
+            <span className="font-mono-ui text-xs uppercase tracking-[0.2em] text-[#e5a93c] font-semibold block mb-2">
               {isAr ? "القدرات والميزات" : "Capabilities"}
             </span>
             <h2 className="font-serif-display text-4xl md:text-5xl text-white">
@@ -344,7 +344,7 @@ export function LandingPage() {
             desc={isAr ? "مبني على Next.js و Supabase. انشر مجاناً، وامتلك كودك وبياناتك وتوكناتك بالكامل." : "Next.js + Supabase. Deploy on free tiers. Own every line of code, own your data, and own your API tokens."}
           />
           <div className="bg-[#0c0c12] p-8 flex flex-col items-center justify-center text-center space-y-2 border-b border-r border-white/[0.05]">
-            <span className="text-xs font-mono-ui text-[#ffe14d] font-bold uppercase tracking-wider">
+            <span className="text-xs font-mono-ui text-[#e5a93c] font-bold uppercase tracking-wider">
               ✦ {isAr ? "منصة هيليكسا أوتو دي إم" : "Helix Auto DM Platform"}
             </span>
             <p className="text-xs text-neutral-400 max-w-xs">
@@ -367,7 +367,7 @@ export function LandingPage() {
           </div>
           <Link
             href="/updates"
-            className="font-mono-ui text-xs font-bold text-[#ffe14d] hover:underline flex items-center gap-1"
+            className="font-mono-ui text-xs font-bold text-[#e5a93c] hover:underline flex items-center gap-1"
           >
             <span>{isAr ? "عرض سجل التغيير" : "View Changelog"}</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -375,7 +375,7 @@ export function LandingPage() {
         </div>
 
         <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-6 sm:p-10 relative overflow-hidden backdrop-blur-sm">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#ffe14d]/[0.02] via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#e5a93c]/[0.02] via-transparent to-transparent pointer-events-none" />
           <div className="prose prose-invert prose-yellow max-w-none font-mono text-sm leading-relaxed text-neutral-300">
             {isLoadingUpdates ? (
               <div className="flex items-center justify-center py-10 text-neutral-500">
@@ -422,7 +422,7 @@ export function LandingPage() {
               rel="noreferrer"
               className="flex items-center gap-2 border border-white/15 text-neutral-200 font-mono-ui text-xs font-bold px-5 py-3 rounded-full hover:border-white/40 transition-colors"
             >
-              <Star className="w-3.5 h-3.5 text-[#ffe14d]" /> {isAr ? "نجمة على GitHub" : "Star on GitHub"}
+              <Star className="w-3.5 h-3.5 text-[#e5a93c]" /> {isAr ? "نجمة على GitHub" : "Star on GitHub"}
             </a>
             <a
               href={LINKEDIN_URL}
@@ -446,10 +446,10 @@ export function LandingPage() {
 function Feature({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
     <div className="feature-card bg-[#03010A] p-7 sm:p-8 group hover:bg-[#0c0c14] transition-colors duration-200 border-b border-r border-white/[0.05] relative">
-      <div className="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center text-neutral-400 group-hover:text-black group-hover:bg-[#ffe14d] group-hover:border-[#ffe14d] transition-all duration-200 mb-5">
+      <div className="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center text-neutral-400 group-hover:text-black group-hover:bg-[#e5a93c] group-hover:border-[#e5a93c] transition-all duration-200 mb-5">
         {icon}
       </div>
-      <h3 className="font-mono-ui text-sm font-bold text-white mb-2 group-hover:text-[#ffe14d] transition-colors duration-200">
+      <h3 className="font-mono-ui text-sm font-bold text-white mb-2 group-hover:text-[#e5a93c] transition-colors duration-200">
         {title}
       </h3>
       <p className="text-[13px] text-neutral-400 leading-relaxed group-hover:text-neutral-300 transition-colors duration-200">

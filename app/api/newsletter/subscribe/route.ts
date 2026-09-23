@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
             <tr>
               <td style="padding:40px 20px 20px;text-align:center;">
                 <a href="https://helixa.app" style="text-decoration:none;">
-                  <h1 style="margin:0;font-family:sans-serif;font-size:28px;color:#ffffff;font-weight:800;letter-spacing:-1px;">HELIXA<span style="color:#ffe14d;">.</span></h1>
+                  <h1 style="margin:0;font-family:sans-serif;font-size:28px;color:#ffffff;font-weight:800;letter-spacing:-1px;">HELIXA<span style="color:#e5a93c;">.</span></h1>
                 </a>
               </td>
             </tr>
@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
                     <td style="padding-top:10px;padding-bottom:10px;">
                       <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                         <tr>
-                          <td style="border-radius:8px;background:#ffe14d;text-align:center;">
-                            <a href="https://helixa.app/dashboard" style="background:#ffe14d;border:1px solid #ffe14d;font-size:15px;text-decoration:none;padding:14px 28px;color:#000000;display:block;border-radius:8px;font-weight:700;">Start Building Now</a>
+                          <td style="border-radius:8px;background:#e5a93c;text-align:center;">
+                            <a href="https://helixa.app/dashboard" style="background:#e5a93c;border:1px solid #e5a93c;font-size:15px;text-decoration:none;padding:14px 28px;color:#000000;display:block;border-radius:8px;font-weight:700;">Start Building Now</a>
                           </td>
                         </tr>
                       </table>

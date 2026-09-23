@@ -59,7 +59,7 @@ export default function FAQPage() {
   const items = isAr ? FAQ_ITEMS_AR : FAQ_ITEMS_EN
 
   return (
-    <div className="min-h-screen bg-[#03010A] text-white flex flex-col justify-between selection:bg-[#ffe14d] selection:text-black relative">
+    <div className="min-h-screen bg-[#03010A] text-white flex flex-col justify-between selection:bg-[#e5a93c] selection:text-black relative">
       <FrontBackground />
       <div>
         <Header activeHref="/faq" />
@@ -67,7 +67,7 @@ export default function FAQPage() {
           <div>
             <Link
               href="/"
-              className="inline-flex items-center gap-1.5 text-xs font-mono-ui text-neutral-400 hover:text-[#ffe14d] transition-colors mb-6"
+              className="inline-flex items-center gap-1.5 text-xs font-mono-ui text-neutral-400 hover:text-[#e5a93c] transition-colors mb-6"
             >
               <ArrowLeft className={`w-3.5 h-3.5 ${isAr ? "rotate-180" : ""}`} />
               <span>{isAr ? "العودة للرئيسية" : "Back to Home"}</span>
@@ -91,7 +91,7 @@ export default function FAQPage() {
               >
                 <summary className="flex items-center justify-between px-6 py-4 text-base sm:text-lg font-medium text-white list-none [&::-webkit-details-marker]:hidden">
                   {item.q}
-                  <span className="text-[#ffe14d] group-open:rotate-45 transition-transform duration-200 text-xl font-mono">+</span>
+                  <span className="text-[#e5a93c] group-open:rotate-45 transition-transform duration-200 text-xl font-mono">+</span>
                 </summary>
                 <div className="px-6 pb-5 text-neutral-300 text-sm leading-relaxed whitespace-pre-line border-t border-white/5 pt-3">
                   {item.a}

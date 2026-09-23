@@ -6,6 +6,8 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import BackToHome from "@/components/ui/back-to-home"
 import { FrontBackground } from "@/components/layout/FrontBackground"
 import { PasswordInput } from "@/components/ui/password-input"
+import HelixaLogo from "@/components/ui/HelixaLogo"
+import Link from "next/link"
 
 export default function UpdatePasswordPage() {
   const [password, setPassword] = useState("")
@@ -33,8 +35,6 @@ export default function UpdatePasswordPage() {
   }
 
   useEffect(() => {
-    // Supabase will automatically handle the hash fragment from the email link
-    // and establish a session if the token is valid.
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       setIsValidSession(!!session)
@@ -42,7 +42,6 @@ export default function UpdatePasswordPage() {
     
     checkSession()
 
-    // Listen for auth state changes specifically for the recovery event
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === "PASSWORD_RECOVERY") {
@@ -80,7 +79,6 @@ export default function UpdatePasswordPage() {
       setError(error.message)
     } else {
       setSuccess(true)
-      // Automatically redirect to dashboard after a few seconds
       setTimeout(() => {
         router.push("/dashboard")
       }, 3000)
@@ -92,12 +90,15 @@ export default function UpdatePasswordPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#03010A] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         <BackToHome />
-        <div className="w-full max-w-md space-y-8 bg-[#03010A]/60 backdrop-blur-md p-8 rounded-2xl border border-white/10 relative z-10 text-center">
-          <h2 className="text-2xl font-bold text-white">Invalid or Expired Link</h2>
-          <p className="text-gray-400 mt-2">The password reset link has expired or is invalid. Please request a new one.</p>
+        <div className="w-full max-w-md space-y-6 bg-[#03010A]/80 backdrop-blur-md p-8 rounded-2xl border border-white/10 relative z-10 text-center shadow-2xl">
+          <div className="flex justify-center mb-1">
+            <HelixaLogo size="md" />
+          </div>
+          <h2 className="text-2xl font-bold text-white font-serif-display">Invalid or Expired Link</h2>
+          <p className="text-zinc-400 text-xs mt-1">The password reset link has expired or is invalid. Please request a new one.</p>
           <button 
             onClick={() => router.push("/forgot-password")}
-            className="mt-6 w-full justify-center rounded-md bg-[#ffe14d] hover:bg-[#e6c738] py-2 px-3 text-sm font-semibold text-black"
+            className="mt-6 w-full justify-center rounded-xl bg-[#e5a93c] hover:bg-[#d4952b] py-2.5 px-4 text-xs font-bold uppercase tracking-wider font-mono-ui text-black cursor-pointer shadow-lg shadow-[#e5a93c]/20"
           >
             Request New Link
           </button>
@@ -110,31 +111,34 @@ export default function UpdatePasswordPage() {
     <div className="flex min-h-screen items-center justify-center bg-[#03010A] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       <BackToHome />
       <FrontBackground />
-      <div className="absolute inset-0 bg-gradient-to-br from-[#ffe14d]/[0.07] via-[#5227FF]/[0.05] to-[#03010A] pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#03010A] via-[#03010A]/80 to-[#03010A]/30 pointer-events-none" />
 
-      <div className="w-full max-w-md space-y-8 bg-[#03010A]/60 backdrop-blur-md p-8 rounded-2xl border border-white/10 relative z-10">
-        <div>
-          <h2 className="mt-2 text-center text-3xl font-bold tracking-tight text-white">
+      <div className="w-full max-w-md space-y-6 bg-[#03010A]/80 backdrop-blur-md p-8 rounded-2xl border border-white/10 relative z-10 shadow-2xl">
+        <div className="text-center">
+          <div className="flex justify-center mb-3">
+            <HelixaLogo size="md" />
+          </div>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white font-serif-display">
             Update your password
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-400">
+          <p className="mt-1.5 text-xs text-zinc-400">
             Enter your new password below.
           </p>
         </div>
         
         {success ? (
-          <div className="rounded-md bg-green-50 p-4 text-sm text-green-700 dark:bg-green-900/50 dark:text-green-200">
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-xs text-emerald-400 leading-relaxed text-center">
             Your password has been successfully updated! Redirecting to your dashboard...
           </div>
         ) : (
-          <form className="mt-8 space-y-6" onSubmit={handleUpdatePassword}>
+          <form className="mt-6 space-y-5" onSubmit={handleUpdatePassword}>
             {error && (
-              <div className="rounded-md bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/50 dark:text-red-200">
+              <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-400">
                 {error}
               </div>
             )}
             
-            <div className="space-y-4 rounded-md shadow-sm">
+            <div className="space-y-3">
               <div>
                 <label htmlFor="password" className="sr-only">
                   New Password
@@ -168,7 +172,7 @@ export default function UpdatePasswordPage() {
               <button
                 type="submit"
                 disabled={loading || !password || !confirmPassword || isValidSession === null}
-                className="group relative flex w-full justify-center rounded-md bg-[#ffe14d] hover:bg-[#e6c738] py-2 px-3 text-sm font-semibold text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ffe14d] disabled:opacity-50"
+                className="group relative flex w-full justify-center rounded-xl bg-[#e5a93c] hover:bg-[#d4952b] py-2.5 px-4 text-xs font-bold uppercase tracking-wider font-mono-ui text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e5a93c] disabled:opacity-50 transition-all shadow-lg shadow-[#e5a93c]/20 cursor-pointer"
               >
                 {loading ? "Updating..." : "Update Password"}
               </button>
@@ -176,6 +180,8 @@ export default function UpdatePasswordPage() {
           </form>
         )}
       </div>
+
     </div>
   )
 }
+

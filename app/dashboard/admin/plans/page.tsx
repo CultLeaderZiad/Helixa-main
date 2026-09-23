@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Loader2, Plus, Pencil, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -22,7 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { ElectricBorder } from "@/components/ui/ElectricBorder"
+
 
 interface Plan {
   id: string
@@ -134,7 +135,7 @@ export default function DashboardAdminPlansPage() {
       if (!res.ok) throw new Error("Failed to update agent mapping")
     } catch (err) {
       fetchPlans() // revert
-      alert("Failed to update mapping")
+      toast.error("Failed to update mapping")
     }
   }
 
@@ -169,7 +170,7 @@ export default function DashboardAdminPlansPage() {
 
   const handleSave = async () => {
     if (!form.name.trim() || !form.price_usd) {
-      alert("Name and price are required")
+      toast.error("Name and price are required")
       return
     }
     setSaving(true)
@@ -210,7 +211,7 @@ export default function DashboardAdminPlansPage() {
       setDialogOpen(false)
       await fetchPlans()
     } catch (err: any) {
-      alert(err.message)
+      toast.error(err.message)
     } finally {
       setSaving(false)
     }
@@ -226,7 +227,7 @@ export default function DashboardAdminPlansPage() {
       if (!res.ok) throw new Error("Failed to update plan")
       await fetchPlans()
     } catch (err: any) {
-      alert(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -237,7 +238,7 @@ export default function DashboardAdminPlansPage() {
       if (!res.ok) throw new Error("Failed to delete plan")
       await fetchPlans()
     } catch (err: any) {
-      alert(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -250,7 +251,7 @@ export default function DashboardAdminPlansPage() {
             Changes go live on the public pricing page immediately.
           </p>
         </div>
-        <Button onClick={openCreate} className="bg-[#ffe14d] text-black hover:brightness-110">
+        <Button onClick={openCreate} className="bg-[#e5a93c] text-black hover:bg-[#d4952b] font-semibold">
           <Plus className="w-4 h-4 mr-1.5" /> Add Plan
         </Button>
       </div>
@@ -274,7 +275,7 @@ export default function DashboardAdminPlansPage() {
           <p className="text-sm text-neutral-400 mb-6">
             Create your first subscription tier or enterprise plan to display on the public pricing page.
           </p>
-          <Button onClick={openCreate} className="bg-[#ffe14d] text-black font-semibold hover:brightness-110 text-xs">
+          <Button onClick={openCreate} className="bg-[#e5a93c] hover:bg-[#d4952b] text-black font-semibold text-xs font-mono-ui uppercase tracking-wider cursor-pointer">
             <Plus className="w-4 h-4 mr-1.5" /> Add Plan
           </Button>
         </div>
@@ -282,68 +283,58 @@ export default function DashboardAdminPlansPage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 items-stretch">
           {plans.map((plan) => (
             <div key={plan.id} className="relative flex flex-col h-full">
-              <ElectricBorder
-                color="#7df9ff"
-                speed={1}
-                chaos={0.12}
-                thickness={2}
-                borderRadius={16}
-                style={{ borderRadius: 16 }}
-                className="h-full flex flex-col"
+              <div
+                className={`border border-white/10 hover:border-white/20 bg-[#0d0e13]/90 rounded-2xl p-6 flex flex-col justify-between gap-4 h-full shadow-xl backdrop-blur-md transition-all ${
+                  !plan.is_active ? "opacity-60" : ""
+                }`}
               >
-                <div
-                  className={`border border-white/10 bg-[#08070d]/90 rounded-2xl p-6 flex flex-col justify-between gap-4 h-full shadow-2xl backdrop-blur-md ${
-                    !plan.is_active ? "opacity-60" : ""
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-bold text-white text-lg">{plan.name}</h3>
-                      <p className="text-xs text-neutral-400 mt-1 line-clamp-2">
-                        {plan.description || "No description"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => openEdit(plan)}
-                        className="p-2 hover:bg-white/10 rounded-lg transition-colors text-neutral-400 hover:text-white"
-                        title="Edit plan"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(plan.id)}
-                        className="p-2 hover:bg-red-500/10 rounded-lg transition-colors text-neutral-400 hover:text-red-400"
-                        title="Delete plan"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-bold text-white text-lg">{plan.name}</h3>
+                    <p className="text-xs text-neutral-400 mt-1 line-clamp-2">
+                      {plan.description || "No description"}
+                    </p>
                   </div>
-
-                  <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-mono text-2xl text-white font-bold">${plan.price_usd}</span>
-                      <span className="text-[10px] text-neutral-500 uppercase tracking-wider">
-                        /{plan.billing_cycle}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[10px] uppercase tracking-wider font-bold ${
-                          plan.is_active ? "text-green-400" : "text-neutral-500"
-                        }`}
-                      >
-                        {plan.is_active ? "Live" : "Hidden"}
-                      </span>
-                      <Switch
-                        checked={plan.is_active}
-                        onCheckedChange={() => handleToggleActive(plan)}
-                      />
-                    </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => openEdit(plan)}
+                      className="p-2 hover:bg-white/10 rounded-lg transition-colors text-neutral-400 hover:text-white cursor-pointer"
+                      title="Edit plan"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(plan.id)}
+                      className="p-2 hover:bg-red-500/10 rounded-lg transition-colors text-neutral-400 hover:text-red-400 cursor-pointer"
+                      title="Delete plan"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-              </ElectricBorder>
+
+                <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">
+                  <div className="flex items-baseline gap-1">
+                    <span className="font-mono text-2xl text-white font-bold">${plan.price_usd}</span>
+                    <span className="text-[10px] text-neutral-500 uppercase tracking-wider">
+                      /{plan.billing_cycle}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-[10px] uppercase tracking-wider font-bold ${
+                        plan.is_active ? "text-green-400" : "text-neutral-500"
+                      }`}
+                    >
+                      {plan.is_active ? "Live" : "Hidden"}
+                    </span>
+                    <Switch
+                      checked={plan.is_active}
+                      onCheckedChange={() => handleToggleActive(plan)}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           ))}
           {plans.length === 0 && (
@@ -549,7 +540,7 @@ export default function DashboardAdminPlansPage() {
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="bg-[#ffe14d] text-black hover:brightness-110 disabled:opacity-50"
+              className="bg-[#e5a93c] text-black hover:bg-[#d4952b] font-semibold disabled:opacity-50"
             >
               {saving ? "Saving..." : editingId ? "Save Changes" : "Create Plan"}
             </Button>

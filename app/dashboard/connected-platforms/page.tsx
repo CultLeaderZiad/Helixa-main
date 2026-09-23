@@ -19,6 +19,7 @@ import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import SpotlightCard from "@/components/ui/SpotlightCard"
 import Link from "next/link"
+import { toast } from "sonner"
 
 declare global {
   interface Window {
@@ -178,7 +179,7 @@ export default function ConnectedPlatformsPage() {
 
   const handleDelete = async (id: string, platform: string) => {
     if (platform === "instagram") {
-      alert("Cannot disconnect primary Instagram account.")
+      toast.error("Cannot disconnect primary Instagram account.")
       return
     }
     if (!confirm("Disconnect this account?")) return
@@ -460,7 +461,7 @@ export default function ConnectedPlatformsPage() {
                       type="checkbox"
                       checked={fbBusinessMode}
                       onChange={(e) => setFbBusinessMode(e.target.checked)}
-                      className="mt-0.5 w-3.5 h-3.5 rounded border-white/20 bg-white/5 accent-[#ffe14d] cursor-pointer"
+                      className="mt-0.5 w-3.5 h-3.5 rounded border-white/20 bg-white/5 accent-[#e5a93c] cursor-pointer"
                     />
                     <span className="text-[11px] text-neutral-500 leading-snug group-hover:text-neutral-400 transition-colors">
                       My Pages are managed in <span className="text-neutral-300">Meta Business Manager</span>

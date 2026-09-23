@@ -229,11 +229,11 @@ export default function SettingsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Profile Details */}
-                <div className="p-6 rounded-2xl border border-white/10 bg-[#0b0b0a] transition-colors relative">
+                <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#0b0b10] transition-colors relative">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                                <User className="w-5 h-5 text-blue-500" />
+                            <div className="w-10 h-10 rounded-full bg-[#e5a93c]/10 border border-[#e5a93c]/20 flex items-center justify-center">
+                                <User className="w-5 h-5 text-[#e5a93c]" />
                             </div>
                             <div>
                                 <h3 className="text-white font-medium">Profile Information</h3>
@@ -243,7 +243,7 @@ export default function SettingsPage() {
                         {!isEditing && profile && (
                             <button 
                                 onClick={() => setIsEditing(true)}
-                                className="text-sm text-blue-400 hover:text-blue-300 font-medium"
+                                className="text-sm text-[#e5a93c] hover:text-[#d4952b] font-medium transition-colors"
                             >
                                 Edit
                             </button>
@@ -300,7 +300,7 @@ export default function SettingsPage() {
                                             type="text" 
                                             value={editName}
                                             onChange={e => setEditName(e.target.value)}
-                                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e5a93c]/50"
                                         />
                                     ) : (
                                         <div className="flex items-center gap-2 bg-white/5 p-3 rounded-lg border border-white/5 text-sm text-white">
@@ -328,7 +328,7 @@ export default function SettingsPage() {
                             <button 
                                 onClick={handleSaveProfile}
                                 disabled={saving}
-                                className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                className="flex-1 py-2 bg-[#e5a93c] hover:bg-[#d4952b] text-black font-semibold rounded-lg text-sm transition-colors flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(229,169,60,0.2)]"
                             >
                                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                                 Save Changes
@@ -395,11 +395,11 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Security Panel */}
-                    <div className="p-5 rounded-xl border border-white/10 bg-[#0b0b0a] space-y-4">
+                    <div className="p-5 rounded-xl border border-white/[0.08] bg-[#0b0b10] space-y-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center">
-                                    <Key className="w-5 h-5 text-orange-500" />
+                                <div className="w-10 h-10 rounded-full bg-[#e5a93c]/10 border border-[#e5a93c]/20 flex items-center justify-center">
+                                    <Key className="w-5 h-5 text-[#e5a93c]" />
                                 </div>
                                 <div>
                                     <h4 className="text-white font-medium">Security</h4>
@@ -410,7 +410,7 @@ export default function SettingsPage() {
                                 <div className="flex items-center gap-3">
                                     <a 
                                         href="/forgot-password"
-                                        className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                                        className="text-xs text-[#e5a93c] hover:text-[#d4952b] transition-colors"
                                     >
                                         Forgot Password?
                                     </a>
@@ -448,7 +448,7 @@ export default function SettingsPage() {
                                     <button
                                         onClick={handleChangePassword}
                                         disabled={passwordSaving || !newPassword || !confirmPassword}
-                                        className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                        className="flex-1 py-2 bg-[#e5a93c] hover:bg-[#d4952b] text-black font-semibold rounded-lg text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_0_15px_rgba(229,169,60,0.2)]"
                                     >
                                         {passwordSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                                         Update Password

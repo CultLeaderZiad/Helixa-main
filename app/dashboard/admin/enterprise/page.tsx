@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Loader2, CheckCircle, XCircle } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -75,7 +76,7 @@ export default function AdminEnterprisePage() {
       setDialogOpen(false)
       fetchInquiries()
     } catch (err: any) {
-      alert(err.message)
+      toast.error(err.message)
     } finally {
       setIsSubmitting(false)
     }
@@ -125,7 +126,7 @@ export default function AdminEnterprisePage() {
                 <div>
                   <h3 className="font-bold text-white">{inq.full_name}</h3>
                   <p className="text-sm text-neutral-400">{inq.email}</p>
-                  {inq.company && <p className="text-xs text-[#ffe14d] mt-1">{inq.company}</p>}
+                  {inq.company && <p className="text-xs text-[#e5a93c] mt-1">{inq.company}</p>}
                 </div>
                 <div>
                   <span className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded-full ${
@@ -146,8 +147,8 @@ export default function AdminEnterprisePage() {
               )}
 
               {inq.admin_note && (
-                <div className="bg-[#ffe14d]/5 p-3 rounded-lg border border-[#ffe14d]/10 text-sm text-neutral-300">
-                  <p className="font-medium text-xs text-[#ffe14d]/70 mb-1">Admin Note:</p>
+                <div className="bg-[#e5a93c]/5 p-3 rounded-lg border border-[#e5a93c]/10 text-sm text-neutral-300">
+                  <p className="font-medium text-xs text-[#e5a93c]/70 mb-1">Admin Note:</p>
                   {inq.admin_note}
                 </div>
               )}

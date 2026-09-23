@@ -5,10 +5,11 @@ import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2, Plus, Trash2, Save, RefreshCw, Brain, Sparkles } from "lucide-react"
+import { Loader2, Plus, Trash2, Save, RefreshCw, Brain, Sparkles, MessageSquare } from "lucide-react"
 import { toast } from "sonner"
 import type { IceBreaker } from "@/types/db"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { readCache, cachedFetch, clearCache } from "@/lib/client-cache"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import useSWR from "swr"
@@ -147,8 +148,14 @@ export function IceBreakersManager() {
         }
     }
 
-    if (isLoading || fetching && !breakers.length && userId) {
-        return <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#ffe14d]" /></div>
+    if (isLoading || (fetching && !breakers.length && userId)) {
+        return (
+            <div className="space-y-4 max-w-2xl mx-auto py-8">
+                <div className="h-8 w-48 bg-white/5 rounded-lg animate-pulse" />
+                <div className="h-32 w-full bg-white/5 border border-white/[0.08] rounded-2xl animate-pulse" />
+                <div className="h-28 w-full bg-white/5 border border-white/[0.08] rounded-xl animate-pulse" />
+            </div>
+        )
     }
 
     if (!userId) {
@@ -178,7 +185,7 @@ export function IceBreakersManager() {
                             disabled={aiToggling}
                             className={`flex items-center gap-2 h-9 px-4 rounded-full font-mono-ui text-[11px] font-bold uppercase tracking-widest transition-colors ${
                                 aiEnabled
-                                    ? 'bg-[#ffe14d]/10 border border-[#ffe14d]/40 text-[#ffe14d]'
+                                    ? 'bg-[#e5a93c]/10 border border-[#e5a93c]/40 text-[#e5a93c]'
                                     : 'border border-white/10 text-neutral-500 hover:text-white hover:border-white/30'
                             }`}
                         >
@@ -186,7 +193,7 @@ export function IceBreakersManager() {
                             {aiToggling ? '...' : aiEnabled ? 'AI ON' : 'AI OFF'}
                         </button>
                     )}
-                    <Button onClick={handleSave} disabled={saving} className="bg-[#ffe14d] hover:brightness-95 text-black font-bold">
+                    <Button onClick={handleSave} disabled={saving} className="bg-[#e5a93c] hover:bg-[#d4952b] text-black font-semibold shadow-[0_0_15px_rgba(229,169,60,0.2)]">
                         {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                         Save & Sync
                     </Button>
@@ -194,10 +201,10 @@ export function IceBreakersManager() {
             </div>
 
             {/* AI Context Panel */}
-            <div className="rounded-2xl border border-[#ffe14d]/20 bg-[#ffe14d]/[0.04] p-5 space-y-3">
+            <div className="rounded-2xl border border-[#e5a93c]/20 bg-[#e5a93c]/[0.03] p-5 space-y-3">
                 <div className="flex items-center gap-2">
-                    <Brain className="w-4 h-4 text-[#ffe14d]" />
-                    <span className="text-sm font-semibold text-[#ffe14d]">AI Personality Context</span>
+                    <Brain className="w-4 h-4 text-[#e5a93c]" />
+                    <span className="text-sm font-semibold text-[#e5a93c]">AI Personality Context</span>
                 </div>
                 <p className="text-xs text-neutral-500">Tell AI about your account — niche, products, tone, what to say/avoid. More context = more human replies.</p>
                 <Textarea
@@ -205,12 +212,12 @@ export function IceBreakersManager() {
                     onChange={e => setAiContext(e.target.value)}
                     placeholder={`e.g. This is a fitness coaching account. I sell online training programs (₹2999/mo). My tone is motivating but chill. If someone asks about pricing, tell them to DM for a free consultation. Never promise specific results.`}
                     rows={4}
-                    className="w-full bg-black/40 border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-neutral-600 resize-none focus:outline-none focus:border-[#ffe14d]/50 transition-colors"
+                    className="w-full bg-black/40 border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-neutral-600 resize-none focus:outline-none focus:border-[#e5a93c]/50 transition-colors"
                 />
                 <button
                     onClick={handleSaveAiContext}
                     disabled={aiContextSaving}
-                    className="px-4 py-2 rounded-xl bg-[#ffe14d] hover:brightness-95 text-black text-xs font-bold transition-all disabled:opacity-50"
+                    className="px-4 py-2 rounded-xl bg-[#e5a93c] hover:bg-[#d4952b] text-black text-xs font-bold transition-all disabled:opacity-50 shadow-[0_0_15px_rgba(229,169,60,0.2)]"
                 >
                     {aiContextSaving ? 'Saving...' : aiContextSaved ? 'Saved ✓' : 'Save AI Context'}
                 </button>
@@ -255,9 +262,16 @@ export function IceBreakersManager() {
                 ))}
 
                 {breakers.length === 0 && (
-                    <div className="text-center py-10 border border-dashed border-white/10 rounded-xl text-muted-foreground">
-                        No ice breakers yet. Add one to get started!
-                    </div>
+                    <EmptyState
+                        icon={MessageSquare}
+                        badge="Instagram Direct"
+                        title="No Ice Breakers Configured"
+                        description="Add interactive conversation prompts that appear when new visitors open your Instagram DM window."
+                        action={{
+                            label: "Add First Question",
+                            onClick: handleAdd
+                        }}
+                    />
                 )}
 
                 {breakers.length < 4 && (

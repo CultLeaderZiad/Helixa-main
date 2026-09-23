@@ -13,10 +13,10 @@ export interface EmailTemplateData {
 }
 
 export function generateEmailHtml(data: EmailTemplateData): string {
-  const brandColor = "#ffe14d";
+  const brandColor = "#e5a93c";
   const brandDark = "#03010A";
   const textColor = "#d4d4d4";
-  const linkColor = "#ffe14d";
+  const linkColor = "#e5a93c";
   
   const logoUrl = "https://helixa.app/logo.png"; // Placeholder logo
   const websiteUrl = "https://helixa.app";

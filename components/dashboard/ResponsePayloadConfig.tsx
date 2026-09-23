@@ -32,7 +32,7 @@ function TextField({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full h-11 bg-white/[0.02] border border-white/10 rounded-xl px-4 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#ffe14d]/50 focus:bg-white/[0.04] transition-all"
+      className="w-full h-11 bg-white/[0.02] border border-white/10 rounded-xl px-4 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#e5a93c]/50 focus:bg-white/[0.04] transition-all"
     />
   )
 }
@@ -136,7 +136,7 @@ export function ResponsePayloadConfig({
                 onClick={() => setReplyMode(key)}
                 className={`h-11 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all ${
                   replyMode === key
-                    ? "border-[#ffe14d] bg-[#ffe14d]/10 text-[#ffe14d]"
+                    ? "border-[#e5a93c] bg-[#e5a93c]/10 text-[#e5a93c]"
                     : "border-white/10 text-neutral-400 hover:text-white"
                 }`}
               >
@@ -177,7 +177,7 @@ export function ResponsePayloadConfig({
                   onClick={() => setType(key)}
                   className={`p-3 rounded-xl border text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
                     type === key
-                      ? "border-[#ffe14d] bg-[#ffe14d]/10 text-[#ffe14d]"
+                      ? "border-[#e5a93c] bg-[#e5a93c]/10 text-[#e5a93c]"
                       : "border-white/10 text-neutral-400 hover:text-white"
                   }`}
                 >
@@ -197,7 +197,7 @@ export function ResponsePayloadConfig({
                 onChange={(e) => setMessageText(e.target.value)}
                 rows={5}
                 maxLength={1000}
-                className="w-full bg-white/[0.02] border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-neutral-600 resize-none focus:outline-none focus:border-[#ffe14d]/50 transition-colors"
+                className="w-full bg-white/[0.02] border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-neutral-600 resize-none focus:outline-none focus:border-[#e5a93c]/50 transition-colors"
                 placeholder="Type the message to send in DMs..."
               />
               <div className="flex items-center justify-between mt-1">
@@ -262,7 +262,7 @@ export function ResponsePayloadConfig({
                       onClick={() => setCardStyle(style)}
                       className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${
                         cardStyle === style
-                          ? "bg-[#ffe14d] text-black"
+                          ? "bg-[#e5a93c] text-black"
                           : "text-neutral-500 hover:text-white"
                       }`}
                     >
@@ -344,7 +344,7 @@ export function ResponsePayloadConfig({
                       onClick={() => setMediaType(m)}
                       className={`h-10 rounded-xl border text-xs font-bold uppercase transition-all ${
                         mediaType === m
-                          ? "border-[#ffe14d] bg-[#ffe14d]/10 text-[#ffe14d]"
+                          ? "border-[#e5a93c] bg-[#e5a93c]/10 text-[#e5a93c]"
                           : "border-white/10 text-neutral-400 hover:text-white"
                       }`}
                     >
@@ -388,7 +388,7 @@ export function ResponsePayloadConfig({
                         value={q.title}
                         onChange={(e) => updateQuickReply(q.id, e.target.value)}
                         maxLength={20}
-                        className="h-10 text-xs flex-1 bg-white/[0.02] border border-white/10 rounded-xl px-4 text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ffe14d]/50"
+                        className="h-10 text-xs flex-1 bg-white/[0.02] border border-white/10 rounded-xl px-4 text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#e5a93c]/50"
                         placeholder='e.g. "Send Details!"'
                       />
                       <button
@@ -414,7 +414,7 @@ export function ResponsePayloadConfig({
                 onClick={() =>
                   setVariants([...variants, { id: "new_" + Date.now(), text: "", weight: 20 }])
                 }
-                className="font-mono-ui text-[11px] text-[#ffe14d] hover:text-[#ffe14d]/80 flex items-center gap-1 transition-colors"
+                className="font-mono-ui text-[11px] text-[#e5a93c] hover:text-[#e5a93c]/80 flex items-center gap-1 transition-colors"
               >
                 <Plus className="w-3 h-3" /> Add Variant
               </button>
@@ -441,7 +441,7 @@ export function ResponsePayloadConfig({
                           )
                         }
                         rows={2}
-                        className="w-full bg-white/[0.02] border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-neutral-600 resize-none focus:outline-none focus:border-[#ffe14d]/50"
+                        className="w-full bg-white/[0.02] border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-neutral-600 resize-none focus:outline-none focus:border-[#e5a93c]/50"
                         placeholder="Alternative message text..."
                       />
                       <div className="flex items-center gap-2">

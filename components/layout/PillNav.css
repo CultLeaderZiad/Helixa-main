@@ -169,9 +169,9 @@
   transform: translateX(-50%);
   width: 4px;
   height: 4px;
-  background: #ffe14d;
+  background: #e5a93c;
   border-radius: 50%;
-  box-shadow: 0 0 6px #ffe14d;
+  box-shadow: 0 0 6px #e5a93c;
   z-index: 4;
 }
 
@@ -326,7 +326,7 @@
 }
 
 .mobile-lang-btn:hover {
-  color: #ffe14d;
+  color: #e5a93c;
 }
 
 .mobile-menu-button {

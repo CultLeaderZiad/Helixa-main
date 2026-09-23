@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
-import { ElectricBorder } from "@/components/ui/ElectricBorder"
+import { toast } from "sonner"
 
 export default function PricingClient({ plans }: { plans: any[] }) {
   const { t, language } = useLanguage()
@@ -46,11 +46,11 @@ export default function PricingClient({ plans }: { plans: any[] }) {
         body: JSON.stringify(form)
       })
       if (!res.ok) throw new Error("Failed to submit inquiry")
-      alert(t.inquirySuccess || "Inquiry submitted successfully! We will contact you soon.")
+      toast.success(t.inquirySuccess || "Inquiry submitted successfully! We will contact you soon.")
       setDialogOpen(false)
       setForm({ full_name: "", email: "", company: "", needs_description: "" })
     } catch (err: any) {
-      alert(err.message)
+      toast.error(err.message || "Failed to submit inquiry")
     } finally {
       setIsSubmitting(false)
     }
@@ -107,19 +107,19 @@ export default function PricingClient({ plans }: { plans: any[] }) {
         {/* Billing Cycle Toggle */}
         {mainPlan && mainPlan.price_yearly && (
           <div className="flex items-center justify-center gap-4 mb-8">
-            <div className="bg-white/5 border border-white/10 p-1 rounded-xl flex items-center shadow-lg">
+            <div className="bg-white/5 border border-white/10 p-1 rounded-2xl flex items-center shadow-lg">
               <button 
                 onClick={() => setIsAnnual(false)}
-                className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${!isAnnual ? 'bg-[#ffe14d] text-black shadow-lg font-bold' : 'text-neutral-400 hover:text-white'}`}
+                className={`px-6 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider font-mono-ui transition-all ${!isAnnual ? 'bg-[#e5a93c] text-black shadow-lg' : 'text-neutral-400 hover:text-white'}`}
               >
                 {t.monthly || "Monthly"}
               </button>
               <button 
                 onClick={() => setIsAnnual(true)}
-                className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-all ${isAnnual ? 'bg-[#ffe14d] text-black shadow-lg font-bold' : 'text-neutral-400 hover:text-white'}`}
+                className={`flex items-center gap-2 px-6 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider font-mono-ui transition-all ${isAnnual ? 'bg-[#e5a93c] text-black shadow-lg' : 'text-neutral-400 hover:text-white'}`}
               >
                 {t.annually || "Annually"}{" "}
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${isAnnual ? 'bg-black/20 text-black' : 'bg-green-500/20 text-green-400'}`}>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${isAnnual ? 'bg-black/20 text-black' : 'bg-emerald-500/20 text-emerald-400'}`}>
                   {t.save20 || "Save 20%"}
                 </span>
               </button>
@@ -130,160 +130,130 @@ export default function PricingClient({ plans }: { plans: any[] }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4 items-stretch">
           {/* Free Trial Plan */}
           <div className="relative pt-4 flex flex-col h-full">
-            <ElectricBorder
-              color="#7df9ff"
-              speed={0.8}
-              chaos={0.08}
-              thickness={1.5}
-              borderRadius={16}
-              style={{ borderRadius: 16 }}
-              className="h-full flex flex-col"
-            >
-              <div className="p-8 flex flex-col h-full bg-[#08070d]/90 border border-white/10 rounded-2xl relative shadow-2xl backdrop-blur-md">
-                <div className="mb-8">
-                  <h3 className="text-xl font-bold text-white mb-2">
-                    {t.freeTrialTitle || "Free Trial"}
-                  </h3>
-                  <p className="text-neutral-400 text-sm">
-                    {t.freeTrialDesc || "To test the waters."}
-                  </p>
-                  <div className="mt-4 text-3xl font-bold text-white">$0</div>
-                </div>
-                
-                <ul className="space-y-4 mb-8 flex-1">
-                  {[
-                    t.freeTrialFeature1 || "Full access to all features",
-                    t.freeTrialFeature2 || "7-day limit",
-                    t.freeTrialFeature3 || "No credit card required"
-                  ].map(f => (
-                    <li key={f} className="flex items-start gap-3 text-sm text-neutral-300">
-                      <CheckCircle className="w-5 h-5 text-neutral-500 shrink-0" />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Link
-                  href="/login"
-                  className="w-full block text-center bg-white/10 hover:bg-white/20 text-white font-medium py-3 rounded-xl transition-colors mt-auto"
-                >
-                  {t.startFreeTrial || "Start Free Trial"}
-                </Link>
+            <div className="p-8 flex flex-col h-full bg-[#0d0e13]/85 border border-white/[0.08] hover:border-white/[0.16] rounded-2xl relative shadow-xl backdrop-blur-md transition-all duration-300">
+              <div className="mb-8">
+                <h3 className="text-xl font-bold text-white mb-2">
+                  {t.freeTrialTitle || "Free Trial"}
+                </h3>
+                <p className="text-neutral-400 text-sm">
+                  {t.freeTrialDesc || "To test the waters."}
+                </p>
+                <div className="mt-4 text-3xl font-bold text-white font-mono-ui">$0</div>
               </div>
-            </ElectricBorder>
+              
+              <ul className="space-y-4 mb-8 flex-1">
+                {[
+                  t.freeTrialFeature1 || "Full access to all features",
+                  t.freeTrialFeature2 || "7-day limit",
+                  t.freeTrialFeature3 || "No credit card required"
+                ].map(f => (
+                  <li key={f} className="flex items-start gap-3 text-sm text-neutral-300">
+                    <CheckCircle className="w-5 h-5 text-neutral-500 shrink-0" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Link
+                href="/login"
+                className="w-full block text-center bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl transition-colors mt-auto font-mono-ui text-xs uppercase tracking-wider"
+              >
+                {t.startFreeTrial || "Start Free Trial"}
+              </Link>
+            </div>
           </div>
 
           {/* Main / Featured Plan */}
           {mainPlan && (
             <div className="relative pt-4 flex flex-col h-full">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#ffe14d] text-black px-4 py-1.5 rounded-full text-xs font-bold tracking-wider z-30 whitespace-nowrap shadow-xl border border-black/20">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#e5a93c] text-black px-4 py-1.5 rounded-full text-[11px] font-mono-ui font-bold uppercase tracking-widest z-30 whitespace-nowrap shadow-xl">
                 {t.bestValue || "BEST VALUE"}
               </div>
-              <ElectricBorder
-                color="#7df9ff"
-                speed={1}
-                chaos={0.12}
-                thickness={2}
-                borderRadius={16}
-                style={{ borderRadius: 16 }}
-                className="h-full flex flex-col"
-              >
-                <div className="p-8 flex flex-col h-full bg-[#08070d]/95 border border-white/10 rounded-2xl relative shadow-2xl backdrop-blur-md">
-                  <div className="mb-8">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Star className="w-5 h-5 text-[#ffe14d]" />
-                      <h3 className="text-xl font-bold text-[#ffe14d]">
-                        {mainPlan.name === "Monthly Plan" || mainPlan.name === "Pro Plan" ? (t.monthlyPlanTitle || mainPlan.name) : mainPlan.name}
-                      </h3>
-                    </div>
-                    <p className="text-neutral-400 text-sm">
-                      {t.monthlyPlanDesc || mainPlan.description}
-                    </p>
-                    <div className="mt-4 flex items-baseline gap-1">
-                      <span className="text-3xl font-bold text-white">
-                        ${isAnnual ? mainPlan.price_yearly : mainPlan.price_usd}
-                      </span>
-                      <span className="text-neutral-500">/{isAnnual ? (isAr ? 'سنة' : 'yr') : (isAr ? 'شهر' : 'mo')}</span>
-                    </div>
-                  </div>
-                  
-                  <ul className="space-y-4 mb-8 flex-1">
-                    {(mainPlan.features || [])
-                      .filter((f: string) => !f.toLowerCase().includes("only one platform"))
-                      .map((f: string) => (
-                      <li key={f} className="flex items-start gap-3 text-sm text-neutral-300">
-                        <CheckCircle className="w-5 h-5 text-[#ffe14d] shrink-0" />
-                        <span>{translateFeature(f)}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {renderPlatformIcons(mainPlan)}
-
-                  <Link 
-                    href={`/checkout/${mainPlan.id}${isAnnual ? '?cycle=yearly' : '?cycle=monthly'}`} 
-                    className="mt-6 w-full block text-center font-bold py-3 rounded-xl transition-colors bg-[#ffe14d] hover:bg-[#e6c738] text-black shadow-lg"
-                  >
-                    {t.selectMonthlyPlan || `${t.selectPlan || "Select"} ${mainPlan.name}`}
-                  </Link>
-                </div>
-              </ElectricBorder>
-            </div>
-          )}
-
-          {/* Enterprise / Lifetime Plan */}
-          <div className="relative pt-4 flex flex-col h-full">
-            <ElectricBorder
-              color="#7df9ff"
-              speed={0.8}
-              chaos={0.08}
-              thickness={1.5}
-              borderRadius={16}
-              style={{ borderRadius: 16 }}
-              className="h-full flex flex-col"
-            >
-              <div className="p-8 flex flex-col h-full bg-[#08070d]/90 border border-white/10 rounded-2xl relative shadow-2xl backdrop-blur-md">
+              <div className="p-8 flex flex-col h-full bg-[#101217]/95 border-2 border-[#e5a93c]/50 hover:border-[#e5a93c]/80 rounded-2xl relative shadow-[0_0_35px_rgba(229,169,60,0.12)] backdrop-blur-md transition-all duration-300">
                 <div className="mb-8">
                   <div className="flex items-center gap-2 mb-2">
-                    <Zap className="w-5 h-5 text-white" />
-                    <h3 className="text-xl font-bold text-white">
-                      {enterprisePlan?.name === "Lifetime Deal" || enterprisePlan?.name === "Enterprise"
-                        ? (t.enterprisePlanTitle || enterprisePlan?.name || "Enterprise")
-                        : (enterprisePlan?.name || "Enterprise")}
+                    <Star className="w-5 h-5 text-[#e5a93c]" />
+                    <h3 className="text-xl font-bold text-[#e5a93c]">
+                      {mainPlan.name === "Monthly Plan" || mainPlan.name === "Pro Plan" ? (t.monthlyPlanTitle || mainPlan.name) : mainPlan.name}
                     </h3>
                   </div>
                   <p className="text-neutral-400 text-sm">
-                    {t.enterprisePlanDesc || enterprisePlan?.description || "For large teams and custom needs."}
+                    {t.monthlyPlanDesc || mainPlan.description}
                   </p>
-                  <div className="mt-4 text-3xl font-bold text-white">
-                    {t.customPricing || "Custom pricing"}
+                  <div className="mt-4 flex items-baseline gap-1">
+                    <span className="text-3xl font-bold text-white font-mono-ui">
+                      ${isAnnual ? mainPlan.price_yearly : mainPlan.price_usd}
+                    </span>
+                    <span className="text-neutral-500 text-xs">/{isAnnual ? (isAr ? 'سنة' : 'yr') : (isAr ? 'شهر' : 'mo')}</span>
                   </div>
                 </div>
                 
                 <ul className="space-y-4 mb-8 flex-1">
-                  {(enterprisePlan?.features || [
-                    "Custom integrations",
-                    "Dedicated account manager",
-                    "SLA guarantees",
-                    "Custom limits"
-                  ]).map((f: string) => (
+                  {(mainPlan.features || [])
+                    .filter((f: string) => !f.toLowerCase().includes("only one platform"))
+                    .map((f: string) => (
                     <li key={f} className="flex items-start gap-3 text-sm text-neutral-300">
-                      <CheckCircle className="w-5 h-5 text-neutral-500 shrink-0" />
+                      <CheckCircle className="w-5 h-5 text-[#e5a93c] shrink-0" />
                       <span>{translateFeature(f)}</span>
                     </li>
                   ))}
                 </ul>
 
-                {renderPlatformIcons(enterprisePlan)}
+                {renderPlatformIcons(mainPlan)}
 
-                <button 
-                  onClick={() => setDialogOpen(true)}
-                  className="mt-6 w-full block text-center bg-white/10 hover:bg-white/20 text-white font-medium py-3 rounded-xl transition-colors"
+                <Link 
+                  href={`/checkout/${mainPlan.id}${isAnnual ? '?cycle=yearly' : '?cycle=monthly'}`} 
+                  className="mt-6 w-full block text-center font-bold py-3 rounded-xl transition-all bg-[#e5a93c] hover:bg-[#d4952b] text-black shadow-lg font-mono-ui text-xs uppercase tracking-wider"
                 >
-                  {t.contactSales || "Contact Sales"}
-                </button>
+                  {t.selectMonthlyPlan || `${t.selectPlan || "Select"} ${mainPlan.name}`}
+                </Link>
               </div>
-            </ElectricBorder>
+            </div>
+          )}
+
+          {/* Enterprise / Lifetime Plan */}
+          <div className="relative pt-4 flex flex-col h-full">
+            <div className="p-8 flex flex-col h-full bg-[#0d0e13]/85 border border-white/[0.08] hover:border-white/[0.16] rounded-2xl relative shadow-xl backdrop-blur-md transition-all duration-300">
+              <div className="mb-8">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="w-5 h-5 text-white" />
+                  <h3 className="text-xl font-bold text-white">
+                    {enterprisePlan?.name === "Lifetime Deal" || enterprisePlan?.name === "Enterprise"
+                      ? (t.enterprisePlanTitle || enterprisePlan?.name || "Enterprise")
+                      : (enterprisePlan?.name || "Enterprise")}
+                  </h3>
+                </div>
+                <p className="text-neutral-400 text-sm">
+                  {t.enterprisePlanDesc || enterprisePlan?.description || "For large teams and custom needs."}
+                </p>
+                <div className="mt-4 text-3xl font-bold text-white font-mono-ui">
+                  {t.customPricing || "Custom pricing"}
+                </div>
+              </div>
+              
+              <ul className="space-y-4 mb-8 flex-1">
+                {(enterprisePlan?.features || [
+                  "Custom integrations",
+                  "Dedicated account manager",
+                  "SLA guarantees",
+                  "Custom limits"
+                ]).map((f: string) => (
+                  <li key={f} className="flex items-start gap-3 text-sm text-neutral-300">
+                    <CheckCircle className="w-5 h-5 text-neutral-500 shrink-0" />
+                    <span>{translateFeature(f)}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {renderPlatformIcons(enterprisePlan)}
+
+              <button 
+                onClick={() => setDialogOpen(true)}
+                className="mt-6 w-full block text-center bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl transition-colors font-mono-ui text-xs uppercase tracking-wider cursor-pointer"
+              >
+                {t.contactSales || "Contact Sales"}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -340,7 +310,7 @@ export default function PricingClient({ plans }: { plans: any[] }) {
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="border-white/10 text-neutral-300 hover:bg-white/5">
                   {t.cancel || "Cancel"}
                 </Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-[#ffe14d] text-black hover:brightness-110 font-bold">
+                <Button type="submit" disabled={isSubmitting} className="bg-[#e5a93c] hover:bg-[#d4952b] text-black font-semibold font-mono-ui text-xs uppercase tracking-wider cursor-pointer">
                   {isSubmitting ? (t.submitting || "Submitting...") : (t.submitInquiry || "Submit Inquiry")}
                 </Button>
               </DialogFooter>

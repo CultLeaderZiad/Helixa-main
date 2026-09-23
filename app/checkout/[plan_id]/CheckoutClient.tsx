@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Loader2, ArrowRight } from "lucide-react"
+import { toast } from "sonner"
 
 export default function CheckoutClient({ plan, methods, user, cycle }: { plan: any, methods: any[], user: any, cycle?: string }) {
   const [selectedMethod, setSelectedMethod] = useState<string | null>(
@@ -74,7 +75,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
         setSuccess(true)
       }
     } catch (err: any) {
-      alert(err.message)
+      toast.error(err.message)
     } finally {
       setLoading(false)
     }
@@ -121,7 +122,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
               placeholder="e.g. John Doe"
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-neutral-500 outline-none focus:border-[#ffe14d]/50"
+              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-neutral-500 outline-none focus:border-[#e5a93c]/50"
               required
             />
           </div>
@@ -134,7 +135,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
               <select
                 value={countryCode}
                 onChange={(e) => setCountryCode(e.target.value)}
-                className="w-32 px-2 py-3 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-[#ffe14d]/50 cursor-pointer appearance-none text-center"
+                className="w-32 px-2 py-3 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-[#e5a93c]/50 cursor-pointer appearance-none text-center"
               >
                 <option value="+20">🇪🇬 +20</option>
                 <option value="+1">🇺🇸 +1</option>
@@ -147,7 +148,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
                 value={clientPhone}
                 onChange={(e) => setClientPhone(e.target.value)}
                 placeholder="Phone number"
-                className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-neutral-500 outline-none focus:border-[#ffe14d]/50"
+                className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-neutral-500 outline-none focus:border-[#e5a93c]/50"
                 required
               />
             </div>
@@ -155,7 +156,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
 
           <div className="pt-2">
             <label className="flex items-center gap-3 cursor-pointer group">
-              <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${hasQuestions ? 'bg-[#ffe14d] border-[#ffe14d]' : 'bg-white/5 border-white/20 group-hover:border-white/40'}`}>
+              <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${hasQuestions ? 'bg-[#e5a93c] border-[#e5a93c]' : 'bg-white/5 border-white/20 group-hover:border-white/40'}`}>
                 {hasQuestions && <svg className="w-3.5 h-3.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
               </div>
               <span className="text-sm text-neutral-300 group-hover:text-white transition-colors">I have specific questions before I buy</span>
@@ -164,7 +165,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
 
           {hasQuestions && (
             <div className="mt-4 p-5 border border-white/10 rounded-xl bg-[#03010A] animate-in fade-in slide-in-from-top-2">
-              <h4 className="text-[#ffe14d] font-bold mb-2">Contact Support</h4>
+              <h4 className="text-[#e5a93c] font-bold mb-2">Contact Support</h4>
               <p className="text-sm text-neutral-400 mb-4">
                 We're here to help! Please reach out to our lead developer directly for any questions before you finalize your plan.
               </p>
@@ -199,7 +200,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
               key={m.method}
               onClick={() => setSelectedMethod(m.method)}
               className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                selectedMethod === m.method ? "border-[#ffe14d] bg-[#ffe14d]/10" : "border-white/10 bg-white/5 hover:border-white/30"
+                selectedMethod === m.method ? "border-[#e5a93c] bg-[#e5a93c]/10" : "border-white/10 bg-white/5 hover:border-white/30"
               }`}
             >
               <div className="flex items-center justify-between">
@@ -218,12 +219,12 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
 
       {!isStripe && selected && (
         <div className="space-y-4">
-          <div className="p-4 bg-white/5 border border-[#ffe14d]/30 rounded-xl">
-            <h4 className="font-bold text-[#ffe14d] mb-2">Payment Instructions</h4>
+          <div className="p-4 bg-white/5 border border-[#e5a93c]/30 rounded-xl">
+            <h4 className="font-bold text-[#e5a93c] mb-2">Payment Instructions</h4>
             <p className="text-sm text-neutral-300 mb-2">
               Please transfer exactly <strong className="text-white text-base">${amountToCharge}</strong> to the following Vodafone Cash number:
             </p>
-            <div className="bg-black/50 p-3 rounded-lg text-[#ffe14d] font-mono text-xl text-center border border-white/10 font-bold tracking-wider">
+            <div className="bg-black/50 p-3 rounded-lg text-[#e5a93c] font-mono text-xl text-center border border-white/10 font-bold tracking-wider">
               +01037312994
             </div>
           </div>
@@ -237,7 +238,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
               value={transactionRef}
               onChange={(e) => setTransactionRef(e.target.value)}
               placeholder="e.g. 01012345678 or Transaction ID"
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-neutral-500 outline-none focus:border-[#ffe14d]/50"
+              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-neutral-500 outline-none focus:border-[#e5a93c]/50"
               required
             />
           </div>
@@ -247,7 +248,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
       <button
         onClick={handleCheckout}
         disabled={loading || !selectedMethod}
-        className="w-full flex items-center justify-center gap-2 bg-[#ffe14d] text-black font-bold py-4 rounded-xl hover:brightness-110 disabled:opacity-50 transition-all"
+        className="w-full flex items-center justify-center gap-2 bg-[#e5a93c] hover:bg-[#d4952b] text-black font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(229,169,60,0.25)] disabled:opacity-50 transition-all"
       >
         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Complete Purchase"}
         {!loading && <ArrowRight className="w-5 h-5" />}

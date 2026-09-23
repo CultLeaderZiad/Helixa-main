@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Loader2, Lock, KeyRound, CheckCircle2, Bot, Sparkles, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
@@ -63,7 +64,7 @@ export function AgentsManager() {
       })
     } catch (err) {
       mutateAgents()
-      alert("Failed to update status")
+      toast.error("Failed to update status")
     }
   }
 
@@ -87,7 +88,7 @@ export function AgentsManager() {
       setByokKey("")
       mutateAgents()
     } catch (err: any) {
-      alert(err.message)
+      toast.error(err.message)
     } finally {
       setSavingKey(false)
     }
@@ -119,7 +120,7 @@ export function AgentsManager() {
         </div>
         <Link href="/dashboard/billing">
           <Button variant="outline" className="border-white/10 bg-white/[0.03] text-white hover:bg-white/10 text-xs font-semibold">
-            <Sparkles className="w-3.5 h-3.5 mr-2 text-[#ffe14d]" />
+            <Sparkles className="w-3.5 h-3.5 mr-2 text-[#e5a93c]" />
             Manage Tier & Access
           </Button>
         </Link>
@@ -141,7 +142,7 @@ export function AgentsManager() {
             AI agents supercharge your conversations with automated responses and lead capture. You can create custom trigger rules while agents are configured.
           </p>
           <Link href="/dashboard/automations">
-            <Button className="bg-[#ffe14d] text-black hover:brightness-110 text-xs font-semibold">
+            <Button className="bg-[#e5a93c] hover:bg-[#d4952b] text-black text-xs font-semibold shadow-[0_0_15px_rgba(229,169,60,0.15)]">
               Create an Automation Rule
               <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
             </Button>
@@ -173,7 +174,7 @@ export function AgentsManager() {
                       {t.agentNotInPlan}
                     </p>
                     <Link href="/dashboard/billing">
-                      <Button className="bg-[#ffe14d] text-black hover:brightness-110 h-7 text-xs font-semibold px-3">
+                      <Button className="bg-[#e5a93c] text-black hover:bg-[#d4952b] h-7 text-xs font-semibold px-3">
                         {t.viewPlans}
                       </Button>
                     </Link>
@@ -214,7 +215,7 @@ export function AgentsManager() {
                         onClick={() => openByok(agent)}
                         disabled={!agent.is_unlocked}
                       >
-                        <KeyRound className="w-3.5 h-3.5 mr-1.5 text-[#ffe14d]" />
+                        <KeyRound className="w-3.5 h-3.5 mr-1.5 text-[#e5a93c]" />
                         {t.connectApiKey}
                       </Button>
                     )
@@ -257,7 +258,7 @@ export function AgentsManager() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-neutral-300">{t.provider}</label>
               <select
-                className="w-full bg-black border border-white/10 rounded-md p-2 text-sm text-white focus:border-[#ffe14d] outline-none"
+                className="w-full bg-black border border-white/10 rounded-md p-2 text-sm text-white focus:border-[#e5a93c] outline-none"
                 value={byokProvider}
                 onChange={(e) => setByokProvider(e.target.value)}
               >
@@ -280,7 +281,7 @@ export function AgentsManager() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setByokDialog(false)}>{t.cancel}</Button>
-            <Button onClick={handleSaveByok} disabled={savingKey || !byokKey} className="bg-[#ffe14d] text-black font-semibold hover:brightness-110">
+            <Button onClick={handleSaveByok} disabled={savingKey || !byokKey} className="bg-[#e5a93c] text-black font-semibold hover:bg-[#d4952b]">
               {savingKey ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               {t.secureAndConnect}
             </Button>

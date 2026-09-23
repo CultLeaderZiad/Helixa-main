@@ -98,7 +98,7 @@ export default function CampaignsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            <Mail className="w-6 h-6 text-[#ffe14d]" />
+            <Mail className="w-6 h-6 text-[#e5a93c]" />
             {t.communicationCenter}
           </h2>
           <p className="text-zinc-400 text-sm mt-1">
@@ -107,7 +107,7 @@ export default function CampaignsPage() {
         </div>
         <Button 
           onClick={() => router.push("/dashboard/admin/campaigns/create")}
-          className="bg-[#ffe14d] hover:bg-[#e6c738] text-black font-semibold"
+          className="bg-[#e5a93c] hover:bg-[#d4952b] text-black font-semibold shadow-[0_0_15px_rgba(229,169,60,0.2)]"
         >
           <Plus className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />
           {t.newCampaign}

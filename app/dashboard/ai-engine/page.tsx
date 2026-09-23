@@ -29,6 +29,8 @@ import { AgentsManager } from "@/components/dashboard/AgentsManager"
 import { AiCoachPanel } from "@/components/dashboard/AiCoachPanel"
 import { IceBreakersManager } from "@/components/dashboard/IceBreakersManager"
 import { AnalyticsDashboardView } from "@/components/dashboard/AnalyticsDashboardView"
+import { ContentCardSkeleton } from "@/components/ui/DashboardSkeleton"
+import { EmptyState } from "@/components/ui/EmptyState"
 import Link from "next/link"
 
 type TabKey = "content" | "analytics" | "agents" | "coach" | "ice-breakers" | "insights"
@@ -69,7 +71,7 @@ function AiEngineContent() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/[0.08] pb-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#ffe14d]/10 text-[#ffe14d] text-[10px] font-mono-ui font-semibold border border-[#ffe14d]/25 tracking-wider uppercase">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#e5a93c]/10 text-[#e5a93c] text-[10px] font-mono-ui font-semibold border border-[#e5a93c]/25 tracking-wider uppercase">
               <Sparkles className="w-3 h-3" /> AI Engine Core
             </span>
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-mono-ui font-medium border border-emerald-500/20">
@@ -87,7 +89,7 @@ function AiEngineContent() {
         <div className="flex items-center gap-2">
           <Link
             href="/dashboard/automations?action=new"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#ffe14d] hover:bg-[#e6c51b] text-black font-semibold text-xs transition-all shadow-lg font-mono-ui"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#e5a93c] hover:bg-[#d4952b] text-black font-semibold text-xs transition-all shadow-[0_0_20px_rgba(229,169,60,0.2)] font-mono-ui"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             Target New Post Link
@@ -112,16 +114,16 @@ function AiEngineContent() {
               onClick={() => handleTabChange(key)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer ${
                 isActive
-                  ? "bg-[#ffe14d]/15 text-[#ffe14d] border border-[#ffe14d]/30 shadow-[0_0_20px_rgba(255,225,77,0.08)]"
+                  ? "bg-[#e5a93c]/15 text-[#e5a93c] border border-[#e5a93c]/30 shadow-[0_0_20px_rgba(229,169,60,0.12)]"
                   : "text-neutral-400 hover:text-white hover:bg-white/[0.04] border border-transparent"
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? "text-[#ffe14d]" : "text-neutral-500"}`} />
+              <Icon className={`w-4 h-4 ${isActive ? "text-[#e5a93c]" : "text-neutral-500"}`} />
               <span>{label}</span>
               {badge !== null && (
                 <span
                   className={`text-[9px] font-mono-ui px-1.5 py-0.2 rounded-full ${
-                    isActive ? "bg-[#ffe14d]/25 text-[#ffe14d]" : "bg-white/10 text-neutral-400"
+                    isActive ? "bg-[#e5a93c]/25 text-[#e5a93c]" : "bg-white/10 text-neutral-400"
                   }`}
                 >
                   {badge}
@@ -159,26 +161,24 @@ function AiEngineContent() {
           </div>
 
           {loadingContent ? (
-            <div className="py-20 flex flex-col items-center justify-center gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-[#ffe14d]" />
-              <span className="text-xs text-neutral-500 font-mono-ui">Loading real content & sentiment metrics...</span>
+            <div className="grid gap-6 md:grid-cols-2">
+              <ContentCardSkeleton />
+              <ContentCardSkeleton />
+              <ContentCardSkeleton />
+              <ContentCardSkeleton />
             </div>
           ) : posts.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/10 bg-[#0c0a13]/50 p-12 text-center max-w-xl mx-auto my-8">
-              <div className="w-16 h-16 mx-auto mb-4 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
-                <Share2 className="w-7 h-7 text-neutral-400" />
-              </div>
-              <h3 className="text-base font-bold text-white mb-1.5">No Content Linked Yet</h3>
-              <p className="text-xs text-neutral-400 mb-6 leading-relaxed">
-                When you paste a Facebook or Instagram post link in your automation rules, it will appear here with live engagement tracking and Groq comment sentiment analysis.
-              </p>
-              <Link
-                href="/dashboard/automations?action=new"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#ffe14d] hover:bg-[#e6c51b] text-black font-semibold text-xs transition-all font-mono-ui"
-              >
-                Create Targeted Rule &rarr;
-              </Link>
-            </div>
+            <EmptyState
+              icon={Share2}
+              badge="Targeting Engine"
+              title="No Content Linked Yet"
+              description="When you paste a Facebook or Instagram post link in your automation rules, it will appear here with live engagement tracking and Groq comment sentiment analysis."
+              action={{
+                label: "Create Targeted Rule",
+                href: "/dashboard/automations?action=new",
+              }}
+              className="my-8"
+            />
           ) : (
             <div className="grid gap-6 md:grid-cols-2">
               {posts.map((post: any) => {
@@ -249,7 +249,7 @@ function AiEngineContent() {
                         </div>
                         <div className="bg-white/[0.02] border border-white/5 rounded-xl p-2.5">
                           <span className="text-[9px] uppercase tracking-wider text-neutral-500 block">Triggered</span>
-                          <span className="text-base font-bold text-[#ffe14d] mt-0.5 block">{act.automationsTriggered}</span>
+                          <span className="text-base font-bold text-[#e5a93c] mt-0.5 block">{act.automationsTriggered}</span>
                         </div>
                         <div className="bg-white/[0.02] border border-white/5 rounded-xl p-2.5">
                           <span className="text-[9px] uppercase tracking-wider text-neutral-500 block">Replies</span>
@@ -262,7 +262,7 @@ function AiEngineContent() {
                     <div className="pt-3 border-t border-white/[0.06] space-y-2">
                       <div className="flex items-center justify-between text-xs font-mono-ui">
                         <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold flex items-center gap-1.5">
-                          <Sparkles className="w-3 h-3 text-[#ffe14d]" />
+                          <Sparkles className="w-3 h-3 text-[#e5a93c]" />
                           Groq Comment Sentiment
                         </span>
                         {s?.hasData && (
@@ -345,7 +345,7 @@ function AiEngineContent() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-white font-mono-ui uppercase tracking-wider flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-[#ffe14d]" />
+                <Sparkles className="w-5 h-5 text-[#e5a93c]" />
                 Account Growth Intelligence
               </h2>
               <p className="text-xs text-neutral-400 mt-0.5">
@@ -365,7 +365,7 @@ function AiEngineContent() {
 
           {loadingInsights ? (
             <div className="py-16 flex flex-col items-center justify-center gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-[#ffe14d]" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#e5a93c]" />
               <span className="text-xs text-neutral-500 font-mono-ui">Analyzing real account data via Groq...</span>
             </div>
           ) : (
@@ -380,7 +380,7 @@ function AiEngineContent() {
                 </div>
                 <div className="bg-[#0c0a13]/80 border border-white/[0.08] rounded-2xl p-4 font-mono-ui">
                   <span className="text-[10px] uppercase tracking-wider text-neutral-500 block">Messages Delivered</span>
-                  <span className="text-2xl font-bold text-[#ffe14d] mt-1 block">
+                  <span className="text-2xl font-bold text-[#e5a93c] mt-1 block">
                     {insightsData?.metrics?.totalMessages || 0}
                   </span>
                 </div>
@@ -399,8 +399,8 @@ function AiEngineContent() {
               </div>
 
               {/* AI Strategic Analysis Card */}
-              <div className="bg-gradient-to-br from-[#ffe14d]/[0.05] via-[#0c0a13]/90 to-[#03010A] border border-[#ffe14d]/25 rounded-2xl p-6 md:p-8 space-y-4 backdrop-blur-md shadow-2xl">
-                <div className="flex items-center gap-2 text-[#ffe14d]">
+              <div className="bg-gradient-to-br from-[#e5a93c]/[0.05] via-[#0c0a13]/90 to-[#03010A] border border-[#e5a93c]/25 rounded-2xl p-6 md:p-8 space-y-4 backdrop-blur-md shadow-2xl">
+                <div className="flex items-center gap-2 text-[#e5a93c]">
                   <Sparkles className="w-5 h-5" />
                   <h3 className="font-mono-ui font-bold text-sm uppercase tracking-wider">
                     Performance Observations & Recommended Actions
@@ -429,7 +429,7 @@ export default function AiEnginePage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="w-8 h-8 text-[#ffe14d] animate-spin" />
+          <Loader2 className="w-8 h-8 text-[#e5a93c] animate-spin" />
         </div>
       }
     >

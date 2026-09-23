@@ -30,7 +30,7 @@ export function FaqSuggestionsPanel({ userId }: { userId: string }) {
         <div className="h-full flex flex-col bg-black/40 border-l border-white/5 w-[300px] xl:w-[350px]">
             <div className="p-4 border-b border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-[#ffe14d]" />
+                    <Sparkles className="w-4 h-4 text-[#e5a93c]" />
                     <h3 className="font-bold text-white text-sm">Frequent Questions</h3>
                 </div>
                 <button 
@@ -72,7 +72,7 @@ export function FaqSuggestionsPanel({ userId }: { userId: string }) {
                                 <span className="text-[9px] uppercase tracking-wider text-neutral-500 font-bold">Suggested keywords:</span>
                                 <div className="flex flex-wrap gap-1">
                                     {faq.keywords?.split(",").map((k: string, i: number) => (
-                                        <span key={i} className="text-[9px] bg-[#ffe14d]/10 text-[#ffe14d] px-1.5 py-0.5 rounded">
+                                        <span key={i} className="text-[9px] bg-[#e5a93c]/10 text-[#e5a93c] px-1.5 py-0.5 rounded">
                                             {k.trim()}
                                         </span>
                                     ))}
@@ -81,7 +81,7 @@ export function FaqSuggestionsPanel({ userId }: { userId: string }) {
                             
                             <Link 
                                 href={`/dashboard/automations?intent=${encodeURIComponent("When someone DMs asking about " + faq.topic + " matching keywords: " + faq.keywords)}`}
-                                className="text-[10px] font-bold text-black bg-white hover:bg-[#ffe14d] py-1.5 rounded flex items-center justify-center gap-1 transition-colors mt-2"
+                                className="text-[10px] font-bold text-black bg-white hover:bg-[#e5a93c] py-1.5 rounded flex items-center justify-center gap-1 transition-colors mt-2"
                             >
                                 Automate Answer <ArrowRight className="w-3 h-3" />
                             </Link>

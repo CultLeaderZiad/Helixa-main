@@ -38,18 +38,18 @@ export function TagInput({ value, onChange, placeholder, className }: TagInputPr
     }
 
     return (
-        <div className={`flex flex-wrap gap-2 p-2 rounded-lg border border-white/10 bg-black/20 focus-within:border-[#ffe14d]/50 transition-all ${className}`}>
+        <div className={`flex flex-wrap gap-2 p-2 rounded-lg border border-white/10 bg-black/20 focus-within:border-[#e5a93c]/50 transition-all ${className}`}>
             {value.map((tag, index) => (
                 <Badge
                     key={index}
                     variant="secondary"
-                    className="bg-[#ffe14d]/10 text-[#ffe14d] border-[#ffe14d]/25 hover:bg-[#ffe14d]/20 pl-2.5 pr-1 py-1 text-xs font-medium gap-1.5"
+                    className="bg-[#e5a93c]/10 text-[#e5a93c] border-[#e5a93c]/25 hover:bg-[#e5a93c]/20 pl-2.5 pr-1 py-1 text-xs font-medium gap-1.5"
                 >
                     {tag}
                     <button
                         type="button"
                         onClick={() => removeTag(index)}
-                        className="hover:bg-purple-500/40 rounded-sm p-0.5 transition-colors"
+                        className="hover:bg-[#e5a93c]/30 rounded-sm p-0.5 transition-colors"
                     >
                         <X className="w-3 h-3" />
                     </button>

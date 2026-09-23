@@ -8,6 +8,7 @@ import { useInstagramSession } from "@/hooks/use-instagram-session"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
+import { EmptyState } from "@/components/ui/EmptyState"
 
 function timeAgo(isoString: string | null): string {
     if (!isoString) return "Never"
@@ -133,18 +134,21 @@ export function AnalyticsDashboardView() {
         }
     }
 
-    if (isSessionLoading) return <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-white/20" /></div>
+    if (isSessionLoading) return <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#e5a93c]" /></div>
 
     if (!hasAnyConnection) {
         return (
-            <div className="bg-transparent p-4 flex items-center justify-center py-16">
-                <div className="text-center max-w-md">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/[0.06] border border-white/10 flex items-center justify-center">
-                        <Activity className="w-8 h-8 text-[#ffe14d]" />
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-2">Connect a Platform</h3>
-                    <p className="text-sm text-neutral-500">Connect at least one platform (Instagram, Facebook, or Telegram) to view analytics and AI insights.</p>
-                </div>
+            <div className="py-12">
+                <EmptyState
+                    icon={Activity}
+                    badge="Integrations Required"
+                    title="Connect Your Platforms"
+                    description="Connect at least one social channel (Instagram, Facebook, or Telegram) to view live analytics, engagement metrics, and Groq-powered AI insights."
+                    action={{
+                        label: "Connect Platforms",
+                        href: "/dashboard/connected-platforms",
+                    }}
+                />
             </div>
         )
     }
@@ -184,12 +188,12 @@ export function AnalyticsDashboardView() {
                 </div>
 
                 {/* Comment Themes */}
-                <div className="bg-[#0c0a13]/80 border border-[#ffe14d]/20 rounded-2xl p-6 relative overflow-hidden backdrop-blur-sm">
+                <div className="bg-[#0c0a13]/80 border border-[#e5a93c]/20 rounded-2xl p-6 relative overflow-hidden backdrop-blur-sm">
                     <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/3 to-transparent" />
                     <div className="relative z-10">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-2">
-                                <MessageCircle className="w-5 h-5 text-[#ffe14d]" />
+                                <MessageCircle className="w-5 h-5 text-[#e5a93c]" />
                                 <h3 className="font-bold text-white text-sm uppercase tracking-wider font-mono-ui">What People Are Asking (Comments)</h3>
                             </div>
                             <div className="flex items-center gap-3">
@@ -237,7 +241,7 @@ export function AnalyticsDashboardView() {
                                             {t.keywords && (
                                                 <div className="flex flex-wrap gap-1 mb-3">
                                                     {t.keywords.split(",").slice(0, 4).map((kw: string) => (
-                                                        <span key={kw} className="text-[9px] font-mono-ui bg-[#ffe14d]/10 text-[#ffe14d] px-1.5 py-0.5 rounded">
+                                                        <span key={kw} className="text-[9px] font-mono-ui bg-[#e5a93c]/10 text-[#e5a93c] px-1.5 py-0.5 rounded">
                                                             #{kw.trim()}
                                                         </span>
                                                     ))}
@@ -246,7 +250,7 @@ export function AnalyticsDashboardView() {
                                         </div>
                                         <button
                                             onClick={() => handleTurnThemeIntoAutomation(t)}
-                                            className="flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-wider bg-[#ffe14d]/10 hover:bg-[#ffe14d]/20 text-[#ffe14d] border border-[#ffe14d]/20 py-2 rounded-lg transition-all font-mono-ui"
+                                            className="flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-wider bg-[#e5a93c]/10 hover:bg-[#e5a93c]/20 text-[#e5a93c] border border-[#e5a93c]/20 py-2 rounded-lg transition-all font-mono-ui"
                                         >
                                             <Zap className="w-3 h-3" />
                                             Turn into Automation
@@ -337,7 +341,7 @@ export function AnalyticsDashboardView() {
                 <div className="bg-[#0c0a13]/80 border border-white/[0.08] rounded-2xl p-6 relative overflow-hidden backdrop-blur-sm">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-2">
-                            <Filter className="w-5 h-5 text-[#ffe14d]" />
+                            <Filter className="w-5 h-5 text-[#e5a93c]" />
                             <h3 className="font-bold text-white text-sm uppercase tracking-wider font-mono-ui">Conversion Funnel (Real Data)</h3>
                         </div>
                     </div>
@@ -352,7 +356,7 @@ export function AnalyticsDashboardView() {
                                 { key: "triggered", label: "Automations Triggered", color: "bg-blue-500" },
                                 { key: "sent", label: "Messages Sent", color: "bg-indigo-500" },
                                 { key: "replied", label: "User Replies", color: "bg-purple-500" },
-                                { key: "converted", label: "Conversations Converted", color: "bg-[#ffe14d]" },
+                                { key: "converted", label: "Conversations Converted", color: "bg-[#e5a93c]" },
                             ].map((stage) => {
                                 const count = funnelData.funnel[stage.key] || 0
                                 const maxCount = Math.max(funnelData.funnel.triggered || 1, 1)

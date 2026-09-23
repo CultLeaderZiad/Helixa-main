@@ -13,7 +13,7 @@ import type { InputHTMLAttributes } from "react"
 type PasswordInputProps = InputHTMLAttributes<HTMLInputElement>
 
 const DEFAULT_INPUT_CLASS =
-  "relative block w-full rounded-md border border-white/20 bg-white/5 py-1.5 px-3 pr-10 text-white placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-[#ffe14d] sm:text-sm sm:leading-6"
+  "relative block w-full rounded-md border border-white/20 bg-white/5 py-1.5 px-3 pr-10 text-white placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-[#e5a93c] sm:text-sm sm:leading-6"
 
 export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
   function PasswordInput({ className, ...props }, ref) {
@@ -32,7 +32,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           aria-label={visible ? "Hide password" : "Show password"}
           aria-pressed={visible}
           onClick={() => setVisible((v) => !v)}
-          className="absolute inset-y-0 right-0 z-20 flex items-center pr-3 text-gray-400 hover:opacity-80 focus:outline-none focus-visible:text-indigo-500"
+          className="absolute inset-y-0 right-0 z-20 flex items-center pr-3 text-gray-400 hover:opacity-80 focus:outline-none focus-visible:text-[#e5a93c]"
         >
           {visible ? (
             <svg className="h-5 w-5" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

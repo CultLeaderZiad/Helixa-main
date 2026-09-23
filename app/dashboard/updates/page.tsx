@@ -58,7 +58,7 @@ export default async function UpdatesPage() {
               {/* Card 1 */}
               <div className="w-full bg-[#111110] border border-white/10 rounded-2xl p-8 shadow-2xl flex flex-col justify-between">
                 <div>
-                  <div className="w-12 h-12 rounded-xl bg-[#ffe14d]/10 border border-[#ffe14d]/20 flex items-center justify-center text-[#ffe14d] mb-6">
+                  <div className="w-12 h-12 rounded-xl bg-[#e5a93c]/10 border border-[#e5a93c]/20 flex items-center justify-center text-[#e5a93c] mb-6">
                     <Sparkles className="w-6 h-6" />
                   </div>
                   <h3 className="text-2xl font-serif-display text-white mb-4">Helixa v2.0 is Live!</h3>
@@ -68,7 +68,7 @@ export default async function UpdatesPage() {
                 </div>
                 <div className="pt-6 border-t border-white/10 mt-6 flex justify-between items-center">
                   <span className="text-xs font-mono text-neutral-500">1 of 4</span>
-                  <span className="text-xs font-mono text-[#ffe14d]">v2.0 Release</span>
+                  <span className="text-xs font-mono text-[#e5a93c]">v2.0 Release</span>
                 </div>
               </div>
 
