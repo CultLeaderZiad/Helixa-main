@@ -404,6 +404,31 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/[0.06]">
+        <div>
+          <div className="flex items-center gap-2 text-xs text-neutral-400 font-medium mb-1">
+            <span>Dashboard</span>
+            <span>/</span>
+            <span className="text-white font-semibold">Admin</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">Admin Console</h1>
+          <p className="text-xs sm:text-sm text-neutral-400 mt-0.5">Users, payments, plans, and platform health at a glance.</p>
+        </div>
+        <div className="flex items-center gap-2.5 self-start sm:self-center">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ffe14d]/10 border border-[#ffe14d]/25 text-[#ffe14d] text-[10px] font-mono font-bold uppercase tracking-wider">
+            <Shield className="w-3 h-3" /> Admin Access
+          </span>
+          <button
+            onClick={() => { fetchUsers(); fetchStats(); fetchAuditLogs(); fetchPendingPayments() }}
+            title="Refresh all"
+            className="p-2 rounded-lg bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.08] text-neutral-300 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
       {/* Live Banner */}
       {trialsThisWeek !== null && (
         <div className="bg-[#ffe14d]/10 border border-[#ffe14d]/20 rounded-xl p-4 flex items-center gap-3 animate-in fade-in duration-500">
@@ -438,40 +463,58 @@ export default function AdminPage() {
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: "Total Users", value: stats.totalUsers, icon: Users, color: "text-white" },
-            { label: "Active Trials", value: stats.activeTrials, icon: Clock, color: "text-blue-400" },
-            { label: "Monthly", value: stats.monthlyUsers, icon: DollarSign, color: "text-green-400" },
-            { label: "One-Time", value: stats.oneTimeUsers, icon: Check, color: "text-purple-400" },
-            { label: "Expired", value: stats.expiredUsers, icon: X, color: "text-red-400" },
-            { label: "Flagged", value: stats.flaggedUsers, icon: Flag, color: "text-orange-400" },
-            { label: "Automations Today", value: stats.automationsToday, icon: Activity, color: "text-[#ffe14d]" },
-          ].map(({ label, value, icon: Icon, color }) => (
-            <div key={label} className="border border-white/[0.08] rounded-xl p-4 bg-white/[0.02] flex items-center gap-3">
-              <div className={`${color} opacity-80`}><Icon className="w-5 h-5" /></div>
-              <div>
-                <p className="font-mono text-2xl font-bold text-white">{value}</p>
-                <p className="font-mono text-[10px] text-neutral-500 uppercase tracking-wider">{label}</p>
+            { label: "Total Users", value: stats.totalUsers, icon: Users, color: "text-white", accent: "#ffffff" },
+            { label: "Active Trials", value: stats.activeTrials, icon: Clock, color: "text-blue-400", accent: "#60a5fa" },
+            { label: "Monthly", value: stats.monthlyUsers, icon: DollarSign, color: "text-green-400", accent: "#34d399" },
+            { label: "One-Time", value: stats.oneTimeUsers, icon: Check, color: "text-purple-400", accent: "#c084fc" },
+            { label: "Expired", value: stats.expiredUsers, icon: X, color: "text-red-400", accent: "#f87171" },
+            { label: "Flagged", value: stats.flaggedUsers, icon: Flag, color: "text-orange-400", accent: "#fb923c" },
+            { label: "Automations Today", value: stats.automationsToday, icon: Activity, color: "text-[#ffe14d]", accent: "#ffe14d" },
+          ].map(({ label, value, icon: Icon, color, accent }) => (
+            <div
+              key={label}
+              className="group relative border border-white/[0.07] rounded-2xl p-5 bg-gradient-to-b from-white/[0.035] to-white/[0.01] hover:border-white/[0.14] transition-all duration-300 overflow-hidden"
+            >
+              <div
+                className="absolute -top-10 -right-10 w-24 h-24 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{ background: accent }}
+              />
+              <div className="relative flex items-center gap-3">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center border border-white/[0.08] shrink-0"
+                  style={{ background: `${accent}14` }}
+                >
+                  <Icon className={`w-4.5 h-4.5 w-[18px] h-[18px] ${color}`} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-2xl font-extrabold text-white tracking-tight tabular-nums leading-none">{value}</p>
+                  <p className="font-mono text-[9px] text-neutral-500 uppercase tracking-[0.2em] mt-1.5 truncate">{label}</p>
+                </div>
               </div>
+              <div
+                className="absolute bottom-0 inset-x-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }}
+              />
             </div>
           ))}
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-white/[0.08] overflow-x-auto scrollbar-none">
+      {/* Tabs - segmented control */}
+      <div className="inline-flex flex-wrap items-center gap-1 p-1 rounded-2xl bg-white/[0.03] border border-white/[0.07]">
         {(["users", "audit", "payments", "matrix", "banner", "smtp", "subscribers"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab as any)}
-            className={`px-4 py-2 font-mono text-xs uppercase tracking-wider transition-colors relative whitespace-nowrap ${
+            className={`relative px-4 py-2 rounded-xl font-mono text-[11px] uppercase tracking-wider transition-all whitespace-nowrap ${
               activeTab === tab
-                ? "text-[#ffe14d] border-b-2 border-[#ffe14d]"
-                : "text-neutral-500 hover:text-white"
+                ? "bg-[#ffe14d]/15 text-[#ffe14d] border border-[#ffe14d]/25 shadow-[0_0_20px_rgba(255,225,77,0.08)]"
+                : "text-neutral-500 hover:text-white border border-transparent hover:bg-white/[0.04]"
             }`}
           >
             {tab === "users" ? "Users" : tab === "audit" ? "Audit Log" : tab === "payments" ? "Payments" : tab === "matrix" ? "Plan Matrix" : tab === "banner" ? "Banner" : tab === "smtp" ? "SMTP Settings" : "Subscribers"}
             {tab === "payments" && pendingPayments.length > 0 && (
-              <span className="absolute top-1.5 right-1 w-2 h-2 rounded-full bg-blue-500" />
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-[#03010A]" />
             )}
           </button>
         ))}

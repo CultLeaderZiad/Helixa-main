@@ -226,13 +226,19 @@ export async function POST(
     if (!match && user.ai_enabled) {
       try {
         const { generateGroqCompletion } = await import("@/lib/groq-client")
-        const prompt = `You are a helpful customer service AI assistant on Telegram for @${user.username || "our business"}.
+        const { buildConversationMessages, fetchConversationHistory } = await import("@/lib/llm-provider")
+        const history = await fetchConversationHistory(conv?.id, 8)
+        const systemPrompt = `You are a helpful customer service AI assistant on Telegram for @${user.username || "our business"}.
 Context/Instructions: ${user.ai_context || "Be helpful, concise, and polite."}
-The customer sent: "${triggerValue}"
-Provide a brief, helpful response.`
+Reply in the same language the customer uses. Keep responses short (1-3 sentences), friendly and human. Never mention that you are an AI unless directly asked.`
+        const messages = buildConversationMessages({
+          systemPrompt,
+          history,
+          currentMessage: triggerValue,
+        })
 
         const aiReply = await generateGroqCompletion(user.id, "auto_reply", {
-          messages: [{ role: "system", content: prompt }],
+          messages,
         })
 
         if (aiReply) {

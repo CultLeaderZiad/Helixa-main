@@ -12,6 +12,7 @@ import { WebVitalsReporter } from "@/components/performance/WebVitalsReporter"
 
 import { LanguageProvider } from "@/lib/i18n/LanguageContext"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
+import { SWRProvider } from "@/components/swr-provider"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _instrumentSerif = Instrument_Serif({ subsets: ["latin"], weight: "400", variable: "--font-instrument-serif" })
@@ -49,11 +50,13 @@ export default function RootLayout({
         <ErrorBoundary>
           <LanguageProvider>
             <ThemeProvider>
-              <GlobalBanner />
-              <GlobalUpdatesListener />
-              <WebVitalsReporter />
-              {children}
-              <Toaster />
+              <SWRProvider>
+                <GlobalBanner />
+                <GlobalUpdatesListener />
+                <WebVitalsReporter />
+                {children}
+                <Toaster />
+              </SWRProvider>
             </ThemeProvider>
           </LanguageProvider>
         </ErrorBoundary>

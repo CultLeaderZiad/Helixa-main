@@ -632,13 +632,20 @@ export async function POST(request: NextRequest) {
             if (user.ai_enabled) {
               try {
                 const { generateGroqCompletion } = await import("@/lib/groq-client")
-                const prompt = `You are a helpful AI assistant for an Instagram account named @${user.username}. 
+                const { buildConversationMessages, fetchConversationHistory } = await import("@/lib/llm-provider")
+                // Pull recent history so the AI has real conversation context
+                const history = await fetchConversationHistory(conv?.id, 8)
+                const systemPrompt = `You are a helpful AI assistant for an Instagram account named @${user.username}.
 Context/Instructions from account owner: ${user.ai_context || 'Be helpful, brief, and polite.'}
-The user sent: "${triggerValue}"
-Provide a very short, friendly response.`
-                
+Reply in the same language the customer uses. Keep responses short (1-3 sentences), friendly and human. Never mention that you are an AI unless directly asked.`
+                const messages = buildConversationMessages({
+                  systemPrompt,
+                  history,
+                  currentMessage: triggerValue,
+                })
+
                 const aiReply = await generateGroqCompletion(user.id, "auto_reply", {
-                  messages: [{ role: "system", content: prompt }]
+                  messages,
                 })
                 
                 if (aiReply) {

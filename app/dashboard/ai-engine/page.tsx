@@ -26,11 +26,12 @@ import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { AgentsManager } from "@/components/dashboard/AgentsManager"
+import { AiCoachPanel } from "@/components/dashboard/AiCoachPanel"
 import { IceBreakersManager } from "@/components/dashboard/IceBreakersManager"
 import { AnalyticsDashboardView } from "@/components/dashboard/AnalyticsDashboardView"
 import Link from "next/link"
 
-type TabKey = "content" | "analytics" | "agents" | "ice-breakers" | "insights"
+type TabKey = "content" | "analytics" | "agents" | "coach" | "ice-breakers" | "insights"
 
 function AiEngineContent() {
   const router = useRouter()
@@ -40,7 +41,7 @@ function AiEngineContent() {
 
   useEffect(() => {
     const tabParam = searchParams.get("tab") as TabKey
-    if (tabParam && ["content", "analytics", "agents", "ice-breakers", "insights"].includes(tabParam)) {
+    if (tabParam && ["content", "analytics", "agents", "coach", "ice-breakers", "insights"].includes(tabParam)) {
       setActiveTab(tabParam)
     }
   }, [searchParams])
@@ -100,6 +101,7 @@ function AiEngineContent() {
           { key: "content" as const, label: "Recent Content", icon: Film, badge: posts.length > 0 ? posts.length : null },
           { key: "analytics" as const, label: "Analytics & Funnel", icon: BarChart3, badge: null },
           { key: "agents" as const, label: "AI Agents", icon: Bot, badge: null },
+          { key: "coach" as const, label: "AI Coach", icon: Sparkles, badge: "New" },
           { key: "ice-breakers" as const, label: "Ice Breakers", icon: Snowflake, badge: null },
           { key: "insights" as const, label: "Growth Insights", icon: TrendingUp, badge: "Groq" },
         ].map(({ key, label, icon: Icon, badge }) => {
@@ -331,7 +333,10 @@ function AiEngineContent() {
       {/* ─── TAB 3: AI AGENTS ─── */}
       {activeTab === "agents" && <AgentsManager />}
 
-      {/* ─── TAB 4: ICE BREAKERS ─── */}
+      {/* ─── TAB 4: AI COACH (weekly digest, hook strength, niche) ─── */}
+      {activeTab === "coach" && <AiCoachPanel />}
+
+      {/* ─── TAB 5: ICE BREAKERS ─── */}
       {activeTab === "ice-breakers" && <IceBreakersManager />}
 
       {/* ─── TAB 5: GROWTH INSIGHTS ─── */}

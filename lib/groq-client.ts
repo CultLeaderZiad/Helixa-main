@@ -1,10 +1,18 @@
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY
-const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-
 // Defaulting to 300 requests per user per day to protect Groq rate limits.
 const MAX_AI_CALLS_PER_DAY = 300
+
+// Maps internal AI feature names to agent catalog keys (scripts/32-schema-agents-system.sql)
+// so agent-level provider config + BYOK keys are applied to the right features.
+const FEATURE_TO_AGENT_KEY: Record<string, string> = {
+  auto_reply: "send_trigger_replies",
+  sentiment_analysis: "comment_themes",
+  analyze_themes: "comment_themes",
+  analyze_faqs: "faq_detector",
+  growth_insights: "weekly_coach_digest",
+  analytics_summary: "weekly_coach_digest",
+}
 
 export class GroqRateLimitError extends Error {
   constructor(message: string) {
@@ -82,66 +90,25 @@ export async function logAIUsage(
  * Calls the Groq API if the user has not exceeded their daily limit.
  * Automatically logs the usage to `ai_usage_log`.
  */
+/**
+ * Calls the LLM API if the user has not exceeded their daily limit.
+ * Automatically logs the usage to `ai_usage_log`.
+ *
+ * Now delegates to lib/llm-provider's generateCompletion so that per-agent
+ * provider config + BYOK keys are honored for EVERY AI feature (previously
+ * only 2 routes used the provider router; everything else silently bypassed
+ * BYOK and always billed the managed Groq key).
+ */
 export async function generateGroqCompletion(
   userId: number | string,
   feature: string,
   options: GroqCompletionRequest
 ): Promise<string | null> {
-  console.log("[groq-client] API Key present:", !!GROQ_API_KEY)
-
-  if (!GROQ_API_KEY) {
-    console.error("[groq-client] GROQ_API_KEY is missing. Add it to your Vercel environment variables.")
-    throw new GroqAPIError(500, "GROQ_API_KEY is not configured. Please add GROQ_API_KEY to your Vercel environment variables at https://vercel.com/dashboard.")
-  }
-
-  const isWithinLimit = await checkAILimit(userId)
-  if (!isWithinLimit) {
-    console.error(`[groq-client] User ${userId} exceeded daily AI limit.`)
-    throw new GroqRateLimitError("AI limit exceeded for today.")
-  }
-
-  const model = options.model || "llama-3.3-70b-versatile"
-
-  try {
-    const res = await fetch(GROQ_API_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model,
-        messages: options.messages,
-        temperature: options.temperature ?? 0.7,
-        max_tokens: options.max_tokens,
-      })
-    })
-
-    if (!res.ok) {
-      const errorText = await res.text()
-      console.error(`[groq-client] API error (${res.status}):`, errorText)
-      if (res.status === 401) {
-        throw new GroqAPIError(401, `AI request failed: Groq API returned 401: ${errorText}. Your GROQ_API_KEY may be invalid or expired. Get a new key at https://console.groq.com/keys and update it in your Vercel environment variables.`)
-      }
-      if (res.status === 429) {
-        throw new GroqRateLimitError(`Groq API rate limit reached: ${errorText}`)
-      }
-      throw new GroqAPIError(res.status, `Groq API returned ${res.status}: ${errorText}`)
-    }
-
-    const data = await res.json()
-    const content = data.choices?.[0]?.message?.content || null
-    const tokensUsed = data.usage?.total_tokens || 0
-
-    // Log the usage immediately after success
-    await logAIUsage(userId, feature, model, tokensUsed)
-
-    return content
-  } catch (error: any) {
-    if (error instanceof GroqRateLimitError || error instanceof GroqAPIError) {
-      throw error;
-    }
-    console.error("[groq-client] Network/Fetch error:", error)
-    throw new GroqAPIError(500, `Network/Fetch error: ${error.message || "Unknown error"}`)
-  }
+  // NOTE: rate-limit + provider resolution all happen inside generateCompletion.
+  // Do NOT duplicate those checks here (double DB round-trips per AI call), and
+  // do NOT hard-fail when no *managed* key exists — the account may have a BYOK
+  // key configured, which the provider layer resolves.
+  const { generateCompletion } = await import("./llm-provider")
+  const agentKey = FEATURE_TO_AGENT_KEY[feature] || feature
+  return generateCompletion(String(userId), String(userId), feature, agentKey, options)
 }

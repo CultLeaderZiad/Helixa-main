@@ -22,6 +22,8 @@ interface AgentSetting {
   is_enabled: boolean
   byok_provider?: string
   byok_connected_at?: string
+  last_used_at?: string | null
+  is_default?: boolean
 }
 
 interface Agent {
@@ -184,6 +186,16 @@ export function AgentsManager() {
                     <p className="text-xs text-neutral-400 mt-1 line-clamp-3 leading-relaxed">
                       {agent.description}
                     </p>
+                    {/* Real activity: proves the agent actually runs */}
+                    {agent.settings?.last_used_at ? (
+                      <p className="text-[10px] text-neutral-500 font-mono-ui mt-2">
+                        Last ran {new Date(agent.settings.last_used_at).toLocaleDateString()}
+                      </p>
+                    ) : agent.settings?.is_enabled ? (
+                      <p className="text-[10px] text-neutral-600 font-mono-ui mt-2">
+                        {agent.settings?.is_default ? "Ready (default)" : "Ready"}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
 
@@ -252,6 +264,7 @@ export function AgentsManager() {
                 <option value="gemini">Google Gemini</option>
                 <option value="openrouter">OpenRouter</option>
                 <option value="anthropic">Anthropic (Claude)</option>
+                <option value="openai">OpenAI (GPT)</option>
               </select>
             </div>
             <div className="space-y-2">

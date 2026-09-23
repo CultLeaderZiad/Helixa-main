@@ -119,50 +119,61 @@ export async function GET(request: NextRequest) {
     }
 
     // 4. Save to platform_connections
-    // We will save each page. Note that pages_messaging requires page access token, which is returned in /me/accounts
-    for (const page of accountsData.data) {
-      const pageAccessToken = page.access_token
-      const pageId = page.id
-      
-      const fbData = {
-        user_id: userProfile.id,
-        platform: "facebook",
-        page_id: pageId,
-        external_account_id: pageId,
-        access_token: pageAccessToken,
-        metadata: { name: page.name, category: page.category }
-      }
-      
-      const { data: existingFb } = await supabase.from("platform_connections")
-        .select("id").eq("user_id", userProfile.id).eq("platform", "facebook").eq("page_id", pageId).maybeSingle()
-        
-      let res1;
-      if (existingFb) {
-        res1 = await supabase.from("platform_connections").update(fbData).eq("id", existingFb.id)
-      } else {
-        res1 = await supabase.from("platform_connections").insert(fbData)
-      }
-      if (res1.error) throw new Error("Upsert FB failed: " + res1.error.message);
+    // Pages are saved AND subscribed to webhook events in PARALLEL.
+    // Previously this callback saved pages without subscribing them to webhook
+    // events, which made the connection look "Live" in the UI while
+    // Messenger/comment events never arrived - i.e. a fake connection.
+    const results = await Promise.allSettled(
+      accountsData.data.map(async (page: any) => {
+        const pageAccessToken = page.access_token
+        const pageId = page.id
 
-      const msgData = {
-        user_id: userProfile.id,
-        platform: "messenger",
-        page_id: pageId,
-        external_account_id: pageId,
-        access_token: pageAccessToken,
-        metadata: { name: page.name, category: page.category }
-      }
-      
-      const { data: existingMsg } = await supabase.from("platform_connections")
-        .select("id").eq("user_id", userProfile.id).eq("platform", "messenger").eq("page_id", pageId).maybeSingle()
-        
-      let res2;
-      if (existingMsg) {
-        res2 = await supabase.from("platform_connections").update(msgData).eq("id", existingMsg.id)
-      } else {
-        res2 = await supabase.from("platform_connections").insert(msgData)
-      }
-      if (res2.error) throw new Error("Upsert Messenger failed: " + res2.error.message);
+        // Subscribe the Page to webhook events (best-effort)
+        let webhookSubscribed = false
+        try {
+          const subscribeUrl = new URL(`https://graph.facebook.com/v20.0/${pageId}/subscribed_apps`)
+          subscribeUrl.searchParams.set("subscribed_fields", "messages,messaging_postbacks,feed")
+          subscribeUrl.searchParams.set("access_token", pageAccessToken)
+          const subRes = await fetch(subscribeUrl.toString(), { method: "POST" })
+          const subData = await subRes.json()
+          webhookSubscribed = !!(subRes.ok && subData.success)
+          if (!webhookSubscribed) {
+            console.warn(`[FB Callback] Webhook subscription failed for page ${pageId}:`, subData)
+          }
+        } catch (subErr) {
+          console.warn(`[FB Callback] Webhook subscription error for page ${pageId}:`, subErr)
+        }
+
+        const sharedMeta = { name: page.name, category: page.category, webhook_subscribed: webhookSubscribed }
+
+        const upsert = async (platform: "facebook" | "messenger") => {
+          const row = {
+            user_id: userProfile.id,
+            platform,
+            page_id: pageId,
+            external_account_id: pageId,
+            access_token: pageAccessToken,
+            metadata: sharedMeta,
+          }
+          const { data: existing } = await supabase.from("platform_connections")
+            .select("id").eq("user_id", userProfile.id).eq("platform", platform).eq("page_id", pageId).maybeSingle()
+          const res = existing
+            ? await supabase.from("platform_connections").update(row).eq("id", existing.id)
+            : await supabase.from("platform_connections").insert(row)
+          if (res.error) throw new Error(`Upsert ${platform} failed: ${res.error.message}`)
+        }
+
+        await Promise.all([upsert("facebook"), upsert("messenger")])
+        return { pageId, webhookSubscribed }
+      })
+    )
+
+    const failures = results.filter((r) => r.status === "rejected")
+    if (failures.length > 0) {
+      console.error(`[FB Callback] ${failures.length}/${results.length} pages failed to save`)
+    }
+    if (results.every((r) => r.status === "rejected")) {
+      return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=server_error", request.url))
     }
 
     return NextResponse.redirect(new URL("/dashboard/connected-platforms?success=1", request.url))

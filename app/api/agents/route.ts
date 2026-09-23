@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     ] = await Promise.all([
       supabase.from("agents").select("*").eq("is_active", true).order("sort_order"),
       supabase.from("accounts").select("plan, role").eq("id", accId).maybeSingle(),
-      supabase.from("account_agent_settings").select("agent_id, is_enabled, byok_provider, byok_connected_at").eq("account_id", accId)
+      supabase.from("account_agent_settings").select("agent_id, is_enabled, byok_provider, byok_connected_at, last_used_at").eq("account_id", accId)
     ]);
 
     if (agentsError) {
@@ -59,11 +59,14 @@ export async function GET(req: NextRequest) {
       return acc
     }, {})
 
-    // Merge everything
+    // Merge everything.
+    // Default is_enabled = TRUE when the account never configured the agent —
+    // this matches the runtime behaviour of isAgentEnabled() (fail-open), so the
+    // dashboard switch no longer shows OFF while the agent is actually running.
     const result = agents?.map((agent: any) => ({
       ...agent,
       is_unlocked: planAgents.includes(agent.id),
-      settings: settingsMap[agent.id] || { is_enabled: false }
+      settings: settingsMap[agent.id] || { is_enabled: true, is_default: true }
     })) || []
 
     return NextResponse.json({ agents: result, plan_id: account?.plan })

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useSearchParams } from "next/navigation"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import {
   AlertTriangle,
@@ -117,13 +118,42 @@ export default function ConnectedPlatformsPage() {
   const [fbConnecting, setFbConnecting] = useState(false)
   const [fbDiscovering, setFbDiscovering] = useState(false)
   const [fbError, setFbError] = useState<string | null>(null)
-  const [fbToken, setFbToken] = useState("")
+  const [fbSessionId, setFbSessionId] = useState("")
+  const [fbBusinessMode, setFbBusinessMode] = useState(false)
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
 
   // Telegram state
   const [telegramToken, setTelegramToken] = useState("")
   const [telegramConnecting, setTelegramConnecting] = useState(false)
   const [telegramError, setTelegramError] = useState<string | null>(null)
+
+  // Surface OAuth redirect results (?error= / ?success=) from the server-side
+  // Facebook callback flow so users get actionable feedback instead of silence.
+  const searchParams = useSearchParams()
+  const [oauthNotice, setOauthNotice] = useState<{ type: "error" | "success"; message: string } | null>(null)
+  useEffect(() => {
+    const err = searchParams.get("error")
+    const ok = searchParams.get("success")
+    if (err) {
+      const MESSAGES: Record<string, string> = {
+        no_pages: "No Facebook Pages found on that account. You must manage at least one Facebook Page (personal profiles can't be connected).",
+        token_failed: "Facebook token exchange failed. Please try connecting again.",
+        connect_ig_first: "Please connect your Instagram account before adding Facebook Pages.",
+        not_logged_in: "Your session expired. Please log in again and retry.",
+        access_denied: "Facebook login was cancelled or permissions were declined.",
+        server_error: "Something went wrong on our side while connecting. Please try again.",
+      }
+      setOauthNotice({ type: "error", message: MESSAGES[err] || `Facebook connection failed (${err}). Please try again.` })
+    } else if (ok) {
+      setOauthNotice({ type: "success", message: "Facebook Page connected successfully." })
+      mutateConnections()
+    }
+    if (err || ok) {
+      // Clean the URL so the banner doesn't reappear on refresh
+      window.history.replaceState({}, "", "/dashboard/connected-platforms")
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   // Load Facebook SDK
   useEffect(() => {
@@ -162,25 +192,38 @@ export default function ConnectedPlatformsPage() {
   }
 
   // Facebook flows
+  //
+  // IMPORTANT: `business_management` is OFF by default. When included, Meta
+  // forces the "Login for Business" dialog, which AUTO-CANCELS for any account
+  // without a Meta Business Portfolio (i.e. most regular users). We only add
+  // it when the user explicitly turns on Business Manager mode below, which is
+  // how agency customers connect Business-Portfolio-managed Pages.
+  const BASE_FB_SCOPE = "pages_manage_metadata,pages_messaging,pages_read_engagement,pages_show_list"
+
   const handleFacebookLogin = useCallback(() => {
     if (!window.FB) {
-      setFbError("Facebook SDK not loaded. Please refresh.")
+      setFbError("Facebook SDK not loaded yet. Please wait a moment and try again.")
       return
     }
     setFbError(null)
     setFbDiscovering(true)
+    const scope = fbBusinessMode ? `${BASE_FB_SCOPE},business_management` : BASE_FB_SCOPE
     window.FB.login(
       (response: any) => {
         if (response.status === "connected" && response.authResponse?.accessToken) {
           discoverPages(response.authResponse.accessToken)
         } else {
           setFbDiscovering(false)
-          setFbError(response.status === "not_authorized" ? "Authorization required." : "Login cancelled.")
+          setFbError(
+            response.status === "not_authorized"
+              ? "Authorization was not granted. Please approve the requested Page permissions to continue."
+              : "Login was cancelled. No changes were made."
+          )
         }
       },
-      { scope: "pages_manage_metadata,pages_messaging,pages_read_engagement,pages_show_list,business_management", return_scopes: true }
+      { scope, return_scopes: true, auth_type: "rerequest" }
     )
-  }, [])
+  }, [fbBusinessMode])
 
   const discoverPages = async (accessToken: string) => {
     try {
@@ -191,9 +234,13 @@ export default function ConnectedPlatformsPage() {
       })
       const data = await res.json()
       if (!res.ok) { setFbError(data.error || "Failed to discover Pages."); setFbDiscovering(false); return }
-      if (!data.pages?.length) { setFbError("No Facebook Pages found."); setFbDiscovering(false); return }
+      if (data.error === "no_pages" || !data.pages?.length) {
+        setFbError("No Facebook Pages found on this account. You must be an admin or editor of at least one Facebook Page — personal profiles cannot be connected. Create one at facebook.com/pages/create, then try again.")
+        setFbDiscovering(false)
+        return
+      }
       setFbPages(data.pages)
-      setFbToken(data._token || "")
+      setFbSessionId(data.session_id || "")
       setShowPagePicker(true)
     } catch { setFbError("Error discovering Pages.") }
     setFbDiscovering(false)
@@ -207,13 +254,13 @@ export default function ConnectedPlatformsPage() {
       const res = await fetch("/api/facebook/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ page_id: pageId, _token: fbToken }),
+        body: JSON.stringify({ page_id: pageId, session_id: fbSessionId }),
       })
       const data = await res.json()
       if (!res.ok) { setFbError(data.error || "Failed to connect."); return }
       setShowPagePicker(false)
       setFbPages([])
-      setFbToken("")
+      setFbSessionId("")
       mutateConnections()
     } catch { setFbError("Error connecting Page.") }
     setFbConnecting(false)
@@ -246,6 +293,30 @@ export default function ConnectedPlatformsPage() {
         <h1 className="font-serif-display text-4xl text-white mb-2">{t.connectedPlatforms}</h1>
         <p className="text-neutral-400">Connect your social accounts to start automating.</p>
       </div>
+
+      {/* OAuth redirect feedback (from /api/facebook/callback) */}
+      {oauthNotice && (
+        <div className={`rounded-xl p-4 flex items-start gap-3 border ${
+          oauthNotice.type === "success"
+            ? "bg-emerald-500/10 border-emerald-500/20"
+            : "bg-red-500/10 border-red-500/20"
+        }`}>
+          {oauthNotice.type === "success"
+            ? <Check className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+            : <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />}
+          <div className="flex-1">
+            <p className={`text-sm ${oauthNotice.type === "success" ? "text-emerald-300" : "text-red-300"}`}>{oauthNotice.message}</p>
+            {oauthNotice.type === "error" && (
+              <p className="text-xs text-neutral-500 mt-1">
+                Logged into the wrong Facebook account? Open{" "}
+                <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">facebook.com</a>
+                {" "}in another tab, log out there, then click Connect again — the popup will ask you to log in with the correct account.
+              </p>
+            )}
+          </div>
+          <button onClick={() => setOauthNotice(null)} className="text-neutral-500 hover:text-white p-0.5"><X className="w-4 h-4" /></button>
+        </div>
+      )}
 
       {/* Error state */}
       {connectionsError && (
@@ -297,7 +368,13 @@ export default function ConnectedPlatformsPage() {
                   </div>
                 ) : isConnected ? (
                   <div className="space-y-2">
-                    {matchedConnections.map((c) => (
+                    {matchedConnections.map((c) => {
+                      // Instagram uses an app-level webhook so it's live once connected.
+                      // Facebook/Telegram connections store webhook_subscribed explicitly —
+                      // if that's false the connection exists but events will NOT arrive,
+                      // so we surface it instead of showing a misleading "Live" badge.
+                      const webhookOk = c.platform === "instagram" || c.metadata?.webhook_subscribed !== false
+                      return (
                       <div key={c.id} className="flex items-center justify-between bg-white/[0.04] px-3 py-2.5 rounded-xl border border-white/[0.06]">
                         <div className="min-w-0 flex-1">
                           <p className="text-sm text-white font-medium truncate">
@@ -306,9 +383,18 @@ export default function ConnectedPlatformsPage() {
                           <p className="text-[10px] text-neutral-500 uppercase tracking-wider">{c.platform}</p>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                          <span className="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
-                            <Check className="w-3 h-3" /> Live
-                          </span>
+                          {webhookOk ? (
+                            <span className="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
+                              <Check className="w-3 h-3" /> Live
+                            </span>
+                          ) : (
+                            <span
+                              className="text-[10px] text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium"
+                              title="This page is saved but Meta webhook subscription failed. Messages and comments will NOT be received. Try reconnecting the page."
+                            >
+                              <AlertTriangle className="w-3 h-3" /> No webhook
+                            </span>
+                          )}
                           {platform.key !== "instagram" && (
                             <button
                               onClick={() => handleDelete(c.id, c.platform)}
@@ -320,7 +406,8 @@ export default function ConnectedPlatformsPage() {
                           )}
                         </div>
                       </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 text-sm text-neutral-500 py-2">
@@ -344,7 +431,7 @@ export default function ConnectedPlatformsPage() {
                     <div className="border border-blue-500/20 bg-blue-500/5 rounded-xl p-3 space-y-2">
                       <div className="flex items-center justify-between mb-1">
                         <h4 className="text-white text-xs font-medium">Select a Page</h4>
-                        <button onClick={() => { setShowPagePicker(false); setFbPages([]); setFbToken("") }} className="text-neutral-400 hover:text-white"><X className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => { setShowPagePicker(false); setFbPages([]); setFbSessionId("") }} className="text-neutral-400 hover:text-white"><X className="w-3.5 h-3.5" /></button>
                       </div>
                       {fbPages.map((page) => {
                         const already = connections.some((c) => c.platform === "facebook" && c.page_id === page.id)
@@ -364,6 +451,22 @@ export default function ConnectedPlatformsPage() {
                       })}
                     </div>
                   )}
+                  {/* Business Manager mode — for Pages managed through a Meta
+                      Business Portfolio. OFF by default because the scope forces
+                      Meta's "Login for Business" dialog that auto-cancels for
+                      regular personal accounts. */}
+                  <label className="flex items-start gap-2.5 cursor-pointer group px-1 select-none">
+                    <input
+                      type="checkbox"
+                      checked={fbBusinessMode}
+                      onChange={(e) => setFbBusinessMode(e.target.checked)}
+                      className="mt-0.5 w-3.5 h-3.5 rounded border-white/20 bg-white/5 accent-[#ffe14d] cursor-pointer"
+                    />
+                    <span className="text-[11px] text-neutral-500 leading-snug group-hover:text-neutral-400 transition-colors">
+                      My Pages are managed in <span className="text-neutral-300">Meta Business Manager</span>
+                      <span className="block text-[10px] text-neutral-600 mt-0.5">Only enable if your Page lives inside a Business Portfolio (agencies/brands).</span>
+                    </span>
+                  </label>
                   <button
                     onClick={handleFacebookLogin}
                     disabled={fbDiscovering || !fbSdkReady}
@@ -376,12 +479,16 @@ export default function ConnectedPlatformsPage() {
 
               {platform.key === "whatsapp" && (
                 <div className="space-y-3">
-                  <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 p-3 rounded-xl text-xs leading-relaxed flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>Requires pre-approved template messages via Meta Business Manager.</span>
+                  <div className="bg-white/[0.03] border border-white/[0.08] text-neutral-300 p-3 rounded-xl text-xs leading-relaxed flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                    <span>
+                      <span className="text-amber-400 font-medium">Coming soon.</span> WhatsApp Business
+                      requires Meta-approved template messages and cannot be self-connected yet. Your
+                      WhatsApp webhook endpoint is already live for when it's enabled.
+                    </span>
                   </div>
-                  <button disabled className="w-full py-2.5 bg-white/5 text-white/40 cursor-not-allowed rounded-xl text-sm font-medium border border-white/10">
-                    Configure via Meta Dashboard
+                  <button disabled className="w-full py-2.5 bg-white/5 text-white/30 cursor-not-allowed rounded-xl text-sm font-medium border border-white/10">
+                    Not available yet
                   </button>
                 </div>
               )}
@@ -416,9 +523,18 @@ export default function ConnectedPlatformsPage() {
               )}
 
               {platform.key === "instagram" && (
-                <button disabled className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl text-sm font-semibold disabled:opacity-60">
-                  {isConnected ? "Connected" : "Connect Instagram"}
-                </button>
+                isConnected ? (
+                  <button disabled className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl text-sm font-semibold disabled:opacity-60">
+                    Connected
+                  </button>
+                ) : (
+                  <a
+                    href="/api/instagram/auth"
+                    className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:brightness-110 text-white rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2"
+                  >
+                    Connect Instagram
+                  </a>
+                )
               )}
 
               {/* Manage Link */}

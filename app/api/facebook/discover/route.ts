@@ -81,11 +81,38 @@ export async function POST(request: NextRequest) {
 
     console.log(`[FB Discover] Found ${pages.length} pages for user ${resolvedUserId}`)
 
-    // Return pages + the long-lived token (the client will pass it back to /connect)
-    // The token is short-lived context only used in the next step, travels over HTTPS.
+    // 4. SECURITY: store the long-lived token SERVER-SIDE as an encrypted,
+    //    short-lived, one-time OAuth session. The browser only receives the
+    //    opaque session id. Previously the raw token was returned as `_token`
+    //    and lived in React state — that must never happen with a token that
+    //    is valid for 60 days.
+    const { getSupabaseBypassClient } = await import("@/lib/supabase-server")
+    const { encryptString } = await import("@/lib/crypto")
+    const supabase = await getSupabaseBypassClient()
+
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15 min
+    const { data: sessionRow, error: sessionError } = await supabase
+      .from("oauth_sessions")
+      .insert({
+        account_id: account.id,
+        provider: "facebook",
+        token_encrypted: encryptString(longLivedToken),
+        expires_at: expiresAt,
+      })
+      .select("id")
+      .single()
+
+    if (sessionError || !sessionRow) {
+      console.error("[FB Discover] Failed to persist OAuth session:", sessionError)
+      return NextResponse.json({ error: "Failed to prepare connection. Please try again." }, { status: 500 })
+    }
+
+    // Opportunistic cleanup of expired sessions (non-blocking)
+    supabase.from("oauth_sessions").delete().lt("expires_at", new Date().toISOString()).then(() => {})
+
     return NextResponse.json({
       pages,
-      _token: longLivedToken,
+      session_id: sessionRow.id,
     })
   } catch (error) {
     console.error("[FB Discover] Unexpected error:", error)

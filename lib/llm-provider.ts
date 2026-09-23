@@ -5,6 +5,71 @@ import { getSupabaseBypassClient } from "./supabase-server"
 const GROQ_API_KEY = process.env.GROQ_API_KEY
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+
+/**
+ * Normalizes an identifier to the accounts-table UUID.
+ * Callers pass either the account UUID (dashboard API routes) or the int64
+ * users.id (webhook handlers). account_agent_settings is keyed by account UUID,
+ * so we must resolve users.id → accounts.id before BYOK/settings lookups.
+ */
+async function resolveAccountUuid(id: string | number): Promise<string> {
+  const str = String(id)
+  if (str.includes("-")) return str // already a UUID
+  try {
+    const supabase = await getSupabaseBypassClient()
+    const { data } = await supabase.from("users").select("account_id").eq("id", str).maybeSingle()
+    return data?.account_id || str
+  } catch {
+    return str
+  }
+}
+
+/**
+ * Checks whether an AI agent is enabled for an account. Fail-open: if the
+ * tables/rows don't exist yet we allow the call so the feature still works,
+ * but when a settings row exists and is_enabled = false the agent is skipped.
+ * This makes the Agents dashboard toggles actually mean something.
+ */
+export async function isAgentEnabled(accountId: string | number, agentKey: string): Promise<boolean> {
+  try {
+    const accountUuid = await resolveAccountUuid(accountId)
+    const supabase = await getSupabaseBypassClient()
+    const { data: agent } = await supabase.from("agents").select("id").eq("agent_key", agentKey).maybeSingle()
+    if (!agent) return true // Agent not in catalog — legacy feature, allow
+    const { data: setting } = await supabase
+      .from("account_agent_settings")
+      .select("is_enabled")
+      .eq("account_id", accountUuid)
+      .eq("agent_id", agent.id)
+      .maybeSingle()
+    // No row = never configured. Default ON so features don't silently die
+    // for users who never opened the Agents tab.
+    if (!setting) return true
+    return !!setting.is_enabled
+  } catch {
+    return true
+  }
+}
+
+/** Marks an agent as used (feeds the "last activity" display per agent). */
+export async function touchAgentUsage(accountId: string | number, agentKey: string) {
+  try {
+    const accountUuid = await resolveAccountUuid(accountId)
+    const supabase = await getSupabaseBypassClient()
+    const { data: agent } = await supabase.from("agents").select("id").eq("agent_key", agentKey).maybeSingle()
+    if (!agent) return
+    await supabase
+      .from("account_agent_settings")
+      .upsert(
+        { account_id: accountUuid, agent_id: agent.id, last_used_at: new Date().toISOString() },
+        { onConflict: "account_id,agent_id" }
+      )
+  } catch {
+    // non-blocking
+  }
+}
 
 // In a real implementation we would throw during module load or server startup if strictly required.
 // But for graceful failure, we can check at runtime when the specific provider is called.
@@ -31,17 +96,31 @@ export async function generateCompletion(
   agentKey: string,
   options: GroqCompletionRequest
 ): Promise<string | null> {
-  
+
+  // 0. Normalize: webhook callers pass the int64 users.id; settings/BYOK tables
+  // are keyed by the account UUID.
+  const accountUuid = await resolveAccountUuid(accountId)
+
+  // 0b. Respect the Agents dashboard toggle — an agent the user switched OFF
+  // must not run. Fail-open only when never configured.
+  const agentEnabled = await isAgentEnabled(accountUuid, agentKey)
+  if (!agentEnabled) {
+    console.log(`[llm-provider] Agent "${agentKey}" is disabled for account ${accountUuid} — skipping ${feature}.`)
+    return null
+  }
+
   // 1. Check AI Limit for managed usage
   const isWithinLimit = await checkAILimit(userId)
   if (!isWithinLimit) {
     throw new GroqRateLimitError("AI limit exceeded for today.")
   }
 
-  // 2. Fetch Agent Config — fall back to default Groq if agent row doesn't exist
+  // 2. Fetch Agent Config — fall back to default Groq if agent row doesn't exist.
+  // Also fetch the BYOK provider the user picked (if any) so we know WHICH
+  // provider a stored BYOK key belongs to.
   const supabase = await getSupabaseBypassClient()
   const { data: agent, error: agentError } = await supabase.from("agents").select("id, provider, requires_byok").eq("agent_key", agentKey).single()
-  
+
   // If agent not found or DB error, default to Groq directly (most common case)
   if (!agent || agentError) {
     console.warn(`[llm-provider] Agent "${agentKey}" not found in DB, defaulting to Groq provider. Error:`, agentError?.message || "not found")
@@ -59,27 +138,36 @@ export async function generateCompletion(
   let apiKey: string | undefined
   let provider = agent.provider
 
-  // 3. Resolve API Key
-  if (agent.requires_byok) {
-    const key = await fetchByokKey(accountId, agent.id)
-    if (!key) {
-      console.warn(`[llm-provider] BYOK key missing for agent "${agentKey}", falling back to Groq.`)
-      if (!GROQ_API_KEY) {
-        throw new GroqAPIError(500, "GROQ_API_KEY is not configured. Please add it to your Vercel environment variables at https://vercel.com/dashboard.")
-      }
-      const responseText = await callGroqAPI(options, GROQ_API_KEY)
-      if (responseText) {
-        const estTokens = Math.floor(responseText.length / 4)
-        await logAIUsage(userId, feature, "groq", estTokens)
-      }
-      return responseText
+  // 3. Resolve API Key — a user-provided BYOK key ALWAYS wins over managed keys
+  const { data: byokSetting } = await supabase
+    .from("account_agent_settings")
+    .select("byok_provider, byok_connected_at")
+    .eq("account_id", accountUuid)
+    .eq("agent_id", agent.id)
+    .maybeSingle()
+
+  const byokKey = await fetchByokKey(accountUuid, agent.id)
+  if (byokKey) {
+    apiKey = byokKey
+    if (byokSetting?.byok_provider) provider = byokSetting.byok_provider
+  } else if (agent.requires_byok) {
+    console.warn(`[llm-provider] BYOK key missing for agent "${agentKey}", falling back to Groq.`)
+    if (!GROQ_API_KEY) {
+      throw new GroqAPIError(500, "GROQ_API_KEY is not configured. Please add it to your Vercel environment variables at https://vercel.com/dashboard.")
     }
-    apiKey = key
+    const responseText = await callGroqAPI(options, GROQ_API_KEY)
+    if (responseText) {
+      const estTokens = Math.floor(responseText.length / 4)
+      await logAIUsage(userId, feature, "groq", estTokens)
+    }
+    return responseText
   } else {
     // Helixa Managed Keys
     if (provider === "groq") apiKey = GROQ_API_KEY
     if (provider === "gemini") apiKey = GEMINI_API_KEY
     if (provider === "openrouter") apiKey = OPENROUTER_API_KEY
+    if (provider === "anthropic") apiKey = ANTHROPIC_API_KEY
+    if (provider === "openai") apiKey = OPENAI_API_KEY
   }
 
   if (!apiKey) {
@@ -109,6 +197,26 @@ export async function generateCompletion(
       provider = "groq"
     }
 
+  } else if (provider === "anthropic") {
+    try {
+      responseText = await callAnthropicAPI(options, apiKey)
+    } catch (err: any) {
+      console.warn(`[llm-provider] Anthropic failed for ${feature}, falling back to Groq. Error:`, err.message)
+      if (!GROQ_API_KEY) throw new GroqAPIError(500, "AI provider failed and no fallback available.")
+      responseText = await callGroqAPI(options, GROQ_API_KEY)
+      provider = "groq"
+    }
+
+  } else if (provider === "openai") {
+    try {
+      responseText = await callOpenAIAPI(options, apiKey)
+    } catch (err: any) {
+      console.warn(`[llm-provider] OpenAI failed for ${feature}, falling back to Groq. Error:`, err.message)
+      if (!GROQ_API_KEY) throw new GroqAPIError(500, "AI provider failed and no fallback available.")
+      responseText = await callGroqAPI(options, GROQ_API_KEY)
+      provider = "groq"
+    }
+
   } else if (provider === "groq" || provider === "openrouter") {
     // Try Groq, fallback to OpenRouter
     try {
@@ -125,10 +233,11 @@ export async function generateCompletion(
     }
   }
 
-  // 5. Log usage
+  // 5. Log usage + record agent activity (powers "last used" in the Agents UI)
   if (responseText) {
     const estTokens = Math.floor(responseText.length / 4)
     await logAIUsage(userId, feature, provider, estTokens)
+    await touchAgentUsage(accountUuid, agentKey)
   }
 
   return responseText
@@ -229,4 +338,121 @@ async function callOpenRouterAPI(options: GroqCompletionRequest, apiKey: string)
 
   const data = await res.json()
   return data.choices[0]?.message?.content || null
+}
+
+async function callAnthropicAPI(options: GroqCompletionRequest, apiKey: string) {
+  // Anthropic Messages API: system prompt is a top-level field, not a message.
+  const systemParts: string[] = []
+  const messages: Array<{ role: "user" | "assistant"; content: string }> = []
+  for (const msg of options.messages) {
+    if (msg.role === "system") systemParts.push(msg.content)
+    else messages.push({ role: msg.role === "assistant" ? "assistant" : "user", content: msg.content })
+  }
+  // Anthropic requires alternating roles starting with user; merge consecutive same-role messages
+  const merged: Array<{ role: string; content: string }> = []
+  for (const m of messages) {
+    if (merged.length > 0 && merged[merged.length - 1].role === m.role) {
+      merged[merged.length - 1].content += "\n" + m.content
+    } else {
+      merged.push({ ...m })
+    }
+  }
+  if (merged.length === 0) merged.push({ role: "user", content: "Hello" })
+
+  const body: Record<string, unknown> = {
+    model: options.model || "claude-3-5-haiku-latest",
+    max_tokens: options.max_tokens ?? 1024,
+    messages: merged,
+  }
+  if (systemParts.length > 0) body.system = systemParts.join("\n\n")
+  if (options.temperature != null) body.temperature = options.temperature
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const txt = await res.text()
+    throw new Error(`Anthropic API Error: ${res.status} - ${txt}`)
+  }
+
+  const data = await res.json()
+  const text = data.content?.filter((b: any) => b.type === "text").map((b: any) => b.text).join("")
+  if (!text) throw new Error(`Anthropic returned no text: ${JSON.stringify(data).slice(0, 300)}`)
+  return text
+}
+
+async function callOpenAIAPI(options: GroqCompletionRequest, apiKey: string) {
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: options.model || "gpt-4o-mini",
+      messages: options.messages,
+      temperature: options.temperature,
+      max_tokens: options.max_tokens,
+      response_format: options.response_format,
+    }),
+  })
+
+  if (!res.ok) {
+    const txt = await res.text()
+    throw new Error(`OpenAI API Error: ${res.status} - ${txt}`)
+  }
+
+  const data = await res.json()
+  return data.choices[0]?.message?.content || null
+}
+
+/**
+ * Builds a message array with recent conversation history so AI auto-replies
+ * have context instead of answering every DM in a vacuum (which is what made
+ * the AI feel fake/hardcoded). Returns [system, ...history, currentUserMsg].
+ */
+export function buildConversationMessages(params: {
+  systemPrompt: string
+  history: Array<{ content: string; is_from_instagram: boolean }>
+  currentMessage: string
+  maxHistory?: number
+}): GroqMessage[] {
+  const { systemPrompt, history, currentMessage, maxHistory = 8 } = params
+  const msgs: GroqMessage[] = [{ role: "system", content: systemPrompt }]
+  for (const h of history.slice(-maxHistory)) {
+    if (!h.content || !h.content.trim()) continue
+    msgs.push({
+      role: h.is_from_instagram ? "user" : "assistant",
+      content: h.content.slice(0, 500),
+    })
+  }
+  msgs.push({ role: "user", content: currentMessage })
+  return msgs
+}
+
+/** Fetches the last N messages of a conversation for AI context. */
+export async function fetchConversationHistory(
+  conversationId: string | null | undefined,
+  limit = 8
+): Promise<Array<{ content: string; is_from_instagram: boolean }>> {
+  if (!conversationId) return []
+  try {
+    const supabase = await getSupabaseBypassClient()
+    const { data } = await supabase
+      .from("messages")
+      .select("content, is_from_instagram")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: false })
+      .limit(limit)
+    return (data || []).reverse()
+  } catch {
+    return []
+  }
 }

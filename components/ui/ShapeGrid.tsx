@@ -50,15 +50,29 @@ export const ShapeGrid: React.FC<ShapeGridProps> = ({
     const hexHoriz = squareSize * 1.5;
     const hexVert = squareSize * Math.sqrt(3);
 
+    // ─── Performance guards ───
+    // 1. Touch devices have no hover: render ONE static frame, no RAF loop,
+    //    no mousemove listeners. This was a major mobile battery/CPU drain.
+    // 2. prefers-reduced-motion: static frame too.
+    // 3. Cache the vignette gradient (was rebuilt every frame).
+    // 4. Cap at ~30fps — a background texture doesn't need 60fps.
+    const isTouch = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+    const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isStatic = isTouch || prefersReducedMotion;
+    const FRAME_INTERVAL = 1000 / 30;
+    let lastFrameTime = 0;
+    let cachedGradient: CanvasGradient | null = null;
+
     const resizeCanvas = () => {
       canvas.width = canvas.offsetWidth;
       canvas.height = canvas.offsetHeight;
       numSquaresX.current = Math.ceil(canvas.width / squareSize) + 1;
       numSquaresY.current = Math.ceil(canvas.height / squareSize) + 1;
+      cachedGradient = null; // invalidate gradient cache on resize
+      if (isStatic) drawGrid();
     };
 
     window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
 
     const drawHex = (cx: number, cy: number, size: number) => {
       if (!ctx) return;
@@ -212,22 +226,32 @@ export const ShapeGrid: React.FC<ShapeGridProps> = ({
         }
       }
 
-      const gradient = ctx.createRadialGradient(
-        canvas.width / 2,
-        canvas.height / 2,
-        0,
-        canvas.width / 2,
-        canvas.height / 2,
-        Math.sqrt(canvas.width ** 2 + canvas.height ** 2) / 2
-      );
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-      gradient.addColorStop(1, vignetteColor);
+      if (!cachedGradient) {
+        cachedGradient = ctx.createRadialGradient(
+          canvas.width / 2,
+          canvas.height / 2,
+          0,
+          canvas.width / 2,
+          canvas.height / 2,
+          Math.sqrt(canvas.width ** 2 + canvas.height ** 2) / 2
+        );
+        cachedGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        cachedGradient.addColorStop(1, vignetteColor);
+      }
 
-      ctx.fillStyle = gradient;
+      ctx.fillStyle = cachedGradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     };
 
-    const updateAnimation = () => {
+    const updateAnimation = (timestamp?: number) => {
+      // Throttle to ~30fps — this is a decorative background, not a game.
+      if (timestamp !== undefined) {
+        if (timestamp - lastFrameTime < FRAME_INTERVAL) {
+          requestRef.current = requestAnimationFrame(updateAnimation);
+          return;
+        }
+        lastFrameTime = timestamp;
+      }
       const effectiveSpeed = Math.max(speed, 0.1);
       const wrapX = isHex ? hexHoriz * 2 : squareSize;
       const wrapY = isHex ? hexVert : isTri ? squareSize * 2 : squareSize;
@@ -409,6 +433,15 @@ export const ShapeGrid: React.FC<ShapeGridProps> = ({
       }
       handleMouseMove(event);
     };
+
+    // Static mode (touch devices / reduced motion): one draw, no RAF loop,
+    // no mouse listeners. Massive CPU + battery savings on phones.
+    resizeCanvas();
+    if (isStatic) {
+      return () => {
+        window.removeEventListener('resize', resizeCanvas);
+      };
+    }
 
     window.addEventListener('mousemove', handleWindowMouseMove);
     window.addEventListener('mouseleave', handleMouseLeave);

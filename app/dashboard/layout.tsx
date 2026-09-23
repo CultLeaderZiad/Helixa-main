@@ -113,10 +113,10 @@ export default function DashboardLayout({
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col md:ps-64 transition-all duration-300">
                 {/* Mobile Header */}
-                <header className="md:hidden h-16 border-b border-white/10 bg-[#03010A] flex items-center justify-between px-4 sticky top-0 z-40">
+                <header className="md:hidden h-16 border-b border-white/[0.07] bg-[#090a0d] flex items-center justify-between px-4 sticky top-0 z-40">
                     <div className="flex items-center gap-3">
                         <MobileNav username={username || "User"} profilePic={profilePic} email={email} userRole={role} onLogout={logout} />
-                        <span className="font-mono-ui font-black text-sm text-[#ffe14d] tracking-widest">HELIXA</span>
+                        <span className="font-mono-ui font-black text-sm text-[#e5a93c] tracking-widest">HELIXA</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <LanguageSwitcher />

@@ -418,13 +418,19 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
         if (!match && user.ai_enabled) {
           try {
             const { generateGroqCompletion } = await import("@/lib/groq-client")
-            const prompt = `You are a helpful customer service AI assistant for a Facebook Page.
+            const { buildConversationMessages, fetchConversationHistory } = await import("@/lib/llm-provider")
+            const history = await fetchConversationHistory(conv?.id, 8)
+            const systemPrompt = `You are a helpful customer service AI assistant for a Facebook Page.
 Context/Instructions from owner: ${user.ai_context || "Be helpful, concise, and friendly."}
-The customer sent: "${triggerValue}"
-Provide a brief, friendly reply.`
+Reply in the same language the customer uses. Keep responses short (1-3 sentences), friendly and human. Never mention that you are an AI unless directly asked.`
+            const messages = buildConversationMessages({
+              systemPrompt,
+              history,
+              currentMessage: triggerValue,
+            })
 
             const aiReply = await generateGroqCompletion(user.id, "auto_reply", {
-              messages: [{ role: "system", content: prompt }],
+              messages,
             })
 
             if (aiReply) {

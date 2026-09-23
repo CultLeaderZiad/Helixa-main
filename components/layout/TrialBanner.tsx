@@ -50,15 +50,20 @@ export function TrialBanner({ plan, trialEndsAt }: { plan: string; trialEndsAt: 
   }
 
   return (
-    <div className="bg-[#ffe14d] text-black text-center py-2 px-4 text-sm font-bold font-mono-ui z-50 relative flex items-center justify-center gap-4 w-full">
-      <span>
+    <div className="bg-[#111318]/95 backdrop-blur-md border-b border-[#e5a93c]/20 text-zinc-300 py-2 px-4 text-xs sm:text-sm font-medium z-40 relative flex flex-wrap items-center justify-center gap-3 w-full shadow-md">
+      <span className="flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-[#e5a93c] animate-pulse" />
         {t.trialExpiresIn}{" "}
-        <span className="font-mono bg-black/10 px-2 py-0.5 rounded ms-1">
+        <span className="font-mono bg-[#e5a93c]/10 text-[#f3ba4f] border border-[#e5a93c]/25 px-2.5 py-0.5 rounded-full text-xs font-bold tabular-nums">
           {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s
         </span>
       </span>
-      <a href="/dashboard/billing" className="underline hover:no-underline text-blue-800 hover:text-black transition-colors">
-        {t.upgradeNow}
+      <a 
+        href="/dashboard/billing" 
+        className="inline-flex items-center gap-1 bg-[#e5a93c] hover:bg-[#d4952b] text-black text-xs font-bold px-3 py-1 rounded-full transition-all shadow-sm"
+      >
+        <span>{t.upgradeNow}</span>
+        <span aria-hidden="true">&rarr;</span>
       </a>
     </div>
   )

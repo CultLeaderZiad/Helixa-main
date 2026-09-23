@@ -195,6 +195,53 @@ function initSession(code: string | null, router: ReturnType<typeof useRouter>) 
     })
 }
 
+/**
+ * Initializes exactly ONE realtime subscription for the whole browser tab.
+ *
+ * Previously every component that called useInstagramSession() opened its own
+ * pair of Supabase channels (accounts + users), so a dashboard page with the
+ * layout + two pages sharing the hook held 4-6 websocket channels. That wasted
+ * memory and slowed the app down. Now we keep a single global subscription and
+ * refresh the shared snapshot when the account/user row changes.
+ */
+let realtimeStarted = false
+let realtimeCleanup: (() => void) | null = null
+
+function startRealtime(accountId: string, userId: string | null) {
+    if (realtimeStarted) return
+    realtimeStarted = true
+
+    const supabase = getSupabaseBrowserClient()
+
+    const accountChannel = supabase
+        .channel(`session-acc-${accountId}`)
+        .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'accounts', filter: `id=eq.${accountId}` },
+            () => { fetchMe() }
+        )
+        .subscribe()
+
+    let userChannel: any = null
+    if (userId) {
+        userChannel = supabase
+            .channel(`session-user-${userId}`)
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${userId}` },
+                () => { fetchMe() }
+            )
+            .subscribe()
+    }
+
+    realtimeCleanup = () => {
+        supabase.removeChannel(accountChannel)
+        if (userChannel) supabase.removeChannel(userChannel)
+        realtimeStarted = false
+        realtimeCleanup = null
+    }
+}
+
 export function useInstagramSession() {
     const searchParams = useSearchParams()
     const router = useRouter()
@@ -204,58 +251,26 @@ export function useInstagramSession() {
         initSession(searchParams.get("code"), router)
     }, [searchParams, router])
 
-    // Live Realtime listener for account & user updates
+    // Single global realtime subscription (shared by every component using this
+    // hook) — replaces the old per-component channel setup that leaked sockets.
     useEffect(() => {
         if (!state.accountId) return
-
-        const supabase = getSupabaseBrowserClient()
-        
-        const hookId = Math.random().toString(36).substring(2)
-        
-        // Listen for changes on accounts table (plan/banning)
-        const accountChannel = supabase.channel(`session-acc-${state.accountId}-${hookId}`)
-            .on(
-                'postgres_changes',
-                {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'accounts',
-                    filter: `id=eq.${state.accountId}`
-                },
-                () => {
-                    fetchMe()
-                }
-            )
-            .subscribe()
-
-        // Listen for changes on users table (trial/plan mappings)
-        let userChannel: any = null
-        if (state.userId) {
-            userChannel = supabase.channel(`session-user-${state.userId}-${hookId}`)
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'UPDATE',
-                        schema: 'public',
-                        table: 'users',
-                        filter: `id=eq.${state.userId}`
-                    },
-                    () => {
-                        fetchMe()
-                    }
-                )
-                .subscribe()
-        }
+        startRealtime(state.accountId, state.userId)
 
         return () => {
-            supabase.removeChannel(accountChannel)
-            if (userChannel) {
-                supabase.removeChannel(userChannel)
-            }
+            // Only tear down on real unmount of the app shell (rare); keep the
+            // subscription alive across dashboard route changes.
         }
     }, [state.accountId, state.userId])
 
     const logout = async () => {
+        // Tear down the global realtime subscription so a subsequent login
+        // starts fresh channels for the new account.
+        try {
+            if (realtimeCleanup) realtimeCleanup()
+        } catch {
+            // non-fatal
+        }
         try {
             await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" })
         } catch (e) {

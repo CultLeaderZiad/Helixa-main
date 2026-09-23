@@ -71,11 +71,25 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
-    const body = await request.json()
-    const { connectionId, platform } = body
+    // Accept the connection id from EITHER the query string (?id=...) or the
+    // JSON body ({ connectionId }). The connected-platforms page and the
+    // platform detail page historically used different calling conventions,
+    // which caused every disconnect to fail with "Missing connectionId".
+    const queryId = request.nextUrl.searchParams.get("id")
+    const queryPlatform = request.nextUrl.searchParams.get("platform")
 
-    if (!connectionId || !platform) {
-      return NextResponse.json({ error: "Missing connectionId or platform" }, { status: 400 })
+    let body: { connectionId?: string; platform?: string } = {}
+    try {
+      body = await request.json()
+    } catch {
+      // No JSON body is fine when query params are used
+    }
+
+    const connectionId = body.connectionId || queryId
+    const platform = body.platform || queryPlatform
+
+    if (!connectionId) {
+      return NextResponse.json({ error: "Missing connection id" }, { status: 400 })
     }
 
     const supabase = await getSupabaseBypassClient()
@@ -85,27 +99,30 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Cannot disconnect your primary Instagram account" }, { status: 400 })
     }
 
-    // Look up igUser to get the correct user_id
-    const { data: igUser } = await supabase
+    // Resolve ALL user ids owned by this account — connections can be keyed by
+    // the int64 users.id (igUser) OR, in older flows, by the account UUID.
+    const { data: ownedUsers } = await supabase
       .from("users")
       .select("id")
       .eq("account_id", account.id)
-      .single()
 
-    if (!igUser) {
-      return NextResponse.json({ error: "Instagram account not found" }, { status: 400 })
-    }
+    const ownerIds: any[] = [account.id, ...(ownedUsers || []).map((u: any) => u.id)]
 
-    // Delete from platform_connections using igUser.id
-    const { error } = await supabase
+    // Delete only if the connection belongs to this account
+    const { data: deleted, error } = await supabase
       .from("platform_connections")
       .delete()
       .eq("id", connectionId)
-      .eq("user_id", igUser.id)
+      .in("user_id", ownerIds)
+      .select("id")
 
     if (error) {
       console.error("Error disconnecting platform:", error)
       return NextResponse.json({ error: "Failed to disconnect" }, { status: 500 })
+    }
+
+    if (!deleted || deleted.length === 0) {
+      return NextResponse.json({ error: "Connection not found or does not belong to your account" }, { status: 404 })
     }
 
     return NextResponse.json({ ok: true })

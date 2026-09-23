@@ -19,19 +19,57 @@ export async function POST(request: NextRequest) {
   if (result.response) return result.response
   const { user: account, igUser } = result
 
-  let body: { page_id?: string; _token?: string }
+  let body: { page_id?: string; _token?: string; session_id?: string }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
   }
 
-  const { page_id, _token } = body
-  if (!page_id || !_token) {
-    return NextResponse.json({ error: "Missing page_id or _token in body" }, { status: 400 })
+  const { page_id, _token, session_id } = body
+  if (!page_id || (!_token && !session_id)) {
+    return NextResponse.json({ error: "Missing page_id and session/token in body" }, { status: 400 })
   }
 
   const supabase = await getSupabaseBypassClient()
+
+  // Resolve the user access token. Preferred path: server-side OAuth session
+  // (encrypted, short-lived, one-time-use). Legacy `_token` is still accepted
+  // for one release so in-flight clients don't break.
+  let userAccessToken = _token || ""
+
+  if (session_id) {
+    const { data: session } = await supabase
+      .from("oauth_sessions")
+      .select("id, token_encrypted, expires_at, account_id, provider")
+      .eq("id", session_id)
+      .eq("provider", "facebook")
+      .maybeSingle()
+
+    if (!session) {
+      return NextResponse.json({ error: "Session expired or not found. Please click Connect Facebook again." }, { status: 400 })
+    }
+    if (session.account_id !== account.id) {
+      return NextResponse.json({ error: "Session does not belong to this account" }, { status: 403 })
+    }
+    if (new Date(session.expires_at).getTime() < Date.now()) {
+      return NextResponse.json({ error: "Session expired. Please click Connect Facebook again." }, { status: 400 })
+    }
+
+    const { decryptString } = await import("@/lib/crypto")
+    const decrypted = decryptString(session.token_encrypted)
+    if (!decrypted) {
+      return NextResponse.json({ error: "Failed to read session. Please try connecting again." }, { status: 500 })
+    }
+    userAccessToken = decrypted
+
+    // One-time use: burn the session immediately after reading it
+    await supabase.from("oauth_sessions").delete().eq("id", session.id)
+  }
+
+  if (!userAccessToken) {
+    return NextResponse.json({ error: "Could not resolve access token" }, { status: 400 })
+  }
   let userId = igUser?.id
 
   if (!userId) {
@@ -63,7 +101,7 @@ export async function POST(request: NextRequest) {
     // 1. Fetch the Page Access Token + metadata for the specific page
     const pageUrl = new URL(`https://graph.facebook.com/v20.0/${page_id}`)
     pageUrl.searchParams.set("fields", "access_token,name,category")
-    pageUrl.searchParams.set("access_token", _token)
+    pageUrl.searchParams.set("access_token", userAccessToken)
 
     const pageRes = await fetch(pageUrl.toString())
     const pageData = await pageRes.json()

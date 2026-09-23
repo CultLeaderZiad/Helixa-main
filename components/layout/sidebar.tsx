@@ -35,7 +35,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
   ]
 
   return (
-    <aside className={cn("flex flex-col bg-[#0a0a09]", className)} {...props}>
+    <aside className={cn("flex flex-col bg-[#0c0d10] border-e border-white/[0.07]", className)} {...props}>
 
       {/* Logo */}
       <div className="px-5 pt-5 pb-3">
@@ -60,12 +60,12 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-colors relative",
                 active
-                  ? "text-white bg-white/[0.06]"
-                  : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
+                  ? "text-white bg-[#e5a93c]/10 font-medium"
+                  : "text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.04]",
               )}
             >
-              {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
-              <Icon className={cn("w-4 h-4 shrink-0", active ? "text-[#ffe14d]" : "")} strokeWidth={active ? 2.2 : 1.8} />
+              {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#e5a93c]" />}
+              <Icon className={cn("w-4 h-4 shrink-0", active ? "text-[#e5a93c]" : "")} strokeWidth={active ? 2.2 : 1.8} />
               <span className={active ? "font-medium" : ""}>{label}</span>
             </Link>
           )
@@ -85,7 +85,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
               : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
           )}
         >
-          {pathname === "/dashboard/connected-platforms" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
+          {pathname === "/dashboard/connected-platforms" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#e5a93c]" />}
           <Share2 className="w-4 h-4 shrink-0" strokeWidth={1.8} />
           <span>{t.connectedPlatforms}</span>
         </Link>
@@ -108,7 +108,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
                   : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
               )}
             >
-              {pathname === "/dashboard/admin" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
+              {pathname === "/dashboard/admin" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#e5a93c]" />}
               <BarChart3 className="w-4 h-4 shrink-0" strokeWidth={1.8} />
               <span>{t.usersAndStats}</span>
             </Link>
@@ -122,7 +122,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
                   : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
               )}
             >
-              {pathname === "/dashboard/admin/plans" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
+              {pathname === "/dashboard/admin/plans" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#e5a93c]" />}
               <CreditCard className="w-4 h-4 shrink-0" strokeWidth={1.8} />
               <span>{t.billing}</span>
             </Link>
@@ -136,7 +136,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
                   : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
               )}
             >
-              {pathname === "/dashboard/admin/agents" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
+              {pathname === "/dashboard/admin/agents" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#e5a93c]" />}
               <Zap className="w-4 h-4 shrink-0" strokeWidth={1.8} />
               <span>{t.agents}</span>
             </Link>
@@ -150,7 +150,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
                   : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
               )}
             >
-              {pathname.startsWith("/dashboard/admin/campaigns") && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
+              {pathname.startsWith("/dashboard/admin/campaigns") && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#e5a93c]" />}
               <Mail className="w-4 h-4 shrink-0" strokeWidth={1.8} />
               <span>{t.campaigns}</span>
             </Link>
@@ -167,7 +167,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
               : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
           )}
         >
-          {pathname === "/dashboard/billing" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
+          {pathname === "/dashboard/billing" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#e5a93c]" />}
           <CreditCard className="w-4 h-4 shrink-0" strokeWidth={1.8} />
           <span>{t.billingTitle}</span>
         </Link>
@@ -182,7 +182,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
               : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
           )}
         >
-          {pathname === "/dashboard/settings" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#ffe14d]" />}
+          {pathname === "/dashboard/settings" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#e5a93c]" />}
           <Settings className="w-4 h-4 shrink-0" strokeWidth={1.8} />
           <span>{t.settings}</span>
         </Link>
@@ -240,7 +240,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
               <p className="text-[10px] text-neutral-500 truncate">{email}</p>
             )}
         {userRole === "admin" && (
-              <p className="font-mono-ui text-[8px] uppercase tracking-wider text-[#ffe14d]/80">admin</p>
+              <p className="font-mono-ui text-[8px] uppercase tracking-wider text-[#e5a93c]">admin</p>
             )}
           </div>
           <div className="flex items-center gap-1">
