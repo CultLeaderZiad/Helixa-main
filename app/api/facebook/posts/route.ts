@@ -25,11 +25,15 @@ export async function GET(request: NextRequest) {
       conn = data
     }
 
+    // Fallback: connections may be keyed by account UUID (older flows write
+    // account_id). NEVER filter user_id with account.id — user_id is BIGINT
+    // and a UUID value makes PostgREST return 400 "invalid input syntax for
+    // type bigint", which used to wipe every connection from the UI.
     if (!conn && account) {
       const { data } = await supabase
         .from("platform_connections")
         .select("id, access_token, page_id, metadata")
-        .eq("user_id", account.id)
+        .eq("account_id", account.id)
         .in("platform", ["facebook", "messenger"])
         .order("connected_at", { ascending: false })
         .limit(1)
@@ -47,7 +51,7 @@ export async function GET(request: NextRequest) {
     const { page_id, access_token, metadata } = conn
 
     // 2. Fetch recent posts from the Page via Graph API
-    const graphUrl = `https://graph.facebook.com/v20.0/${encodeURIComponent(
+    const graphUrl = `https://graph.facebook.com/v25.0/${encodeURIComponent(
       page_id
     )}/posts?fields=id,message,created_time,full_picture,permalink_url,attachments{media_type,unshimmed_url}&limit=30&access_token=${encodeURIComponent(
       access_token

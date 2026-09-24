@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const igUser = result.igUser
 
     // Fetch Media (Smart Method: /me/media)
-    const url = `https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&limit=24&access_token=${igUser.access_token}`
+    const url = `https://graph.instagram.com/v24.0/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&limit=24&access_token=${igUser.access_token}`
 
     const res = await fetch(url, { cache: 'no-store' }) 
     const data = await res.json()
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const shortcode = match[1]
 
     // Fetch media with shortcode to find the id
-    const graphUrl = `https://graph.instagram.com/me/media?fields=id,shortcode,caption,media_type,media_url,thumbnail_url,permalink,timestamp&limit=100&access_token=${igUser.access_token}`
+    const graphUrl = `https://graph.instagram.com/v24.0/me/media?fields=id,shortcode,caption,media_type,media_url,thumbnail_url,permalink,timestamp&limit=100&access_token=${igUser.access_token}`
     
     const res = await fetch(graphUrl, { cache: 'no-store' })
     const data = await res.json()

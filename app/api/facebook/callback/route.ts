@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
       code,
     })
 
-    const tokenRes = await fetch("https://graph.facebook.com/v20.0/oauth/access_token?" + tokenParams.toString())
+    const tokenRes = await fetch("https://graph.facebook.com/v25.0/oauth/access_token?" + tokenParams.toString())
     const tokenData = await tokenRes.json()
 
     if (!tokenRes.ok) {
@@ -105,13 +105,13 @@ export async function GET(request: NextRequest) {
     const shortToken = tokenData.access_token
 
     // 2. Exchange for long token (60 Days)
-    const longLivedUrl = `https://graph.facebook.com/v20.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&fb_exchange_token=${shortToken}`
+    const longLivedUrl = `https://graph.facebook.com/v25.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&fb_exchange_token=${shortToken}`
     const longRes = await fetch(longLivedUrl)
     const longData = await longRes.json()
     const accessToken = longData.access_token || shortToken
 
     // 3. Get Pages (Accounts) user manages
-    const accountsRes = await fetch(`https://graph.facebook.com/v20.0/me/accounts?access_token=${accessToken}`)
+    const accountsRes = await fetch(`https://graph.facebook.com/v25.0/me/accounts?access_token=${accessToken}`)
     const accountsData = await accountsRes.json()
 
     if (!accountsData.data || accountsData.data.length === 0) {
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
         // Subscribe the Page to webhook events (best-effort)
         let webhookSubscribed = false
         try {
-          const subscribeUrl = new URL(`https://graph.facebook.com/v20.0/${pageId}/subscribed_apps`)
+          const subscribeUrl = new URL(`https://graph.facebook.com/v25.0/${pageId}/subscribed_apps`)
           subscribeUrl.searchParams.set("subscribed_fields", "messages,messaging_postbacks,feed")
           subscribeUrl.searchParams.set("access_token", pageAccessToken)
           const subRes = await fetch(subscribeUrl.toString(), { method: "POST" })
@@ -149,6 +149,7 @@ export async function GET(request: NextRequest) {
         const upsert = async (platform: "facebook" | "messenger") => {
           const row = {
             user_id: userProfile.id,
+            account_id: account.id,
             platform,
             page_id: pageId,
             external_account_id: pageId,

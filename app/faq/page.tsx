@@ -10,7 +10,7 @@ import { useLanguage } from "@/lib/i18n/LanguageContext"
 const FAQ_ITEMS_EN = [
   {
     q: "What does Helix Auto DM do?",
-    a: "Helix Auto DM is an AI-powered automation engine for Instagram and Facebook. It allows you to automatically reply to DMs, comments, and story mentions using custom rules, keyword triggers, follow gates, or AI-generated responses (powered by Groq Llama 3)."
+    a: "Helix Auto DM is an AI-powered automation engine for Instagram and Facebook. It allows you to automatically reply to DMs, comments, and story mentions using custom rules, keyword triggers, follow gates, or AI-generated responses (powered by Groq)."
   },
   {
     q: "How does the trial work?",

@@ -8,6 +8,20 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 
+// Default models per provider (only used when the request doesn't pin one).
+// IMPORTANT: all four IDs below were verified against vendor deprecation pages
+// (Sept 2026). The previous defaults were all RETIRED and returned 404s:
+//   groq      llama-3.3-70b-versatile   -> retired 2026-08-16 (free/dev tier)
+//   gemini    gemini-2.0-flash          -> shut down 2026-06-01
+//   anthropic claude-3-5-haiku-latest    -> retired 2026-02-19
+// Groq retires IDs with little notice, so GROQ_MODEL allows swapping without
+// a redeploy. Recommended replacement per Groq's deprecation page.
+const DEFAULT_GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b"
+const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest"
+const DEFAULT_ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-haiku-4-5"
+const DEFAULT_OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "meta-llama/llama-3.3-70b-instruct"
+const DEFAULT_OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini"
+
 /**
  * Normalizes an identifier to the accounts-table UUID.
  * Callers pass either the account UUID (dashboard API routes) or the int64
@@ -246,7 +260,7 @@ export async function generateCompletion(
 // Low-level HTTP Callers
 
 async function callGeminiAPI(options: GroqCompletionRequest, apiKey: string) {
-  const model = options.model || "gemini-2.0-flash"
+  const model = options.model || DEFAULT_GEMINI_MODEL
 
   // Convert OpenAI-style messages to Gemini's contents format
   const contents: Array<{ role: string; parts: Array<{ text: string }> }> = []
@@ -296,7 +310,7 @@ async function callGroqAPI(options: GroqCompletionRequest, apiKey: string) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: options.model || "llama-3.3-70b-versatile",
+      model: options.model || DEFAULT_GROQ_MODEL,
       messages: options.messages,
       temperature: options.temperature,
       max_tokens: options.max_tokens,
@@ -323,7 +337,7 @@ async function callOpenRouterAPI(options: GroqCompletionRequest, apiKey: string)
       "X-Title": "Helixa"
     },
     body: JSON.stringify({
-      model: options.model || "meta-llama/llama-3.3-70b-instruct", // OpenRouter model
+      model: options.model || DEFAULT_OPENROUTER_MODEL, // OpenRouter model
       messages: options.messages,
       temperature: options.temperature,
       max_tokens: options.max_tokens,
@@ -360,7 +374,7 @@ async function callAnthropicAPI(options: GroqCompletionRequest, apiKey: string) 
   if (merged.length === 0) merged.push({ role: "user", content: "Hello" })
 
   const body: Record<string, unknown> = {
-    model: options.model || "claude-3-5-haiku-latest",
+    model: options.model || DEFAULT_ANTHROPIC_MODEL,
     max_tokens: options.max_tokens ?? 1024,
     messages: merged,
   }
@@ -396,7 +410,7 @@ async function callOpenAIAPI(options: GroqCompletionRequest, apiKey: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: options.model || "gpt-4o-mini",
+      model: options.model || DEFAULT_OPENAI_MODEL,
       messages: options.messages,
       temperature: options.temperature,
       max_tokens: options.max_tokens,

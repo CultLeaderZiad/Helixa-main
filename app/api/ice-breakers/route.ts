@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
             }))
 
             const response = await fetch(
-                `https://graph.instagram.com/v21.0/me/messenger_profile?access_token=${igUserData.access_token}`,
+                `https://graph.instagram.com/v24.0/me/messenger_profile?access_token=${igUserData.access_token}`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },

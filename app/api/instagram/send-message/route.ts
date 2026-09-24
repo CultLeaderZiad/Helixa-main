@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (conversation) {
-      await supabase.from("messages").insert({
+      const { error: storeErr } = await supabase.from("messages").insert({
         id: data.message_id,
         conversation_id: conversation.id,
         user_id: igUserId,
@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
         content: message,
         is_from_instagram: false,
       })
+      if (storeErr) console.warn("[instagram/send-message] Failed to store sent message:", storeErr.message)
     }
 
     return NextResponse.json({

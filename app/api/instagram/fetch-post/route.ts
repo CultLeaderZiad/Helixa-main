@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     // 2. If not found in media_cache and user has an access token, query Instagram Graph API
     if (!externalPostId && igUser?.access_token) {
       try {
-        const graphUrl = `https://graph.instagram.com/me/media?fields=id,shortcode,caption,media_type,media_url,thumbnail_url,permalink&limit=100&access_token=${encodeURIComponent(igUser.access_token)}`
+        const graphUrl = `https://graph.instagram.com/v24.0/me/media?fields=id,shortcode,caption,media_type,media_url,thumbnail_url,permalink&limit=100&access_token=${encodeURIComponent(igUser.access_token)}`
         const res = await fetch(graphUrl, { cache: "no-store" })
         const data = await res.json()
 
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
 
       if (tokenToUse) {
         try {
-          const oembedUrl = `https://graph.facebook.com/v19.0/instagram_oembed?url=${encodeURIComponent(rawUrl)}&access_token=${encodeURIComponent(tokenToUse)}`
+          const oembedUrl = `https://graph.facebook.com/v25.0/instagram_oembed?url=${encodeURIComponent(rawUrl)}&access_token=${encodeURIComponent(tokenToUse)}`
           const oembedRes = await fetch(oembedUrl, { cache: "no-store" })
           const oembedData = await oembedRes.json()
 

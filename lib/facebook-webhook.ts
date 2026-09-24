@@ -291,7 +291,7 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
             classifyAndCacheCommentSentiment(supabase, account.id, String(postId), String(commentId), text).catch((err) =>
               console.warn("[fb-webhook] Background comment sentiment classification error:", err)
             )
-          }).catch(() => {})
+          }).catch((importErr) => console.warn("[fb-webhook] Sentiment analyzer unavailable:", importErr))
         }
       }
     }
@@ -439,7 +439,7 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
 
               if (conv) {
                 try {
-                  await supabase.from("messages").insert({
+                  const { error: msgErr } = await supabase.from("messages").insert({
                     id: `mid_ai_${Date.now()}_${Math.random()}`,
                     conversation_id: conv.id,
                     user_id: user.id,
@@ -449,17 +449,23 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
                     is_from_instagram: false,
                     platform: "messenger",
                   })
-                } catch (e) {}
+                  if (msgErr) console.warn("[fb-webhook] Failed to store AI reply message:", msgErr.message)
+                } catch (e) {
+                  console.warn("[fb-webhook] Failed to store AI reply message:", e)
+                }
               }
 
               try {
-                await supabase.from("automation_events").insert({
+                const { error: evErr } = await supabase.from("automation_events").insert({
                   user_id: user.id,
                   automation_id: "AI_AUTO_REPLY",
                   event_type: "sent",
                   platform: "facebook",
                 })
-              } catch (e) {}
+                if (evErr) console.warn("[fb-webhook] Failed to log automation_event (AI auto-reply):", evErr.message)
+              } catch (e) {
+                console.warn("[fb-webhook] Failed to log automation_event (AI auto-reply):", e)
+              }
 
               console.log(`[fb-webhook] 🤖 AI Auto-reply sent to ${senderId}`)
               continue

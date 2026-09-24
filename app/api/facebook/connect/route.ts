@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // 1. Fetch the Page Access Token + metadata for the specific page
-    const pageUrl = new URL(`https://graph.facebook.com/v20.0/${page_id}`)
+    const pageUrl = new URL(`https://graph.facebook.com/v25.0/${page_id}`)
     pageUrl.searchParams.set("fields", "access_token,name,category")
     pageUrl.searchParams.set("access_token", userAccessToken)
 
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     // 2. Subscribe the Page to webhook events (best-effort — don't block on failure)
     let webhookSubscribed = false
     try {
-      const subscribeUrl = new URL(`https://graph.facebook.com/v20.0/${page_id}/subscribed_apps`)
+      const subscribeUrl = new URL(`https://graph.facebook.com/v25.0/${page_id}/subscribed_apps`)
       subscribeUrl.searchParams.set("subscribed_fields", "messages,messaging_postbacks,feed")
       subscribeUrl.searchParams.set("access_token", pageAccessToken)
 
@@ -140,6 +140,7 @@ export async function POST(request: NextRequest) {
     // 3. Upsert into platform_connections
     const fbData = {
       user_id: userId,
+      account_id: account.id,
       platform: "facebook",
       page_id: page_id,
       external_account_id: page_id,
@@ -165,6 +166,7 @@ export async function POST(request: NextRequest) {
     // Also create a messenger connection with the same token (matches old callback behavior)
     const msgData = {
       user_id: userId,
+      account_id: account.id,
       platform: "messenger",
       page_id: page_id,
       external_account_id: page_id,

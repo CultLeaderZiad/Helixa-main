@@ -135,7 +135,10 @@ export async function fetchProfile(token: string, igUserId: string): Promise<{ u
   try {
     const res = await fetch(`${GRAPH}/${igUserId}?fields=username,name&access_token=${encodeURIComponent(token)}`)
     const json = await res.json()
-    if (json.error) return null
+    if (json.error) {
+      console.warn("[ig-api] fetchProfile failed:", json.error?.message || JSON.stringify(json.error))
+      return null
+    }
     return json
   } catch {
     return null
@@ -145,6 +148,10 @@ export async function fetchProfile(token: string, igUserId: string): Promise<{ u
 export async function verifyIdOwnership(token: string, id: string): Promise<boolean> {
   try {
     const res = await fetch(`${GRAPH}/${id}?fields=id&access_token=${encodeURIComponent(token)}`)
+    if (!res.ok) {
+      const body = await res.json().catch(() => null)
+      console.warn(`[ig-api] verifyIdOwnership failed (${res.status}):`, body?.error?.message || "unknown error")
+    }
     return res.ok
   } catch {
     return false

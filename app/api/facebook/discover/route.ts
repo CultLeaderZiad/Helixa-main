@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // 1. Exchange the short-lived token for a long-lived token (60 days)
-    const longLivedUrl = new URL("https://graph.facebook.com/v20.0/oauth/access_token")
+    const longLivedUrl = new URL("https://graph.facebook.com/v25.0/oauth/access_token")
     longLivedUrl.searchParams.set("grant_type", "fb_exchange_token")
     longLivedUrl.searchParams.set("client_id", clientId)
     longLivedUrl.searchParams.set("client_secret", clientSecret)
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const longLivedToken = longData.access_token
 
     // 2. List Pages the user manages
-    const accountsUrl = new URL("https://graph.facebook.com/v20.0/me/accounts")
+    const accountsUrl = new URL("https://graph.facebook.com/v25.0/me/accounts")
     accountsUrl.searchParams.set("fields", "id,name,category,access_token")
     accountsUrl.searchParams.set("access_token", longLivedToken)
 

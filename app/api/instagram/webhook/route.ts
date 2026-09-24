@@ -464,7 +464,7 @@ export async function POST(request: NextRequest) {
               await sendAutomationResponse(user.access_token, { id: senderId }, content)
             }
             try {
-              await supabase.from("automation_events").insert({
+              const { error: evErr } = await supabase.from("automation_events").insert({
                 user_id: user.id,
                 automation_id: match.id,
                 event_type: "story_reply",
@@ -472,7 +472,10 @@ export async function POST(request: NextRequest) {
                 platform: "instagram",
                 variant_id: variantId
               })
-            } catch (e) {}
+              if (evErr) console.warn("[webhook] Failed to log automation_event (story_reply):", evErr.message)
+            } catch (e) {
+              console.warn("[webhook] Failed to log automation_event (story_reply):", e)
+            }
           }
         }
       }
@@ -654,7 +657,7 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
                   
                   if (conv) {
                     try {
-                      await supabase.from("messages").insert({
+                      const { error: msgErr } = await supabase.from("messages").insert({
                         id: `mid_ai_${Date.now()}_${Math.random()}`,
                         conversation_id: conv.id,
                         user_id: user.id,
@@ -663,18 +666,24 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
                         content: aiReply,
                         is_from_instagram: false,
                       })
-                    } catch (e) {}
+                      if (msgErr) console.warn("[webhook] Failed to store AI reply message:", msgErr.message)
+                    } catch (e) {
+                      console.warn("[webhook] Failed to store AI reply message:", e)
+                    }
                   }
                   
                   try {
-                    await supabase.from("automation_events").insert({
+                    const { error: evErr } = await supabase.from("automation_events").insert({
                       user_id: user.id,
                       automation_id: "AI_AUTO_REPLY",
                       event_type: "dm_reply",
                       recipient_id: senderId,
                       platform: "instagram",
                     })
-                  } catch (e) {}
+                    if (evErr) console.warn("[webhook] Failed to log automation_event (AI auto-reply):", evErr.message)
+                  } catch (e) {
+                    console.warn("[webhook] Failed to log automation_event (AI auto-reply):", e)
+                  }
                   
                   console.log(`[webhook] 🤖 AI Auto-reply sent to ${senderId}`)
                   continue
@@ -746,7 +755,7 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
              // We just prompted them for lead capture info. Save this outbound prompt to messages!
              if (conv && leadCaptureResult.replyTextLog) {
                try {
-                 await supabase.from("messages").insert({
+                 const { error: msgErr } = await supabase.from("messages").insert({
                    id: `mid_lead_${Date.now()}_${Math.random()}`,
                    conversation_id: conv.id,
                    user_id: user.id,
@@ -755,7 +764,10 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
                    content: leadCaptureResult.replyTextLog,
                    is_from_instagram: false,
                  })
-               } catch (e) {}
+                 if (msgErr) console.warn("[webhook] Failed to store lead-capture prompt:", msgErr.message)
+               } catch (e) {
+                 console.warn("[webhook] Failed to store lead-capture prompt:", e)
+               }
              }
              continue // Stop processing this match until they reply
           }
@@ -768,7 +780,7 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
           result = await sendAutomationResponse(user.access_token, { id: senderId }, content)
           
           try {
-            await supabase.from("automation_events").insert({
+            const { error: evErr } = await supabase.from("automation_events").insert({
               user_id: user.id,
               automation_id: match.id,
               event_type: "dm_reply",
@@ -776,7 +788,10 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
               platform: "instagram",
               variant_id: variantId
             })
-          } catch (e) {}
+            if (evErr) console.warn("[webhook] Failed to log automation_event (dm_reply):", evErr.message)
+          } catch (e) {
+            console.warn("[webhook] Failed to log automation_event (dm_reply):", e)
+          }
 
           if (result?.ok && conv) {
             try {

@@ -158,13 +158,19 @@ export default function ConnectedPlatformsPage() {
 
   // Load Facebook SDK
   useEffect(() => {
-    const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID
+    // Fall back to the Instagram app id — both point at the same Meta app in
+    // this project, and WITHOUT one of these vars the SDK never initialises
+    // and the Connect button spins on "Loading..." forever (this is exactly
+    // what happened in local dev where only NEXT_PUBLIC_INSTAGRAM_APP_ID is set).
+    const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID
     if (!appId || window.FB) {
       if (window.FB) setFbSdkReady(true)
       return
     }
     window.fbAsyncInit = function () {
-      window.FB.init({ appId, cookie: true, xfbml: false, version: "v20.0" })
+      // v20.0 was removed by Meta on 2026-09-24 — keep in sync with the
+      // graph.facebook.com pins in app/api/facebook/**.
+      window.FB.init({ appId, cookie: true, xfbml: false, version: "v25.0" })
       setFbSdkReady(true)
     }
     if (!document.getElementById("facebook-jssdk")) {

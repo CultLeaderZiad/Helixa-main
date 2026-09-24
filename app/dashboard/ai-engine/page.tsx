@@ -413,7 +413,7 @@ function AiEngineContent() {
 
                 <div className="pt-4 border-t border-white/5 flex flex-wrap items-center justify-between gap-3 text-[11px] font-mono-ui text-neutral-500">
                   <span>Source: Real Account Performance (No External Hallucinations)</span>
-                  <span>Model: Groq Llama 3 / Mixtral</span>
+                  <span>Model: Groq GPT-OSS 120B</span>
                 </div>
               </div>
             </div>

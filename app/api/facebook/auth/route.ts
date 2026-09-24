@@ -29,7 +29,7 @@ export async function GET() {
   // Portfolio is properly created and linked to this app in the Meta dashboard.
   // When that's ready, add it back: "pages_manage_metadata,...,business_management"
   const scope = "pages_manage_metadata,pages_messaging,pages_read_engagement,pages_show_list"
-  const url = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code`
+  const url = `https://www.facebook.com/v25.0/dialog/oauth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code`
   
   return NextResponse.redirect(url)
 }

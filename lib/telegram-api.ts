@@ -93,7 +93,8 @@ export async function sendTelegramChatAction(
     })
     const data = await res.json()
     return data.ok === true
-  } catch {
+  } catch (e) {
+    console.warn("[tg-api] request failed:", e)
     return false
   }
 }
@@ -113,7 +114,8 @@ export async function answerTelegramCallbackQuery(
     })
     const data = await res.json()
     return data.ok === true
-  } catch {
+  } catch (e) {
+    console.warn("[tg-api] request failed:", e)
     return false
   }
 }

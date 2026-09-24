@@ -246,7 +246,7 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
 
           if (conv) {
             try {
-              await supabase.from("messages").insert({
+              const { error: msgErr } = await supabase.from("messages").insert({
                 id: `tg_ai_${Date.now()}_${Math.random()}`,
                 conversation_id: conv.id,
                 user_id: userId,
@@ -256,17 +256,23 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
                 is_from_instagram: false,
                 platform: "telegram",
               })
-            } catch (e) {}
+              if (msgErr) console.warn("[Telegram Webhook] Failed to store AI reply message:", msgErr.message)
+            } catch (e) {
+              console.warn("[Telegram Webhook] Failed to store AI reply message:", e)
+            }
           }
 
           try {
-            await supabase.from("automation_events").insert({
+            const { error: evErr } = await supabase.from("automation_events").insert({
               user_id: userId,
               automation_id: "AI_AUTO_REPLY",
               event_type: "sent",
               platform: "telegram",
             })
-          } catch (e) {}
+            if (evErr) console.warn("[Telegram Webhook] Failed to log automation_event (AI auto-reply):", evErr.message)
+          } catch (e) {
+            console.warn("[Telegram Webhook] Failed to log automation_event (AI auto-reply):", e)
+          }
 
           console.log(`[Telegram Webhook] 🤖 AI Auto-reply sent to ${senderId}`)
           return NextResponse.json({ success: true })

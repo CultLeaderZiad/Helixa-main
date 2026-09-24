@@ -1,4 +1,7 @@
-const GRAPH = "https://graph.facebook.com/v20.0"
+// Graph API v20.0 was REMOVED by Meta on 2026-09-24. v25.0 is supported until 2028-07-29.
+// When bumping, also update every hardcoded graph.facebook.com/vXX URL in app/api/**
+// and the JS SDK `version` in app/dashboard/connected-platforms/page.tsx.
+const GRAPH = "https://graph.facebook.com/v25.0"
 
 export interface FBButton {
   type: "web_url" | "postback"
