@@ -23,16 +23,37 @@ export async function POST(request: NextRequest) {
     const supabase = await getSupabaseBypassClient()
     let channel = typeof body.channel === "string" ? body.channel : ""
     let ownedConversation: string | null = conversationId || null
+    let channelAccountId: string | null = null
+    let threadId: string | null = null
     if (conversationId) {
-      const { data: conversation } = await supabase
+      const selected = await supabase
         .from("conversations")
-        .select("id, platform, recipient_id, user_id")
+        .select("id, platform, recipient_id, user_id, channel_account_id, external_thread_id")
         .eq("id", conversationId)
         .eq("user_id", igUserId)
         .maybeSingle()
+      type ConversationSendRow = {
+        id: string
+        platform?: string | null
+        recipient_id?: string | null
+        channel_account_id?: string | null
+        external_thread_id?: string | null
+      }
+      let conversation = selected.data as ConversationSendRow | null
+      if (selected.error && /channel_account_id|external_thread_id/i.test(selected.error.message || "")) {
+        const fallback = await supabase
+          .from("conversations")
+          .select("id, platform, recipient_id, user_id")
+          .eq("id", conversationId)
+          .eq("user_id", igUserId)
+          .maybeSingle()
+        conversation = (fallback.data || null) as ConversationSendRow | null
+      }
       if (!conversation) return NextResponse.json({ error: "Conversation not found" }, { status: 404 })
       channel = conversation.platform || channel || "instagram"
       ownedConversation = conversation.id
+      channelAccountId = conversation.channel_account_id || null
+      threadId = conversation.external_thread_id || null
       if (String(conversation.recipient_id) !== String(recipientId)) {
         return NextResponse.json({ error: "Recipient does not match this conversation" }, { status: 400 })
       }
@@ -47,6 +68,8 @@ export async function POST(request: NextRequest) {
       conversationId: ownedConversation,
       text: String(message),
       username: igUser?.username || null,
+      channelAccountId,
+      threadId,
     })
     if (!sent.ok) {
       return NextResponse.json(

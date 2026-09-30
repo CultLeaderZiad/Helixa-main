@@ -27,8 +27,10 @@ function parseTime(value: string | number | null | undefined): number | null {
 /**
  * Meta's standard messaging window is 24 hours from the contact's last inbound
  * message. Instagram and Messenger may use the Human Agent tag through 7 days.
- * WhatsApp has no tag in this phase (templates are a later piece), so a send
- * outside 24 hours is blocked. Telegram has no window.
+ * WhatsApp has no Human Agent tag. A free-form send outside 24 hours is
+ * blocked; an approved template is the only send that may leave the window.
+ * TikTok's Business Messaging window is 48 hours and has no tag.
+ * Telegram and the website widget have no window.
  *
  * A reply to the webhook that just arrived is inside the window by construction.
  */

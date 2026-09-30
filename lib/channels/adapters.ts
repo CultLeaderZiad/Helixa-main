@@ -1,4 +1,5 @@
 import { FACEBOOK_GRAPH_BASE, INSTAGRAM_GRAPH_BASE } from "@/lib/graph"
+import { tiktokCommentToDmEnabled, tiktokMessagingEnabled } from "@/lib/tiktok/config"
 import type {
   ChannelAdapter,
   FetchLike,
@@ -127,9 +128,24 @@ function createMetaAdapter(input: {
   }
 }
 
-function whatsappMediaKey(type: OutboundMedia["type"]): "image" | "video" | "audio" {
-  if (type === "video" || type === "audio") return type
+function whatsappMediaKey(type: OutboundMedia["type"]): "image" | "video" | "audio" | "document" {
+  if (type === "video" || type === "audio" || type === "document") return type
   return "image"
+}
+
+function whatsappList(text: string, replies: QuickReply[]): Record<string, unknown> {
+  const rows = replies.slice(0, 10).map((reply, index) => ({
+    id: (reply.payload || `row_${index + 1}`).slice(0, 200),
+    title: reply.title.slice(0, 24),
+  }))
+  return {
+    type: "list",
+    body: { text: text.slice(0, 1024) },
+    action: {
+      button: "Options".slice(0, 20),
+      sections: [{ title: "Choices".slice(0, 24), rows }],
+    },
+  }
 }
 
 export function createWhatsAppAdapter(fetchImpl: FetchLike = defaultFetch()): ChannelAdapter {
@@ -151,16 +167,19 @@ export function createWhatsAppAdapter(fetchImpl: FetchLike = defaultFetch()): Ch
         recipient_type: "individual",
         to: ctx.recipientId,
       }
-      const buttons = (replies || []).filter((reply) => reply.title).slice(0, 3)
-      if (buttons.length) {
+      const buttons = (replies || []).filter((reply) => reply.title)
+      if (buttons.length > 3) {
+        body.type = "interactive"
+        body.interactive = whatsappList(text, buttons)
+      } else if (buttons.length) {
         body.type = "interactive"
         body.interactive = {
           type: "button",
           body: { text },
           action: {
-            buttons: buttons.map((reply) => ({
+            buttons: buttons.slice(0, 3).map((reply) => ({
               type: "reply",
-              reply: { id: reply.payload || reply.title, title: reply.title.slice(0, 20) },
+              reply: { id: (reply.payload || reply.title).slice(0, 256), title: reply.title.slice(0, 20) },
             })),
           },
         }
@@ -183,11 +202,41 @@ export function createWhatsAppAdapter(fetchImpl: FetchLike = defaultFetch()): Ch
     },
     async sendMedia(ctx, media, caption) {
       const key = whatsappMediaKey(media.type)
+      const mediaBody: Record<string, unknown> = { link: media.url }
+      if (caption && key !== "audio") mediaBody.caption = caption
       return send(ctx, {
         messaging_product: "whatsapp",
+        recipient_type: "individual",
         to: ctx.recipientId,
         type: key,
-        [key]: { link: media.url, caption },
+        [key]: mediaBody,
+      })
+    },
+    async sendList(ctx, list) {
+      const sections = (list.sections || [])
+        .map((section) => ({
+          title: section.title?.slice(0, 24),
+          rows: (section.rows || []).slice(0, 10).map((row) => ({
+            id: row.id.slice(0, 200),
+            title: row.title.slice(0, 24),
+            description: row.description?.slice(0, 72),
+          })),
+        }))
+        .filter((section) => section.rows.length > 0)
+      const rows = sections.flatMap((section) => section.rows).slice(0, 10)
+      return send(ctx, {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: ctx.recipientId,
+        type: "interactive",
+        interactive: {
+          type: "list",
+          body: { text: (list.body || "Choose an option").slice(0, 1024) },
+          action: {
+            button: (list.button || "Options").slice(0, 20),
+            sections: [{ title: sections[0]?.title, rows }],
+          },
+        },
       })
     },
     async markSeen(ctx, messageId) {
@@ -265,6 +314,105 @@ export function createTelegramAdapter(fetchImpl: FetchLike = defaultFetch()): Ch
   }
 }
 
+const TIKTOK_API = "https://business-api.tiktok.com/open_api/v1.3"
+export const TIKTOK_WINDOW_MS = 48 * 60 * 60 * 1000
+
+function tiktokFailure(json: any, status: number): SendOutcome {
+  const message = typeof json?.message === "string" ? json.message : "TikTok send failed"
+  const outside = /48|window|expired conversation|outside/i.test(message)
+  return { ok: false, error: message, code: typeof json?.code === "number" ? json.code : status, outsideWindow: outside }
+}
+
+/**
+ * TikTok Business Messaging send.
+ * Text goes to a conversation id (`recipient_type: CONVERSATION`).
+ * Comment-to-DM uses the documented `direct_reply` object and only works for
+ * a high-intent comment, and only when that feature flag is on.
+ * Free-form buttons, lists, and URL media are not part of this API.
+ */
+export function createTikTokAdapter(fetchImpl: FetchLike = defaultFetch()): ChannelAdapter {
+  const post = async (ctx: SendContext, body: Record<string, unknown>): Promise<SendOutcome> => {
+    if (!tiktokMessagingEnabled()) return { ok: false, error: "tiktok_messaging_disabled" }
+    if (!ctx.senderRef) return { ok: false, error: "missing_business_id" }
+    const result = await postJson(fetchImpl, `${TIKTOK_API}/business/message/send/`, body, {
+      "Access-Token": ctx.accessToken,
+    })
+    if (result.json && result.json.code !== 0 && result.json.code !== undefined) return tiktokFailure(result.json, result.status)
+    if (!result.ok) return tiktokFailure(result.json, result.status)
+    return { ok: true, id: result.json?.data?.message?.message_id }
+  }
+
+  return {
+    channel: "tiktok",
+    messagingWindowMs: TIKTOK_WINDOW_MS,
+    supportsHumanAgent: false,
+    async sendText(ctx, text) {
+      if (!ctx.recipientId) return { ok: false, error: "missing_conversation" }
+      return post(ctx, {
+        business_id: ctx.senderRef,
+        recipient_type: "CONVERSATION",
+        recipient: ctx.recipientId,
+        message_type: "TEXT",
+        text: { body: text },
+      })
+    },
+    async sendCard(ctx, card) {
+      const links = (card.buttons || [])
+        .filter((button) => button.type === "web_url" && button.url)
+        .map((button) => `${button.title}: ${button.url}`)
+        .join("\n")
+      const text = [card.title, card.subtitle, links].filter(Boolean).join("\n\n")
+      return this.sendText(ctx, text)
+    },
+    async sendMedia() {
+      return {
+        ok: false,
+        error: "TikTok does not accept a media URL. Images must be uploaded with /business/message/media/upload/ and sent as a media_id.",
+      }
+    },
+    async privateReply(ctx, text) {
+      if (!tiktokCommentToDmEnabled()) return { ok: false, error: "tiktok_comment_to_dm_disabled" }
+      if (!ctx.commentId) return { ok: false, error: "missing_comment" }
+      return post(ctx, {
+        business_id: ctx.senderRef,
+        message_type: "TEXT",
+        text: { body: text },
+        direct_reply: {
+          reply_type: "COMMENT_REPLY",
+          comment_reply: { comment_id: ctx.commentId },
+        },
+      })
+    },
+    async markSeen(ctx) {
+      if (!ctx.recipientId || !ctx.senderRef) return
+      await post(ctx, {
+        business_id: ctx.senderRef,
+        recipient_type: "CONVERSATION",
+        recipient: ctx.recipientId,
+        message_type: "SENDER_ACTION",
+        sender_action: "MARK_READ",
+      })
+    },
+  }
+}
+
+/** Website chat deliveries are rows in `messages`. The widget polls them. */
+export function createWebchatAdapter(): ChannelAdapter {
+  const ok = async (): Promise<SendOutcome> => ({ ok: true, id: `webchat_${Date.now()}` })
+  return {
+    channel: "webchat",
+    messagingWindowMs: null,
+    supportsHumanAgent: false,
+    sendText: ok,
+    sendCard: ok,
+    sendMedia: ok,
+    sendList: ok,
+    privateReply: ok,
+    markSeen: async () => undefined,
+    typing: async () => undefined,
+  }
+}
+
 export function createInstagramAdapter(fetchImpl?: FetchLike): ChannelAdapter {
   return createMetaAdapter({
     channel: "instagram",
@@ -289,17 +437,18 @@ const instagram = createInstagramAdapter()
 const messenger = createMessengerAdapter()
 const whatsapp = createWhatsAppAdapter()
 const telegram = createTelegramAdapter()
+const tiktok = createTikTokAdapter()
+const webchat = createWebchatAdapter()
 
-/**
- * Register a channel here. TikTok would be `tiktok: createTikTokAdapter()`
- * once that adapter exists. Nothing else in the pipeline needs to change.
- */
+/** Register a channel here. The matcher and the inbox only call `getAdapter`. */
 export const channelAdapters = {
   instagram,
   messenger,
   facebook: messenger,
   whatsapp,
   telegram,
+  tiktok,
+  webchat,
 } as const
 
 export function getAdapter(channel: string): ChannelAdapter | null {

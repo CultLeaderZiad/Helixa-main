@@ -42,6 +42,12 @@ export function ChatWindow({ conversationId, recipientId, recipientName, platfor
     )
     const windowStatus = contactContext?.window?.status as string | undefined
     const botPaused = Boolean(contactContext?.contact?.bot_paused)
+    const whatsappClosed = channel === "whatsapp" && windowStatus === "closed"
+    const { data: templateData } = useSWR(whatsappClosed ? "/api/whatsapp/templates" : null, fetcher)
+    const templates = (templateData?.templates || []).filter((template: any) => template.status === "APPROVED" || !template.status)
+    const [templateName, setTemplateName] = useState("")
+    const [templateLanguage, setTemplateLanguage] = useState("")
+    const [templateParams, setTemplateParams] = useState("")
     const bottomRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -165,7 +171,7 @@ export function ChatWindow({ conversationId, recipientId, recipientName, platfor
                         <h3 className="font-bold text-white text-sm truncate">@{recipientName}</h3>
                         <span className="hidden md:flex items-center gap-1.5 text-[10px] text-neutral-400 font-medium tracking-wide capitalize">
                             {channel}
-                            {windowStatus === "closed" ? " · window closed" : windowStatus === "human_agent" ? " · outside 24h" : ""}
+                            {windowStatus === "closed" ? (channel === "whatsapp" ? " · send a template" : " · window closed") : windowStatus === "human_agent" ? " · outside 24h" : ""}
                         </span>
                     </div>
                 </div>
@@ -286,6 +292,66 @@ export function ChatWindow({ conversationId, recipientId, recipientName, platfor
                 {windowStatus === "human_agent" && (
                     <p className="text-[11px] text-amber-200/80 px-2 pb-2">Outside the 24-hour window. A reply uses the Human Agent tag.</p>
                 )}
+                {whatsappClosed && (
+                    <div className="px-2 pb-3 space-y-2">
+                        <p className="text-[11px] text-amber-200/80">The 24-hour window is closed. Send an approved template on this number.</p>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <select
+                                value={templateName ? `${templateName}|${templateLanguage}` : ""}
+                                onChange={(event) => {
+                                    const [name, language] = event.target.value.split("|")
+                                    setTemplateName(name || "")
+                                    setTemplateLanguage(language || "")
+                                }}
+                                className="flex-1 bg-black border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                            >
+                                <option value="">Choose a template</option>
+                                {templates.map((template: any) => (
+                                    <option key={`${template.name}-${template.language}`} value={`${template.name}|${template.language}`}>
+                                        {template.name} ({template.language})
+                                    </option>
+                                ))}
+                            </select>
+                            <input
+                                value={templateParams}
+                                onChange={(event) => setTemplateParams(event.target.value)}
+                                placeholder="Body parameters, comma separated"
+                                className="flex-1 bg-black border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                            />
+                            <Button
+                                disabled={sending || !templateName || !conversationId}
+                                onClick={async () => {
+                                    if (!conversationId || !templateName) return
+                                    setSending(true)
+                                    setSendError("")
+                                    try {
+                                        const res = await fetch("/api/whatsapp/templates", {
+                                            method: "POST",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({
+                                                conversationId,
+                                                name: templateName,
+                                                language: templateLanguage,
+                                                parameters: templateParams.split(",").map((part) => part.trim()).filter(Boolean),
+                                            }),
+                                        })
+                                        const data = await res.json().catch(() => ({}))
+                                        if (!res.ok) setSendError(data.error || "Template was not sent")
+                                        else {
+                                            setTemplateParams("")
+                                            mutateMessages()
+                                        }
+                                    } finally {
+                                        setSending(false)
+                                    }
+                                }}
+                                className="bg-[#25D366] text-black hover:brightness-110"
+                            >
+                                Send template
+                            </Button>
+                        </div>
+                    </div>
+                )}
                 {botPaused && <p className="text-[11px] text-neutral-400 px-2 pb-2">Bot is paused for this contact. You can still reply.</p>}
                 <div className="flex items-center gap-2 bg-black/40 rounded-2xl border border-white/10 p-1.5 focus-within:border-[#e5a93c]/50 focus-within:bg-black/60 focus-within:shadow-[0_0_20px_rgba(229,169,60,0.05)] transition-all duration-300">
                     <Button
@@ -307,11 +373,11 @@ export function ChatWindow({ conversationId, recipientId, recipientName, platfor
                                 handleSendMessage()
                             }
                         }}
-                        disabled={sending}
+                        disabled={sending || whatsappClosed}
                     />
                     <Button
                         onClick={() => handleSendMessage()}
-                        disabled={sending || !inputText.trim()}
+                        disabled={sending || whatsappClosed || !inputText.trim()}
                         size="icon"
                         className="h-10 w-10 bg-gradient-to-br from-[#e5a93c] to-[#d4952b] hover:brightness-110 text-black rounded-xl disabled:opacity-50 disabled:cursor-not-allowed shrink-0 transition-all hover:scale-105 active:scale-95 shadow-md"
                     >

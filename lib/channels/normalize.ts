@@ -209,13 +209,21 @@ export function normalizeWhatsAppBody(body: unknown): NormalizedInbound[] {
         const buttonReply = record(interactive?.button_reply)
         const listReply = record(interactive?.list_reply)
         const textBody = record(message.text)
+        const templateButton = record(message.button)
         let kind: "dm" | "postback" = "dm"
         let bodyText = ""
         if (message.type === "interactive" && (buttonReply || listReply)) {
           kind = "postback"
           bodyText = text(buttonReply?.id) || text(listReply?.id)
+        } else if (message.type === "button" && (templateButton?.payload || templateButton?.text)) {
+          kind = "postback"
+          bodyText = text(templateButton?.payload) || text(templateButton?.text)
         } else if (message.type === "text") {
           bodyText = text(textBody?.body)
+        } else if (message.type === "image" || message.type === "video" || message.type === "audio" || message.type === "document" || message.type === "sticker") {
+          const media = record(message[String(message.type)])
+          const caption = text(media?.caption)
+          bodyText = caption ? `[${message.type}] ${caption}` : `[${message.type}]`
         }
         if (!bodyText) continue
         const contacts = list(value.contacts)
@@ -230,7 +238,6 @@ export function normalizeWhatsAppBody(body: unknown): NormalizedInbound[] {
           messageId: text(message.id) || undefined,
           displayName: text(profile?.name) || undefined,
           occurredAtMs: Number.isFinite(occurredAtMs) ? occurredAtMs : undefined,
-          chatId: phoneNumberId || undefined,
           accountRef: phoneNumberId || undefined,
         })
       }

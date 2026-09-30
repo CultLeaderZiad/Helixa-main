@@ -1,4 +1,5 @@
 import { getAdapter } from "@/lib/channels/adapters"
+import { pickChannelConnection } from "@/lib/channels/pick-connection"
 import { latestInboundAt, insertMessage, loadContact } from "@/lib/channels/store"
 import { windowForAdapter, type WindowVerdict } from "@/lib/channels/window"
 import type { Db } from "@/lib/channels/types"
@@ -14,16 +15,20 @@ export interface HumanSendInput {
   conversationId?: string | null
   text: string
   username?: string | null
+  /** WhatsApp phone-number id, TikTok open id, or widget key stored on the conversation. */
+  channelAccountId?: string | null
+  /** TikTok conversation id. The inbox recipient is the TikTok user, not this id. */
+  threadId?: string | null
 }
 
 export type HumanSendResult =
   | { ok: true; window: WindowVerdict; id?: string }
-  | { ok: false; status: number; error: string; window?: WindowVerdict; reconnect?: boolean }
+  | { ok: false; status: number; error: string; window?: WindowVerdict; reconnect?: boolean; ambiguous?: boolean }
 
 async function credentials(
   supabase: Db,
   input: HumanSendInput,
-): Promise<{ token: string; senderRef?: string; senderId?: string; senderName?: string } | null> {
+): Promise<{ token: string; senderRef?: string; senderId?: string; senderName?: string } | { ambiguous: true } | null> {
   if (input.channel === "instagram" || !input.channel) {
     const { data } = await supabase
       .from("users")
@@ -41,14 +46,29 @@ async function credentials(
     .select("platform, access_token, page_id, external_account_id")
     .eq("user_id", input.userId)
     .in("platform", platform)
-    .limit(5)
-  const row = input.channel === "messenger" || input.channel === "facebook" ? pickPageConnection(data) : data?.[0]
+    .limit(20)
+  const rows = (data || []) as Array<{
+    platform?: string | null
+    access_token?: string | null
+    page_id?: string | null
+    external_account_id?: string | null
+  }>
+  if (input.channel === "messenger" || input.channel === "facebook") {
+    const row = pickPageConnection(rows)
+    const token = openAccessToken(row?.access_token)
+    if (!token || !row) return null
+    return { token, senderId: row.page_id || row.external_account_id || undefined, senderName: input.username || input.channel }
+  }
+  const picked = pickChannelConnection(rows, input.channelAccountId)
+  if (picked.ambiguous) return { ambiguous: true }
+  const row = picked.row
   const token = openAccessToken(row?.access_token)
   if (!token || !row) return null
+  const needsSender = input.channel === "whatsapp" || input.channel === "tiktok" || input.channel === "webchat"
   return {
     token,
-    senderRef: input.channel === "whatsapp" ? row.page_id : undefined,
-    senderId: row.page_id || row.external_account_id,
+    senderRef: needsSender ? row.page_id || undefined : undefined,
+    senderId: row.page_id || row.external_account_id || undefined,
     senderName: input.username || input.channel,
   }
 }
@@ -58,6 +78,14 @@ export async function sendHumanMessage(supabase: Db, input: HumanSendInput): Pro
   const adapter = getAdapter(channel)
   if (!adapter) return { ok: false, status: 400, error: "This channel cannot send yet." }
   const creds = await credentials(supabase, input)
+  if (creds && "ambiguous" in creds) {
+    return {
+      ok: false,
+      status: 409,
+      ambiguous: true,
+      error: "More than one account is connected for this channel. Open the conversation that belongs to the right number.",
+    }
+  }
   if (!creds) return { ok: false, status: 400, error: "That channel is not connected." }
 
   const contact = await loadContact(supabase, input.userId, channel === "facebook" ? "messenger" : channel, input.recipientId)
@@ -80,7 +108,7 @@ export async function sendHumanMessage(supabase: Db, input: HumanSendInput): Pro
   const result = await adapter.sendText(
     {
       accessToken: creds.token,
-      recipientId: input.recipientId,
+      recipientId: input.channel === "tiktok" ? input.threadId || "" : input.recipientId,
       senderRef: creds.senderRef,
       messagingType: window.messagingType,
       tag: window.tag,

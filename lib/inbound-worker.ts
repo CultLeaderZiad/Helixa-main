@@ -149,6 +149,16 @@ async function dispatchInboundEvent(supabase: any, row: { platform: InboundPlatf
     await processWhatsAppWebhookBody(row.payload, supabase)
     return
   }
+  if (platform === "tiktok") {
+    const { processTikTokWebhookBody } = await import("@/lib/channels/ingress")
+    await processTikTokWebhookBody(row.payload, supabase)
+    return
+  }
+  if (platform === "webchat") {
+    const { processWebchatEvent } = await import("@/lib/channels/ingress")
+    await processWebchatEvent(row.payload, supabase)
+    return
+  }
   if (platform === "telegram") {
     const botId = String(row.account_key || "").replace(/^telegram:/, "")
     const { processTelegramUpdate } = await import("@/app/api/telegram/webhook/[token]/route")

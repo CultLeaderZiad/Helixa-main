@@ -7,6 +7,7 @@ const PLACEHOLDER_TOKENS = new Set([
   "facebook_managed",
   "telegram_managed",
   "workspace_managed",
+  "webchat_managed",
   "TEST_TOKEN_NOT_REAL",
 ])
 

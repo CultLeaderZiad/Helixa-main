@@ -119,7 +119,9 @@ function AutomationsPageContent() {
     let supportedTabs: ('comment' | 'dm' | 'story')[] = ['comment', 'dm', 'story'] // instagram default
     if (selectedPlatform === 'facebook' || selectedPlatform === 'messenger') {
         supportedTabs = ['comment', 'dm']
-    } else if (selectedPlatform === 'telegram' || selectedPlatform === 'whatsapp') {
+    } else if (selectedPlatform === 'tiktok') {
+        supportedTabs = ['comment', 'dm']
+    } else if (selectedPlatform === 'telegram' || selectedPlatform === 'whatsapp' || selectedPlatform === 'webchat') {
         supportedTabs = ['dm']
     }
 

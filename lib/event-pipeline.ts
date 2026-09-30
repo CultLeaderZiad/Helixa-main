@@ -13,7 +13,7 @@ import { storyEventKey } from "@/lib/channel-ids"
  * follow. Tests exercise them without a database.
  */
 
-export type InboundPlatform = "instagram" | "facebook" | "whatsapp" | "telegram"
+export type InboundPlatform = "instagram" | "facebook" | "whatsapp" | "telegram" | "tiktok" | "webchat"
 
 export type QueueStatus = "pending" | "processing" | "done" | "dead"
 
@@ -109,6 +109,40 @@ export function splitInboundEvents(
         platform,
         idempotencyKey,
         accountKey: `telegram:${bot}`,
+        payload: body,
+      },
+    ]
+  }
+
+  if (platform === "tiktok") {
+    const openId = body?.user_openid || "unknown"
+    let content = body?.content
+    if (typeof content === "string") {
+      try {
+        content = JSON.parse(content)
+      } catch {
+        content = null
+      }
+    }
+    const id = content?.message_id || content?.comment_id || payloadHash(body)
+    return [
+      {
+        platform,
+        idempotencyKey: `tiktok:${body?.event || "event"}:${id}`,
+        accountKey: `tiktok:${openId}`,
+        payload: body,
+      },
+    ]
+  }
+
+  if (platform === "webchat") {
+    const widget = body?.widget_id || "unknown"
+    const id = body?.message_id || payloadHash(body)
+    return [
+      {
+        platform,
+        idempotencyKey: `webchat:${widget}:${id}`,
+        accountKey: `webchat:${widget}`,
         payload: body,
       },
     ]
