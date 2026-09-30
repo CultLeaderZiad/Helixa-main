@@ -90,6 +90,14 @@ function createMetaAdapter(input: {
         attachment: { type: "template", payload: { template_type: "generic", elements: [cardElements(card)] } },
       })
     },
+    async sendCarousel(ctx, cards) {
+      return send(ctx, {
+        attachment: {
+          type: "template",
+          payload: { template_type: "generic", elements: cards.slice(0, 10).map(cardElements) },
+        },
+      })
+    },
     async sendMedia(ctx, media) {
       return send(ctx, { attachment: { type: media.type || "image", payload: { url: media.url } } })
     },

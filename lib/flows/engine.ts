@@ -1,4 +1,5 @@
 import type { OutboundButton, OutboundContent, QuickReply } from "@/lib/channels/types"
+import { productsToContent, type CatalogProduct } from "@/lib/commerce/catalog"
 import { channelCapabilities, fillTemplate, findNode, isSafeWebhookUrl, outgoing } from "@/lib/flows/graph"
 import { isOptOutText } from "@/lib/flows/opt-out"
 import { channelWindow, flowSendAllowed } from "@/lib/flows/policy"
@@ -26,6 +27,7 @@ export interface EngineInput {
   random?: () => number
   tiktokEnabled?: boolean
   templateApproved?: boolean
+  catalog?: CatalogProduct[]
 }
 
 export function initialStepToken(runId: string): string {
@@ -321,6 +323,10 @@ function openWait(
 
   if (run.waitKind === "ai" && signal.kind === "ai" && signal.aiReply) {
     run.context[`ai:${node.id}`] = signal.aiReply.slice(0, 2000)
+    if (signal.handoff) run.context[`handoff:${node.id}`] = "1"
+    if (signal.captured && Object.keys(signal.captured).length) {
+      run.context[`fields:${node.id}`] = JSON.stringify(signal.captured).slice(0, 2000)
+    }
     run.steps += 1
     run.stepToken = nextToken(run, node.id)
     run.waitKind = null
@@ -368,6 +374,7 @@ function walk(
       tiktokEnabled: input.tiktokEnabled !== false,
       templateApproved: input.templateApproved === true,
       commentId: input.signal.commentId || run.context.commentId,
+      catalog: input.catalog || [],
     })
     if (outcome === "hold") {
       return { run, contact, effects, stale: false, hold: true, retryAt: input.now + 60_000 }
@@ -390,6 +397,7 @@ function execNode(input: {
   tiktokEnabled: boolean
   templateApproved: boolean
   commentId?: string
+  catalog: CatalogProduct[]
 }): "continue" | "stop" | "hold" {
   const { node, run, contact, effects, graph } = input
   const data = node.data || {}
@@ -503,6 +511,16 @@ function execNode(input: {
       run.stepToken = nextToken(run, node.id)
       return "stop"
     }
+    const capturedRaw = run.context[`fields:${node.id}`]
+    if (capturedRaw) {
+      try {
+        const captured = JSON.parse(capturedRaw) as Record<string, string>
+        contact.customFields = { ...contact.customFields, ...captured }
+      } catch {
+        // A truncated field blob is ignored. The answer still sends.
+      }
+    }
+    const handoff = run.context[`handoff:${node.id}`] === "1"
     if (data.sendReply !== false && !input.delivered.has(node.id)) {
       const decision = flowSendAllowed({
         channel: run.channel,
@@ -520,6 +538,51 @@ function execNode(input: {
         return "hold"
       } else {
         effects.push(sendEffect(node.id, { message: reply }, decision))
+      }
+    }
+    effects.push({ type: "stat", nodeId: node.id, stat: "run" })
+    if (handoff) {
+      contact.botPaused = true
+      effects.push({ type: "pause_bot", nodeId: node.id })
+      const handed = outgoing(graph, node.id, "handoff")
+      if (handed) {
+        run.currentNodeId = handed.target
+        run.status = "active"
+        return "continue"
+      }
+      run.status = "completed"
+      return "stop"
+    }
+    return go(graph, run, node.id, "default")
+  }
+
+  if (node.type === "product_card" || node.type === "capture_order") {
+    if (contact.botPaused) {
+      run.status = "paused"
+      run.currentNodeId = node.id
+      return "hold"
+    }
+    const ids = asStringList(data.productIds)
+    const catalog = input.catalog || []
+    const chosen = ids.length ? catalog.filter((product) => ids.includes(product.id)) : catalog.slice(0, 10)
+    if (node.type === "capture_order") {
+      if (!input.delivered.has(node.id)) {
+        effects.push({ type: "order_link", nodeId: node.id, productIds: chosen.map((product) => product.id) })
+      }
+    } else {
+      const decision = flowSendAllowed({
+        channel: run.channel,
+        now: input.now,
+        lastInboundAt: contact.lastInboundAt,
+        inboundJustNow: input.inboundJustNow,
+        optedIn: contact.optedIn,
+        tiktokEnabled: input.tiktokEnabled,
+      })
+      if (!decision.allowed) {
+        effects.push({ type: "blocked", nodeId: node.id, reason: decision.reason || "outside_window" })
+      } else if (!input.delivered.has(node.id)) {
+        const content = productsToContent(chosen, data.text ? String(data.text) : undefined)
+        effects.push(sendEffect(node.id, content, decision))
       }
     }
     effects.push({ type: "stat", nodeId: node.id, stat: "run" })

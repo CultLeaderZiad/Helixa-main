@@ -1,8 +1,12 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { isPlatformHost, normalizeHost } from "@/lib/agency/tenant"
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+  const requestHeaders = new Headers(request.headers)
+  const agencyId = await agencyForHost(request.headers.get("x-forwarded-host") || request.headers.get("host"))
+  if (agencyId) requestHeaders.set("x-helixa-agency", agencyId)
+  let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,7 +18,7 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({ request })
+          supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           )
@@ -27,7 +31,27 @@ export async function middleware(request: NextRequest) {
   // do not remove it even though the return value isn't used directly.
   await supabase.auth.getUser()
 
+  if (agencyId) supabaseResponse.cookies.set("helixa_agency", agencyId, { path: "/", sameSite: "lax" })
   return supabaseResponse
+}
+
+async function agencyForHost(rawHost: string | null): Promise<string | null> {
+  const host = normalizeHost(rawHost)
+  if (!host || isPlatformHost(host)) return null
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return null
+  try {
+    const response = await fetch(
+      `${url}/rest/v1/agencies?custom_domain=eq.${encodeURIComponent(host)}&select=id&limit=1`,
+      { headers: { apikey: key, Authorization: `Bearer ${key}` } },
+    )
+    if (!response.ok) return null
+    const rows = await response.json()
+    return rows?.[0]?.id || null
+  } catch {
+    return null
+  }
 }
 
 export const config = {

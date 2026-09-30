@@ -27,6 +27,8 @@ const PALETTE: Array<{ type: FlowNodeType; label: string }> = [
   { type: "handoff", label: "Handoff" },
   { type: "webhook", label: "Webhook" },
   { type: "jump", label: "Jump" },
+  { type: "product_card", label: "Product" },
+  { type: "capture_order", label: "Order" },
 ]
 
 interface Stat {
@@ -280,6 +282,8 @@ function defaultData(type: FlowNodeType): Record<string, unknown> {
   if (type === "handoff") return { reason: "Needs a person" }
   if (type === "webhook") return { url: "https://example.com/hook", method: "POST", body: "{\"id\":\"{{external_id}}\"}" }
   if (type === "jump") return { targetId: "" }
+  if (type === "product_card") return { productIds: [], text: "" }
+  if (type === "capture_order") return { productIds: [] }
   return {}
 }
 
@@ -314,11 +318,18 @@ function Inspector({
               <option value="website_visitor">Website visitor</option>
               <option value="tiktok_dm">TikTok DM</option>
               <option value="ref">Ref link</option>
+              <option value="order_status">Order status</option>
             </select>
           </Field>
-          <Field label="Keywords">
-            <input className={input} value={String(trigger.keywords || "")} onChange={(event) => onChange({ trigger: { ...trigger, keywords: event.target.value, match: "keyword" } })} />
-          </Field>
+          {trigger.type === "order_status" ? (
+            <Field label="Order statuses">
+              <input className={input} value={String(trigger.keywords || "")} placeholder="paid, fulfilled, or any" onChange={(event) => onChange({ trigger: { ...trigger, keywords: event.target.value } })} />
+            </Field>
+          ) : (
+            <Field label="Keywords">
+              <input className={input} value={String(trigger.keywords || "")} onChange={(event) => onChange({ trigger: { ...trigger, keywords: event.target.value, match: "keyword" } })} />
+            </Field>
+          )}
           <Field label="Post or Reel id">
             <input className={input} value={String(trigger.mediaId || "")} placeholder="Empty = any post" onChange={(event) => onChange({ trigger: { ...trigger, mediaId: event.target.value || null, anyPost: !event.target.value } })} />
           </Field>
@@ -375,6 +386,11 @@ function Inspector({
       {type === "webhook" && (
         <Field label="HTTPS URL">
           <input className={input} value={String(data.url || "")} onChange={(event) => onChange({ url: event.target.value, method: "POST" })} />
+        </Field>
+      )}
+      {(type === "product_card" || type === "capture_order") && (
+        <Field label="Product ids, comma separated">
+          <input className={input} value={Array.isArray(data.productIds) ? data.productIds.join(", ") : ""} placeholder="Empty sends the first 10" onChange={(event) => onChange({ productIds: event.target.value.split(",").map((id) => id.trim()).filter(Boolean) })} />
         </Field>
       )}
       {type === "jump" && (

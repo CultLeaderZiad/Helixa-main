@@ -76,6 +76,13 @@ export async function deliverContent(
     if (result.ok && content.message) {
       result = await adapter.sendText(ctx, content.message, replies)
     }
+  } else if (content.cards?.length) {
+    if (adapter.sendCarousel) {
+      result = await adapter.sendCarousel(ctx, content.cards)
+    } else {
+      for (const card of content.cards) result = await adapter.sendCard(ctx, card)
+    }
+    if (result.ok && content.message) result = await adapter.sendText(ctx, content.message)
   } else if (content.card) {
     result = await adapter.sendCard(ctx, content.card)
   } else if (content.message || content.reply_text) {
