@@ -145,6 +145,8 @@ export interface NormalizedInbound {
   chatId?: string
   /** Page id, Instagram entry id, WhatsApp phone-number id, TikTok open id, or widget key. */
   accountRef?: string
+  /** ig.me / m.me `ref` parameter, when the channel includes one. */
+  referral?: string
 }
 
 export interface AutomationRule {

@@ -24,7 +24,15 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await getSupabaseBypassClient()
     const summary = await drainInboundEvents(supabase)
-    return NextResponse.json(summary)
+    let flows = { claimed: 0, done: 0, retried: 0, dead: 0, errors: [] as string[] }
+    try {
+      const { drainFlowJobs } = await import("@/lib/flows/runtime")
+      flows = await drainFlowJobs(supabase)
+    } catch (error: any) {
+      console.error("[inbound] flow drain failed:", error)
+      summary.errors.push(error?.message || "flow drain failed")
+    }
+    return NextResponse.json({ ...summary, flows })
   } catch (error: any) {
     console.error("[cron/process-inbound-events]", error)
     return NextResponse.json({ error: error?.message || "Drain failed" }, { status: 500 })

@@ -206,6 +206,7 @@ export async function attachTrackedLinks(
     contactExternalId?: string | null
     automationId?: string | null
     variantId?: string | null
+    broadcastId?: string | null
   },
 ): Promise<OutboundContent> {
   const origin = appOrigin()
@@ -226,9 +227,29 @@ export async function attachTrackedLinks(
         channel: meta.channel,
         contact_external_id: meta.contactExternalId || null,
         destination_url: destination,
+        ...(meta.broadcastId ? { broadcast_id: meta.broadcastId } : {}),
       })
       .select("code")
       .maybeSingle()
+    if (inserted.error && meta.broadcastId && /broadcast_id/i.test(inserted.error.message || "")) {
+      const retry = await supabase
+        .from("tracked_links")
+        .insert({
+          code,
+          workspace_id: meta.workspaceId || null,
+          user_id: meta.userId,
+          automation_id: meta.automationId || null,
+          variant_id: meta.variantId || null,
+          channel: meta.channel,
+          contact_external_id: meta.contactExternalId || null,
+          destination_url: destination,
+        })
+        .select("code")
+        .maybeSingle()
+      if (retry.error || !retry.data?.code) continue
+      map.set(destination, `${origin}/r/${retry.data.code}`)
+      continue
+    }
     if (inserted.error || !inserted.data?.code) continue
     map.set(destination, `${origin}/r/${inserted.data.code}`)
   }

@@ -25,5 +25,13 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   })
   if (logged.error) console.warn("[redirect] click was not logged:", logged.error.message)
 
+  if (data.broadcast_id && data.contact_external_id) {
+    await supabase
+      .from("broadcast_recipients")
+      .update({ status: "clicked", clicked_at: new Date().toISOString() })
+      .eq("broadcast_id", data.broadcast_id)
+      .eq("contact_external_id", data.contact_external_id)
+  }
+
   return NextResponse.redirect(data.destination_url, 302)
 }

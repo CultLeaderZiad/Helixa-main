@@ -14,6 +14,9 @@ export interface ContactRecord {
   last_seen_at: string
   last_inbound_at?: string | null
   bot_paused: boolean
+  opted_in?: boolean
+  opted_out?: boolean
+  is_follower?: boolean | null
   email?: string | null
   phone?: string | null
 }
@@ -195,6 +198,9 @@ export function contactFromRow(row: any): ContactRecord {
     last_seen_at: row.last_seen_at,
     last_inbound_at: row.last_inbound_at ?? null,
     bot_paused: row.bot_paused === true,
+    opted_in: row.opted_in === true,
+    opted_out: row.opted_out === true,
+    is_follower: typeof row.is_follower === "boolean" ? row.is_follower : null,
     email: row.email ?? null,
     phone: row.phone ?? null,
   }

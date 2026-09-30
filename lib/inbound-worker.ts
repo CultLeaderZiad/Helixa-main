@@ -83,6 +83,13 @@ export async function drainInboundEvents(supabase: any): Promise<DrainSummary> {
     }
   }
 
+  try {
+    const { drainFlowJobs } = await import("@/lib/flows/runtime")
+    await drainFlowJobs(supabase)
+  } catch (error) {
+    console.error("[inbound] flow drain failed:", error)
+  }
+
   return summary
 }
 

@@ -319,6 +319,13 @@ export async function runChannelPipeline(input: {
       throw error
     }
   }
+  try {
+    const { dispatchFlowTriggers } = await import("@/lib/flows/runtime")
+    await dispatchFlowTriggers(supabase, { userId: tenant.userId, workspaceId: tenant.workspaceId }, events)
+  } catch (error) {
+    console.error("[pipeline] flow dispatch failed:", error)
+    throw error
+  }
 }
 
 async function runAction(
@@ -345,6 +352,17 @@ async function runAction(
     await touch(supabase, tenant, event, event.kind)
     if (direct) await recordDirect(supabase, tenant, policy, event, adapter)
     return
+  }
+
+  const ruleId =
+    action.type === "comment" || action.type === "story"
+      ? action.rule.id
+      : action.type === "dm"
+        ? action.match.rule?.id
+        : null
+  if (ruleId) {
+    const { flowSupersedesAutomation } = await import("@/lib/flows/runtime")
+    if (await flowSupersedesAutomation(supabase, tenant.userId, ruleId)) return
   }
 
   if (action.type === "comment" && event.commentId) {
