@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { WORKSPACE_COOKIE } from "@/lib/workspace-access"
 
 /**
  * POST /api/auth/logout
@@ -17,6 +18,13 @@ export async function POST(request: NextRequest) {
   const response = NextResponse.json({ success: true })
   // Also clear the legacy cookie just in case
   response.cookies.set("insta_session", "", {
+    path: "/",
+    maxAge: 0,
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  })
+  response.cookies.set(WORKSPACE_COOKIE, "", {
     path: "/",
     maxAge: 0,
     httpOnly: true,

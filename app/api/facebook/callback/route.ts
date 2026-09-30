@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { getSessionUser } from "@/lib/auth"
+import { forbidBelow, loadWorkspaceContext } from "@/lib/auth"
 import { sealAccessToken } from "@/lib/token-crypto"
 import { resolveTenantProfile } from "@/lib/tenant-user"
 import { FACEBOOK_GRAPH_BASE } from "@/lib/graph"
@@ -28,18 +28,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid callback" }, { status: 400 })
   }
 
-  // Get current user session (returns account)
-  const account = await getSessionUser(request)
-  if (!account) {
+  const session = await loadWorkspaceContext(request)
+  if (!session) {
     return NextResponse.redirect(new URL("/?error=not_logged_in", request.url))
   }
+  if (session.denied || forbidBelow(session.account.workspace_role, "admin")) {
+    return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=forbidden", request.url))
+  }
+  const account = session.account
 
   const supabase = await getSupabaseBypassClient()
 
-  // Get the linked users row (Instagram profile)
-  let userProfile = null
+  let userProfile = session.igUser
   try {
-    userProfile = await resolveTenantProfile(supabase, account.id)
+    if (!userProfile && session.workspace?.id) {
+      userProfile = await resolveTenantProfile(supabase, session.workspace.ownerAccountId, session.workspace.id)
+    } else if (!userProfile) {
+      userProfile = await resolveTenantProfile(supabase, account.id)
+    }
   } catch (error) {
     console.error("[FB Callback] Could not load profile:", error)
     return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=profile_lookup_failed", request.url))

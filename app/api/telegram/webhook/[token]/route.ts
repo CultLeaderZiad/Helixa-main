@@ -11,6 +11,7 @@ import {
 } from "@/lib/telegram-api"
 import { parseContent, pickVariant, keywordMatches, checkTrialStatus } from "@/lib/webhook-utils"
 import { aiReplyEvent, telegramMessageId } from "@/lib/channel-ids"
+import { RetryableInboundError } from "@/lib/event-pipeline"
 
 export async function POST(
   request: NextRequest,
@@ -63,13 +64,59 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const userId = connection.user_id
-
-    // Fetch user & account to check plan / bans
-    const { data: user } = await supabase.from("users").select("*").eq("id", userId).single()
-    if (!user) {
-      return NextResponse.json({ success: true })
+    let update: any
+    try {
+      update = await request.json()
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
     }
+
+    const { acceptInboundWebhook } = await import("@/lib/inbound-queue")
+    const queued = await acceptInboundWebhook(supabase, "telegram", update, { botId })
+    if (queued.fallback) {
+      try {
+        await processTelegramUpdate(supabase, botId, update)
+      } catch (error) {
+        console.error("[Telegram Webhook] Inline processing failed", error)
+      }
+    }
+    return NextResponse.json({ ok: true, ...queued })
+  } catch (error) {
+    console.error("[Telegram Webhook] Failed to queue event", error)
+    return NextResponse.json({ error: "queue_unavailable" }, { status: 500 })
+  }
+}
+
+export async function processTelegramUpdate(supabase: any, botId: string, update: any) {
+  const { data: byPage, error: pageError } = await supabase
+    .from("platform_connections")
+    .select("*")
+    .eq("platform", "telegram")
+    .eq("page_id", botId)
+    .limit(1)
+  let connection = byPage?.[0]
+  let connError = pageError
+  if (!connection && !connError) {
+    const byExternal = await supabase
+      .from("platform_connections")
+      .select("*")
+      .eq("platform", "telegram")
+      .eq("external_account_id", botId)
+      .limit(1)
+    connection = byExternal.data?.[0]
+    connError = byExternal.error
+  }
+  if (connError || !connection) {
+    throw new RetryableInboundError(`Unknown telegram bot ${botId}`)
+  }
+  const rawToken = openAccessToken(connection.access_token)
+  if (!rawToken) throw new RetryableInboundError("Telegram token could not be read")
+
+  const userId = connection.user_id
+  const { data: user } = await supabase.from("users").select("*").eq("id", userId).single()
+  if (!user) return
+
+  try {
 
     if (user.account_id) {
       const { data: account } = await supabase
@@ -81,22 +128,12 @@ export async function POST(
       if (account) {
         if (account.is_banned) {
           console.log(`[Telegram Webhook] 🛑 Account ${account.id} is banned. Skipping.`)
-          return NextResponse.json({ success: true })
+          return
         }
 
         const effectivePlan = await checkTrialStatus(supabase, account)
-        if (effectivePlan === "expired") {
-          return NextResponse.json({ success: true })
-        }
+        if (effectivePlan === "expired") return
       }
-    }
-
-    // 4. Parse Telegram Update
-    let update: any
-    try {
-      update = await request.json()
-    } catch {
-      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
     }
 
     let senderId: string | null = null
@@ -128,9 +165,7 @@ export async function POST(
       triggerValue = update.message.text || update.message.caption || ""
     }
 
-    if (!senderId || !chatId || !triggerValue) {
-      return NextResponse.json({ success: true })
-    }
+    if (!senderId || !chatId || !triggerValue) return
 
     console.log(`[Telegram Webhook] 📩 Message from ${senderUsername} (${senderId}): "${triggerValue}"`)
 
@@ -285,16 +320,14 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
           }
 
           console.log(`[Telegram Webhook] 🤖 AI Auto-reply sent to ${senderId}`)
-          return NextResponse.json({ success: true })
+          return
         }
       } catch (e) {
         console.error("[Telegram Webhook] AI Auto-reply error:", e)
       }
     }
 
-    if (!match) {
-      return NextResponse.json({ success: true })
-    }
+    if (!match) return
 
     // 8. Execute Matched Automation
     const { content: rawContent, variantId } = pickVariant(match)
@@ -345,12 +378,10 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
       }
     } else {
       console.error("[Telegram Webhook] Failed to send Telegram response:", sendResult.error)
+      throw new RetryableInboundError(String(sendResult.error || "Telegram send failed"))
     }
-
-    return NextResponse.json({ success: true })
   } catch (error) {
     console.error("[Telegram Webhook] Error:", error)
-    // MUST return 200 to prevent Telegram from retrying (which causes duplicate messages)
-    return NextResponse.json({ ok: true })
+    throw error
   }
 }

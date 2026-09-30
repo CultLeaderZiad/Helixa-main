@@ -3,7 +3,12 @@ import { decryptString, encryptString } from "@/lib/crypto"
 /** Prefix for tokens sealed by this app. Legacy ciphertext has no prefix. */
 export const TOKEN_SEAL_PREFIX = "enc:v1:"
 
-const PLACEHOLDER_TOKENS = new Set(["facebook_managed", "telegram_managed", "TEST_TOKEN_NOT_REAL"])
+const PLACEHOLDER_TOKENS = new Set([
+  "facebook_managed",
+  "telegram_managed",
+  "workspace_managed",
+  "TEST_TOKEN_NOT_REAL",
+])
 
 export function isPlaceholderToken(token: string | null | undefined): boolean {
   return !token || PLACEHOLDER_TOKENS.has(token)

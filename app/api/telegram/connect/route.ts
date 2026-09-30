@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireSessionUser } from "@/lib/auth"
+import { forbidBelow, requireSessionUser } from "@/lib/auth"
 import { getBotInfo, setWebhook } from "@/lib/telegram-api"
 import { sealAccessToken } from "@/lib/token-crypto"
 import { ensureTenantProfile } from "@/lib/tenant-user"
@@ -15,7 +15,9 @@ import { ensureTenantProfile } from "@/lib/tenant-user"
 export async function POST(request: NextRequest) {
   const result = await requireSessionUser(request)
   if (result.response) return result.response
-  const { user: account, igUser } = result
+  const roleDenied = forbidBelow(result.user.workspace_role, "admin")
+  if (roleDenied) return roleDenied
+  const { user: account, igUser, workspace } = result
 
   let body: { botToken?: string }
   try {
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
   let profile = igUser?.id ? igUser : null
   if (!profile) {
     try {
-      profile = await ensureTenantProfile(supabase, account, "telegram_managed")
+      profile = await ensureTenantProfile(supabase, account, "telegram_managed", workspace?.id)
     } catch (error) {
       console.error("[Telegram Connect] Could not prepare profile:", error)
       return NextResponse.json({ error: "Could not prepare an account profile" }, { status: 500 })

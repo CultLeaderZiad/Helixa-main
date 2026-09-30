@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation"
 import { HelixaLogo } from "@/components/ui/HelixaLogo"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"
+import { WorkspaceSwitcher } from "@/components/layout/WorkspaceSwitcher"
 
 interface SidebarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "role"> {
   username?: string
@@ -41,6 +42,8 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
       <div className="px-5 pt-5 pb-3">
         <HelixaLogo size="md" href="/dashboard" />
       </div>
+
+      <WorkspaceSwitcher />
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto overflow-x-hidden">

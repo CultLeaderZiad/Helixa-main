@@ -123,11 +123,66 @@ export async function consolidateTenantProfiles(supabase: any, rows: TenantProfi
   }
 }
 
-export async function resolveTenantProfile(supabase: any, accountId: string): Promise<TenantProfile | null> {
+function sameWorkspace(rows: TenantProfile[]): boolean {
+  const ids = new Set(rows.map((row) => (row.workspace_id ? String(row.workspace_id) : "")))
+  return ids.size <= 1
+}
+
+/**
+ * Profiles are per workspace. Rows that belong to different workspaces must
+ * not be merged, or connecting a second client would delete the first.
+ * Pass `workspaceId` when the caller already knows which client is active.
+ * With no workspace id and more than one workspace on the account, this
+ * returns null instead of guessing.
+ */
+export async function resolveTenantProfile(
+  supabase: any,
+  accountId: string,
+  workspaceId?: string | null,
+): Promise<TenantProfile | null> {
   let rows = await listProfilesForAccount(supabase, accountId)
+  if (workspaceId) {
+    const tagged = rows.filter((row) => String(row.workspace_id || "") === workspaceId)
+    rows = tagged.length > 0 ? tagged : rows.filter((row) => !row.workspace_id)
+  } else if (!sameWorkspace(rows)) {
+    const untagged = rows.filter((row) => !row.workspace_id)
+    if (untagged.length > 0) rows = untagged
+    else return null
+  }
   if (rows.length > 1) {
     await consolidateTenantProfiles(supabase, rows)
     rows = await listProfilesForAccount(supabase, accountId)
+    if (workspaceId) {
+      const tagged = rows.filter((row) => String(row.workspace_id || "") === workspaceId)
+      rows = tagged.length > 0 ? tagged : rows.filter((row) => !row.workspace_id)
+    } else if (!sameWorkspace(rows)) {
+      rows = rows.filter((row) => !row.workspace_id)
+    }
+  }
+  if (rows.length === 0) return null
+  return rows.length === 1 ? rows[0] : pickCanonicalProfile(rows)
+}
+
+export async function resolveWorkspaceProfile(supabase: any, workspaceId: string): Promise<TenantProfile | null> {
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("workspace_id", workspaceId)
+    .order("created_at", { ascending: true })
+  if (error) {
+    if (/workspace_id/i.test(error.message || "")) return null
+    throw error
+  }
+  let rows: TenantProfile[] = data || []
+  if (rows.length > 1) {
+    await consolidateTenantProfiles(supabase, rows)
+    const again = await supabase
+      .from("users")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .order("created_at", { ascending: true })
+    if (again.error) throw again.error
+    rows = again.data || []
   }
   if (rows.length === 0) return null
   return rows.length === 1 ? rows[0] : pickCanonicalProfile(rows)
@@ -140,24 +195,34 @@ export async function resolveTenantProfile(supabase: any, accountId: string): Pr
 export async function ensureTenantProfile(
   supabase: any,
   account: { id: string; email?: string | null },
-  placeholderToken: "facebook_managed" | "telegram_managed",
+  placeholderToken: "facebook_managed" | "telegram_managed" | "workspace_managed",
+  workspaceId?: string | null,
 ): Promise<TenantProfile> {
-  const existing = await resolveTenantProfile(supabase, account.id)
-  if (existing) return existing
+  if (workspaceId) {
+    const existing = await resolveWorkspaceProfile(supabase, workspaceId)
+    if (existing) return existing
+  } else {
+    const existing = await resolveTenantProfile(supabase, account.id)
+    if (existing) return existing
+  }
 
   let lastError: { message?: string; code?: string } | null = null
   for (let attempt = 0; attempt < 3; attempt++) {
     const id = randomProfileId()
-    const { data, error } = await supabase
-      .from("users")
-      .insert({
-        id,
-        account_id: account.id,
-        username: placeholderUsername(account, attempt),
-        access_token: placeholderToken,
-      })
-      .select("*")
-      .maybeSingle()
+    const fields: Record<string, unknown> = {
+      id,
+      account_id: account.id,
+      username: placeholderUsername(account, attempt),
+      access_token: placeholderToken,
+    }
+    if (workspaceId) fields.workspace_id = workspaceId
+    let { data, error } = await supabase.from("users").insert(fields).select("*").maybeSingle()
+    if (error && workspaceId && /workspace_id/i.test(error.message || "")) {
+      delete fields.workspace_id
+      const retry = await supabase.from("users").insert(fields).select("*").maybeSingle()
+      data = retry.data
+      error = retry.error
+    }
     if (!error && data) return data
     lastError = error
     if (error?.code !== "23505") break

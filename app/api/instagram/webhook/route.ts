@@ -1,5 +1,5 @@
-export const dynamic = 'force-dynamic'
 /* @ts-nocheck */
+export const dynamic = 'force-dynamic'
 
 import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
@@ -13,8 +13,8 @@ import {
   sendSenderAction,
   replyToComment,
   fetchProfile,
-  sleep,
 } from "@/lib/instagram-api"
+import { RetryableInboundError } from "@/lib/event-pipeline"
 import { openAccessToken, sealAccessToken, tokenNeedsReseal } from "@/lib/token-crypto"
 import { markInstagramReconnect } from "@/lib/instagram-token"
 import { watchInstagramAuthFailures } from "@/lib/instagram-api"
@@ -83,11 +83,9 @@ async function sendAutomationResponse(
   content: any,
   opts: { skipTyping?: boolean; automationId?: string; variantId?: string | null } = {},
 ) {
-  const delaySeconds = Number(content.delay_seconds) || 0
   const useTyping = content.typing_indicator === true && recipient.id && !opts.skipTyping
 
   if (useTyping) await sendSenderAction(token, recipient.id!, "typing_on")
-  if (delaySeconds > 0) await sleep(delaySeconds * 1000)
 
   let result
   if (recipient.comment_id) {
@@ -138,40 +136,22 @@ async function sendAutomationResponse(
   }
 
   if (useTyping) await sendSenderAction(token, recipient.id!, "typing_off")
+  if (result && result.ok === false && result.error !== "empty content") {
+    throw new RetryableInboundError(String(result.error || "Instagram send failed"))
+  }
   return result
 }
 
 
 
-export async function POST(request: NextRequest) {
+export async function processInstagramWebhookBody(body: any, supabase: any) {
   try {
-    const rawBody = await request.text()
-    const signature = request.headers.get("x-hub-signature-256")
-    if (!isValidSignature(rawBody, signature)) {
-      // Hash prefixes are safe to log and let us tell a wrong secret from a mutated body.
-      const computed = APP_SECRETS.map(
-        (s, i) =>
-          `${i === 0 ? "IG" : "META"}:${crypto.createHmac("sha256", s).update(rawBody, "utf8").digest("hex").slice(0, 12)}`,
-      ).join(" ")
-      console.error(
-        `[webhook] 401: ${!signature ? "no x-hub-signature-256 header" : "signature mismatch"}; ` +
-          `secrets configured: ${APP_SECRETS.length}; received=${signature?.slice(7, 19) ?? "-"} computed=[${computed}] bodyLen=${rawBody.length}`,
-      )
-      if (process.env.DISABLE_WEBHOOK_SIGNATURE_CHECK === "true") {
-        console.warn("[webhook] SIGNATURE CHECK BYPASSED — remove DISABLE_WEBHOOK_SIGNATURE_CHECK after debugging")
-      } else {
-        return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
-      }
-    }
-    const body = JSON.parse(rawBody)
-    if (!body.entry) return NextResponse.json({ ok: true })
-    const supabase = await getSupabaseBypassClient()
-
+    if (!body?.entry) return
     if (body.object === "page") {
       const { handleFacebookWebhook } = await import("@/lib/facebook-webhook")
-      return handleFacebookWebhook(body, supabase)
+      await handleFacebookWebhook(body, supabase)
+      return
     }
-
 
     let stopAuthWatch: (() => void) | null = null
     for (const entry of body.entry) {
@@ -583,7 +563,7 @@ export async function POST(request: NextRequest) {
           if (triggerType === "postback") {
             if (triggerValue.startsWith("UNLOCK_CONTENT_")) {
               const ruleId = triggerValue.replace("UNLOCK_CONTENT_", "")
-              match = automations.find((a) => a.id === ruleId)
+              match = automations.find((a: any) => a.id === ruleId)
             } else if (triggerValue.startsWith("SYS_CARD_")) {
               const parts = triggerValue.split("_")
               const ruleId = parts[2]
@@ -610,11 +590,11 @@ export async function POST(request: NextRequest) {
                 match = { name: "Ice Breaker: " + ib.question, response_content: { message: ib.response } }
               }
             } else {
-              match = automations.find((a) => a.trigger_type === "postback" && a.trigger_value === triggerValue)
+              match = automations.find((a: any) => a.trigger_type === "postback" && a.trigger_value === triggerValue)
               // Quick reply payloads can also match keyword rules
               if (!match) {
                 match = dmAutomations.find(
-                  (a) => a.trigger_type === "keyword" && keywordMatches(a.trigger_value, triggerValue.toLowerCase()),
+                  (a: any) => a.trigger_type === "keyword" && keywordMatches(a.trigger_value, triggerValue.toLowerCase()),
                 )
               }
             }
@@ -624,12 +604,12 @@ export async function POST(request: NextRequest) {
               .select("*")
               .eq("user_id", user.id)
             
-            const exactIb = ibMatches?.find(ib => ib.question.toLowerCase().trim() === triggerValue)
+            const exactIb = ibMatches?.find((ib: any) => ib.question.toLowerCase().trim() === triggerValue)
             if (exactIb) {
               match = { name: "Ice Breaker: " + exactIb.question, response_content: { message: exactIb.response } }
             } else {
               match = dmAutomations.find(
-                (a) => a.trigger_type === "keyword" && keywordMatches(a.trigger_value, triggerValue),
+                (a: any) => a.trigger_type === "keyword" && keywordMatches(a.trigger_value, triggerValue),
               )
             }
           }
@@ -827,10 +807,53 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
       }
     }
     stopAuthWatch?.()
-    return NextResponse.json({ ok: true })
   } catch (error) {
     console.error("[webhook] Error", error)
-    return NextResponse.json({ ok: true })
+    throw error
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const rawBody = await request.text()
+    const signature = request.headers.get("x-hub-signature-256")
+    if (!isValidSignature(rawBody, signature)) {
+      const computed = APP_SECRETS.map(
+        (s, i) =>
+          `${i === 0 ? "IG" : "META"}:${crypto.createHmac("sha256", s).update(rawBody, "utf8").digest("hex").slice(0, 12)}`,
+      ).join(" ")
+      console.error(
+        `[webhook] 401: ${!signature ? "no x-hub-signature-256 header" : "signature mismatch"}; ` +
+          `secrets configured: ${APP_SECRETS.length}; received=${signature?.slice(7, 19) ?? "-"} computed=[${computed}] bodyLen=${rawBody.length}`,
+      )
+      if (process.env.DISABLE_WEBHOOK_SIGNATURE_CHECK === "true") {
+        console.warn("[webhook] SIGNATURE CHECK BYPASSED — remove DISABLE_WEBHOOK_SIGNATURE_CHECK after debugging")
+      } else {
+        return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
+      }
+    }
+    let body: any
+    try {
+      body = JSON.parse(rawBody)
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
+    }
+    if (!body.entry) return NextResponse.json({ ok: true })
+    const supabase = await getSupabaseBypassClient()
+    const { acceptInboundWebhook } = await import("@/lib/inbound-queue")
+    const platform = body.object === "page" ? "facebook" : "instagram"
+    const queued = await acceptInboundWebhook(supabase, platform, body)
+    if (queued.fallback) {
+      try {
+        await processInstagramWebhookBody(body, supabase)
+      } catch (error) {
+        console.error("[webhook] Inline processing failed", error)
+      }
+    }
+    return NextResponse.json({ ok: true, ...queued })
+  } catch (error) {
+    console.error("[webhook] Failed to queue event", error)
+    return NextResponse.json({ error: "queue_unavailable" }, { status: 500 })
   }
 }
 

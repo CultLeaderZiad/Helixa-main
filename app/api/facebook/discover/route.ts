@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
-import { requireSessionUser } from "@/lib/auth"
+import { forbidBelow, requireSessionUser } from "@/lib/auth"
 import { FACEBOOK_GRAPH_BASE } from "@/lib/graph"
 
 /**
@@ -15,6 +15,8 @@ import { FACEBOOK_GRAPH_BASE } from "@/lib/graph"
 export async function POST(request: NextRequest) {
   const result = await requireSessionUser(request)
   if (result.response) return result.response
+  const roleDenied = forbidBelow(result.user.workspace_role, "admin")
+  if (roleDenied) return roleDenied
   const { user: account, igUser } = result
   const resolvedUserId = igUser?.id || account.id
 

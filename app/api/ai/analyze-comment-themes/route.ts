@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireSessionUser } from "@/lib/auth"
 import { generateCompletion } from "@/lib/llm-provider"
+import { commentTextsFromPayload } from "@/lib/event-pipeline"
 
 // GET: fetch current themes (and re-analyze if 24h+ old or ?force=true)
 export async function GET(request: NextRequest) {
@@ -49,10 +50,30 @@ export async function GET(request: NextRequest) {
       console.error("Webhook events query failed (schema might not be ready):", eventsError.message)
     }
 
-    const comments = (!eventsError && events) ? events
+    const fromWebhook = (!eventsError && events) ? events
       ?.filter(e => e.data?.field === "comments" || e.data?.object === "instagram")
       .map(e => e.data?.value?.text || e.data?.text || "")
       .filter(text => text && typeof text === "string" && text.length > 2) || [] : []
+
+    const accountKeys = [igUser?.business_account_id, igUser?.page_id]
+      .filter(Boolean)
+      .map((id: string | number) => `instagram:${id}`)
+    let fromQueue: string[] = []
+    if (accountKeys.length > 0) {
+      const inbound = await supabase
+        .from("inbound_events")
+        .select("payload")
+        .eq("platform", "instagram")
+        .eq("status", "done")
+        .in("account_key", accountKeys)
+        .gte("created_at", fourteenDaysAgo.toISOString())
+        .limit(500)
+      if (!inbound.error && inbound.data) {
+        fromQueue = inbound.data.flatMap((row: { payload: unknown }) => commentTextsFromPayload(row.payload))
+      }
+    }
+
+    const comments = [...fromWebhook, ...fromQueue]
 
     if (comments.length === 0) {
       const { data: existingThemes } = await supabase

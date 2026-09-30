@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/refresh-instagram-tokens",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/process-inbound-events",
+      "schedule": "* * * * *"
     }
   ]
 }

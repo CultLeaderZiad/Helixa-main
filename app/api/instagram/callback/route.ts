@@ -1,9 +1,10 @@
 export const dynamic = 'force-dynamic'
 import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient, getSupabaseBypassClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { sealAccessToken } from "@/lib/token-crypto"
-import { hasInstagramCredentials, resolveTenantProfile } from "@/lib/tenant-user"
+import { hasInstagramCredentials, resolveTenantProfile, resolveWorkspaceProfile } from "@/lib/tenant-user"
+import { forbidBelow, loadWorkspaceContext } from "@/lib/auth"
 import { INSTAGRAM_GRAPH_BASE } from "@/lib/graph"
 import {
   IG_OAUTH_CODE_COOKIE,
@@ -131,28 +132,26 @@ export async function POST(request: NextRequest) {
     // DB reads/writes go through the RLS-bypass client (the session client below
     // is used only for auth.getUser()).
     const db = await getSupabaseBypassClient()
-    const supabase = await getSupabaseServerClient()
 
-    // 5a. Get Supabase Auth User & Account
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-    if (!authUser) {
+    // 5a. Attach Instagram to the workspace that is active for this login.
+    const session = await loadWorkspaceContext(request)
+    if (!session) {
       return clearCode(NextResponse.json({ error: "Not authenticated" }, { status: 401 }))
     }
-
-    const { data: account } = await db
-      .from("accounts")
-      .select("id")
-      .eq("id", authUser.id)
-      .single()
-
-    if (!account) {
-      return clearCode(NextResponse.json({ error: "Account not found" }, { status: 404 }))
+    if (session.denied) {
+      return clearCode(NextResponse.json({ error: "Forbidden" }, { status: 403 }))
     }
+    const roleDenied = forbidBelow(session.account.workspace_role, "admin")
+    if (roleDenied) return clearCode(roleDenied)
+
+    const account = { id: session.account.id }
+    const workspaceId = session.workspace?.id || null
 
     // A Facebook or Telegram connect may already have created a placeholder
-    // users row. Update that row in place so we do not insert a second id
-    // and lock the session out with a duplicate-profile error.
-    const existingUser = await resolveTenantProfile(db, account.id)
+    // users row for this workspace. Update that row in place.
+    const existingUser = workspaceId
+      ? await resolveWorkspaceProfile(db, workspaceId)
+      : await resolveTenantProfile(db, account.id)
     const profileId = existingUser?.id ?? loginUserId
     const firstInstagramConnect = !existingUser || !hasInstagramCredentials(existingUser)
 
@@ -165,6 +164,7 @@ export async function POST(request: NextRequest) {
       business_account_id: businessAccountId,
       page_id: businessAccountId, // Always keep in sync
       account_id: account.id,
+      ...(workspaceId ? { workspace_id: workspaceId } : {}),
     }
 
     // Only set signup_ip on the first Instagram connect for this account.
@@ -228,10 +228,11 @@ export async function POST(request: NextRequest) {
     }
 
     let { error: upsertError } = await saveProfile(updates)
-    if (upsertError && /reconnect_required|token_expires_at/i.test(upsertError.message || "")) {
+    if (upsertError && /reconnect_required|token_expires_at|workspace_id/i.test(upsertError.message || "")) {
       const reduced = { ...updates }
       if (/reconnect_required/i.test(upsertError.message || "")) delete reduced.reconnect_required
       if (/token_expires_at/i.test(upsertError.message || "")) delete reduced.token_expires_at
+      if (/workspace_id/i.test(upsertError.message || "")) delete reduced.workspace_id
       const retry = await saveProfile(reduced)
       upsertError = retry.error
     }
