@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { type NextRequest, NextResponse } from "next/server"
+import { unauthorizedCronResponse } from "@/lib/cron-auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { generateCompletion, isAgentEnabled } from "@/lib/llm-provider"
 
@@ -13,7 +14,7 @@ import { generateCompletion, isAgentEnabled } from "@/lib/llm-provider"
  * it compatible with Vercel Hobby's daily-cron-only limit while still being a
  * weekly digest).
  *
- * Secured with CRON_SECRET like /api/cron/send-scheduled-campaigns.
+ * Fails closed unless Authorization is `Bearer $CRON_SECRET`.
  */
 
 function isoWeekStart(d: Date): string {
@@ -25,11 +26,8 @@ function isoWeekStart(d: Date): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization")
-    const expectedAuth = `Bearer ${process.env.CRON_SECRET}`
-    if (process.env.CRON_SECRET && authHeader !== expectedAuth) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const denied = unauthorizedCronResponse(request)
+    if (denied) return denied
 
     const supabase = await getSupabaseBypassClient()
     const weekStart = isoWeekStart(new Date())

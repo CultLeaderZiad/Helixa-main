@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
+import { unauthorizedCronResponse } from "@/lib/cron-auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { sendCampaign } from "@/lib/campaign-sender"
 
@@ -9,13 +10,8 @@ import { sendCampaign } from "@/lib/campaign-sender"
  */
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization")
-    const expectedAuth = `Bearer ${process.env.CRON_SECRET}`
-    
-    // Validate security secret if configured
-    if (process.env.CRON_SECRET && authHeader !== expectedAuth) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const denied = unauthorizedCronResponse(request)
+    if (denied) return denied
 
     const supabase = await getSupabaseBypassClient()
     const now = new Date().toISOString()
