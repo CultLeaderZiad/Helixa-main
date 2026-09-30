@@ -1,4 +1,7 @@
 -- 99-fix-realtime.sql
+-- DO NOT RE-RUN. This script adds `users` to supabase_realtime. That table
+-- stores Instagram access tokens, and realtime payloads include every column.
+-- supabase/migrations/20260930_phase1_rls_realtime.sql removes it again.
 -- Run this in your Supabase SQL Editor to enable real-time broadcasts for User Management and Dashboard syncing.
 
 -- Add the tables to the supabase_realtime publication
