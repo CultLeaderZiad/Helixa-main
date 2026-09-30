@@ -4,7 +4,7 @@ import type React from "react"
 import { cn } from "@/lib/utils"
 import {
   Zap, LayoutDashboard, LogOut, Settings, BarChart3,
-  MessageSquare, Snowflake, Send, Linkedin, Share2, CreditCard, Mail, Sparkles, Bell
+  MessageSquare, Snowflake, Send, Linkedin, Share2, CreditCard, Mail, Sparkles, Bell, Users
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -31,6 +31,7 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
     { href: "/dashboard", icon: LayoutDashboard, label: t.overview },
     { href: "/dashboard/automations", icon: Zap, label: t.automations },
     { href: "/dashboard/inbox", icon: MessageSquare, label: t.inbox },
+    { href: "/dashboard/contacts", icon: Users, label: t.contacts },
     { href: "/dashboard/ai-engine", icon: Sparkles, label: t.aiEngine || "AI Engine" },
     { href: "/dashboard/updates", icon: Bell, label: "Updates" },
   ]

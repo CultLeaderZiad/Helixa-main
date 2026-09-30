@@ -140,8 +140,9 @@ Return ONLY a valid JSON object with a "themes" array.`
     if (parsed && Array.isArray(parsed) && parsed.length > 0) {
       await supabase.from("ai_comment_themes").delete().eq("user_id", igUser?.id || account.id)
 
+      const themeUserId = igUser?.id || account.id
       const rows = parsed.map(t => ({
-        user_id: account.id,
+        user_id: themeUserId,
         theme: t.theme || "General",
         keywords: t.keywords || "",
         examples: t.examples || "",

@@ -13,11 +13,13 @@ export default function InboxPage() {
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
     const [selectedRecipientName, setSelectedRecipientName] = useState<string | null>(null)
     const [selectedRecipientId, setSelectedRecipientId] = useState<string | null>(null)
+    const [selectedPlatform, setSelectedPlatform] = useState<string>("instagram")
 
-    const handleSelect = (id: string, name: string, recipientId: string) => {
+    const handleSelect = (id: string, name: string, recipientId: string, platform: string) => {
         setSelectedConversationId(id)
         setSelectedRecipientName(name)
         setSelectedRecipientId(recipientId)
+        setSelectedPlatform(platform || "instagram")
     }
 
     if (isLoading) {
@@ -59,6 +61,7 @@ export default function InboxPage() {
                     conversationId={selectedConversationId}
                     recipientName={selectedRecipientName}
                     recipientId={selectedRecipientId || undefined}
+                    platform={selectedPlatform}
                     userId={userId}
                     onBack={() => setSelectedConversationId(null)}
                 />

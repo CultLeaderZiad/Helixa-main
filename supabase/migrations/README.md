@@ -91,3 +91,42 @@ select indexname from pg_indexes where tablename = 'inbound_events';
 
 The owner count should match the number of accounts that existed before the
 script. `inbound_events` should have a unique index on `idempotency_key`.
+
+## Phase 3 manual steps
+
+Run `20260930_phase3_contacts_and_clicks.sql` after phase 2. It is idempotent.
+It does not delete rows. It was not run against a live database from this change.
+
+The script:
+
+1. Adds `messages.direction` (`in` or `out`) and backfills it. A message whose
+   sender is the conversation's recipient is inbound. That corrects Messenger
+   and Telegram rows that were stored with `is_from_instagram = false` for
+   both directions.
+2. Creates `contacts` (one person per channel in a workspace): tags, custom
+   fields, source, first/last seen, `last_inbound_at`, and `bot_paused`.
+3. Creates `tracked_links`. `GET /r/{code}` redirects to the stored https URL
+   and inserts `automation_events.event_type = 'link_click'`.
+4. Enables row-level security on both new tables. The service role used by
+   the app bypasses it. Authenticated users can read their workspace's rows.
+   They cannot insert from the browser.
+
+`NEXT_PUBLIC_APP_URL` must be the public origin. Outbound button and text
+links are rewritten to `{origin}/r/{code}` only when that variable is set.
+Without it, messages still send the original URL and link clicks stay at
+zero.
+
+The 24-hour window is computed from `contacts.last_inbound_at`, then from the
+latest inbound message if the contact row does not exist yet. Instagram and
+Messenger sends outside 24 hours and inside 7 days go out with Meta's
+`HUMAN_AGENT` tag and the inbox shows that. WhatsApp sends outside 24 hours
+are blocked (template messages are not in this phase). Telegram has no window.
+
+Confirm after it succeeds:
+
+```sql
+select column_name from information_schema.columns
+ where table_name = 'messages' and column_name = 'direction';
+select count(*) from public.contacts;
+select indexname from pg_indexes where tablename = 'tracked_links';
+```

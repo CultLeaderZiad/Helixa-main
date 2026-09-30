@@ -5,6 +5,7 @@ export interface Conversation {
     recipient_username: string
     last_message_at: string
     last_message_preview?: string | null
+    platform?: string | null
     created_at: string
     updated_at: string
 }
@@ -17,6 +18,7 @@ export interface Message {
     sender_username?: string
     content: string
     is_from_instagram: boolean
+    direction?: "in" | "out" | null
     created_at: string
 }
 

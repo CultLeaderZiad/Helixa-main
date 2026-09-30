@@ -113,6 +113,7 @@ export const en = {
   overview: "Overview",
   automations: "Automations",
   inbox: "Inbox",
+  contacts: "Contacts",
   connectedPlatforms: "Connected Platforms",
   agents: "AI Agents",
   campaigns: "Email Campaigns",

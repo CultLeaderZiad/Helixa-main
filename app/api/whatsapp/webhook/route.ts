@@ -1,14 +1,12 @@
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic"
+
 import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
-import { sendWhatsAppText, markWhatsAppSeen } from "@/lib/whatsapp-api"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { openAccessToken } from "@/lib/token-crypto"
-import { parseContent } from "@/lib/webhook-utils"
-import { RetryableInboundError } from "@/lib/event-pipeline"
+
+export { processWhatsAppWebhookBody } from "@/lib/channels/ingress"
 
 const WEBHOOK_VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN
-// WhatsApp uses the Meta App Secret for signature verification
 const APP_SECRET = process.env.META_APP_SECRET || process.env.INSTAGRAM_APP_SECRET
 
 function isValidSignature(rawBody: string, signatureHeader: string | null): boolean {
@@ -33,38 +31,23 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ error: "Invalid token" }, { status: 403 })
 }
 
-function keywordMatches(triggerValue: string, text: string): boolean {
-  return triggerValue
-    .split(",")
-    .map((k: string) => k.trim())
-    .filter(Boolean)
-    .some((k: string) => {
-      try {
-        return new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(text)
-      } catch {
-        return text.includes(k.toLowerCase())
-      }
-    })
-}
-
 export async function POST(request: NextRequest) {
   try {
     const rawBody = await request.text()
     const signature = request.headers.get("x-hub-signature-256")
-
     if (!isValidSignature(rawBody, signature)) {
       if (process.env.DISABLE_WEBHOOK_SIGNATURE_CHECK !== "true") {
         return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
       }
     }
 
-    let body: any
+    let body: unknown
     try {
       body = JSON.parse(rawBody)
     } catch {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
     }
-    if (body.object !== "whatsapp_business_account") {
+    if (!body || typeof body !== "object" || !("object" in body) || body.object !== "whatsapp_business_account") {
       return NextResponse.json({ ok: true })
     }
 
@@ -73,6 +56,7 @@ export async function POST(request: NextRequest) {
     const queued = await acceptInboundWebhook(supabase, "whatsapp", body)
     if (queued.fallback) {
       try {
+        const { processWhatsAppWebhookBody } = await import("@/lib/channels/ingress")
         await processWhatsAppWebhookBody(body, supabase)
       } catch (error) {
         console.error("[wa-webhook] Inline processing failed", error)
@@ -84,244 +68,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "queue_unavailable" }, { status: 500 })
   }
 }
-
-export async function processWhatsAppWebhookBody(body: any, supabase: any) {
-  try {
-    if (body?.object !== "whatsapp_business_account" || !body.entry) return
-
-    for (const entry of body.entry) {
-      const waAccountId = entry.id
-      if (!entry.changes) continue
-
-      for (const change of entry.changes) {
-        if (change.field !== "messages") continue
-        
-        const value = change.value
-        const phoneNumberId = value.metadata?.phone_number_id
-        
-        if (!value.messages || !phoneNumberId) continue
-
-        // User resolution via platform_connections
-        const { data: connection } = await supabase
-          .from("platform_connections")
-          .select("user_id, platform, access_token, page_id")
-          .eq("page_id", phoneNumberId)
-          .eq("platform", "whatsapp")
-          .single()
-
-        if (!connection) {
-          console.log(`[wa-webhook] ❌ Could not resolve WhatsApp Phone Number ID ${phoneNumberId}`)
-          continue
-        }
-
-        const { data: user } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", connection.user_id)
-          .single()
-
-        if (!user) continue
-
-        const { data: automations } = await supabase
-        .from("automations")
-        .select("*, automation_variants(*)")
-        .eq("user_id", user.id)
-          .eq("is_active", true)
-          .eq("platform", "whatsapp")
-
-        if (!automations?.length) continue
-
-        // Plan enforcement
-        const { data: account } = await supabase
-          .from("accounts")
-          .select("id, plan, trial_ends_at, trial_exempt")
-          .eq("id", user.account_id)
-          .single()
-
-        if (!account) {
-          console.log(`[wa-webhook] ⚠️ Account not found for user ${user.username}. Skipping.`)
-          continue
-        }
-
-        let effectivePlan = account.plan
-        if (account.plan === "trial" && account.trial_ends_at && !account.trial_exempt) {
-          const trialEnded = new Date(account.trial_ends_at) < new Date()
-          if (trialEnded) {
-            effectivePlan = "expired"
-            await supabase
-              .from("accounts")
-              .update({ plan: "expired", updated_at: new Date().toISOString() })
-              .eq("id", account.id)
-            console.log(`[wa-webhook] ⚠️ Account ${account.id} trial expired. Set plan=expired, skipping automations.`)
-          }
-        }
-        if (effectivePlan === "expired") {
-          continue
-        }
-
-        const waToken = openAccessToken(connection.access_token)
-        if (!waToken) {
-          console.log(`[wa-webhook] ❌ Missing access token for phone ${phoneNumberId}`)
-          continue
-        }
-
-        for (const message of value.messages) {
-          const senderPhone = message.from
-          const msgId = message.id
-          
-          await markWhatsAppSeen(phoneNumberId, waToken, msgId)
-
-          let text = ""
-          let isPostback = false
-
-          if (message.type === "text") {
-            text = message.text.body
-          } else if (message.type === "interactive") {
-            if (message.interactive.type === "button_reply") {
-              text = message.interactive.button_reply.id
-              isPostback = true
-            } else if (message.interactive.type === "list_reply") {
-              text = message.interactive.list_reply.id
-              isPostback = true
-            }
-          }
-
-          if (!text) continue
-
-          // Handle Conversation and Incoming Message Logging
-          let conv = null
-          try {
-            const { data: existing } = await supabase
-              .from("conversations")
-              .select("id, recipient_username")
-              .eq("user_id", user.id)
-              .eq("recipient_id", senderPhone)
-              .eq("platform", "whatsapp")
-              .maybeSingle()
-              
-            if (!existing) {
-              const { data: newConv } = await supabase
-                .from("conversations")
-                .insert({
-                  user_id: user.id,
-                  recipient_id: senderPhone,
-                  recipient_username: message.contacts?.[0]?.profile?.name || "WhatsApp User",
-                  platform: "whatsapp"
-                })
-                .select("id, recipient_username")
-                .single()
-              conv = newConv
-            } else {
-              conv = existing
-              await supabase
-                .from("conversations")
-                .update({ last_message_at: new Date().toISOString() })
-                .eq("id", existing.id)
-            }
-
-            if (conv && text) {
-              await supabase.from("messages").insert({
-                id: msgId || `mid_${Date.now()}_${Math.random()}`,
-                conversation_id: conv.id,
-                user_id: user.id,
-                sender_id: senderPhone,
-                sender_username: message.contacts?.[0]?.profile?.name || "WhatsApp User",
-                content: text,
-                is_from_instagram: true,
-                platform: "whatsapp"
-              })
-            }
-          } catch (err) {
-            console.error("[wa-webhook] Failed to save incoming message", err)
-          }
-
-          for (const rule of automations) {
-            let matched = false
-            if (isPostback && rule.trigger_type === "postback" && rule.trigger_value === text) {
-              matched = true
-            } else if (!isPostback && rule.trigger_type === "keyword" && keywordMatches(rule.trigger_value, text)) {
-              matched = true
-            }
-
-            if (matched) {
-              console.log(`[wa-webhook] ✅ Match! rule=${rule.name} sender=${senderPhone}`)
-              
-              // A/B Testing selection
-              let content = parseContent(rule.response_content)
-              let variantId = null
-              if (rule.automation_variants && rule.automation_variants.length > 0) {
-                const allOptions = [
-                  { id: null, content: rule.response_content, weight: 100 - rule.automation_variants.reduce((sum: number, v: any) => sum + (v.traffic_weight || 0), 0) },
-                  ...rule.automation_variants.map((v: any) => ({ id: v.id, content: v.response_config, weight: v.traffic_weight || 50 }))
-                ]
-                const random = Math.random() * 100
-                let sum = 0
-                for (const opt of allOptions) {
-                  sum += Math.max(0, opt.weight)
-                  if (random <= sum) {
-                    content = parseContent(opt.content)
-                    variantId = opt.id
-                    break
-                  }
-                }
-              }
-
-              const quickReplies = Array.isArray(content.quick_replies)
-                ? content.quick_replies
-                    .filter((q: any) => q?.title)
-                    .map((q: any) => ({ title: q.title, payload: q.payload || `QR_${q.title.toUpperCase().replace(/\s+/g, "_")}` }))
-                : undefined
-
-              if (content.message || content.reply_text) {
-                const sendText = content.message || content.reply_text
-                const result = await sendWhatsAppText(phoneNumberId, waToken, senderPhone, sendText, quickReplies)
-                
-                // If it fails because outside 24h window, log it
-                if (!result.ok) {
-                  throw new RetryableInboundError(String(result.error || "WhatsApp send failed"))
-                }
-                
-                // Log outgoing message to Inbox
-                if (result.ok && conv) {
-                  try {
-                    await supabase.from("messages").insert({
-                      id: `mid_reply_${Date.now()}_${Math.random()}`,
-                      conversation_id: conv.id,
-                      user_id: user.id,
-                      sender_id: phoneNumberId,
-                      sender_username: user.username || "Bot",
-                      content: sendText,
-                      is_from_instagram: false,
-                      platform: "whatsapp"
-                    })
-                  } catch (e) {
-                    console.error("[wa-webhook] Failed to save outgoing message", e)
-                  }
-                }
-              }
-
-              try {
-                await supabase.from("automation_events").insert({
-                  user_id: user.id,
-                  automation_id: rule.id,
-                  event_type: "wa_reply",
-                  recipient_id: senderPhone,
-                  platform: "whatsapp",
-                  variant_id: variantId
-                })
-              } catch (e) {
-                console.error("[wa-webhook] Failed to log automation_event:", e)
-              }
-              break
-            }
-          }
-        }
-      }
-    }
-
-  } catch (error) {
-    console.error("[wa-webhook] Server error:", error)
-    throw error
-  }
-}
-

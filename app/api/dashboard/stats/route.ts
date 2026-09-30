@@ -41,19 +41,19 @@ export async function GET(request: NextRequest) {
                 .select("*", { count: "exact", head: true })
                 .eq("user_id", igUserId),
 
-            // 4. Messages Sent (bot-sent)
+            // 4. Messages Sent (outbound). direction is the source of truth.
             supabase
                 .from("messages")
                 .select("*", { count: "exact", head: true })
                 .eq("user_id", igUserId)
-                .eq("is_from_instagram", false),
+                .eq("direction", "out"),
 
-            // 5. Recent Activity (Last 5 messages)
+            // 5. Recent Activity (Last 5 outbound messages)
             supabase
                 .from("messages")
                 .select("id, content, created_at, sender_username, conversation_id, platform, recipient:conversations(recipient_username, platform)")
                 .eq("user_id", igUserId)
-                .eq("is_from_instagram", false)
+                .eq("direction", "out")
                 .order("created_at", { ascending: false })
                 .limit(5),
 
@@ -72,6 +72,25 @@ export async function GET(request: NextRequest) {
                 .eq("user_id", igUserId)
                 .single(),
         ])
+
+        let messagesSent = messagesResult.count || 0
+        let recentActivity = recentMessagesResult.data || []
+        if (messagesResult.error && /direction/i.test(messagesResult.error.message || "")) {
+            const legacy = await supabase
+                .from("messages")
+                .select("*", { count: "exact", head: true })
+                .eq("user_id", igUserId)
+                .eq("is_from_instagram", false)
+            messagesSent = legacy.count || 0
+            const legacyRecent = await supabase
+                .from("messages")
+                .select("id, content, created_at, sender_username, conversation_id, platform, recipient:conversations(recipient_username, platform)")
+                .eq("user_id", igUserId)
+                .eq("is_from_instagram", false)
+                .order("created_at", { ascending: false })
+                .limit(5)
+            recentActivity = legacyRecent.data || []
+        }
 
         // Compute payment status
         const hasPendingSubmission = !!(pendingSubmissionsResult.data && pendingSubmissionsResult.data.length > 0)
@@ -92,9 +111,9 @@ export async function GET(request: NextRequest) {
                 totalAutomations: automationsResult.count || 0,
                 activeTriggers: activeTriggersResult.count || 0,
                 audienceReached: audienceResult.count || 0,
-                messagesSent: messagesResult.count || 0,
+                messagesSent,
             },
-            recentActivity: recentMessagesResult.data || [],
+            recentActivity,
             paymentStatus: {
                 hasPendingSubmission,
                 needsManualRenewal,

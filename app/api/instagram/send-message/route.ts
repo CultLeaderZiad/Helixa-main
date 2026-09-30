@@ -1,90 +1,38 @@
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic"
+
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireInstagramUser } from "@/lib/auth"
-import { INSTAGRAM_GRAPH_BASE } from "@/lib/graph"
-import { isMetaAuthError, markInstagramReconnect } from "@/lib/instagram-token"
+import { sendHumanMessage } from "@/lib/channels/manual-send"
 
-/**
- * POST /api/instagram/send-message
- * Send a DM reply to an Instagram user
- */
 export async function POST(request: NextRequest) {
   try {
     const result = await requireInstagramUser(request)
     if (result.response) return result.response
-    const igUser = result.igUser
-    const igUserId = igUser.id
-
-    const { recipient_id, message } = await request.json()
-
+    const { recipient_id, message, conversation_id } = await request.json()
     if (!recipient_id || !message) {
       return NextResponse.json({ error: "Missing required fields: recipient_id, message" }, { status: 400 })
     }
 
     const supabase = await getSupabaseBypassClient()
-
-    console.log("[v0] Sending DM from", igUser.username, "to", recipient_id)
-
-    // Send message via Instagram API
-    const sendUrl = `${INSTAGRAM_GRAPH_BASE}/me/messages?access_token=${encodeURIComponent(igUser.access_token)}`
-
-    const response = await fetch(sendUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        recipient: {
-          id: recipient_id.toString(),
-        },
-        message: {
-          text: message,
-        },
-      }),
+    const sent = await sendHumanMessage(supabase, {
+      userId: result.igUser.id,
+      workspaceId: result.workspace?.id || result.igUser.workspace_id || null,
+      channel: "instagram",
+      recipientId: String(recipient_id),
+      conversationId: conversation_id || null,
+      text: String(message),
+      username: result.igUser.username,
     })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      console.error("[v0] Failed to send message:", data)
-      if (isMetaAuthError(data.error)) {
-        await markInstagramReconnect(supabase, igUserId)
-        return NextResponse.json({ error: "Instagram needs to be reconnected.", reconnect_required: true }, { status: 401 })
-      }
-      return NextResponse.json({ error: data.error?.message || "Failed to send message" }, { status: 400 })
+    if (!sent.ok) {
+      return NextResponse.json(
+        { error: sent.error, window: sent.window, reconnect_required: sent.reconnect || false },
+        { status: sent.status },
+      )
     }
-
-    console.log("[v0] Message sent successfully:", data.message_id)
-
-    // Store the sent message in database
-    const { data: conversation } = await supabase
-      .from("conversations")
-      .select("id")
-      .eq("user_id", igUserId)
-      .eq("recipient_id", recipient_id)
-      .single()
-
-    if (conversation) {
-      const { error: storeErr } = await supabase.from("messages").insert({
-        id: data.message_id,
-        conversation_id: conversation.id,
-        user_id: igUserId,
-        sender_id: igUserId,
-        sender_username: igUser.username,
-        content: message,
-        is_from_instagram: false,
-      })
-      if (storeErr) console.warn("[instagram/send-message] Failed to store sent message:", storeErr.message)
-    }
-
-    return NextResponse.json({
-      success: true,
-      message_id: data.message_id,
-    })
+    return NextResponse.json({ success: true, message_id: sent.id, window: sent.window })
   } catch (error) {
     console.error("[v0] Send message error:", error)
     return NextResponse.json({ error: "Something went wrong sending the message. Please try again." }, { status: 500 })
   }
 }
-

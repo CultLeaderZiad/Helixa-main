@@ -40,12 +40,22 @@ export async function GET(request: NextRequest) {
     const fourteenDaysAgo = new Date()
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
 
-    const { data: messagesData, error: messagesError } = await supabase
+    const ownerId = igUser?.id || account.id
+    let messagesResult = await supabase
       .from("messages")
       .select("content")
-      .eq("user_id", igUser?.id || account.id)
-      .eq("is_from_instagram", true)
+      .eq("user_id", ownerId)
+      .eq("direction", "in")
       .gte("created_at", fourteenDaysAgo.toISOString())
+    if (messagesResult.error && /direction/i.test(messagesResult.error.message || "")) {
+      messagesResult = await supabase
+        .from("messages")
+        .select("content")
+        .eq("user_id", ownerId)
+        .eq("is_from_instagram", true)
+        .gte("created_at", fourteenDaysAgo.toISOString())
+    }
+    const { data: messagesData, error: messagesError } = messagesResult
 
     if (messagesError) {
       console.error("Messages query failed (schema might not be ready):", messagesError.message)
