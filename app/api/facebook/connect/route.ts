@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireSessionUser } from "@/lib/auth"
+import { sealAccessToken } from "@/lib/token-crypto"
 
 /**
  * POST /api/facebook/connect
@@ -114,6 +115,7 @@ export async function POST(request: NextRequest) {
     }
 
     const pageAccessToken = pageData.access_token
+    const storedPageToken = sealAccessToken(pageAccessToken)
     const pageName = pageData.name || "Facebook Page"
     const pageCategory = pageData.category || "Unknown"
 
@@ -144,7 +146,7 @@ export async function POST(request: NextRequest) {
       platform: "facebook",
       page_id: page_id,
       external_account_id: page_id,
-      access_token: pageAccessToken,
+      access_token: storedPageToken,
       metadata: { name: pageName, category: pageCategory, webhook_subscribed: webhookSubscribed },
     }
     
@@ -170,7 +172,7 @@ export async function POST(request: NextRequest) {
       platform: "messenger",
       page_id: page_id,
       external_account_id: page_id,
-      access_token: pageAccessToken,
+      access_token: storedPageToken,
       metadata: { name: pageName, category: pageCategory, webhook_subscribed: webhookSubscribed },
     }
     

@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireSessionUser } from "@/lib/auth"
+import { openAccessToken } from "@/lib/token-crypto"
+import { isMetaAuthError, markInstagramReconnect } from "@/lib/instagram-token"
 
 export async function GET(request: NextRequest) {
     try {
@@ -71,13 +73,17 @@ export async function POST(request: NextRequest) {
             .single()
 
         if (igUserData?.access_token && igUserData?.page_id) {
+            const accessToken = openAccessToken(igUserData.access_token)
+            if (!accessToken) {
+                return NextResponse.json({ success: true, data: inserted, warning: "Saved locally. Instagram token could not be read." })
+            }
             const ice_breakers = inserted.map((ib: any) => ({
                 question: ib.question,
                 payload: `ICE_BREAKER_${ib.id}`
             }))
 
             const response = await fetch(
-                `https://graph.instagram.com/v24.0/me/messenger_profile?access_token=${igUserData.access_token}`,
+                `https://graph.instagram.com/v24.0/me/messenger_profile?access_token=${accessToken}`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -95,6 +101,9 @@ export async function POST(request: NextRequest) {
             const igResult = await response.json()
             if (igResult.error) {
                 console.error("IG Sync Error", igResult.error)
+                if (isMetaAuthError(igResult.error)) {
+                    await markInstagramReconnect(supabase2, igUserId)
+                }
                 return NextResponse.json({ success: true, warning: "Saved to DB but IG Sync failed", error: igResult.error }, { status: 200 })
             }
         }

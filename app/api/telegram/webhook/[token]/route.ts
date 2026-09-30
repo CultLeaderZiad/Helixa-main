@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { decryptString } from "@/lib/crypto"
+import { openAccessToken } from "@/lib/token-crypto"
 import {
   sendTelegramAutomationResponse,
   sendTelegramMessage,
@@ -44,7 +44,7 @@ export async function POST(
     }
 
     // 3. Verify the token matches the decrypted stored token
-    const storedToken = decryptString(connection.access_token)
+    const storedToken = openAccessToken(connection.access_token)
     if (storedToken !== rawToken) {
       console.warn(`[Telegram Webhook] Token mismatch for bot ID: ${botId}`)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

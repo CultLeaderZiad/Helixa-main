@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireSessionUser } from "@/lib/auth"
+import { openAccessToken } from "@/lib/token-crypto"
+import { isMetaAuthError, markInstagramReconnect } from "@/lib/instagram-token"
 
 export async function POST(request: NextRequest) {
     try {
@@ -38,10 +40,14 @@ export async function POST(request: NextRequest) {
         if (!igUserData?.access_token) {
             return NextResponse.json({ error: "Instagram not connected" }, { status: 400 })
         }
+        const accessToken = openAccessToken(igUserData.access_token)
+        if (!accessToken) {
+            return NextResponse.json({ error: "Instagram not connected" }, { status: 400 })
+        }
 
         // Send to Instagram
         const res = await fetch(
-            `https://graph.instagram.com/v24.0/me/messages?access_token=${igUserData.access_token}`,
+            `https://graph.instagram.com/v24.0/me/messages?access_token=${accessToken}`,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -53,7 +59,10 @@ export async function POST(request: NextRequest) {
 
         if (data.error) {
             console.error("[Inbox Send] Instagram API Error:", data.error)
-            return NextResponse.json({ error: data.error.message }, { status: 500 })
+            if (isMetaAuthError(data.error)) {
+                await markInstagramReconnect(supabase, igUserId)
+            }
+            return NextResponse.json({ error: data.error.message, reconnect_required: isMetaAuthError(data.error) }, { status: isMetaAuthError(data.error) ? 401 : 500 })
         }
 
         // Log to Database (Outbound Message)

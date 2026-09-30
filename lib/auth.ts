@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient, getSupabaseBypassClient } from "@/lib/supabase-server"
+import { openAccessToken } from "@/lib/token-crypto"
 
 /**
  * Reads the Supabase Auth session, looks up the matching row in the
@@ -134,7 +135,17 @@ export async function getSessionInstagramUser(request?: NextRequest) {
     clonedAccount.permission_level = "admin" // The owner of the account
   }
 
-  return { account: clonedAccount, igUser }
+  return { account: clonedAccount, igUser: withPlainAccessToken(igUser) }
+}
+
+function withPlainAccessToken(igUser: any) {
+  if (!igUser?.access_token) return igUser
+  try {
+    return { ...igUser, access_token: openAccessToken(igUser.access_token) }
+  } catch (error) {
+    console.error("[auth] Could not decrypt Instagram access token:", error)
+    return { ...igUser, access_token: null, reconnect_required: true }
+  }
 }
 
 /**

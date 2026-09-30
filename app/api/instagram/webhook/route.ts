@@ -13,9 +13,10 @@ import {
   sendSenderAction,
   replyToComment,
   fetchProfile,
-  verifyIdOwnership,
   sleep,
 } from "@/lib/instagram-api"
+import { openAccessToken, sealAccessToken, tokenNeedsReseal } from "@/lib/token-crypto"
+import { markInstagramReconnect } from "@/lib/instagram-token"
 
 const WEBHOOK_VERIFY_TOKEN = process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN
 // Meta signs every webhook POST with HMAC-SHA256 of the raw body. Depending on app setup the
@@ -37,6 +38,21 @@ function isValidSignature(rawBody: string, signatureHeader: string | null): bool
 }
 
 const DEFAULT_PUBLIC_REPLIES = ["Check your DMs! 📥", "Sent! 🔥", "Check inbox! ✨"]
+
+async function findInstagramUser(supabase: any, id: string) {
+  const { data: byBusiness } = await supabase
+    .from("users")
+    .select("*")
+    .eq("business_account_id", id)
+    .limit(1)
+  if (byBusiness?.[0]) return byBusiness[0]
+  const { data: byPage } = await supabase
+    .from("users")
+    .select("*")
+    .eq("page_id", id)
+    .limit(1)
+  return byPage?.[0] || null
+}
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -164,14 +180,11 @@ export async function POST(request: NextRequest) {
         if (isSystemEvent) continue
       }
 
-      const webhookId = entry.id
+      const webhookId = String(entry.id)
 
-      // ---------- User resolution: direct, payload fallback, token verify ----------
-      let { data: user } = await supabase
-        .from("users")
-        .select("*")
-        .or(`business_account_id.eq.${webhookId},page_id.eq.${webhookId}`)
-        .single()
+      // Match only on ids already stored for that account. Do not probe other
+      // tenants' tokens or rewrite page_id from an unmatched payload.
+      let user = await findInstagramUser(supabase, webhookId)
 
       if (!user) {
         const candidateIds = new Set<string>()
@@ -187,13 +200,8 @@ export async function POST(request: NextRequest) {
         }
         for (const candidateId of candidateIds) {
           if (candidateId === webhookId) continue
-          const { data: fallbackUser } = await supabase
-            .from("users")
-            .select("*")
-            .or(`business_account_id.eq.${candidateId},page_id.eq.${candidateId}`)
-            .single()
+          const fallbackUser = await findInstagramUser(supabase, candidateId)
           if (fallbackUser) {
-            await supabase.from("users").update({ page_id: webhookId }).eq("id", fallbackUser.id)
             user = fallbackUser
             break
           }
@@ -201,28 +209,20 @@ export async function POST(request: NextRequest) {
       }
 
       if (!user) {
-        // Last-resort fallback: look up users with recent activity to avoid N+1 on all users
-        const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-        const { data: recentUsers } = await supabase
-          .from("users")
-          .select("*")
-          .gte("updated_at", oneWeekAgo)
-          .limit(50)
-        if (recentUsers) {
-          for (const candidate of recentUsers) {
-            if (!candidate.access_token) continue
-            if (await verifyIdOwnership(candidate.access_token, webhookId)) {
-              await supabase.from("users").update({ page_id: webhookId }).eq("id", candidate.id)
-              user = candidate
-              break
-            }
-          }
-        }
-      }
-
-      if (!user) {
         console.log(`[webhook] ❌ Could not resolve user for ID ${webhookId}`)
         continue
+      }
+
+      const storedToken = user.access_token
+      try {
+        user.access_token = openAccessToken(storedToken)
+      } catch (error) {
+        console.error("[webhook] Could not decrypt Instagram access token:", error)
+        await markInstagramReconnect(supabase, user.id)
+        continue
+      }
+      if (user.access_token && tokenNeedsReseal(storedToken)) {
+        await supabase.from("users").update({ access_token: sealAccessToken(user.access_token) }).eq("id", user.id)
       }
 
       const { data: automations } = await supabase

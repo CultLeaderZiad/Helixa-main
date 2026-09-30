@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { getSessionUser } from "@/lib/auth"
+import { sealAccessToken } from "@/lib/token-crypto"
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -126,6 +127,7 @@ export async function GET(request: NextRequest) {
     const results = await Promise.allSettled(
       accountsData.data.map(async (page: any) => {
         const pageAccessToken = page.access_token
+        const storedPageToken = sealAccessToken(pageAccessToken)
         const pageId = page.id
 
         // Subscribe the Page to webhook events (best-effort)
@@ -153,7 +155,7 @@ export async function GET(request: NextRequest) {
             platform,
             page_id: pageId,
             external_account_id: pageId,
-            access_token: pageAccessToken,
+            access_token: storedPageToken,
             metadata: sharedMeta,
           }
           const { data: existing } = await supabase.from("platform_connections")

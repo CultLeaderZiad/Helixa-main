@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireSessionUser } from "@/lib/auth"
+import { openAccessToken } from "@/lib/token-crypto"
 
 /**
  * Normalizes and extracts post ID or canonical reference from Facebook URLs
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
         .maybeSingle()
 
       if (conn?.access_token) {
-        fbToken = conn.access_token
+        fbToken = openAccessToken(conn.access_token)
         pageId = conn.page_id
         pageName = conn.metadata?.name || null
       }
@@ -128,7 +129,7 @@ export async function POST(request: NextRequest) {
         .maybeSingle()
 
       if (accConn?.access_token) {
-        fbToken = accConn.access_token
+        fbToken = openAccessToken(accConn.access_token)
         pageId = accConn.page_id
         pageName = accConn.metadata?.name || null
       }

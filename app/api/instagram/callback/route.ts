@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient, getSupabaseBypassClient } from "@/lib/supabase-server"
+import { sealAccessToken } from "@/lib/token-crypto"
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -132,7 +133,8 @@ export async function POST(request: NextRequest) {
 
     const updates: any = {
       username,
-      access_token: accessToken,
+      access_token: sealAccessToken(accessToken),
+      reconnect_required: false,
       token_expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
       updated_at: new Date().toISOString(),
       business_account_id: businessAccountId,
@@ -193,9 +195,15 @@ export async function POST(request: NextRequest) {
 
     console.log(`[v0] 💾 Saving user: ${username} | id=${loginUserId} | biz_id=${businessAccountId}`)
 
-    const { error: upsertError } = await db
+    let { error: upsertError } = await db
       .from("users")
       .upsert({ id: loginUserId, ...updates }, { onConflict: "id" })
+
+    if (upsertError && /reconnect_required/i.test(upsertError.message || "")) {
+      delete updates.reconnect_required
+      const retry = await db.from("users").upsert({ id: loginUserId, ...updates }, { onConflict: "id" })
+      upsertError = retry.error
+    }
 
     if (upsertError) throw upsertError
 

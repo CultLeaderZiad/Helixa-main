@@ -1,8 +1,9 @@
 export const dynamic = 'force-dynamic'
 import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
 import { sendWhatsAppText, markWhatsAppSeen } from "@/lib/whatsapp-api"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { openAccessToken } from "@/lib/token-crypto"
 
 const WEBHOOK_VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN
 // WhatsApp uses the Meta App Secret for signature verification
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseBypassClient()
 
     for (const entry of body.entry) {
       const waAccountId = entry.id
@@ -132,7 +133,11 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        const waToken = connection.access_token
+        const waToken = openAccessToken(connection.access_token)
+        if (!waToken) {
+          console.log(`[wa-webhook] ❌ Missing access token for phone ${phoneNumberId}`)
+          continue
+        }
 
         for (const message of value.messages) {
           const senderPhone = message.from

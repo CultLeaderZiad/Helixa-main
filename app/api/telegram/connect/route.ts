@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireSessionUser } from "@/lib/auth"
 import { getBotInfo, setWebhook } from "@/lib/telegram-api"
-import { encryptString } from "@/lib/crypto"
+import { sealAccessToken } from "@/lib/token-crypto"
 
 /**
  * POST /api/telegram/connect
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Encrypt the token for secure storage at rest
-    const encryptedToken = encryptString(botToken)
+    const encryptedToken = sealAccessToken(botToken)
 
     // 4. Save to platform_connections
     const pageId = botInfo.id.toString()

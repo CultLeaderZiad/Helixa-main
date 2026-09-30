@@ -145,19 +145,6 @@ export async function fetchProfile(token: string, igUserId: string): Promise<{ u
   }
 }
 
-export async function verifyIdOwnership(token: string, id: string): Promise<boolean> {
-  try {
-    const res = await fetch(`${GRAPH}/${id}?fields=id&access_token=${encodeURIComponent(token)}`)
-    if (!res.ok) {
-      const body = await res.json().catch(() => null)
-      console.warn(`[ig-api] verifyIdOwnership failed (${res.status}):`, body?.error?.message || "unknown error")
-    }
-    return res.ok
-  } catch {
-    return false
-  }
-}
-
 export function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, Math.min(ms, 8000)))
 }

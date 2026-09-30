@@ -11,6 +11,7 @@ import {
 } from "./facebook-api"
 import { processLeadCapture } from "./lead-capture"
 import { parseContent, pickRandom, pickVariant, keywordMatches, checkTrialStatus } from "./webhook-utils"
+import { openAccessToken } from "./token-crypto"
 
 const DEFAULT_PUBLIC_REPLIES = ["Check your inbox! 📥", "Sent you a message! 🔥", "Check your DMs! ✨"]
 
@@ -145,7 +146,11 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
       continue
     }
 
-    const fbToken = connection.access_token
+    const fbToken = openAccessToken(connection.access_token)
+    if (!fbToken) {
+      console.log(`[fb-webhook] ❌ Missing access token for page ${webhookId}`)
+      continue
+    }
 
     // ============================================================
     //  PART A: COMMENTS & FEED

@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireSessionUser } from "@/lib/auth"
+import { openAccessToken } from "@/lib/token-crypto"
+import { openAccessToken } from "@/lib/token-crypto"
 
 export async function GET(request: NextRequest) {
   try {
@@ -48,7 +50,14 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const { page_id, access_token, metadata } = conn
+    const { page_id, metadata } = conn
+    const access_token = openAccessToken(conn.access_token)
+    if (!access_token) {
+      return NextResponse.json({
+        data: [],
+        warning: "No connected Facebook Page found. Please connect your page in Connected Platforms.",
+      })
+    }
 
     // 2. Fetch recent posts from the Page via Graph API
     const graphUrl = `https://graph.facebook.com/v25.0/${encodeURIComponent(
