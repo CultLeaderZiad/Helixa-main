@@ -78,7 +78,7 @@ export default function BroadcastsPage() {
     <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-white">Broadcasts</h1>
-        <p className="text-sm text-neutral-400 mt-1">WhatsApp uses an approved template and an opted-in contact. Instagram and Messenger stay inside the window unless you set a message tag. Telegram and the website widget send freely. STOP opts a contact out.</p>
+        <p className="text-sm text-neutral-400 mt-1">WhatsApp uses an approved template and an opted-in contact. Instagram and Messenger send inside 24 hours, or through 7 days with the HUMAN_AGENT tag. Telegram and the website widget send freely. STOP opts a contact out.</p>
       </div>
       {data?.migration_required && <p className="text-sm text-amber-200">Run the phase 5 SQL migration first.</p>}
       <div className="grid md:grid-cols-2 gap-3">
@@ -100,9 +100,6 @@ export default function BroadcastsPage() {
           <select className="mt-1 w-full h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm text-white" value={form.messageTag} onChange={(event) => setForm({ ...form, messageTag: event.target.value })}>
             <option value="">Inside 24h only</option>
             <option value="HUMAN_AGENT">HUMAN_AGENT (7 days)</option>
-            <option value="ACCOUNT_UPDATE">ACCOUNT_UPDATE</option>
-            <option value="POST_PURCHASE_UPDATE">POST_PURCHASE_UPDATE</option>
-            <option value="CONFIRMED_EVENT_UPDATE">CONFIRMED_EVENT_UPDATE</option>
           </select>
         </label>
         <label className="text-xs text-neutral-400 md:col-span-2">Schedule<input type="datetime-local" className="mt-1 w-full h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm text-white" value={form.scheduledAt} onChange={(event) => setForm({ ...form, scheduledAt: event.target.value })} /></label>
