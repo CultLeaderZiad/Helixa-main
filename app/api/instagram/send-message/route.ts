@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireInstagramUser } from "@/lib/auth"
 import { INSTAGRAM_GRAPH_BASE } from "@/lib/graph"
+import { isMetaAuthError, markInstagramReconnect } from "@/lib/instagram-token"
 
 /**
  * POST /api/instagram/send-message
@@ -47,6 +48,10 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       console.error("[v0] Failed to send message:", data)
+      if (isMetaAuthError(data.error)) {
+        await markInstagramReconnect(supabase, igUserId)
+        return NextResponse.json({ error: "Instagram needs to be reconnected.", reconnect_required: true }, { status: 401 })
+      }
       return NextResponse.json({ error: data.error?.message || "Failed to send message" }, { status: 400 })
     }
 

@@ -35,6 +35,7 @@ interface Connection {
   page_id: string
   metadata?: any
   connected_at?: string
+  reconnect_required?: boolean
 }
 
 interface DiscoveredPage {
@@ -343,6 +344,7 @@ export default function ConnectedPlatformsPage() {
         {PLATFORMS.map((platform) => {
           const matchedConnections = connections.filter(platform.platformFilter)
           const isConnected = matchedConnections.length > 0
+          const needsReconnect = matchedConnections.some((c) => c.reconnect_required)
 
           return (
             <SpotlightCard
@@ -391,7 +393,14 @@ export default function ConnectedPlatformsPage() {
                           <p className="text-[10px] text-neutral-500 uppercase tracking-wider">{c.platform}</p>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                          {webhookOk ? (
+                          {c.reconnect_required ? (
+                            <span
+                              className="text-[10px] text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium"
+                              title="Meta rejected this token or it has expired. Automations will not send until you reconnect."
+                            >
+                              <AlertTriangle className="w-3 h-3" /> Reconnect needed
+                            </span>
+                          ) : webhookOk ? (
                             <span className="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
                               <Check className="w-3 h-3" /> Live
                             </span>
@@ -531,7 +540,7 @@ export default function ConnectedPlatformsPage() {
               )}
 
               {platform.key === "instagram" && (
-                isConnected ? (
+                isConnected && !needsReconnect ? (
                   <button disabled className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl text-sm font-semibold disabled:opacity-60">
                     Connected
                   </button>
@@ -540,7 +549,7 @@ export default function ConnectedPlatformsPage() {
                     href="/api/instagram/auth"
                     className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:brightness-110 text-white rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2"
                   >
-                    Connect Instagram
+                    {needsReconnect ? "Reconnect Instagram" : "Connect Instagram"}
                   </a>
                 )
               )}

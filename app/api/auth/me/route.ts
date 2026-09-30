@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSessionInstagramUser } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { instagramNeedsReconnect } from "@/lib/instagram-token"
 
 /**
  * GET /api/auth/me
@@ -90,6 +91,7 @@ export async function GET(request: NextRequest) {
       is_past_deadline: isPastDeadline,
       is_banned: account.is_banned || false,
       banned_reason: account.banned_reason || null,
+      instagram_reconnect_required: instagramNeedsReconnect(igUser),
     })
   } catch (error: any) {
     console.error("[auth/me] Error:", error)

@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { requireInstagramUser } from "@/lib/auth"
 import { INSTAGRAM_GRAPH_BASE } from "@/lib/graph"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { isMetaAuthError, markInstagramReconnect } from "@/lib/instagram-token"
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,8 +19,9 @@ export async function GET(request: NextRequest) {
 
     if (data.error) {
       console.error("[v0] Instagram Media Error:", data.error)
-      if (data.error.code === 190) {
-         return NextResponse.json({ error: "Session Expired. Please Logout & Login." }, { status: 401 })
+      if (isMetaAuthError(data.error)) {
+         await markInstagramReconnect(await getSupabaseBypassClient(), igUser.id)
+         return NextResponse.json({ error: "Instagram needs to be reconnected.", reconnect_required: true }, { status: 401 })
       }
       return NextResponse.json({ error: data.error.message }, { status: 500 })
     }
@@ -51,6 +54,10 @@ export async function POST(request: NextRequest) {
     const data = await res.json()
 
     if (data.error) {
+      if (isMetaAuthError(data.error)) {
+        await markInstagramReconnect(await getSupabaseBypassClient(), igUser.id)
+        return NextResponse.json({ error: "Instagram needs to be reconnected.", reconnect_required: true }, { status: 401 })
+      }
       return NextResponse.json({ error: data.error.message }, { status: 500 })
     }
 

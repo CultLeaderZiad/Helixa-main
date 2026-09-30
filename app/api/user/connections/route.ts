@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireUser } from "@/lib/auth"
+import { instagramNeedsReconnect } from "@/lib/instagram-token"
 
 export async function GET(request: NextRequest) {
   const result = await requireUser(request)
@@ -14,12 +15,10 @@ export async function GET(request: NextRequest) {
 
   const supabase = await getSupabaseBypassClient()
 
-  // First, look up the linked user row (if any)
-  const { data: igUser } = await supabase
-    .from("users")
-    .select("id, business_account_id, page_id, username, created_at, access_token")
-    .eq("account_id", account.id)
-    .maybeSingle()
+  // Prefer a row that actually has Instagram ids. Duplicate placeholder rows
+  // from an earlier Facebook/Telegram connect are ignored here; consolidation
+  // happens when the session is loaded.
+  const igUser = await loadInstagramProfile(supabase, account.id)
 
   const connections: any[] = []
 
@@ -31,6 +30,7 @@ export async function GET(request: NextRequest) {
       page_id: igUser.business_account_id?.toString() || igUser.page_id?.toString() || "",
       metadata: { username: igUser.username || `user_${account.id}` },
       created_at: igUser.created_at,
+      reconnect_required: instagramNeedsReconnect(igUser),
     })
   }
 
@@ -87,6 +87,21 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({ connections })
+}
+
+async function loadInstagramProfile(supabase: { from: (table: string) => any }, accountId: string) {
+  const withExpiry = "id, business_account_id, page_id, username, created_at, access_token, token_expires_at, reconnect_required"
+  const base = "id, business_account_id, page_id, username, created_at, access_token"
+  let result = await supabase.from("users").select(withExpiry).eq("account_id", accountId)
+  if (result.error && /token_expires_at|reconnect_required/i.test(result.error.message || "")) {
+    result = await supabase.from("users").select(base).eq("account_id", accountId)
+  }
+  if (result.error) {
+    console.error("[connections] Failed to load instagram profile:", result.error.message)
+    return null
+  }
+  const rows = result.data || []
+  return rows.find((row: { business_account_id?: string | null; page_id?: string | null }) => row.business_account_id || row.page_id) || rows[0] || null
 }
 
 export async function DELETE(request: NextRequest) {

@@ -20,6 +20,7 @@ export interface SessionState {
     isLoading: boolean
     isBanned: boolean
     bannedReason: string | null
+    instagramReconnectRequired: boolean
 }
 
 /**
@@ -50,6 +51,7 @@ const initialState: SessionState = {
     isLoading: true,
     isBanned: false,
     bannedReason: null,
+    instagramReconnectRequired: false,
 }
 
 let snapshot: SessionState = { ...initialState }
@@ -107,6 +109,7 @@ async function fetchMe(): Promise<boolean> {
                     isPastDeadline: data.is_past_deadline || false,
                     isBanned: data.is_banned || false,
                     bannedReason: data.banned_reason || null,
+                    instagramReconnectRequired: data.instagram_reconnect_required || false,
                 })
                 try {
                     localStorage.setItem("ig_account_id", data.accountId)
@@ -290,6 +293,7 @@ export function useInstagramSession() {
             userId: null,
             email: null,
             role: null,
+            instagramReconnectRequired: false,
             // We intentionally leave username and profilePic out of this patch
             // so they retain their last known values in the UI
         })

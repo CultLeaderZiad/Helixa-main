@@ -16,7 +16,7 @@ export default function DashboardLayout({
 }: {
     children: React.ReactNode
 }) {
-    const { username, profilePic, logout, plan, trialEndsAt, trialExempt, isLoading, accountId, email, role, hasValidPayment, isTrialExpired, isPastDeadline, isBanned, bannedReason } = useInstagramSession()
+    const { username, profilePic, logout, plan, trialEndsAt, trialExempt, isLoading, accountId, email, role, hasValidPayment, isTrialExpired, isPastDeadline, isBanned, bannedReason, instagramReconnectRequired } = useInstagramSession()
 
     const router = useRouter()
 
@@ -125,6 +125,19 @@ export default function DashboardLayout({
 
                 <main className="flex-1 relative overflow-auto z-10">
                     {!trialExempt && <TrialBanner plan={plan || ""} trialEndsAt={trialEndsAt} />}
+                    {instagramReconnectRequired && (
+                        <div className="mx-4 mt-4 md:mx-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <p className="text-sm text-amber-100">
+                                Instagram needs to be reconnected. Automations stay paused until Meta accepts a new login.
+                            </p>
+                            <a
+                                href="/api/instagram/auth"
+                                className="shrink-0 rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-semibold text-black"
+                            >
+                                Reconnect Instagram
+                            </a>
+                        </div>
+                    )}
                     {children}
                 </main>
             </div>

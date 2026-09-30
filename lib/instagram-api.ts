@@ -1,6 +1,42 @@
 import { INSTAGRAM_GRAPH_BASE } from "@/lib/graph"
+import { isMetaAuthError } from "@/lib/instagram-token"
 
 const GRAPH = INSTAGRAM_GRAPH_BASE
+
+type AuthFailureHandler = (error: unknown) => void
+const authFailureHandlers = new Map<string, Set<AuthFailureHandler>>()
+
+/**
+ * Register a callback for Graph error 190 on this token. The webhook uses it
+ * so a rejected token marks the account as needing a reconnect without
+ * threading that check through every send helper.
+ */
+export function watchInstagramAuthFailures(token: string, handler: AuthFailureHandler): () => void {
+  if (!token) return () => {}
+  let handlers = authFailureHandlers.get(token)
+  if (!handlers) {
+    handlers = new Set()
+    authFailureHandlers.set(token, handlers)
+  }
+  handlers.add(handler)
+  return () => {
+    handlers.delete(handler)
+    if (handlers.size === 0) authFailureHandlers.delete(token)
+  }
+}
+
+function notifyAuthFailure(token: string, error: unknown) {
+  if (!isMetaAuthError(error)) return
+  const handlers = authFailureHandlers.get(token)
+  if (!handlers) return
+  for (const handler of handlers) {
+    try {
+      handler(error)
+    } catch {
+      // A watcher must not break the send that reported the failure.
+    }
+  }
+}
 
 export interface IGButton {
   type: "web_url" | "postback"
@@ -37,6 +73,7 @@ async function post(path: string, token: string, body: any): Promise<SendResult>
     const json = await res.json()
     if (json.error) {
       console.error(`[ig-api] ${path} failed:`, JSON.stringify(json.error))
+      notifyAuthFailure(token, json.error)
       return { ok: false, error: json.error }
     }
     return { ok: true, id: json.id || json.message_id }
@@ -139,6 +176,7 @@ export async function fetchProfile(token: string, igUserId: string): Promise<{ u
     const json = await res.json()
     if (json.error) {
       console.warn("[ig-api] fetchProfile failed:", json.error?.message || JSON.stringify(json.error))
+      notifyAuthFailure(token, json.error)
       return null
     }
     return json

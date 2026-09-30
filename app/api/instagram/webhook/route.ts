@@ -17,6 +17,7 @@ import {
 } from "@/lib/instagram-api"
 import { openAccessToken, sealAccessToken, tokenNeedsReseal } from "@/lib/token-crypto"
 import { markInstagramReconnect } from "@/lib/instagram-token"
+import { watchInstagramAuthFailures } from "@/lib/instagram-api"
 
 const WEBHOOK_VERIFY_TOKEN = process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN
 // Meta signs every webhook POST with HMAC-SHA256 of the raw body. Depending on app setup the
@@ -171,7 +172,10 @@ export async function POST(request: NextRequest) {
     }
 
 
+    let stopAuthWatch: (() => void) | null = null
     for (const entry of body.entry) {
+      stopAuthWatch?.()
+      stopAuthWatch = null
       // Skip pure system events (echo / read / delivery)
       if (entry.messaging) {
         const isSystemEvent = entry.messaging.every(
@@ -223,6 +227,12 @@ export async function POST(request: NextRequest) {
       }
       if (user.access_token && tokenNeedsReseal(storedToken)) {
         await supabase.from("users").update({ access_token: sealAccessToken(user.access_token) }).eq("id", user.id)
+      }
+      if (user.access_token) {
+        const watchedUserId = user.id
+        stopAuthWatch = watchInstagramAuthFailures(user.access_token, () => {
+          void markInstagramReconnect(supabase, watchedUserId)
+        })
       }
 
       const { data: automations } = await supabase
@@ -811,6 +821,7 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
         }
       }
     }
+    stopAuthWatch?.()
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error("[webhook] Error", error)
