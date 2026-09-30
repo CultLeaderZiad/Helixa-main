@@ -3,6 +3,7 @@ import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient, getSupabaseBypassClient } from "@/lib/supabase-server"
 import { sealAccessToken } from "@/lib/token-crypto"
+import { hasInstagramCredentials, resolveTenantProfile } from "@/lib/tenant-user"
 import { INSTAGRAM_GRAPH_BASE } from "@/lib/graph"
 import {
   IG_OAUTH_CODE_COOKIE,
@@ -132,13 +133,6 @@ export async function POST(request: NextRequest) {
     const db = await getSupabaseBypassClient()
     const supabase = await getSupabaseServerClient()
 
-    // Check if user already exists (for conditional trial field setting)
-    const { data: existingUser } = await db
-      .from("users")
-      .select("id")
-      .eq("id", loginUserId)
-      .single()
-
     // 5a. Get Supabase Auth User & Account
     const { data: { user: authUser } } = await supabase.auth.getUser()
     if (!authUser) {
@@ -155,6 +149,13 @@ export async function POST(request: NextRequest) {
       return clearCode(NextResponse.json({ error: "Account not found" }, { status: 404 }))
     }
 
+    // A Facebook or Telegram connect may already have created a placeholder
+    // users row. Update that row in place so we do not insert a second id
+    // and lock the session out with a duplicate-profile error.
+    const existingUser = await resolveTenantProfile(db, account.id)
+    const profileId = existingUser?.id ?? loginUserId
+    const firstInstagramConnect = !existingUser || !hasInstagramCredentials(existingUser)
+
     const updates: any = {
       username,
       access_token: sealAccessToken(accessToken),
@@ -166,8 +167,8 @@ export async function POST(request: NextRequest) {
       account_id: account.id,
     }
 
-    // Only set signup_ip on FIRST login (new user)
-    if (!existingUser) {
+    // Only set signup_ip on the first Instagram connect for this account.
+    if (firstInstagramConnect) {
       const signupIp = request.headers.get("x-forwarded-for")?.split(",")[0].trim()
         || request.headers.get("x-real-ip")
         || null
@@ -217,22 +218,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`[v0] 💾 Saving user: ${username} | id=${loginUserId} | biz_id=${businessAccountId}`)
+    console.log(`[v0] 💾 Saving user: ${username} | id=${profileId} | biz_id=${businessAccountId}`)
 
-    let { error: upsertError } = await db
-      .from("users")
-      .upsert({ id: loginUserId, ...updates }, { onConflict: "id" })
+    const saveProfile = async (fields: Record<string, unknown>) => {
+      if (existingUser) {
+        return db.from("users").update(fields).eq("id", profileId)
+      }
+      return db.from("users").upsert({ id: profileId, ...fields }, { onConflict: "id" })
+    }
 
-    if (upsertError && /reconnect_required/i.test(upsertError.message || "")) {
-      delete updates.reconnect_required
-      const retry = await db.from("users").upsert({ id: loginUserId, ...updates }, { onConflict: "id" })
+    let { error: upsertError } = await saveProfile(updates)
+    if (upsertError && /reconnect_required|token_expires_at/i.test(upsertError.message || "")) {
+      const reduced = { ...updates }
+      if (/reconnect_required/i.test(upsertError.message || "")) delete reduced.reconnect_required
+      if (/token_expires_at/i.test(upsertError.message || "")) delete reduced.token_expires_at
+      const retry = await saveProfile(reduced)
       upsertError = retry.error
     }
 
     if (upsertError) throw upsertError
 
     // 6. Return response (no need for insta_session cookie, we use Supabase Auth now)
-    const response = NextResponse.json({ success: true, username, userId: loginUserId, profilePic })
+    const response = NextResponse.json({ success: true, username, userId: String(profileId), profilePic })
     return clearCode(response)
 
   } catch (error: any) {

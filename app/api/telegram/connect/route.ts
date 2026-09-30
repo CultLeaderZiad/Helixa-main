@@ -4,6 +4,7 @@ import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireSessionUser } from "@/lib/auth"
 import { getBotInfo, setWebhook } from "@/lib/telegram-api"
 import { sealAccessToken } from "@/lib/token-crypto"
+import { ensureTenantProfile } from "@/lib/tenant-user"
 
 /**
  * POST /api/telegram/connect
@@ -29,32 +30,16 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = await getSupabaseBypassClient()
-  let userId = igUser?.id
-
-  if (!userId) {
-    const { data: existingUser } = await supabase
-      .from("users")
-      .select("id")
-      .eq("account_id", account.id)
-      .maybeSingle()
-
-    if (existingUser) {
-      userId = existingUser.id
-    } else {
-      const fallbackId = Math.floor(1000000000 + Math.random() * 9000000000)
-      const { data: newUser } = await supabase
-        .from("users")
-        .insert({
-          id: fallbackId,
-          account_id: account.id,
-          username: account.email?.split("@")[0] || `user_${account.id.slice(0, 8)}`,
-          access_token: "telegram_managed",
-        })
-        .select("id")
-        .maybeSingle()
-      userId = newUser?.id || fallbackId
+  let profile = igUser?.id ? igUser : null
+  if (!profile) {
+    try {
+      profile = await ensureTenantProfile(supabase, account, "telegram_managed")
+    } catch (error) {
+      console.error("[Telegram Connect] Could not prepare profile:", error)
+      return NextResponse.json({ error: "Could not prepare an account profile" }, { status: 500 })
     }
   }
+  const userId = profile.id
 
   try {
     // 1. Validate the bot token with Telegram
@@ -98,8 +83,9 @@ export async function POST(request: NextRequest) {
     // 4. Save to platform_connections
     const pageId = botInfo.id.toString()
 
-    const telegramData = {
+    const telegramData: Record<string, unknown> = {
       user_id: userId,
+      account_id: account.id,
       platform: "telegram",
       page_id: pageId, // Using the bot's user ID as page_id
       external_account_id: pageId,
@@ -115,13 +101,16 @@ export async function POST(request: NextRequest) {
     const { data: existingTg } = await supabase.from("platform_connections")
       .select("id").eq("user_id", userId).eq("platform", "telegram").eq("page_id", pageId).maybeSingle()
       
-    let upsertError;
-    if (existingTg) {
-      const { error } = await supabase.from("platform_connections").update(telegramData).eq("id", existingTg.id)
-      upsertError = error
-    } else {
-      const { error } = await supabase.from("platform_connections").insert(telegramData)
-      upsertError = error
+    const saveConnection = (row: Record<string, unknown>) =>
+      existingTg
+        ? supabase.from("platform_connections").update(row).eq("id", existingTg.id)
+        : supabase.from("platform_connections").insert(row)
+
+    let { error: upsertError } = await saveConnection(telegramData)
+    if (upsertError && /account_id/i.test(upsertError.message || "")) {
+      const { account_id: _ignored, ...withoutAccount } = telegramData
+      const retry = await saveConnection(withoutAccount)
+      upsertError = retry.error
     }
 
     if (upsertError) {

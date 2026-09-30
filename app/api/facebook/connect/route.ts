@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireSessionUser } from "@/lib/auth"
 import { sealAccessToken } from "@/lib/token-crypto"
+import { ensureTenantProfile } from "@/lib/tenant-user"
 import { FACEBOOK_GRAPH_BASE } from "@/lib/graph"
 
 /**
@@ -72,32 +73,16 @@ export async function POST(request: NextRequest) {
   if (!userAccessToken) {
     return NextResponse.json({ error: "Could not resolve access token" }, { status: 400 })
   }
-  let userId = igUser?.id
-
-  if (!userId) {
-    const { data: existingUser } = await supabase
-      .from("users")
-      .select("id")
-      .eq("account_id", account.id)
-      .maybeSingle()
-
-    if (existingUser) {
-      userId = existingUser.id
-    } else {
-      const fallbackId = Math.floor(1000000000 + Math.random() * 9000000000)
-      const { data: newUser } = await supabase
-        .from("users")
-        .insert({
-          id: fallbackId,
-          account_id: account.id,
-          username: account.email?.split("@")[0] || `user_${account.id.slice(0, 8)}`,
-          access_token: "facebook_managed",
-        })
-        .select("id")
-        .maybeSingle()
-      userId = newUser?.id || fallbackId
+  let profile = igUser?.id ? igUser : null
+  if (!profile) {
+    try {
+      profile = await ensureTenantProfile(supabase, account, "facebook_managed")
+    } catch (error) {
+      console.error("[FB Connect] Could not prepare profile:", error)
+      return NextResponse.json({ error: "Could not prepare an account profile" }, { status: 500 })
     }
   }
+  const userId = profile.id
 
   try {
     // 1. Fetch the Page Access Token + metadata for the specific page

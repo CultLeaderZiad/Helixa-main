@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireUser } from "@/lib/auth"
 import { instagramNeedsReconnect } from "@/lib/instagram-token"
+import { resolveTenantProfile } from "@/lib/tenant-user"
 
 export async function GET(request: NextRequest) {
   const result = await requireUser(request)
@@ -90,18 +91,12 @@ export async function GET(request: NextRequest) {
 }
 
 async function loadInstagramProfile(supabase: { from: (table: string) => any }, accountId: string) {
-  const withExpiry = "id, business_account_id, page_id, username, created_at, access_token, token_expires_at, reconnect_required"
-  const base = "id, business_account_id, page_id, username, created_at, access_token"
-  let result = await supabase.from("users").select(withExpiry).eq("account_id", accountId)
-  if (result.error && /token_expires_at|reconnect_required/i.test(result.error.message || "")) {
-    result = await supabase.from("users").select(base).eq("account_id", accountId)
-  }
-  if (result.error) {
-    console.error("[connections] Failed to load instagram profile:", result.error.message)
+  try {
+    return await resolveTenantProfile(supabase, accountId)
+  } catch (error) {
+    console.error("[connections] Failed to load instagram profile:", error)
     return null
   }
-  const rows = result.data || []
-  return rows.find((row: { business_account_id?: string | null; page_id?: string | null }) => row.business_account_id || row.page_id) || rows[0] || null
 }
 
 export async function DELETE(request: NextRequest) {

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient, getSupabaseBypassClient } from "@/lib/supabase-server"
 import { openAccessToken } from "@/lib/token-crypto"
+import { resolveTenantProfile } from "@/lib/tenant-user"
 
 /**
  * Reads the Supabase Auth session, looks up the matching row in the
@@ -98,27 +99,34 @@ export async function getSessionInstagramUser(request?: NextRequest) {
 
   const adminSupabase = await createAdminClient()
   
-  // Check if this user is acting as a team member for an agency
-  const { data: teamMember } = await adminSupabase
+  // More than one accepted membership used to make maybeSingle() error and
+  // drop the user onto their own empty account. Pick the oldest active one.
+  let teamQuery = await adminSupabase
     .from("agency_team_members")
     .select("agency_account_id, permission_level")
     .eq("member_account_id", account.id)
     .eq("status", "active")
-    .maybeSingle()
+    .order("created_at", { ascending: true })
+    .limit(1)
+  if (teamQuery.error && /created_at/i.test(teamQuery.error.message || "")) {
+    teamQuery = await adminSupabase
+      .from("agency_team_members")
+      .select("agency_account_id, permission_level")
+      .eq("member_account_id", account.id)
+      .eq("status", "active")
+      .limit(1)
+  }
+  const teamMember = teamQuery.data?.[0]
 
   const lookupAccountId = teamMember ? teamMember.agency_account_id : account.id
 
-  const { data: igUser, error } = await adminSupabase
-    .from("users")
-    .select("*")
-    .eq("account_id", lookupAccountId)
-    .maybeSingle()
-
-  if (error) {
+  let igUser: any = null
+  try {
+    igUser = await resolveTenantProfile(adminSupabase, lookupAccountId)
+  } catch (error: any) {
     console.error("[auth] Failed to load instagram user:", {
       accountId: lookupAccountId,
-      code: error.code,
-      message: error.message,
+      message: error?.message,
     })
     return null
   }

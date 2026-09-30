@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { getSessionUser } from "@/lib/auth"
 import { sealAccessToken } from "@/lib/token-crypto"
+import { resolveTenantProfile } from "@/lib/tenant-user"
 import { FACEBOOK_GRAPH_BASE } from "@/lib/graph"
 
 export async function GET(request: NextRequest) {
@@ -36,7 +37,13 @@ export async function GET(request: NextRequest) {
   const supabase = await getSupabaseBypassClient()
 
   // Get the linked users row (Instagram profile)
-  const { data: userProfile } = await supabase.from("users").select("id").eq("account_id", account.id).single()
+  let userProfile = null
+  try {
+    userProfile = await resolveTenantProfile(supabase, account.id)
+  } catch (error) {
+    console.error("[FB Callback] Could not load profile:", error)
+    return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=profile_lookup_failed", request.url))
+  }
   if (!userProfile) {
     return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=connect_ig_first", request.url))
   }
