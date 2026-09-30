@@ -32,7 +32,14 @@ export async function POST(request: NextRequest) {
         .eq("id", conversationId)
         .eq("user_id", igUserId)
         .maybeSingle()
-      let conversation = selected.data
+      type ConversationSendRow = {
+        id: string
+        platform?: string | null
+        recipient_id?: string | null
+        channel_account_id?: string | null
+        external_thread_id?: string | null
+      }
+      let conversation = selected.data as ConversationSendRow | null
       if (selected.error && /channel_account_id|external_thread_id/i.test(selected.error.message || "")) {
         const fallback = await supabase
           .from("conversations")
@@ -40,7 +47,7 @@ export async function POST(request: NextRequest) {
           .eq("id", conversationId)
           .eq("user_id", igUserId)
           .maybeSingle()
-        conversation = fallback.data
+        conversation = (fallback.data || null) as ConversationSendRow | null
       }
       if (!conversation) return NextResponse.json({ error: "Conversation not found" }, { status: 404 })
       channel = conversation.platform || channel || "instagram"

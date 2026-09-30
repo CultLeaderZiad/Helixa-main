@@ -47,13 +47,19 @@ async function credentials(
     .eq("user_id", input.userId)
     .in("platform", platform)
     .limit(20)
+  const rows = (data || []) as Array<{
+    platform?: string | null
+    access_token?: string | null
+    page_id?: string | null
+    external_account_id?: string | null
+  }>
   if (input.channel === "messenger" || input.channel === "facebook") {
-    const row = pickPageConnection(data)
+    const row = pickPageConnection(rows)
     const token = openAccessToken(row?.access_token)
     if (!token || !row) return null
-    return { token, senderId: row.page_id || row.external_account_id, senderName: input.username || input.channel }
+    return { token, senderId: row.page_id || row.external_account_id || undefined, senderName: input.username || input.channel }
   }
-  const picked = pickChannelConnection(data, input.channelAccountId)
+  const picked = pickChannelConnection(rows, input.channelAccountId)
   if (picked.ambiguous) return { ambiguous: true }
   const row = picked.row
   const token = openAccessToken(row?.access_token)
@@ -61,8 +67,8 @@ async function credentials(
   const needsSender = input.channel === "whatsapp" || input.channel === "tiktok" || input.channel === "webchat"
   return {
     token,
-    senderRef: needsSender ? row.page_id : undefined,
-    senderId: row.page_id || row.external_account_id,
+    senderRef: needsSender ? row.page_id || undefined : undefined,
+    senderId: row.page_id || row.external_account_id || undefined,
     senderName: input.username || input.channel,
   }
 }

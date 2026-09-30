@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const result = await requireSessionUser(request)
   if (result.response) return result.response
-  const denied = forbidBelow(result.user.workspace_role, "editor")
+  const denied = forbidBelow(result.user.workspace_role, "member")
   if (denied) return denied
   if (!result.igUser?.id) return NextResponse.json({ error: "WhatsApp conversation not found" }, { status: 404 })
 
