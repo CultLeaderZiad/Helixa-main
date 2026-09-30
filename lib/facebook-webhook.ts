@@ -98,13 +98,19 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
     // maybeSingle() on both the facebook and messenger rows never matches,
     // and interpolating the page id into .or() breaks when the id is unexpected.
     const connectionSelect = "user_id, platform, access_token, page_id"
+    type PageConnection = {
+      user_id: string | number
+      platform?: string | null
+      access_token?: string | null
+      page_id?: string | null
+    }
     const { data: byPage } = await supabase
       .from("platform_connections")
       .select(connectionSelect)
       .eq("page_id", webhookId)
       .in("platform", ["facebook", "messenger"])
       .limit(5)
-    let connection = pickPageConnection(byPage)
+    let connection = pickPageConnection(byPage as PageConnection[] | null)
     if (!connection) {
       const { data: byExternal } = await supabase
         .from("platform_connections")
@@ -112,7 +118,7 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
         .eq("external_account_id", webhookId)
         .in("platform", ["facebook", "messenger"])
         .limit(5)
-      connection = pickPageConnection(byExternal)
+      connection = pickPageConnection(byExternal as PageConnection[] | null)
     }
 
     if (!connection) {
