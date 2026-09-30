@@ -353,10 +353,11 @@ export function AnalyticsDashboardView() {
                     ) : funnelData?.funnel ? (
                         <div className="space-y-4">
                             {[
-                                { key: "triggered", label: "Automations Triggered", color: "bg-blue-500" },
-                                { key: "sent", label: "Messages Sent", color: "bg-indigo-500" },
-                                { key: "replied", label: "User Replies", color: "bg-purple-500" },
-                                { key: "converted", label: "Conversations Converted", color: "bg-[#e5a93c]" },
+                                { key: "triggered", label: "Automations triggered", color: "bg-blue-500" },
+                                { key: "sent", label: "Messages sent", color: "bg-indigo-500" },
+                                { key: "replied", label: "Messages received", color: "bg-purple-500" },
+                                { key: "link_clicked", label: "Link clicks", color: "bg-emerald-500" },
+                                { key: "leads", label: "Leads captured", color: "bg-[#e5a93c]" },
                             ].map((stage) => {
                                 const count = funnelData.funnel[stage.key] || 0
                                 const maxCount = Math.max(funnelData.funnel.triggered || 1, 1)
@@ -380,6 +381,17 @@ export function AnalyticsDashboardView() {
                         </div>
                     ) : (
                         <p className="text-sm text-neutral-500">No funnel data available yet.</p>
+                    )}
+                    {Array.isArray(funnelData?.series) && funnelData.series.some((day: { sent: number; inbound: number; linkClicks: number }) => day.sent || day.inbound || day.linkClicks) && (
+                        <div className="mt-6 space-y-2">
+                            <p className="text-[11px] uppercase tracking-wider text-neutral-500 font-mono-ui">Last 14 days</p>
+                            {funnelData.series.filter((day: { sent: number; inbound: number; linkClicks: number }) => day.sent || day.inbound || day.linkClicks).map((day: { date: string; sent: number; inbound: number; linkClicks: number }) => (
+                                <div key={day.date} className="flex items-center justify-between text-xs font-mono-ui text-neutral-400">
+                                    <span>{day.date}</span>
+                                    <span>{day.sent} sent · {day.inbound} received · {day.linkClicks} clicks</span>
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </div>
             </div>

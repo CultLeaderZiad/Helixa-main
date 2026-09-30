@@ -206,8 +206,11 @@ export function commentTextsFromPayload(payload: any): string[] {
   const texts: string[] = []
   for (const entry of payload?.entry || []) {
     for (const change of entry?.changes || []) {
-      const text = change?.value?.text
-      if (typeof text === "string" && text.trim().length > 2) texts.push(text)
+      const value = change?.value || {}
+      const candidates = [value.text, value.message]
+      for (const candidate of candidates) {
+        if (typeof candidate === "string" && candidate.trim().length > 2) texts.push(candidate.trim())
+      }
     }
   }
   return texts

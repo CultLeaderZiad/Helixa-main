@@ -7,6 +7,12 @@ type LeadSender = (
   text: string,
 ) => Promise<unknown>
 
+export interface LeadCaptureResult {
+  shouldContinue: boolean
+  replyTextLog?: string
+  lead?: { email?: string | null; phone?: string | null; name?: string | null }
+}
+
 export async function processLeadCapture(
   supabase: SupabaseClient,
   userId: string,
@@ -94,10 +100,16 @@ export async function processLeadCapture(
         name: stateData.name || null,
       }, { onConflict: "user_id,ig_user_id" })
 
-      // 2. Delete conversation state
       await supabase.from("conversation_state").delete().eq("id", currentState.id)
 
-      return { shouldContinue: true } // Deliver payload!
+      return {
+        shouldContinue: true,
+        lead: {
+          email: stateData.email || null,
+          phone: stateData.phone || null,
+          name: stateData.name || null,
+        },
+      }
     }
   }
 

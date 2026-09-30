@@ -113,6 +113,7 @@ export const ar = {
   overview: "نظرة عامة",
   automations: "الأتمتة",
   inbox: "صندوق الوارد",
+  contacts: "جهات الاتصال",
   connectedPlatforms: "المنصات المتصلة",
   agents: "وكلاء الذكاء الاصطناعي",
   campaigns: "حملات البريد الإلكتروني",

@@ -12,7 +12,7 @@ import { EmptyState } from "@/components/ui/EmptyState"
 interface ConversationListProps {
     userId: string
     selectedId: string | null
-    onSelect: (id: string, username: string, recipientId: string) => void
+    onSelect: (id: string, username: string, recipientId: string, platform: string) => void
 }
 
 export function ConversationList({ userId, selectedId, onSelect }: ConversationListProps) {
@@ -84,7 +84,7 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
                         return (
                             <div
                                 key={conv.id}
-                                onClick={() => onSelect(conv.id, conv.recipient_username, conv.recipient_id.toString())}
+                                onClick={() => onSelect(conv.id, conv.recipient_username, conv.recipient_id.toString(), conv.platform || "instagram")}
                                 className={cn(
                                     "p-3 rounded-xl flex items-center gap-3 cursor-pointer transition-all duration-200 group relative overflow-hidden animate-in fade-in slide-in-from-left-4",
                                     isSelected

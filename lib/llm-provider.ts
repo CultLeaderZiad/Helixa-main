@@ -1,5 +1,6 @@
 import { GroqMessage, GroqCompletionRequest, checkAILimit, logAIUsage, GroqAPIError, GroqRateLimitError } from "./groq-client"
 import { getSupabaseBypassClient } from "./supabase-server"
+import { historyRole } from "./analytics-metrics"
 
 // Check for required env vars for Helixa managed models
 const GROQ_API_KEY = process.env.GROQ_API_KEY
@@ -434,7 +435,7 @@ async function callOpenAIAPI(options: GroqCompletionRequest, apiKey: string) {
  */
 export function buildConversationMessages(params: {
   systemPrompt: string
-  history: Array<{ content: string; is_from_instagram: boolean }>
+  history: Array<{ content: string; is_from_instagram?: boolean | null; direction?: string | null }>
   currentMessage: string
   maxHistory?: number
 }): GroqMessage[] {
@@ -443,7 +444,7 @@ export function buildConversationMessages(params: {
   for (const h of history.slice(-maxHistory)) {
     if (!h.content || !h.content.trim()) continue
     msgs.push({
-      role: h.is_from_instagram ? "user" : "assistant",
+      role: historyRole(h),
       content: h.content.slice(0, 500),
     })
   }
@@ -455,17 +456,24 @@ export function buildConversationMessages(params: {
 export async function fetchConversationHistory(
   conversationId: string | null | undefined,
   limit = 8
-): Promise<Array<{ content: string; is_from_instagram: boolean }>> {
+): Promise<Array<{ content: string; is_from_instagram?: boolean | null; direction?: string | null }>> {
   if (!conversationId) return []
   try {
     const supabase = await getSupabaseBypassClient()
-    const { data } = await supabase
+    const withDirection = await supabase
+      .from("messages")
+      .select("content, is_from_instagram, direction")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: false })
+      .limit(limit)
+    if (!withDirection.error) return (withDirection.data || []).reverse()
+    const legacy = await supabase
       .from("messages")
       .select("content, is_from_instagram")
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: false })
       .limit(limit)
-    return (data || []).reverse()
+    return (legacy.data || []).reverse()
   } catch {
     return []
   }

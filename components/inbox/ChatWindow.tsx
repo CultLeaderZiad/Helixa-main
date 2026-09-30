@@ -13,11 +13,12 @@ interface ChatWindowProps {
     conversationId: string | null
     recipientId?: string
     recipientName: string | null
+    platform?: string
     userId: string
     onBack?: () => void
 }
 
-export function ChatWindow({ conversationId, recipientId, recipientName, userId, onBack }: ChatWindowProps) {
+export function ChatWindow({ conversationId, recipientId, recipientName, platform = "instagram", userId, onBack }: ChatWindowProps) {
     const { data: messagesData, mutate: mutateMessages, isLoading: loading } = useSWR(
         conversationId ? `/api/inbox/messages?conversationId=${conversationId}` : null,
         fetcher
@@ -32,7 +33,15 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
 
     const [inputText, setInputText] = useState("")
     const [sending, setSending] = useState(false)
+    const [sendError, setSendError] = useState("")
     const [isAutomationOpen, setIsAutomationOpen] = useState(false)
+    const channel = platform === "facebook" ? "messenger" : platform
+    const { data: contactContext, mutate: mutateContact } = useSWR(
+        recipientId ? `/api/contacts?externalId=${encodeURIComponent(recipientId)}&channel=${encodeURIComponent(channel)}&conversationId=${encodeURIComponent(conversationId || "")}` : null,
+        fetcher
+    )
+    const windowStatus = contactContext?.window?.status as string | undefined
+    const botPaused = Boolean(contactContext?.contact?.bot_paused)
     const bottomRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -58,7 +67,7 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
                     const newMsg = payload.new as Message
                     // avoid duplicates if we already optimistically added it (by checking temp_ ID or content match)
                     mutateMessages((prev: Message[] = []) => {
-                        const exists = prev.find((m) => m.id === newMsg.id || (m.content === newMsg.content && !m.is_from_instagram && m.id.toString().startsWith("temp_")))
+                        const exists = prev.find((m) => m.id === newMsg.id || (m.content === newMsg.content && (m.direction === "out" || !m.is_from_instagram) && m.id.toString().startsWith("temp_")))
                         if (exists) {
                             // Replace temp message with real one
                             return prev.map(m => m.id === exists.id ? newMsg : m)
@@ -78,6 +87,7 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
         if (!text.trim() || !recipientId || !userId) return
 
         setSending(true)
+        setSendError("")
         try {
             const res = await fetch("/api/inbox/send", {
                 method: "POST",
@@ -85,6 +95,8 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
                 body: JSON.stringify({
                     userId,
                     recipientId,
+                    conversationId,
+                    channel,
                     message: text
                 })
             })
@@ -100,9 +112,13 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
                     sender_username: "Me",
                     content: text,
                     is_from_instagram: false,
+                    direction: "out",
                     created_at: new Date().toISOString()
                 }
                 mutateMessages((prev: any) => [...(prev || []), newMsg], false)
+            } else {
+                const data = await res.json().catch(() => ({}))
+                setSendError(data.error || "Message was not sent")
             }
         } catch (e) {
             console.error("Send failed", e)
@@ -147,18 +163,40 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
                     </div>
                     <div className="min-w-0">
                         <h3 className="font-bold text-white text-sm truncate">@{recipientName}</h3>
-                        <span className="hidden md:flex items-center gap-1.5 text-[10px] text-green-400 font-medium tracking-wide">
-                            <span className="relative flex h-1.5 w-1.5">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
-                            </span>
-                            Instagram
+                        <span className="hidden md:flex items-center gap-1.5 text-[10px] text-neutral-400 font-medium tracking-wide capitalize">
+                            {channel}
+                            {windowStatus === "closed" ? " · window closed" : windowStatus === "human_agent" ? " · outside 24h" : ""}
                         </span>
                     </div>
                 </div>
-                <div className="flex items-center gap-1">
-                    {/* Actions removed as they were mockups */}
-                </div>
+                <button
+                    type="button"
+                    onClick={async () => {
+                        const contactId = contactContext?.contact?.id
+                        if (contactId) {
+                            await fetch(`/api/contacts/${contactId}`, {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ bot_paused: !botPaused }),
+                            })
+                        } else if (recipientId) {
+                            await fetch("/api/contacts", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    channel,
+                                    externalId: recipientId,
+                                    displayName: recipientName,
+                                    bot_paused: true,
+                                }),
+                            })
+                        }
+                        mutateContact()
+                    }}
+                    className="text-[11px] px-2 py-1 rounded-md border border-white/10 text-neutral-300 hover:text-white"
+                >
+                    {botPaused ? "Resume bot" : "Pause bot"}
+                </button>
             </div>
 
             {/* Messages Area */}
@@ -169,7 +207,7 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
                     </div>
                 ) : (
                     messages.map((msg, index) => {
-                        const isMe = !msg.is_from_instagram
+                        const isMe = msg.direction ? msg.direction === "out" : !msg.is_from_instagram
                         return (
                             <div 
                                 key={msg.id} 
@@ -244,6 +282,11 @@ export function ChatWindow({ conversationId, recipientId, recipientName, userId,
 
             {/* Input Area */}
             <div className="p-3 md:p-4 border-t border-white/5 bg-white/[0.02] backdrop-blur-xl shrink-0 relative z-20">
+                {sendError && <p className="text-xs text-red-300 px-2 pb-2">{sendError}</p>}
+                {windowStatus === "human_agent" && (
+                    <p className="text-[11px] text-amber-200/80 px-2 pb-2">Outside the 24-hour window. A reply uses the Human Agent tag.</p>
+                )}
+                {botPaused && <p className="text-[11px] text-neutral-400 px-2 pb-2">Bot is paused for this contact. You can still reply.</p>}
                 <div className="flex items-center gap-2 bg-black/40 rounded-2xl border border-white/10 p-1.5 focus-within:border-[#e5a93c]/50 focus-within:bg-black/60 focus-within:shadow-[0_0_20px_rgba(229,169,60,0.05)] transition-all duration-300">
                     <Button
                         size="icon"
