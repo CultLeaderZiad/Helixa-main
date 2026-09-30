@@ -66,8 +66,9 @@ export async function POST(request: NextRequest) {
         agency_account_id: agencyId,
         member_account_id: memberAcc?.id || null,
         email,
-        status: memberAcc ? 'active' : 'invited',
-        permission_level: permission_level || 'viewer'
+        // Access starts only after the invited person accepts.
+        status: "invited",
+        permission_level: permission_level || "viewer",
       })
       .select()
       .single()

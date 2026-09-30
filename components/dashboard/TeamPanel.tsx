@@ -6,6 +6,8 @@ import { toast } from "sonner"
 
 export function TeamPanel() {
   const [members, setMembers] = useState<any[]>([])
+  const [invites, setInvites] = useState<any[]>([])
+  const [acceptingId, setAcceptingId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [limit, setLimit] = useState(0)
   const [userRole, setUserRole] = useState("admin")
@@ -30,6 +32,10 @@ export function TeamPanel() {
       if (authRes.ok) {
         setUserRole(authData.permission_level || "admin")
       }
+
+      const inviteRes = await fetch("/api/team/invites")
+      const inviteData = await inviteRes.json()
+      if (inviteRes.ok) setInvites(inviteData.invites || [])
     } catch (e) {
       toast.error("Error connecting to server")
     } finally {
@@ -55,7 +61,7 @@ export function TeamPanel() {
       const data = await res.json()
       
       if (res.ok) {
-        toast.success(`Invited ${inviteEmail}`)
+        toast.success(`Invited ${inviteEmail}. They need to accept before they can access this account.`)
         setInviteEmail("")
         fetchTeam()
       } else {
@@ -65,6 +71,28 @@ export function TeamPanel() {
       toast.error("Error sending invite")
     } finally {
       setInviting(false)
+    }
+  }
+
+  const handleAccept = async (id: string) => {
+    setAcceptingId(id)
+    try {
+      const res = await fetch("/api/team/accept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success("Invite accepted. Reload to view that agency.")
+        fetchTeam()
+      } else {
+        toast.error(data.error || "Failed to accept invite")
+      }
+    } catch {
+      toast.error("Error accepting invite")
+    } finally {
+      setAcceptingId(null)
     }
   }
 
@@ -96,10 +124,31 @@ export function TeamPanel() {
           </div>
           <div>
             <h3 className="text-white font-medium">Agency Team</h3>
-            <p className="text-xs text-muted-foreground">Manage your team members ({members.length}/{limit} seats used)</p>
+            <p className="text-xs text-muted-foreground">Manage your team members ({members.length}/{limit} seats used). Invites stay pending until accepted.</p>
           </div>
         </div>
       </div>
+
+      {invites.length > 0 && (
+        <div className="mb-6 space-y-2">
+          <p className="text-xs uppercase tracking-wider text-neutral-400">Invitations for you</p>
+          {invites.map((invite) => (
+            <div key={invite.id} className="flex items-center justify-between p-3 rounded-xl bg-[#e5a93c]/5 border border-[#e5a93c]/20">
+              <div>
+                <p className="text-sm text-white font-medium">Agency seat</p>
+                <p className="text-[10px] text-neutral-400 uppercase tracking-wider mt-1">{invite.permission_level} · pending</p>
+              </div>
+              <button
+                onClick={() => handleAccept(invite.id)}
+                disabled={acceptingId === invite.id}
+                className="bg-[#e5a93c] hover:bg-[#d4952b] disabled:opacity-50 text-black font-semibold px-3 py-1.5 rounded-lg text-xs"
+              >
+                {acceptingId === invite.id ? "Accepting..." : "Accept"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {userRole === "admin" && (
         <form onSubmit={handleInvite} className="flex gap-2 mb-6">
