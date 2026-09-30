@@ -129,6 +129,8 @@ async function recordDirect(
     username,
     platform: policy.conversationPlatform,
     workspaceId: tenant.workspaceId,
+    channelAccountId: tenant.senderRef || tenant.pageId || null,
+    externalThreadId: event.channel === "tiktok" ? event.chatId || null : null,
   })
   if (conversation) {
     await insertMessage(supabase, {

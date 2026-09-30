@@ -1,0 +1,175 @@
+export const dynamic = "force-dynamic"
+
+import { type NextRequest, NextResponse } from "next/server"
+import { forbidBelow, requireSessionUser } from "@/lib/auth"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { ensureTenantProfile } from "@/lib/tenant-user"
+import { sealAccessToken } from "@/lib/token-crypto"
+import {
+  debugTokenWabaIds,
+  exchangeEmbeddedSignupCode,
+  fetchPhoneNumber,
+  listWabaPhoneNumbers,
+  subscribeWaba,
+  type WhatsAppNumber,
+} from "@/lib/whatsapp/connect"
+
+/**
+ * POST /api/whatsapp/connect
+ *
+ * Embedded Signup: `{ code, phone_number_id?, waba_id? }`
+ * Manual fallback: `{ phone_number_id, access_token, waba_id? }`
+ *
+ * Each phone number is its own platform_connections row for this workspace.
+ */
+export async function POST(request: NextRequest) {
+  const result = await requireSessionUser(request)
+  if (result.response) return result.response
+  const roleDenied = forbidBelow(result.user.workspace_role, "admin")
+  if (roleDenied) return roleDenied
+
+  let body: {
+    code?: string
+    phone_number_id?: string
+    waba_id?: string
+    access_token?: string
+  }
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
+  }
+
+  const manual = Boolean(body.access_token && body.phone_number_id)
+  if (!manual && !body.code) {
+    return NextResponse.json(
+      { error: "Send an Embedded Signup code, or a phone number id and system-user token." },
+      { status: 400 },
+    )
+  }
+
+  let accessToken = body.access_token || ""
+  if (!manual) {
+    const exchanged = await exchangeEmbeddedSignupCode(String(body.code))
+    if (!exchanged.ok) return NextResponse.json({ error: exchanged.error }, { status: 502 })
+    accessToken = exchanged.accessToken
+  }
+
+  const numbers = await resolveNumbers(accessToken, body.phone_number_id, body.waba_id)
+  if (numbers.length === 0) {
+    return NextResponse.json(
+      { error: "No WhatsApp phone number could be verified with that token." },
+      { status: 400 },
+    )
+  }
+
+  const wabaIds = new Set(numbers.map((number) => number.wabaId).filter(Boolean) as string[])
+  if (body.waba_id) wabaIds.add(body.waba_id)
+  const subscribed: string[] = []
+  for (const wabaId of wabaIds) {
+    if (await subscribeWaba(wabaId, accessToken)) subscribed.push(wabaId)
+  }
+
+  const supabase = await getSupabaseBypassClient()
+  let profile = result.igUser
+  if (!profile?.id) {
+    try {
+      profile = await ensureTenantProfile(supabase, result.user, "workspace_managed", result.workspace?.id)
+    } catch (error) {
+      console.error("[whatsapp] profile:", error)
+      return NextResponse.json({ error: "Could not prepare a workspace profile" }, { status: 500 })
+    }
+  }
+
+  const saved = []
+  for (const number of numbers) {
+    const row = await upsertNumber(supabase, {
+      userId: profile.id,
+      accountId: result.user.id,
+      workspaceId: result.workspace?.id || profile.workspace_id || null,
+      token: sealAccessToken(accessToken),
+      number,
+      subscribed: number.wabaId ? subscribed.includes(number.wabaId) : subscribed.length > 0,
+    })
+    if (row) saved.push(row)
+  }
+  if (saved.length === 0) {
+    return NextResponse.json({ error: "The number was verified but could not be saved." }, { status: 500 })
+  }
+  return NextResponse.json({ success: true, numbers: saved })
+}
+
+async function resolveNumbers(accessToken: string, phoneNumberId?: string, wabaId?: string): Promise<WhatsAppNumber[]> {
+  if (phoneNumberId) {
+    const number = await fetchPhoneNumber(phoneNumberId, accessToken)
+    if (!number) return []
+    number.wabaId = wabaId || null
+    return [number]
+  }
+  const wabas = wabaId ? [wabaId] : await debugTokenWabaIds(accessToken)
+  const numbers: WhatsAppNumber[] = []
+  for (const id of wabas) {
+    numbers.push(...(await listWabaPhoneNumbers(id, accessToken)))
+  }
+  return numbers
+}
+
+async function upsertNumber(
+  supabase: any,
+  input: {
+    userId: string | number
+    accountId: string
+    workspaceId: string | null
+    token: string
+    number: WhatsAppNumber
+    subscribed: boolean
+  },
+) {
+  const metadata = {
+    display_phone_number: input.number.displayPhoneNumber,
+    verified_name: input.number.verifiedName,
+    quality_rating: input.number.qualityRating,
+    waba_id: input.number.wabaId,
+    webhook_subscribed: input.subscribed,
+    name: input.number.verifiedName || input.number.displayPhoneNumber || input.number.phoneNumberId,
+  }
+  const fields: Record<string, unknown> = {
+    user_id: input.userId,
+    account_id: input.accountId,
+    platform: "whatsapp",
+    page_id: input.number.phoneNumberId,
+    external_account_id: input.number.wabaId || input.number.phoneNumberId,
+    access_token: input.token,
+    metadata,
+    workspace_id: input.workspaceId,
+  }
+  const { data: existing } = await supabase
+    .from("platform_connections")
+    .select("id")
+    .eq("user_id", input.userId)
+    .eq("platform", "whatsapp")
+    .eq("page_id", input.number.phoneNumberId)
+    .maybeSingle()
+  const write = existing
+    ? await supabase.from("platform_connections").update(fields).eq("id", existing.id)
+    : await supabase.from("platform_connections").insert(fields)
+  if (write.error && input.workspaceId && /workspace_id/i.test(write.error.message || "")) {
+    delete fields.workspace_id
+    const retry = existing
+      ? await supabase.from("platform_connections").update(fields).eq("id", existing.id)
+      : await supabase.from("platform_connections").insert(fields)
+    if (retry.error) {
+      console.error("[whatsapp] save:", retry.error)
+      return null
+    }
+  } else if (write.error) {
+    console.error("[whatsapp] save:", write.error)
+    return null
+  }
+  return {
+    phone_number_id: input.number.phoneNumberId,
+    display_phone_number: input.number.displayPhoneNumber,
+    verified_name: input.number.verifiedName,
+    waba_id: input.number.wabaId,
+  }
+}

@@ -69,7 +69,9 @@ export async function deliverContent(
 
   let result: SendOutcome = { ok: false, error: "empty content" }
   const replies = quickRepliesFrom(content)
-  if (content.media?.url) {
+  if (content.list && adapter.sendList) {
+    result = await adapter.sendList(ctx, content.list)
+  } else if (content.media?.url) {
     result = await adapter.sendMedia(ctx, content.media, content.message)
     if (result.ok && content.message) {
       result = await adapter.sendText(ctx, content.message, replies)

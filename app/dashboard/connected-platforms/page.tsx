@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import {
@@ -101,6 +101,34 @@ const PLATFORMS = [
     connectType: "token" as const,
     locked: false,
   },
+  {
+    key: "tiktok",
+    name: "TikTok",
+    description: "Business DMs",
+    icon: "M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.77 1.52V6.76a4.85 4.85 0 0 1-1-.07z",
+    spotlightColor: "rgba(255, 255, 255, 0.12)",
+    brandGradient: "from-neutral-700 to-black",
+    brandBg: "bg-black",
+    brandText: "text-white",
+    brandBorder: "border-white/20",
+    platformFilter: (c: Connection) => c.platform === "tiktok",
+    connectType: "oauth" as const,
+    locked: false,
+  },
+  {
+    key: "webchat",
+    name: "Website chat",
+    description: "Embeddable widget",
+    icon: "M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z",
+    spotlightColor: "rgba(229, 169, 60, 0.15)",
+    brandGradient: "from-[#e5a93c] to-[#d4952b]",
+    brandBg: "bg-[#e5a93c]",
+    brandText: "text-[#e5a93c]",
+    brandBorder: "border-[#e5a93c]/20",
+    platformFilter: (c: Connection) => c.platform === "webchat",
+    connectType: "manual" as const,
+    locked: false,
+  },
 ]
 
 export default function ConnectedPlatformsPage() {
@@ -130,6 +158,25 @@ export default function ConnectedPlatformsPage() {
   const [telegramConnecting, setTelegramConnecting] = useState(false)
   const [telegramError, setTelegramError] = useState<string | null>(null)
 
+  const whatsappConfigId = process.env.NEXT_PUBLIC_WHATSAPP_CONFIG_ID || ""
+  const waSessionRef = useRef<{ phone_number_id?: string; waba_id?: string }>({})
+  const [waPhoneId, setWaPhoneId] = useState("")
+  const [waToken, setWaToken] = useState("")
+  const [waWabaId, setWaWabaId] = useState("")
+  const [waConnecting, setWaConnecting] = useState(false)
+  const [waError, setWaError] = useState<string | null>(null)
+
+  const { data: tiktokStatus } = useSWR("/api/tiktok/status", fetcher)
+  const { data: widgetData, mutate: mutateWidgets } = useSWR("/api/webchat/widget", fetcher)
+  const widgets: Array<{ id: string; name: string; snippet: string; allowed_domains: string[]; greeting?: string; color?: string; locale?: string }> = widgetData?.widgets || []
+  const [widgetName, setWidgetName] = useState("Chat")
+  const [widgetGreeting, setWidgetGreeting] = useState("")
+  const [widgetColor, setWidgetColor] = useState("#111111")
+  const [widgetLocale, setWidgetLocale] = useState("en")
+  const [widgetDomains, setWidgetDomains] = useState("")
+  const [widgetSaving, setWidgetSaving] = useState(false)
+  const [widgetError, setWidgetError] = useState<string | null>(null)
+
   // Surface OAuth redirect results (?error= / ?success=) from the server-side
   // Facebook callback flow so users get actionable feedback instead of silence.
   const searchParams = useSearchParams()
@@ -145,11 +192,21 @@ export default function ConnectedPlatformsPage() {
         not_logged_in: "Your session expired. Please log in again and retry.",
         access_denied: "Facebook login was cancelled or permissions were declined.",
         server_error: "Something went wrong on our side while connecting. Please try again.",
-        oauth_state: "Instagram login could not be verified. Start the connection again from this page.",
+        oauth_state: "Login could not be verified. Start the connection again from this page.",
+        tiktok_disabled: "TikTok messaging is off until TIKTOK_MESSAGING_ENABLED=true and TikTok approves the app.",
+        tiktok_config: "Set TIKTOK_APP_ID, TIKTOK_APP_SECRET, and NEXT_PUBLIC_APP_URL before connecting TikTok.",
+        tiktok_denied: "TikTok login was cancelled or the requested scopes were declined.",
+        tiktok_token: "TikTok did not return a business token. Confirm the app is approved for Business Messaging.",
+        forbidden: "Only a workspace admin can connect a channel.",
       }
-      setOauthNotice({ type: "error", message: MESSAGES[err] || `Facebook connection failed (${err}). Please try again.` })
+      setOauthNotice({ type: "error", message: MESSAGES[err] || `Connection failed (${err}). Please try again.` })
     } else if (ok) {
-      setOauthNotice({ type: "success", message: "Facebook Page connected successfully." })
+      const message = ok === "tiktok"
+        ? "TikTok Business Account connected."
+        : ok === "whatsapp"
+          ? "WhatsApp number connected."
+          : "Facebook Page connected successfully."
+      setOauthNotice({ type: "success", message })
       mutateConnections()
     }
     if (err || ok) {
@@ -158,6 +215,24 @@ export default function ConnectedPlatformsPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (typeof event.origin !== "string" || !event.origin.endsWith("facebook.com")) return
+      let data: any = event.data
+      if (typeof data === "string") {
+        try { data = JSON.parse(data) } catch { return }
+      }
+      if (data?.type === "WA_EMBEDDED_SIGNUP" && data?.event === "FINISH") {
+        waSessionRef.current = {
+          phone_number_id: data.data?.phone_number_id,
+          waba_id: data.data?.waba_id,
+        }
+      }
+    }
+    window.addEventListener("message", onMessage)
+    return () => window.removeEventListener("message", onMessage)
+  }, [])
 
   // Load Facebook SDK
   useEffect(() => {
@@ -275,6 +350,92 @@ export default function ConnectedPlatformsPage() {
     setFbConnecting(false)
   }
 
+  const connectWhatsApp = async (payload: Record<string, string>) => {
+    setWaConnecting(true)
+    setWaError(null)
+    try {
+      const res = await fetch("/api/whatsapp/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setWaError(data.error || "WhatsApp connection failed.")
+        return
+      }
+      setWaPhoneId("")
+      setWaToken("")
+      setWaWabaId("")
+      mutateConnections()
+      toast.success(`Connected ${data.numbers?.length || 1} WhatsApp number${data.numbers?.length === 1 ? "" : "s"}.`)
+    } catch {
+      setWaError("WhatsApp connection failed.")
+    } finally {
+      setWaConnecting(false)
+    }
+  }
+
+  const handleWhatsAppSignup = () => {
+    if (!window.FB || !whatsappConfigId) {
+      setWaError("Embedded Signup needs the Facebook SDK and NEXT_PUBLIC_WHATSAPP_CONFIG_ID. Use the manual fields below.")
+      return
+    }
+    setWaError(null)
+    waSessionRef.current = {}
+    window.FB.login(
+      (response: any) => {
+        const code = response?.authResponse?.code
+        if (!code) {
+          setWaError("Embedded Signup was cancelled.")
+          return
+        }
+        const sessionInfo = waSessionRef.current
+        connectWhatsApp({
+          code,
+          ...(sessionInfo.phone_number_id ? { phone_number_id: sessionInfo.phone_number_id } : {}),
+          ...(sessionInfo.waba_id ? { waba_id: sessionInfo.waba_id } : {}),
+        })
+      },
+      {
+        config_id: whatsappConfigId,
+        response_type: "code",
+        override_default_response_type: true,
+        extras: { setup: {}, sessionInfoVersion: "3" },
+      },
+    )
+  }
+
+  const handleWidgetCreate = async () => {
+    setWidgetSaving(true)
+    setWidgetError(null)
+    try {
+      const res = await fetch("/api/webchat/widget", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: widgetName,
+          greeting: widgetGreeting,
+          color: widgetColor,
+          locale: widgetLocale,
+          allowed_domains: widgetDomains,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setWidgetError(data.error || "Could not create the widget.")
+        return
+      }
+      mutateWidgets()
+      mutateConnections()
+      toast.success("Website chat is ready. Copy the snippet.")
+    } catch {
+      setWidgetError("Could not create the widget.")
+    } finally {
+      setWidgetSaving(false)
+    }
+  }
+
   // Telegram flow
   const handleTelegramConnect = async () => {
     if (!telegramToken.trim()) { setTelegramError("Enter a bot token."); return }
@@ -340,7 +501,7 @@ export default function ConnectedPlatformsPage() {
       )}
 
       {/* Platform Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {PLATFORMS.map((platform) => {
           const matchedConnections = connections.filter(platform.platformFilter)
           const isConnected = matchedConnections.length > 0
@@ -496,17 +657,87 @@ export default function ConnectedPlatformsPage() {
 
               {platform.key === "whatsapp" && (
                 <div className="space-y-3">
-                  <div className="bg-white/[0.03] border border-white/[0.08] text-neutral-300 p-3 rounded-xl text-xs leading-relaxed flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
-                    <span>
-                      <span className="text-amber-400 font-medium">Coming soon.</span> WhatsApp Business
-                      requires Meta-approved template messages and cannot be self-connected yet. Your
-                      WhatsApp webhook endpoint is already live for when it's enabled.
-                    </span>
-                  </div>
-                  <button disabled className="w-full py-2.5 bg-white/5 text-white/30 cursor-not-allowed rounded-xl text-sm font-medium border border-white/10">
-                    Not available yet
+                  {waError && (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                      <p className="text-xs text-red-400 flex-1">{waError}</p>
+                      <button onClick={() => setWaError(null)} className="text-red-400 hover:text-red-300 p-0.5"><X className="w-3 h-3" /></button>
+                    </div>
+                  )}
+                  <p className="text-[11px] text-neutral-500 leading-relaxed">
+                    Each number is saved separately. Replies use the number on that conversation.
+                  </p>
+                  {whatsappConfigId ? (
+                    <button
+                      onClick={handleWhatsAppSignup}
+                      disabled={waConnecting || !fbSdkReady}
+                      className="w-full py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-xl text-sm font-semibold transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+                    >
+                      {waConnecting ? <><Loader2 className="w-4 h-4 animate-spin" /> Connecting...</> : "Connect with Meta"}
+                    </button>
+                  ) : (
+                    <p className="text-[11px] text-neutral-500">Embedded Signup needs NEXT_PUBLIC_WHATSAPP_CONFIG_ID. Use a phone number id and system-user token instead.</p>
+                  )}
+                  <input value={waPhoneId} onChange={(e) => setWaPhoneId(e.target.value)} placeholder="Phone number ID" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-green-500/50 placeholder-white/20" />
+                  <input value={waWabaId} onChange={(e) => setWaWabaId(e.target.value)} placeholder="WABA ID (optional)" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-green-500/50 placeholder-white/20" />
+                  <input value={waToken} onChange={(e) => setWaToken(e.target.value)} placeholder="System-user token" type="password" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-green-500/50 placeholder-white/20" />
+                  <button
+                    onClick={() => connectWhatsApp({ phone_number_id: waPhoneId.trim(), access_token: waToken.trim(), ...(waWabaId.trim() ? { waba_id: waWabaId.trim() } : {}) })}
+                    disabled={waConnecting || !waPhoneId.trim() || !waToken.trim()}
+                    className="w-full py-2.5 bg-white/[0.06] hover:bg-white/[0.1] text-white rounded-xl text-sm font-medium border border-white/10 disabled:opacity-40"
+                  >
+                    {waConnecting ? "Saving..." : isConnected ? "Add another number" : "Connect number"}
                   </button>
+                </div>
+              )}
+
+              {platform.key === "tiktok" && (
+                <div className="space-y-3">
+                  <p className="text-[11px] text-neutral-500 leading-relaxed">
+                    {tiktokStatus?.messagingEnabled
+                      ? "Business Messaging is enabled for this deployment."
+                      : "Connect stays off until TikTok approves Business Messaging and TIKTOK_MESSAGING_ENABLED=true."}
+                    {tiktokStatus?.commentToDmEnabled ? " Comment-to-DM is on." : " Comment-to-DM is off."}
+                  </p>
+                  <a
+                    href="/api/tiktok/auth"
+                    className={`w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 ${tiktokStatus?.messagingEnabled ? "bg-white text-black" : "bg-white/10 text-white/40 pointer-events-none"}`}
+                  >
+                    {isConnected ? "Connect another account" : "Connect TikTok"}
+                  </a>
+                </div>
+              )}
+
+              {platform.key === "webchat" && (
+                <div className="space-y-3">
+                  {widgetError && <p className="text-xs text-red-400">{widgetError}</p>}
+                  {widgets[0]?.snippet && (
+                    <button
+                      type="button"
+                      onClick={() => { navigator.clipboard.writeText(widgets[0].snippet); toast.success("Snippet copied") }}
+                      className="w-full text-left text-[11px] text-neutral-300 bg-black/40 border border-white/10 rounded-xl p-2 break-all"
+                    >
+                      {widgets[0].snippet}
+                    </button>
+                  )}
+                  <input value={widgetName} onChange={(e) => setWidgetName(e.target.value)} placeholder="Widget name" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" />
+                  <input value={widgetGreeting} onChange={(e) => setWidgetGreeting(e.target.value)} placeholder="Greeting" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" />
+                  <input value={widgetDomains} onChange={(e) => setWidgetDomains(e.target.value)} placeholder="Allowed domains, comma separated" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" />
+                  <div className="flex gap-2">
+                    <input value={widgetColor} onChange={(e) => setWidgetColor(e.target.value)} placeholder="#111111" className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" />
+                    <select value={widgetLocale} onChange={(e) => setWidgetLocale(e.target.value)} className="bg-black border border-white/10 rounded-xl px-2 text-xs text-white">
+                      <option value="en">EN</option>
+                      <option value="ar">AR</option>
+                    </select>
+                  </div>
+                  <button
+                    onClick={handleWidgetCreate}
+                    disabled={widgetSaving}
+                    className="w-full py-2.5 bg-[#e5a93c] hover:bg-[#d4952b] text-black rounded-xl text-sm font-semibold disabled:opacity-40"
+                  >
+                    {widgetSaving ? "Saving..." : "Create widget"}
+                  </button>
+                  <p className="text-[10px] text-neutral-500">Empty allowed domains block every site. Add `*.example.com` to include subdomains. RTL follows the page or locale AR.</p>
                 </div>
               )}
 

@@ -117,6 +117,8 @@ export async function ensureConversation(
     username: string
     platform: string
     workspaceId?: string | null
+    channelAccountId?: string | null
+    externalThreadId?: string | null
   },
 ): Promise<ConversationRef | null> {
   let query = supabase
@@ -125,10 +127,17 @@ export async function ensureConversation(
     .eq("user_id", input.userId)
     .eq("recipient_id", input.recipientId)
   if (input.platform !== "instagram") query = query.eq("platform", input.platform)
+  if (input.channelAccountId) query = query.eq("channel_account_id", input.channelAccountId)
   const { data: existing } = await query.maybeSingle()
   const now = new Date().toISOString()
   if (existing?.id) {
-    await supabase.from("conversations").update({ last_message_at: now, recipient_username: input.username || existing.recipient_username }).eq("id", existing.id)
+    const patch: Record<string, unknown> = {
+      last_message_at: now,
+      recipient_username: input.username || existing.recipient_username,
+    }
+    if (input.channelAccountId) patch.channel_account_id = input.channelAccountId
+    if (input.externalThreadId) patch.external_thread_id = input.externalThreadId
+    await supabase.from("conversations").update(patch).eq("id", existing.id)
     return existing
   }
   const inserted = await supabase
@@ -139,11 +148,13 @@ export async function ensureConversation(
       recipient_username: input.username,
       platform: input.platform,
       workspace_id: input.workspaceId || null,
+      channel_account_id: input.channelAccountId || null,
+      external_thread_id: input.externalThreadId || null,
       last_message_at: now,
     })
     .select("id, recipient_username")
     .maybeSingle()
-  if (inserted.error && /platform|workspace_id/i.test(inserted.error.message || "")) {
+  if (inserted.error && /platform|workspace_id|channel_account_id|external_thread_id/i.test(inserted.error.message || "")) {
     const retry = await supabase
       .from("conversations")
       .insert({

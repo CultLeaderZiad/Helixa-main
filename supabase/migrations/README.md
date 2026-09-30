@@ -130,3 +130,61 @@ select column_name from information_schema.columns
 select count(*) from public.contacts;
 select indexname from pg_indexes where tablename = 'tracked_links';
 ```
+
+## Phase 4 manual steps
+
+Run `20260930_phase4_channels.sql` after phase 3. It is idempotent. It does
+not delete rows. It was not run against a live database from this change.
+
+The script:
+
+1. Adds `conversations.channel_account_id` and `conversations.external_thread_id`
+   so a manual reply uses the WhatsApp number, TikTok account, or widget that
+   received the thread. Replaces `UNIQUE (user_id, recipient_id)` with a
+   unique index that includes platform and channel account. If duplicate
+   threads already exist, that index is skipped and a notice is raised.
+2. Adds `platform_connections.refresh_token` and `token_expires_at`, and
+   revokes `SELECT` on `refresh_token` from `anon` and `authenticated`.
+3. Allows `tiktok` and `webchat` on `platform_connections.platform` and
+   `inbound_events.platform`.
+4. Creates `whatsapp_templates`, `webchat_widgets`, `webchat_visitors`, and
+   `webchat_rate_buckets`. Authenticated users can read their own widgets and
+   templates. Visitor secret hashes and rate buckets have no read policy.
+
+Meta, for WhatsApp:
+
+- Add the WhatsApp product to the same Meta app Helixa already uses.
+- Create an Embedded Signup configuration and set
+  `NEXT_PUBLIC_WHATSAPP_CONFIG_ID` to its id. Without that id, the dashboard
+  still connects a number with a phone number id and a system-user token.
+  The number must already be registered in WhatsApp Manager. This app does
+  not call `/{phone-number-id}/register`.
+- System-user token scopes: `whatsapp_business_messaging` and
+  `whatsapp_business_management`.
+- Webhook callback `{APP_URL}/api/whatsapp/webhook`, verify token
+  `WHATSAPP_WEBHOOK_VERIFY_TOKEN`, subscribed field `messages`.
+- App id and secret: `FACEBOOK_APP_ID` or `NEXT_PUBLIC_FACEBOOK_APP_ID` or
+  `INSTAGRAM_APP_ID`, and `META_APP_SECRET` or `FACEBOOK_APP_SECRET` or
+  `INSTAGRAM_APP_SECRET`.
+
+TikTok, after approval (see `docs/phase4-channels.md`):
+
+- `TIKTOK_APP_ID`, `TIKTOK_APP_SECRET`
+- `TIKTOK_REDIRECT_URI` defaults to `{NEXT_PUBLIC_APP_URL}/api/tiktok/callback`
+- `TIKTOK_MESSAGING_ENABLED=true` only after Business Messaging approval
+- `TIKTOK_COMMENT_TO_DM_ENABLED=true` only where Comment-to-Message is available
+- Webhook `{APP_URL}/api/tiktok/webhook` is subscribed on connect
+- `CRON_SECRET` for `GET /api/cron/refresh-tiktok-tokens` (hourly)
+
+Website chat needs `NEXT_PUBLIC_APP_URL` so the copied snippet points at this
+app. An empty allowed-domain list denies every site.
+
+Confirm after it succeeds:
+
+```sql
+select column_name from information_schema.columns
+ where table_name = 'conversations' and column_name = 'channel_account_id';
+select conname from pg_constraint
+ where conname in ('inbound_events_platform_check', 'platform_connections_platform_check');
+select count(*) from public.webchat_widgets;
+```

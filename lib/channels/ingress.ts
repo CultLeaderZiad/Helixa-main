@@ -1,5 +1,5 @@
 import { pickPageConnection } from "@/lib/channel-ids"
-import { createInstagramAdapter, createMessengerAdapter, createTelegramAdapter, createWhatsAppAdapter } from "@/lib/channels/adapters"
+import { createInstagramAdapter, createMessengerAdapter, createTelegramAdapter, createTikTokAdapter, createWebchatAdapter, createWhatsAppAdapter } from "@/lib/channels/adapters"
 import { accountMayAutomate, runChannelPipeline, type TenantContext } from "@/lib/channels/pipeline"
 import { normalizeFacebookBody, normalizeInstagramBody, normalizeTelegramUpdate, normalizeWhatsAppBody } from "@/lib/channels/normalize"
 import type { AutomationRule, ChannelPolicy, Db, NormalizedInbound } from "@/lib/channels/types"
@@ -7,6 +7,9 @@ import { watchInstagramAuthFailures } from "@/lib/instagram-api"
 import { markInstagramReconnect } from "@/lib/instagram-token"
 import { answerTelegramCallbackQuery } from "@/lib/telegram-api"
 import { openAccessToken, sealAccessToken, tokenNeedsReseal } from "@/lib/token-crypto"
+import { normalizeTikTokWebhook } from "@/lib/tiktok/events"
+import { refreshTikTokToken, tiktokTokenNeedsRefresh } from "@/lib/tiktok/oauth"
+import { tiktokCommentToDmEnabled, tiktokMessagingEnabled } from "@/lib/tiktok/config"
 
 const INSTAGRAM_POLICY: ChannelPolicy = {
   commentMatch: "instagram",
@@ -44,6 +47,30 @@ const WHATSAPP_POLICY: ChannelPolicy = {
   aiChannelName: "WhatsApp",
 }
 
+const TIKTOK_POLICY: ChannelPolicy = {
+  commentMatch: "instagram",
+  dmReplyAll: true,
+  iceBreakers: false,
+  followGate: false,
+  privateReplyStyle: "none",
+  conversationPlatform: "tiktok",
+  eventPlatform: "tiktok",
+  outboundEventType: "dm_reply",
+  aiChannelName: "TikTok",
+}
+
+const WEBCHAT_POLICY: ChannelPolicy = {
+  commentMatch: "facebook",
+  dmReplyAll: true,
+  iceBreakers: false,
+  followGate: false,
+  privateReplyStyle: "none",
+  conversationPlatform: "webchat",
+  eventPlatform: "webchat",
+  outboundEventType: "sent",
+  aiChannelName: "website chat",
+}
+
 const TELEGRAM_POLICY: ChannelPolicy = {
   commentMatch: "facebook",
   dmReplyAll: true,
@@ -67,12 +94,12 @@ function text(value: unknown): string {
   return ""
 }
 
-async function loadRules(supabase: Db, userId: string | number, platform: "instagram" | "facebook" | "whatsapp" | "telegram"): Promise<AutomationRule[]> {
+async function loadRules(supabase: Db, userId: string | number, platform: "instagram" | "facebook" | "whatsapp" | "telegram" | "tiktok" | "webchat"): Promise<AutomationRule[]> {
   let query = supabase.from("automations").select("*, automation_variants(*)").eq("user_id", userId).eq("is_active", true)
   if (platform === "instagram") query = query.or("platform.eq.instagram,platform.is.null")
   else if (platform === "facebook") query = query.in("platform", ["facebook", "messenger"])
   else if (platform === "telegram") query = query.or("platform.eq.telegram,platform.is.null")
-  else query = query.eq("platform", "whatsapp")
+  else query = query.eq("platform", platform)
   const { data } = await query
   return (data || []) as AutomationRule[]
 }
@@ -343,5 +370,134 @@ export async function processTelegramUpdate(supabase: Db, botId: string, update:
     rules: await loadRules(supabase, user.id, "telegram"),
     events,
     policy: TELEGRAM_POLICY,
+  })
+}
+
+async function connectionByPage(supabase: Db, platform: string, pageId: string) {
+  const { data } = await supabase
+    .from("platform_connections")
+    .select("*")
+    .eq("platform", platform)
+    .eq("page_id", pageId)
+    .limit(1)
+  return data?.[0] || null
+}
+
+async function freshTikTokToken(supabase: Db, connection: any): Promise<string | null> {
+  let accessToken = ""
+  try {
+    accessToken = openAccessToken(connection.access_token) || ""
+  } catch (error) {
+    console.error("[tiktok] Could not read access token:", error)
+    return null
+  }
+  if (!accessToken) return null
+  const expiresAt = connection.token_expires_at as string | null | undefined
+  if (!tiktokTokenNeedsRefresh(expiresAt)) return accessToken
+  let refresh = ""
+  try {
+    refresh = openAccessToken(connection.refresh_token) || ""
+  } catch {
+    refresh = ""
+  }
+  if (!refresh) return accessToken
+  const renewed = await refreshTikTokToken(refresh)
+  if (!renewed.ok) return accessToken
+  const sealedAccess = sealAccessToken(renewed.token.accessToken)
+  const sealedRefresh = renewed.token.refreshToken ? sealAccessToken(renewed.token.refreshToken) : connection.refresh_token
+  await supabase
+    .from("platform_connections")
+    .update({
+      access_token: sealedAccess,
+      refresh_token: sealedRefresh,
+      token_expires_at: new Date(Date.now() + renewed.token.expiresIn * 1000).toISOString(),
+    })
+    .eq("id", connection.id)
+  return renewed.token.accessToken
+}
+
+export async function processTikTokWebhookBody(body: unknown, supabase: Db): Promise<void> {
+  if (!tiktokMessagingEnabled()) return
+  let events = normalizeTikTokWebhook(body)
+  if (!tiktokCommentToDmEnabled()) events = events.filter((event) => event.kind !== "comment")
+  const groups = new Map<string, typeof events>()
+  for (const event of events) {
+    const key = event.accountRef || ""
+    if (!key) continue
+    const list = groups.get(key) || []
+    list.push(event)
+    groups.set(key, list)
+  }
+  for (const [openId, group] of groups) {
+    const connection = await connectionByPage(supabase, "tiktok", openId)
+    if (!connection?.user_id) continue
+    const { data: user } = await supabase.from("users").select("*").eq("id", connection.user_id).maybeSingle()
+    if (!user) continue
+    const account = await loadAccount(supabase, user.account_id)
+    if (!(await accountMayAutomate(supabase, account))) continue
+    const accessToken = await freshTikTokToken(supabase, connection)
+    if (!accessToken) continue
+    await runChannelPipeline({
+      supabase,
+      adapter: createTikTokAdapter(),
+      tenant: {
+        userId: user.id,
+        workspaceId: user.workspace_id || connection.workspace_id || null,
+        username: user.username || null,
+        accessToken,
+        senderRef: openId,
+        ownIds: [openId],
+        aiEnabled: Boolean(user.ai_enabled),
+        aiContext: user.ai_context || null,
+        pageId: openId,
+      },
+      rules: await loadRules(supabase, user.id, "tiktok"),
+      events: group,
+      policy: TIKTOK_POLICY,
+    })
+  }
+}
+
+export async function processWebchatEvent(body: unknown, supabase: Db): Promise<void> {
+  const root = record(body)
+  if (!root) return
+  const widgetKey = text(root.widget_id)
+  const visitorId = text(root.visitor_id)
+  const messageText = text(root.text)
+  const messageId = text(root.message_id)
+  if (!widgetKey || !visitorId || !messageText) return
+  const connection = await connectionByPage(supabase, "webchat", widgetKey)
+  if (!connection?.user_id) return
+  const { data: user } = await supabase.from("users").select("*").eq("id", connection.user_id).maybeSingle()
+  if (!user) return
+  const account = await loadAccount(supabase, user.account_id)
+  if (!(await accountMayAutomate(supabase, account))) return
+  await runChannelPipeline({
+    supabase,
+    adapter: createWebchatAdapter(),
+    tenant: {
+      userId: user.id,
+      workspaceId: user.workspace_id || connection.workspace_id || null,
+      username: user.username || null,
+      accessToken: "webchat_managed",
+      senderRef: widgetKey,
+      ownIds: [widgetKey],
+      aiEnabled: Boolean(user.ai_enabled),
+      aiContext: user.ai_context || null,
+      pageId: widgetKey,
+    },
+    rules: await loadRules(supabase, user.id, "webchat"),
+    events: [
+      {
+        channel: "webchat",
+        kind: "dm",
+        contactExternalId: visitorId,
+        text: messageText,
+        messageId: messageId || undefined,
+        displayName: text(root.display_name) || "Website visitor",
+        accountRef: widgetKey,
+      },
+    ],
+    policy: WEBCHAT_POLICY,
   })
 }

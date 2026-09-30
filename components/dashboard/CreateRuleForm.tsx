@@ -89,6 +89,30 @@ const PLATFORM_STYLES: Record<string, {
       </svg>
     ),
   },
+  tiktok: {
+    label: "TikTok",
+    accent: "#ffffff",
+    borderClass: "border-white/20",
+    badgeBg: "bg-black",
+    badgeText: "text-white",
+    icon: (
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.77 1.52V6.76a4.85 4.85 0 0 1-1-.07z" />
+      </svg>
+    ),
+  },
+  webchat: {
+    label: "Website",
+    accent: "#e5a93c",
+    borderClass: "border-[#e5a93c]/30",
+    badgeBg: "bg-[#e5a93c]",
+    badgeText: "text-black",
+    icon: (
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z" />
+      </svg>
+    ),
+  },
 }
 
 /* ============================================================
@@ -218,7 +242,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
   const [cardStyle, setCardStyle] = useState<"modern" | "classic" | "minimal">("modern")
   const [specificMediaUrl, setSpecificMediaUrl] = useState("")
   const [resolvingUrl, setResolvingUrl] = useState(false)
-  const [platform, setPlatform] = useState<"instagram" | "messenger" | "facebook" | "telegram" | "whatsapp">((defaultPlatform as any) || "instagram")
+  const [platform, setPlatform] = useState<"instagram" | "messenger" | "facebook" | "telegram" | "whatsapp" | "tiktok" | "webchat">((defaultPlatform as any) || "instagram")
   const [availablePlatforms, setAvailablePlatforms] = useState<string[]>(["instagram"])
 
   const [intentDescription, setIntentDescription] = useState(initialIntent || "")
@@ -270,6 +294,10 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
   }
 
   useEffect(() => {
+    if (platform === "tiktok" && triggerSource === "comment") setHasSelectedReelOption(true)
+  }, [platform, triggerSource])
+
+  useEffect(() => {
     if (initialIntent && !hasParsedInitialIntent) {
       setHasParsedInitialIntent(true)
       handleParseIntent(initialIntent)
@@ -287,6 +315,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
           if (platforms.includes("facebook")) available.add("facebook")
           if (platforms.includes("telegram")) available.add("telegram")
           if (platforms.includes("whatsapp")) available.add("whatsapp")
+          if (platforms.includes("tiktok")) available.add("tiktok")
+          if (platforms.includes("webchat")) available.add("webchat")
           if (editRule?.platform) available.add(editRule.platform)
           if (defaultPlatform) available.add(defaultPlatform)
           setAvailablePlatforms(Array.from(available))
@@ -604,7 +634,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
           : triggerSource === "story" && storyTriggerType === "reaction" && triggers.length === 0 ? "ALL_REACTIONS"
             : triggers.length > 0 ? triggers.join(", ") : "ALL",
       content,
-      specific_media_id: selectedReel?.id || null,
+      specific_media_id: platform === "tiktok" ? null : selectedReel?.id || null,
       platform,
       automation_variants: variants.map(v => ({
         id: v.id.startsWith("new_") ? undefined : v.id,
@@ -729,7 +759,13 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                 </div>
               )}
 
-              {triggerSource === "comment" && (
+              {triggerSource === "comment" && platform === "tiktok" && (
+                <p className="text-xs text-neutral-400 leading-relaxed">
+                  TikTok can only DM a high-intent comment after Comment-to-Message is enabled, and only for Business Accounts registered in Vietnam, Indonesia, or Thailand. A keyword here matches that comment. It does not reply publicly.
+                </p>
+              )}
+
+              {triggerSource === "comment" && platform !== "tiktok" && (
                 <ReelPostPicker
                   loadingReels={loadingReels}
                   reels={reels}
@@ -830,7 +866,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
 
               <div className="space-y-4">
                 <FieldLabel>Delivery options</FieldLabel>
-                {platform !== "telegram" && platform !== "whatsapp" && (
+                {platform !== "telegram" && platform !== "whatsapp" && platform !== "tiktok" && platform !== "webchat" && (
                   <ToggleRow icon={<Lock className="w-5 h-5" />} title="Follow gate required" sub="Only followers get the payload. Non-followers get follow prompt first." on={checkFollow} onToggle={() => setCheckFollow(!checkFollow)} />
                 )}
                 <ToggleRow icon={<Eye className="w-5 h-5" />} title="Mimic active typing status" sub="Displays typing bubble indicators to look completely organic." on={typingIndicator} onToggle={() => setTypingIndicator(!typingIndicator)} />
@@ -840,7 +876,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                 <ToggleRow icon={<Phone className="w-5 h-5" />} title="Ask for Phone Number" sub="Capture the user's phone number before sending the payload." on={capturePhone} onToggle={() => setCapturePhone(!capturePhone)} />
                 <ToggleRow icon={<Smile className="w-5 h-5" />} title="Ask for Name" sub="Capture the user's name before sending the payload." on={captureName} onToggle={() => setCaptureName(!captureName)} />
 
-                {platform !== "telegram" && platform !== "whatsapp" && (
+                {platform !== "telegram" && platform !== "whatsapp" && platform !== "tiktok" && platform !== "webchat" && (
                   <div className="flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/[0.01]">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-neutral-900 flex items-center justify-center border border-white/5">

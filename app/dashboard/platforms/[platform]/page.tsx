@@ -50,6 +50,18 @@ const PLATFORM_CONFIG: Record<string, { name: string; color: string; icon: strin
     icon: "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z",
     description: "Automate WhatsApp Business",
   },
+  tiktok: {
+    name: "TikTok",
+    color: "zinc",
+    icon: "M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.77 1.52V6.76a4.85 4.85 0 0 1-1-.07z",
+    description: "Keyword DMs and high-intent comment DMs",
+  },
+  webchat: {
+    name: "Website chat",
+    color: "amber",
+    icon: "M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z",
+    description: "Automate the website chat widget",
+  },
 }
 
 const COLOR_MAP: Record<string, { bg: string; text: string; border: string; badge: string }> = {
@@ -57,6 +69,8 @@ const COLOR_MAP: Record<string, { bg: string; text: string; border: string; badg
   blue: { bg: "bg-blue-500/10", text: "text-blue-500", border: "border-blue-500/20", badge: "bg-blue-500/10 text-blue-400" },
   cyan: { bg: "bg-[#2AABEE]/10", text: "text-[#2AABEE]", border: "border-[#2AABEE]/20", badge: "bg-[#2AABEE]/10 text-[#2AABEE]" },
   green: { bg: "bg-green-500/10", text: "text-green-500", border: "border-green-500/20", badge: "bg-green-500/10 text-green-400" },
+  zinc: { bg: "bg-white/10", text: "text-white", border: "border-white/20", badge: "bg-white/10 text-white" },
+  amber: { bg: "bg-[#e5a93c]/10", text: "text-[#e5a93c]", border: "border-[#e5a93c]/20", badge: "bg-[#e5a93c]/10 text-[#e5a93c]" },
 }
 
 export default function PlatformDashboardPage() {
@@ -90,6 +104,12 @@ export default function PlatformDashboardPage() {
     fetcher
   )
   const recentActivity = statsData?.recentActivity || []
+  const [syncingTemplates, setSyncingTemplates] = useState(false)
+  const { data: templateData, mutate: mutateTemplates } = useSWR(
+    platform === "whatsapp" ? "/api/whatsapp/templates" : null,
+    fetcher
+  )
+  const templates = templateData?.templates || []
 
   // Disconnect handler
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -208,6 +228,52 @@ export default function PlatformDashboardPage() {
             {platformConnections.length} account{platformConnections.length !== 1 ? "s" : ""}
           </span>
         </div>
+        {platform === "whatsapp" && (
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-white font-medium">Approved templates</p>
+              <button
+                type="button"
+                onClick={async () => {
+                  setSyncingTemplates(true)
+                  try {
+                    const res = await fetch("/api/whatsapp/templates?sync=1")
+                    const data = await res.json()
+                    if (!res.ok) toast.error(data.error || "Template sync failed")
+                    else toast.success("Templates synced")
+                    mutateTemplates()
+                  } finally {
+                    setSyncingTemplates(false)
+                  }
+                }}
+                className="text-xs px-3 py-1.5 rounded-lg bg-white/10 text-white"
+              >
+                {syncingTemplates ? "Syncing..." : "Sync from Meta"}
+              </button>
+            </div>
+            {templates.length === 0 ? (
+              <p className="text-xs text-neutral-500">No templates stored yet. Sync after the phase 4 migration.</p>
+            ) : (
+              <ul className="text-xs text-neutral-300 space-y-1">
+                {templates.slice(0, 12).map((template: any) => (
+                  <li key={`${template.name}-${template.language}`}>
+                    {template.name} · {template.language} · {template.status}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+        {platform === "tiktok" && (
+          <p className="mt-4 text-xs text-neutral-400 leading-relaxed">
+            Keyword replies run on incoming DMs. Comment-to-DM only runs for high-intent comments, and only for Business Accounts registered in Vietnam, Indonesia, or Thailand. See docs/phase4-channels.md for the scopes TikTok must approve.
+          </p>
+        )}
+        {platform === "webchat" && (
+          <p className="mt-4 text-xs text-neutral-400 leading-relaxed">
+            Copy the embed snippet from Connected Platforms. Visitors poll this server. They never receive another visitor&apos;s messages.
+          </p>
+        )}
         <div className="space-y-3">
           {platformConnections.map((conn: any) => (
             <div key={conn.id} className="flex items-center justify-between bg-white/[0.03] p-4 rounded-xl border border-white/5">

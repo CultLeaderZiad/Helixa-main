@@ -1,13 +1,12 @@
 /**
  * One outbound contract for every channel.
  *
- * Instagram, Messenger, WhatsApp, and Telegram each implement `ChannelAdapter`.
- * TikTok later is another adapter (its customer-care window is 48 hours) plus
- * a row in `lib/channels/registry.ts`. The matcher and the inbox do not import
- * a vendor client.
+ * Instagram, Messenger, WhatsApp, Telegram, TikTok, and the website widget
+ * each implement `ChannelAdapter`. The matcher and the inbox do not import a
+ * vendor client.
  */
 
-export const CHANNELS = ["instagram", "messenger", "facebook", "whatsapp", "telegram"] as const
+export const CHANNELS = ["instagram", "messenger", "facebook", "whatsapp", "telegram", "tiktok", "webchat"] as const
 
 export type Channel = (typeof CHANNELS)[number]
 
@@ -35,8 +34,21 @@ export interface OutboundCard {
 }
 
 export interface OutboundMedia {
-  type: "image" | "video" | "audio"
+  type: "image" | "video" | "audio" | "document"
   url: string
+}
+
+export interface OutboundListRow {
+  id: string
+  title: string
+  description?: string
+}
+
+/** WhatsApp interactive list. Other adapters send the body as text. */
+export interface OutboundList {
+  button: string
+  body?: string
+  sections: Array<{ title?: string; rows: OutboundListRow[] }>
 }
 
 export interface OutboundContent {
@@ -45,6 +57,7 @@ export interface OutboundContent {
   card?: OutboundCard
   media?: OutboundMedia
   quick_replies?: QuickReply[]
+  list?: OutboundList
   typing_indicator?: boolean
   mark_seen?: boolean
   reply_mode?: "both" | "dm_only" | "public_only"
@@ -62,7 +75,10 @@ export interface SendContext {
   accessToken: string
   recipientId?: string
   commentId?: string
-  /** WhatsApp phone-number id. Other adapters ignore it. */
+  /**
+   * WhatsApp phone-number id, TikTok business open id, or website widget key.
+   * Other adapters ignore it.
+   */
   senderRef?: string
   messagingType?: "RESPONSE" | "UPDATE" | "MESSAGE_TAG"
   tag?: "HUMAN_AGENT"
@@ -82,8 +98,9 @@ export interface ChannelAdapter {
   channel: Channel
   /**
    * Standard customer-care window in milliseconds.
-   * `null` means the channel has none (Telegram). A TikTok adapter would use
-   * 48 hours.
+   * `null` means the channel has none (Telegram, website chat).
+   * TikTok's documented window is 48 hours. WhatsApp is 24 hours;
+   * outside that window only an approved template can be sent.
    */
   messagingWindowMs: number | null
   /** Instagram and Messenger can send the Meta Human Agent tag for up to 7 days. */
@@ -91,6 +108,7 @@ export interface ChannelAdapter {
   sendText(ctx: SendContext, text: string, quickReplies?: QuickReply[]): Promise<SendOutcome>
   sendCard(ctx: SendContext, card: OutboundCard): Promise<SendOutcome>
   sendMedia(ctx: SendContext, media: OutboundMedia, caption?: string): Promise<SendOutcome>
+  sendList?(ctx: SendContext, list: OutboundList): Promise<SendOutcome>
   privateReply?(ctx: SendContext, text: string, quickReplies?: QuickReply[]): Promise<SendOutcome>
   publicReply?(ctx: SendContext, commentId: string, text: string): Promise<SendOutcome>
   profile?(ctx: SendContext, externalId: string): Promise<{ name?: string; username?: string } | null>
@@ -125,7 +143,7 @@ export interface NormalizedInbound {
    */
   groupId?: string
   chatId?: string
-  /** Page id, Instagram entry id, or WhatsApp phone-number id from the payload. */
+  /** Page id, Instagram entry id, WhatsApp phone-number id, TikTok open id, or widget key. */
   accountRef?: string
 }
 
