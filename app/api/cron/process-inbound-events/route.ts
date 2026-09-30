@@ -32,7 +32,15 @@ export async function GET(request: NextRequest) {
       console.error("[inbound] flow drain failed:", error)
       summary.errors.push(error?.message || "flow drain failed")
     }
-    return NextResponse.json({ ...summary, flows })
+    let webhooks = { done: 0, retried: 0, dead: 0 }
+    try {
+      const { drainOutgoingWebhooks } = await import("@/lib/integrations/drain")
+      webhooks = await drainOutgoingWebhooks(supabase)
+    } catch (error: any) {
+      console.error("[inbound] webhook drain failed:", error)
+      summary.errors.push(error?.message || "webhook drain failed")
+    }
+    return NextResponse.json({ ...summary, flows, webhooks })
   } catch (error: any) {
     console.error("[cron/process-inbound-events]", error)
     return NextResponse.json({ error: error?.message || "Drain failed" }, { status: 500 })

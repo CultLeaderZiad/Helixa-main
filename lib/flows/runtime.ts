@@ -422,6 +422,7 @@ async function processStartJob(supabase: Db, job: any): Promise<void> {
     random: Math.random,
     tiktokEnabled: tiktokMessagingEnabled(),
     templateApproved: approved,
+    catalog: await loadCatalog(supabase, job.user_id, graph),
   })
   await commitResult(supabase, job, flow.data, result, payload.accountRef || null)
 }
@@ -461,6 +462,7 @@ async function processResumeJob(supabase: Db, job: any): Promise<void> {
     random: Math.random,
     tiktokEnabled: tiktokMessagingEnabled(),
     templateApproved: await templateApproved(supabase, job.user_id, asGraph(version.data.graph)),
+    catalog: await loadCatalog(supabase, job.user_id, asGraph(version.data.graph)),
   })
   if (result.stale) return
   if (result.hold) {
@@ -486,13 +488,18 @@ async function continueAi(supabase: Db, row: any, job: any): Promise<void> {
   const graph = asGraph(version.data.graph)
   const node = graph.nodes.find((item) => item.id === row.current_node_id)
   const goal = String(node?.data?.goal || node?.data?.prompt || "Help the customer.")
-  const { generateGroqCompletion } = await import("@/lib/groq-client")
-  const reply = await generateGroqCompletion(job.user_id, "auto_reply", {
-    messages: [
-      { role: "system", content: goal },
-      { role: "user", content: String(row.context?.lastText || job.payload?.text || "") },
-    ],
+  const { answerWithWorkspaceAgent } = await import("@/lib/ai-agent/service")
+  const message = String(row.context?.lastText || job.payload?.text || "")
+  const decision = await answerWithWorkspaceAgent({
+    supabase,
+    userId: job.user_id,
+    workspaceId: job.workspace_id || flow.data.workspace_id || null,
+    message,
+    goal,
+    channel: row.channel,
+    contactExternalId: row.contact_external_id,
   })
+  const reply = decision?.reply
   if (!reply) throw new RetryableInboundError("AI agent returned an empty reply")
   const run = runFromRow(row)
   const contactRow = await loadContact(supabase, job.user_id, run.channel, run.contactExternalId)
@@ -500,7 +507,15 @@ async function continueAi(supabase: Db, row: any, job: any): Promise<void> {
     graph,
     run,
     contact: toFlowContact(contactRow, run.channel, run.contactExternalId),
-    signal: { kind: "ai", eventId: `ai:${row.id}:${row.step_token}`, aiReply: reply, inboundJustNow: false },
+    signal: {
+      kind: "ai",
+      eventId: `ai:${row.id}:${row.step_token}`,
+      aiReply: reply,
+      handoff: decision.handoff,
+      captured: decision.fields,
+      inboundJustNow: false,
+    },
+    catalog: await loadCatalog(supabase, job.user_id, graph),
     now: Date.now(),
     expectedStepToken: run.stepToken,
     deliveredNodeIds: deliveredOf(run),
@@ -583,8 +598,34 @@ async function saveRun(supabase: Db, job: any, flow: any, run: FlowRunState, con
   }
 }
 
+async function loadCatalog(supabase: Db, userId: string | number, graph: FlowGraph) {
+  const needs = graph.nodes.some((node) => node.type === "product_card" || node.type === "capture_order")
+  if (!needs) return []
+  const { data, error } = await supabase
+    .from("products")
+    .select("id, name, description, price_cents, currency, image_url, product_url, in_stock")
+    .eq("user_id", userId)
+    .limit(100)
+  if (error || !Array.isArray(data)) return []
+  return data.map((row: any) => ({
+    id: String(row.id),
+    name: String(row.name || "Product"),
+    description: row.description || null,
+    priceCents: Number(row.price_cents || 0),
+    currency: String(row.currency || "EGP"),
+    imageUrl: row.image_url || null,
+    productUrl: row.product_url || null,
+    inStock: row.in_stock !== false,
+  }))
+}
+
 async function applyContact(supabase: Db, job: any, flow: any, contact: FlowContact): Promise<void> {
-  const patch = {
+  let previousTags: string[] = []
+  if (contact.id) {
+    const existing = await supabase.from("contacts").select("tags").eq("id", contact.id).maybeSingle()
+    previousTags = Array.isArray(existing.data?.tags) ? existing.data.tags : []
+  }
+  const patch: Record<string, unknown> = {
     tags: contact.tags,
     custom_fields: contact.customFields,
     bot_paused: contact.botPaused,
@@ -593,8 +634,20 @@ async function applyContact(supabase: Db, job: any, flow: any, contact: FlowCont
     is_follower: contact.isFollower,
     updated_at: new Date().toISOString(),
   }
+  if (contact.customFields.email) patch.email = contact.customFields.email
+  if (contact.customFields.phone) patch.phone = contact.customFields.phone
   if (contact.id) {
     const updated = await supabase.from("contacts").update(patch).eq("id", contact.id)
+    const added = contact.tags.filter((tag) => !previousTags.some((item) => item.toLowerCase() === tag.toLowerCase()))
+    if (added.length) {
+      const { emitIntegrationEvent } = await import("@/lib/integrations/dispatch")
+      await emitIntegrationEvent(supabase, {
+        workspaceId: job.workspace_id || flow.workspace_id || null,
+        userId: job.user_id,
+        type: "tag.added",
+        data: { contactId: contact.id, externalId: contact.externalId, tags: added },
+      })
+    }
     if (updated.error && /opted_in|opted_out|is_follower/i.test(updated.error.message || "")) {
       await supabase
         .from("contacts")
@@ -635,6 +688,9 @@ async function performEffects(
         await adapter.publicReply({ accessToken: sender.token, senderRef: sender.senderRef }, effect.commentId, effect.text)
       }
     }
+    if (effect.type === "order_link") {
+      await captureOrderLink(supabase, job, flow, result.run, effect.productIds, sender)
+    }
     if (effect.type === "send") {
       await sendFlowMessage(supabase, job, flow, result.run, effect.content, sender, effect)
     }
@@ -656,6 +712,32 @@ async function performEffects(
       }
     }
   }
+}
+
+async function captureOrderLink(
+  supabase: Db,
+  job: any,
+  flow: any,
+  run: FlowRunState,
+  productIds: string[],
+  sender: { token: string; senderRef?: string } | null,
+): Promise<void> {
+  const { placeOrder } = await import("@/lib/commerce/checkout")
+  const placed = await placeOrder({
+    supabase,
+    userId: job.user_id,
+    workspaceId: job.workspace_id || flow.workspace_id || null,
+    contactExternalId: run.contactExternalId,
+    channel: run.channel,
+    productIds,
+  })
+  if (!placed) return
+  const text = placed.paymentLink ? `Pay here: ${placed.paymentLink}` : "Your order is saved. The team will confirm payment."
+  await sendFlowMessage(supabase, job, flow, run, { message: text }, sender, {
+    type: "send",
+    nodeId: "order",
+    content: { message: text },
+  })
 }
 
 async function sendFlowMessage(
@@ -939,6 +1021,44 @@ async function processSequenceJob(supabase: Db, job: any): Promise<void> {
       payload: { enrollmentId: enrollment.id },
       status: "pending",
       next_attempt_at: new Date(next.nextSendAt).toISOString(),
+    })
+  }
+}
+
+export async function enqueueOrderFlowStarts(
+  supabase: Db,
+  tenant: { userId: string | number; workspaceId?: string | null },
+  order: { id: string; status: string; contactExternalId: string; channel: string },
+): Promise<void> {
+  const { orderStatusMatches } = await import("@/lib/commerce/orders")
+  const { data, error } = await supabase
+    .from("flows")
+    .select("id, channel, trigger, published_version_id, status")
+    .eq("user_id", tenant.userId)
+    .eq("status", "live")
+    .limit(100)
+  if (error || !Array.isArray(data)) return
+  for (const flow of data) {
+    const trigger = asTrigger(flow.trigger)
+    if (trigger.type !== "order_status") continue
+    if (flow.channel && flow.channel !== order.channel) continue
+    if (!orderStatusMatches(trigger.keywords, order.status)) continue
+    await insertJob(supabase, {
+      user_id: tenant.userId,
+      workspace_id: tenant.workspaceId || null,
+      kind: "start",
+      idempotency_key: startIdempotencyKey(flow.id, order.contactExternalId, `order:${order.id}:${order.status}`),
+      flow_id: flow.id,
+      contact_external_id: order.contactExternalId,
+      channel: order.channel,
+      payload: {
+        versionId: flow.published_version_id,
+        eventId: `order:${order.id}:${order.status}`,
+        text: `order ${order.status}`,
+        accountRef: null,
+      },
+      status: "pending",
+      next_attempt_at: new Date().toISOString(),
     })
   }
 }

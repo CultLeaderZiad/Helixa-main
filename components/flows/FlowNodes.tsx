@@ -15,6 +15,8 @@ const ACCENT: Record<string, string> = {
   handoff: "#f97316",
   webhook: "#52525b",
   jump: "#d946ef",
+  product_card: "#0f766e",
+  capture_order: "#b45309",
 }
 
 const LABEL: Record<string, string> = {
@@ -30,6 +32,8 @@ const LABEL: Record<string, string> = {
   handoff: "Handoff",
   webhook: "Webhook",
   jump: "Jump",
+  product_card: "Product",
+  capture_order: "Order",
 }
 
 export function FlowCard({ data }: NodeProps) {
@@ -100,6 +104,8 @@ export const flowNodeTypes = {
   handoff: FlowCard,
   webhook: FlowCard,
   jump: FlowCard,
+  product_card: FlowCard,
+  capture_order: FlowCard,
 }
 
 export function nodeSummary(type: string, data: Record<string, unknown>): string {
@@ -123,5 +129,7 @@ export function nodeSummary(type: string, data: Record<string, unknown>): string
   if (type === "handoff") return "Hand the chat to a person"
   if (type === "webhook") return String(data.url || "HTTPS request")
   if (type === "jump") return String(data.targetId || "Go to step")
+  if (type === "product_card") return Array.isArray(data.productIds) && data.productIds.length ? `${data.productIds.length} products` : "Product cards"
+  if (type === "capture_order") return "Capture an order"
   return type
 }

@@ -19,6 +19,10 @@
     {
       "path": "/api/cron/process-inbound-events",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/client-reports",
+      "schedule": "0 6 * * *"
     }
   ]
 }

@@ -13,6 +13,8 @@ export const FLOW_NODE_TYPES = [
   "handoff",
   "webhook",
   "jump",
+  "product_card",
+  "capture_order",
 ] as const
 
 export type FlowNodeType = (typeof FLOW_NODE_TYPES)[number]
@@ -27,6 +29,7 @@ export const FLOW_TRIGGER_TYPES = [
   "website_visitor",
   "tiktok_dm",
   "ref",
+  "order_status",
 ] as const
 
 export type FlowTriggerType = (typeof FLOW_TRIGGER_TYPES)[number]
@@ -107,6 +110,8 @@ export interface FlowSignal {
   text?: string
   payload?: string
   aiReply?: string
+  handoff?: boolean
+  captured?: Record<string, string>
   commentId?: string
   /** True only for the walk that starts from the inbound event itself. */
   inboundJustNow?: boolean
@@ -130,6 +135,7 @@ export type FlowEffect =
   | { type: "stat"; nodeId: string; stat: "run" | "click" }
   | { type: "pause_bot"; nodeId: string }
   | { type: "ai"; nodeId: string; goal: string }
+  | { type: "order_link"; nodeId: string; productIds: string[] }
   | { type: "blocked"; nodeId: string; reason: string }
 
 export interface EngineResult {

@@ -55,6 +55,8 @@ export interface OutboundContent {
   message?: string
   reply_text?: string
   card?: OutboundCard
+  /** Instagram and Messenger send these as one generic-template carousel. */
+  cards?: OutboundCard[]
   media?: OutboundMedia
   quick_replies?: QuickReply[]
   list?: OutboundList
@@ -107,6 +109,7 @@ export interface ChannelAdapter {
   supportsHumanAgent: boolean
   sendText(ctx: SendContext, text: string, quickReplies?: QuickReply[]): Promise<SendOutcome>
   sendCard(ctx: SendContext, card: OutboundCard): Promise<SendOutcome>
+  sendCarousel?(ctx: SendContext, cards: OutboundCard[]): Promise<SendOutcome>
   sendMedia(ctx: SendContext, media: OutboundMedia, caption?: string): Promise<SendOutcome>
   sendList?(ctx: SendContext, list: OutboundList): Promise<SendOutcome>
   privateReply?(ctx: SendContext, text: string, quickReplies?: QuickReply[]): Promise<SendOutcome>

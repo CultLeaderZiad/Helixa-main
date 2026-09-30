@@ -238,19 +238,24 @@ async function maybeAi(
 ) {
   if (!tenant.aiEnabled) return false
   try {
-    const { generateGroqCompletion } = await import("@/lib/groq-client")
-    const { buildConversationMessages, fetchConversationHistory } = await import("@/lib/llm-provider")
+    const { fetchConversationHistory } = await import("@/lib/llm-provider")
+    const { historyRole } = await import("@/lib/analytics-metrics")
+    const { answerWithWorkspaceAgent } = await import("@/lib/ai-agent/service")
     const history = await fetchConversationHistory(conversationId, 8)
-    const systemPrompt = `You are a helpful assistant for a ${policy.aiChannelName} account${tenant.username ? ` named @${tenant.username}` : ""}.
-Context/Instructions from the account owner: ${tenant.aiContext || "Be helpful, brief, and polite."}
-Reply in the same language the customer uses. Keep responses short (1-3 sentences), friendly and human. Never mention that you are an AI unless directly asked.`
-    const reply = await generateGroqCompletion(tenant.userId, "auto_reply", {
-      messages: buildConversationMessages({ systemPrompt, history, currentMessage: event.text }),
+    const decision = await answerWithWorkspaceAgent({
+      supabase,
+      userId: tenant.userId,
+      workspaceId: tenant.workspaceId,
+      message: event.text,
+      history: history.map((item) => ({ role: historyRole(item) === "assistant" ? "assistant" as const : "user" as const, content: item.content })),
+      goal: tenant.aiContext || null,
+      channel: event.channel,
+      contactExternalId: event.contactExternalId,
     })
-    if (!reply) return false
-    const content = { message: reply }
+    if (!decision?.reply) return false
+    const content = { message: decision.reply }
     await sendTracked(supabase, adapter, tenant, policy, sendContext(tenant, event), content, event, {})
-    await recordOutbound(supabase, tenant, policy, conversationId, reply)
+    await recordOutbound(supabase, tenant, policy, conversationId, decision.reply)
     await logAutomationEvent(
       supabase,
       aiReplyEvent({ userId: tenant.userId, platform: policy.eventPlatform, recipientId: event.contactExternalId }),

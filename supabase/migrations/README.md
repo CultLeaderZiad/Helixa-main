@@ -241,3 +241,16 @@ select column_name from information_schema.columns
 select proname from pg_proc where proname in ('claim_flow_jobs', 'bump_flow_node_stat');
 select count(*) from public.flows;
 ```
+
+## Phase 6
+
+Run `20260930_phase6_differentiators.sql` after phase 5. Enable the `vector`
+extension in the Supabase dashboard first if `CREATE EXTENSION` is restricted.
+The file adds the Arabic agent tables (`ai_agent_settings`, `knowledge_sources`,
+`knowledge_chunks`, `ai_answer_logs`), agency branding and client reports,
+the product catalog and orders, and outgoing webhook deliveries. It does not
+delete rows. Details and the Vercel custom-domain steps are in
+`docs/phase6-differentiators.md`.
+
+The inbound cron also drains `outgoing_webhook_deliveries`. Client reports use
+a separate daily cron, `GET /api/cron/client-reports`.
