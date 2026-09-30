@@ -1,5 +1,8 @@
 import { FACEBOOK_GRAPH_BASE, INSTAGRAM_GRAPH_BASE } from "@/lib/graph"
-import { tiktokCommentToDmEnabled, tiktokMessagingEnabled } from "@/lib/tiktok/config"
+import { tiktokMessagingEnabled } from "@/lib/tiktok/config"
+import { publicCommentReplyBody, suggestedQuestionsBody } from "@/lib/tiktok/features"
+import { allowTikTokRequest, judgeTikTokSend } from "@/lib/tiktok/quota"
+import { commentToMessageAllowed, dmMessagingAllowed } from "@/lib/tiktok/region"
 import type {
   ChannelAdapter,
   FetchLike,
@@ -338,10 +341,34 @@ function tiktokFailure(json: any, status: number): SendOutcome {
  * a high-intent comment, and only when that feature flag is on.
  * Free-form buttons, lists, and URL media are not part of this API.
  */
+function blockedDmRegion(ctx: SendContext): string | null {
+  if (ctx.tiktokRegion === undefined) return null
+  const decision = dmMessagingAllowed(ctx.tiktokRegion)
+  return decision.allowed ? null : `tiktok_region_${decision.reason}`
+}
+
 export function createTikTokAdapter(fetchImpl: FetchLike = defaultFetch()): ChannelAdapter {
-  const post = async (ctx: SendContext, body: Record<string, unknown>): Promise<SendOutcome> => {
+  const post = async (
+    ctx: SendContext,
+    body: Record<string, unknown>,
+    options?: { senderAction?: boolean; commentReply?: boolean },
+  ): Promise<SendOutcome> => {
     if (!tiktokMessagingEnabled()) return { ok: false, error: "tiktok_messaging_disabled" }
     if (!ctx.senderRef) return { ok: false, error: "missing_business_id" }
+    if (!options?.senderAction) {
+      const regionBlock = blockedDmRegion(ctx)
+      if (regionBlock) return { ok: false, error: regionBlock }
+      if (ctx.tiktokWindow) {
+        const verdict = judgeTikTokSend({
+          lastUserMessageAt: ctx.tiktokWindow.lastUserMessageAt,
+          businessSends: ctx.tiktokWindow.businessSends,
+          now: Date.now(),
+          kind: options?.commentReply ? "comment_reply" : "reply",
+        })
+        if (!verdict.allowed) return { ok: false, error: verdict.reason }
+      }
+    }
+    if (!allowTikTokRequest()) return { ok: false, error: "tiktok_rate_limited" }
     const result = await postJson(fetchImpl, `${TIKTOK_API}/business/message/send/`, body, {
       "Access-Token": ctx.accessToken,
     })
@@ -372,6 +399,17 @@ export function createTikTokAdapter(fetchImpl: FetchLike = defaultFetch()): Chan
       const text = [card.title, card.subtitle, links].filter(Boolean).join("\n\n")
       return this.sendText(ctx, text)
     },
+    async sendQaCard(ctx, questions) {
+      if (!ctx.recipientId) return { ok: false, error: "missing_conversation" }
+      const template = suggestedQuestionsBody(questions)
+      if (!template) return { ok: false, error: "missing_questions" }
+      return post(ctx, {
+        business_id: ctx.senderRef,
+        recipient_type: "CONVERSATION",
+        recipient: ctx.recipientId,
+        ...template,
+      })
+    },
     async sendMedia() {
       return {
         ok: false,
@@ -379,7 +417,7 @@ export function createTikTokAdapter(fetchImpl: FetchLike = defaultFetch()): Chan
       }
     },
     async privateReply(ctx, text) {
-      if (!tiktokCommentToDmEnabled()) return { ok: false, error: "tiktok_comment_to_dm_disabled" }
+      if (!commentToMessageAllowed(ctx.tiktokRegion)) return { ok: false, error: "tiktok_comment_to_dm_disabled" }
       if (!ctx.commentId) return { ok: false, error: "missing_comment" }
       return post(ctx, {
         business_id: ctx.senderRef,
@@ -389,7 +427,23 @@ export function createTikTokAdapter(fetchImpl: FetchLike = defaultFetch()): Chan
           reply_type: "COMMENT_REPLY",
           comment_reply: { comment_id: ctx.commentId },
         },
-      })
+      }, { commentReply: true })
+    },
+    async publicReply(ctx, commentId, text) {
+      if (!tiktokMessagingEnabled()) return { ok: false, error: "tiktok_messaging_disabled" }
+      if (!ctx.senderRef) return { ok: false, error: "missing_business_id" }
+      const videoId = ctx.mediaId || ""
+      if (!videoId) return { ok: false, error: "missing_video" }
+      if (!allowTikTokRequest()) return { ok: false, error: "tiktok_rate_limited" }
+      const result = await postJson(
+        fetchImpl,
+        `${TIKTOK_API}/business/comment/reply/create/`,
+        publicCommentReplyBody({ businessId: ctx.senderRef, videoId, commentId, text }),
+        { "Access-Token": ctx.accessToken },
+      )
+      if (result.json && result.json.code !== 0 && result.json.code !== undefined) return tiktokFailure(result.json, result.status)
+      if (!result.ok) return tiktokFailure(result.json, result.status)
+      return { ok: true, id: commentId }
     },
     async markSeen(ctx) {
       if (!ctx.recipientId || !ctx.senderRef) return
@@ -399,7 +453,17 @@ export function createTikTokAdapter(fetchImpl: FetchLike = defaultFetch()): Chan
         recipient: ctx.recipientId,
         message_type: "SENDER_ACTION",
         sender_action: "MARK_READ",
-      })
+      }, { senderAction: true })
+    },
+    async typing(ctx, on) {
+      if (!on || !ctx.recipientId || !ctx.senderRef) return
+      await post(ctx, {
+        business_id: ctx.senderRef,
+        recipient_type: "CONVERSATION",
+        recipient: ctx.recipientId,
+        message_type: "SENDER_ACTION",
+        sender_action: "TYPING",
+      }, { senderAction: true })
     },
   }
 }

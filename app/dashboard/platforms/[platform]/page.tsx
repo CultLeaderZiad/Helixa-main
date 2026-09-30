@@ -22,6 +22,7 @@ import {
 import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
+import TikTokDmSettings from "@/components/dashboard/TikTokDmSettings"
 import { toast } from "sonner"
 import type { Automation } from "@/lib/types"
 
@@ -54,7 +55,7 @@ const PLATFORM_CONFIG: Record<string, { name: string; color: string; icon: strin
     name: "TikTok",
     color: "zinc",
     icon: "M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.77 1.52V6.76a4.85 4.85 0 0 1-1-.07z",
-    description: "Keyword DMs and high-intent comment DMs",
+    description: "Keyword DMs, welcome messages, and public comment replies",
   },
   webchat: {
     name: "Website chat",
@@ -265,9 +266,12 @@ export default function PlatformDashboardPage() {
           </div>
         )}
         {platform === "tiktok" && (
-          <p className="mt-4 text-xs text-neutral-400 leading-relaxed">
-            Keyword replies run on incoming DMs. Comment-to-DM only runs for high-intent comments, and only for Business Accounts registered in Vietnam, Indonesia, or Thailand. See docs/phase4-channels.md for the scopes TikTok must approve.
-          </p>
+          <>
+            <p className="mt-4 text-xs text-neutral-400 leading-relaxed">
+              Keyword and intent replies run on incoming DMs, including tiktok.me ref links. Comments get a public reply. Comment-to-Message DMs stay limited to Vietnam, Indonesia, and Thailand. EEA, Switzerland, and UK accounts cannot send DMs. US accounts need the US review flag.
+            </p>
+            <TikTokDmSettings />
+          </>
         )}
         {platform === "webchat" && (
           <p className="mt-4 text-xs text-neutral-400 leading-relaxed">

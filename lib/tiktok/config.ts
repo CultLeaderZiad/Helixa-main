@@ -1,9 +1,13 @@
 /**
  * TikTok Business Messaging is approval-gated.
- * Docs: https://business-api.tiktok.com/portal/docs/access-to-business-messaging-api/v1.3
+ * Access guide: doc 1832184145137922.
+ * Send guide: doc 1832184403754242.
  *
- * Both flags default off. Set them only after the developer app has passed
- * TikTok's data-security review (and the USDS addendum, for US accounts).
+ * `TIKTOK_MESSAGING_ENABLED` stays off until the developer app, the Accounts
+ * API access form, and the Business Messaging review are approved. Apply
+ * without the US when the business is in MENA or the GCC so that review is
+ * faster. Set `TIKTOK_US_REVIEW_APPROVED=true` only after the separate US
+ * data security review.
  */
 
 export const TIKTOK_API_BASE = "https://business-api.tiktok.com/open_api/v1.3"
@@ -12,7 +16,8 @@ export const TIKTOK_API_BASE = "https://business-api.tiktok.com/open_api/v1.3"
  * Scopes requested on the TikTok account-holder authorize URL.
  * `message.list.read` receives DMs, `message.list.send` replies,
  * `message.list.manage` covers read state. The profile scopes identify the
- * Business Account. Do not add video.publish; this app does not post videos.
+ * Business Account. `comment.list` is required for the comment.update webhook.
+ * Do not add video.publish; this app does not post videos.
  */
 export const TIKTOK_OAUTH_SCOPES = [
   "user.info.basic",
@@ -22,10 +27,16 @@ export const TIKTOK_OAUTH_SCOPES = [
   "message.list.read",
   "message.list.send",
   "message.list.manage",
+  "comment.list",
 ] as const
 
 export function tiktokMessagingEnabled(): boolean {
   return process.env.TIKTOK_MESSAGING_ENABLED === "true"
+}
+
+/** Separate from the global messaging flag. Accepts either env name. */
+export function tiktokUsReviewApproved(): boolean {
+  return process.env.TIKTOK_US_REVIEW_APPROVED === "true" || process.env.US_REVIEW_APPROVED === "true"
 }
 
 /**

@@ -7,6 +7,8 @@ import { RetryableInboundError, failurePlan, DEFAULT_MAX_ATTEMPTS } from "@/lib/
 import { contactFromRow } from "@/lib/contacts"
 import { openAccessToken } from "@/lib/token-crypto"
 import { tiktokMessagingEnabled } from "@/lib/tiktok/config"
+import { readTikTokSettings } from "@/lib/tiktok/settings"
+import { readTikTokWindow, recordTikTokBusinessSend } from "@/lib/tiktok/windows"
 import { sendWhatsAppTemplate } from "@/lib/whatsapp/templates"
 import {
   applyIncoming,
@@ -746,7 +748,7 @@ async function sendFlowMessage(
   flow: any,
   run: FlowRunState,
   content: OutboundContent,
-  sender: { token: string; senderRef?: string } | null,
+  sender: { token: string; senderRef?: string; tiktokRegion?: string | null } | null,
   effect: Extract<FlowEffect, { type: "send" }>,
 ): Promise<void> {
   const channel = run.channel === "facebook" ? "messenger" : run.channel
@@ -768,14 +770,26 @@ async function sendFlowMessage(
   }
   const adapter = getAdapter(channel)
   if (!adapter) return
+  const tiktokWindow = channel === "tiktok" && sender.senderRef
+    ? await readTikTokWindow(supabase, sender.senderRef, run.contactExternalId)
+    : undefined
   const ctx: SendContext = {
     accessToken: sender.token,
     recipientId: run.contactExternalId,
     senderRef: sender.senderRef,
     messagingType: effect.messagingType === "MESSAGE_TAG" ? "MESSAGE_TAG" : "RESPONSE",
     tag: effect.tag,
+    tiktokRegion: channel === "tiktok" ? (sender.tiktokRegion ?? null) : undefined,
+    tiktokWindow,
   }
-  await deliverContent(adapter, ctx, content)
+  const outcome = await deliverContent(adapter, ctx, content)
+  if (channel === "tiktok" && !outcome.ok) {
+    console.warn("[tiktok] flow send blocked:", outcome.error)
+    return
+  }
+  if (channel === "tiktok" && outcome.ok && tiktokWindow && sender.senderRef) {
+    await recordTikTokBusinessSend(supabase, sender.senderRef, run.contactExternalId, tiktokWindow)
+  }
   await recordOutbound(supabase, job, run, previewOf(content))
 }
 
@@ -805,7 +819,7 @@ async function loadSender(
   userId: string | number,
   channel: string,
   accountRef?: string | null,
-): Promise<{ token: string; senderRef?: string } | null> {
+): Promise<{ token: string; senderRef?: string; tiktokRegion?: string | null } | null> {
   if (channel === "webchat" || channel === "bio") return { token: "webchat" }
   if (channel === "instagram") {
     const { data } = await supabase.from("users").select("access_token, page_id, business_account_id").eq("id", userId).maybeSingle()
@@ -820,7 +834,7 @@ async function loadSender(
     }
   }
   const platform = channel === "facebook" ? "messenger" : channel
-  const { data } = await supabase.from("platform_connections").select("access_token, page_id").eq("user_id", userId).eq("platform", platform).limit(10)
+  const { data } = await supabase.from("platform_connections").select("access_token, page_id, metadata").eq("user_id", userId).eq("platform", platform).limit(10)
   const rows = data || []
   const row = accountRef ? rows.find((item: any) => item.page_id === accountRef) : rows[0]
   if (!row?.access_token) return null
@@ -830,7 +844,8 @@ async function loadSender(
   } catch {
     token = row.access_token
   }
-  return { token, senderRef: row.page_id || undefined }
+  const settings = platform === "tiktok" ? readTikTokSettings(row.metadata) : null
+  return { token, senderRef: row.page_id || undefined, tiktokRegion: settings ? settings.region : undefined }
 }
 
 async function templateApproved(supabase: Db, userId: string | number, graph: FlowGraph): Promise<boolean> {

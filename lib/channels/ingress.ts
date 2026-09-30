@@ -9,7 +9,9 @@ import { answerTelegramCallbackQuery } from "@/lib/telegram-api"
 import { openAccessToken, sealAccessToken, tokenNeedsReseal } from "@/lib/token-crypto"
 import { normalizeTikTokWebhook } from "@/lib/tiktok/events"
 import { refreshTikTokToken, tiktokTokenNeedsRefresh } from "@/lib/tiktok/oauth"
-import { tiktokCommentToDmEnabled, tiktokMessagingEnabled } from "@/lib/tiktok/config"
+import { tiktokMessagingEnabled } from "@/lib/tiktok/config"
+import { commentToMessageAllowed } from "@/lib/tiktok/region"
+import { readTikTokSettings } from "@/lib/tiktok/settings"
 
 const INSTAGRAM_POLICY: ChannelPolicy = {
   commentMatch: "instagram",
@@ -422,8 +424,7 @@ async function freshTikTokToken(supabase: Db, connection: any): Promise<string |
 
 export async function processTikTokWebhookBody(body: unknown, supabase: Db): Promise<void> {
   if (!tiktokMessagingEnabled()) return
-  let events = normalizeTikTokWebhook(body)
-  if (!tiktokCommentToDmEnabled()) events = events.filter((event) => event.kind !== "comment")
+  const events = normalizeTikTokWebhook(body)
   const groups = new Map<string, typeof events>()
   for (const event of events) {
     const key = event.accountRef || ""
@@ -441,6 +442,12 @@ export async function processTikTokWebhookBody(body: unknown, supabase: Db): Pro
     if (!(await accountMayAutomate(supabase, account))) continue
     const accessToken = await freshTikTokToken(supabase, connection)
     if (!accessToken) continue
+    const settings = readTikTokSettings(connection.metadata)
+    const visible = group.filter((event) => {
+      if (event.kind !== "comment" || event.commentSurface === "organic") return true
+      return commentToMessageAllowed(settings.region)
+    })
+    if (visible.length === 0) continue
     await runChannelPipeline({
       supabase,
       adapter: createTikTokAdapter(),
@@ -455,9 +462,11 @@ export async function processTikTokWebhookBody(body: unknown, supabase: Db): Pro
         aiContext: user.ai_context || null,
         locale: user.bot_locale === "ar" ? "ar" : "en",
         pageId: openId,
+        tiktokRegion: settings.region,
+        tiktokSettings: settings,
       },
       rules: await loadRules(supabase, user.id, "tiktok"),
-      events: group,
+      events: visible,
       policy: TIKTOK_POLICY,
     })
   }

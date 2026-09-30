@@ -45,12 +45,22 @@ function messageText(content: Record<string, unknown>): string {
   return ""
 }
 
+function referralCode(content: Record<string, unknown>): string | undefined {
+  const referral = record(content.referral)
+  if (!referral) return undefined
+  const shortLink = record(referral.short_link)
+  const code = text(shortLink?.ref) || text(referral.ref) || text(referral.ref_code)
+  return code || undefined
+}
+
 /**
  * Turn one Business Messaging webhook into pipeline events.
  * Echoes (`im_send_msg`, business-account sender) and read receipts are dropped.
- * `im_receive_msg` and `im_receive_msg_eu` are keyword-DM input.
- * `im_receive_high_intent_comment` is the only comment event the API emits,
- * and only after Comment-to-Message is enabled.
+ * `im_receive_msg`, `im_receive_msg_eu`, and `im_referral_msg` are keyword-DM input.
+ * A tiktok.me `ref` is copied onto `referral` so a ref trigger can match.
+ * `im_receive_high_intent_comment` is Comment-to-Message and is marked `direct`.
+ * `comment.update` with action `insert` on a top-level comment is an organic
+ * comment: public reply and lead only, never a keyword DM.
  */
 export function normalizeTikTokWebhook(body: unknown): NormalizedInbound[] {
   const root = record(body)
@@ -73,6 +83,33 @@ export function normalizeTikTokWebhook(body: unknown): NormalizedInbound[] {
   const username = text(content.from) || undefined
   const occurredAtMs = typeof content.timestamp === "number" ? content.timestamp : Number(content.timestamp) || undefined
 
+  if (eventName === "comment.update") {
+    const action = text(content.comment_action).toLowerCase()
+    const commentType = text(content.comment_type).toLowerCase()
+    const parentId = text(content.parent_comment_id)
+    if (action !== "insert") return []
+    if (commentType === "reply" || parentId) return []
+    const commentText = text(content.text)
+    const commentId = text(content.comment_id)
+    const videoId = text(content.video_id)
+    if (!commentText || !commentId) return []
+    return [
+      {
+        channel: "tiktok",
+        kind: "comment",
+        commentSurface: "organic",
+        contactExternalId,
+        text: commentText,
+        commentId,
+        mediaId: videoId || null,
+        username,
+        displayName: username,
+        occurredAtMs: Number.isFinite(occurredAtMs) ? occurredAtMs : undefined,
+        accountRef: openId,
+      },
+    ]
+  }
+
   if (eventName === "im_receive_high_intent_comment") {
     const commentText = text(content.comment_text)
     const commentId = text(content.comment_id)
@@ -81,6 +118,7 @@ export function normalizeTikTokWebhook(body: unknown): NormalizedInbound[] {
       {
         channel: "tiktok",
         kind: "comment",
+        commentSurface: "direct",
         contactExternalId,
         text: commentText,
         commentId,
@@ -112,6 +150,7 @@ export function normalizeTikTokWebhook(body: unknown): NormalizedInbound[] {
       chatId: text(content.conversation_id) || undefined,
       occurredAtMs: Number.isFinite(occurredAtMs) ? occurredAtMs : undefined,
       accountRef: openId,
+      referral: referralCode(content),
     },
   ]
 }

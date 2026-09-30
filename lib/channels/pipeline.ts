@@ -24,6 +24,10 @@ import type {
 } from "@/lib/channels/types"
 import { isBotPaused } from "@/lib/contacts"
 import { botLocale, botText, followSubtitle, publicReplies, type BotLocale } from "@/lib/bot-copy"
+import { commentLead, instagramCrossPostPlan, tiktokDmPlan } from "@/lib/tiktok/features"
+import type { TikTokAccountSettings } from "@/lib/tiktok/settings"
+import type { TikTokWindowState } from "@/lib/tiktok/quota"
+import { recordTikTokBusinessSend, recordTikTokUserMessage } from "@/lib/tiktok/windows"
 
 export interface TenantContext {
   userId: string | number
@@ -36,6 +40,10 @@ export interface TenantContext {
   aiContext?: string | null
   pageId?: string | null
   locale?: BotLocale | null
+  /** TikTok sign-up region. Null means unknown (DMs stay allowed). */
+  tiktokRegion?: string | null
+  tiktokSettings?: TikTokAccountSettings
+  tiktokWindow?: TikTokWindowState
 }
 
 function tenantLocale(tenant: TenantContext): BotLocale {
@@ -58,7 +66,27 @@ function sendContext(tenant: TenantContext, event: NormalizedInbound, comment = 
     commentId: comment ? event.commentId : undefined,
     senderRef: tenant.senderRef,
     messagingType: "RESPONSE",
+    mediaId: event.mediaId,
+    tiktokRegion: event.channel === "tiktok" ? (tenant.tiktokRegion ?? null) : undefined,
+    tiktokWindow: event.channel === "tiktok" ? tenant.tiktokWindow : undefined,
   }
+}
+
+function tiktokUserInitiation(event: NormalizedInbound): boolean {
+  if (event.channel !== "tiktok") return false
+  if (event.kind === "dm" || event.kind === "postback") return true
+  return event.kind === "comment" && event.commentSurface === "direct"
+}
+
+async function openTikTokWindow(supabase: Db, tenant: TenantContext, event: NormalizedInbound) {
+  if (!tenant.senderRef) return
+  const at = event.occurredAtMs || Date.now()
+  tenant.tiktokWindow = await recordTikTokUserMessage(supabase, tenant.senderRef, event.contactExternalId, at)
+}
+
+async function noteTikTokSend(supabase: Db, tenant: TenantContext, event: NormalizedInbound, outcome: { ok: boolean }) {
+  if (!outcome.ok || !tenant.tiktokWindow || !tenant.senderRef || event.channel !== "tiktok") return
+  await recordTikTokBusinessSend(supabase, tenant.senderRef, event.contactExternalId, tenant.tiktokWindow)
 }
 
 function outboundId(channel: string): string {
@@ -370,6 +398,10 @@ async function runAction(
     return
   }
 
+  if (tiktokUserInitiation(event)) {
+    await openTikTokWindow(supabase, tenant, event)
+  }
+
   if (action.type === "skip_paused") {
     await touch(supabase, tenant, event, event.kind)
     if (direct) await recordDirect(supabase, tenant, policy, event, adapter)
@@ -392,22 +424,46 @@ async function runAction(
     const { content: raw, variantId } = pickVariant(action.rule)
     const content = parseContent(raw) as OutboundContent
     const mode = content.reply_mode || "both"
+    const organicTikTok = event.channel === "tiktok" && event.commentSurface === "organic"
     if (mode !== "dm_only" && adapter.publicReply) {
       const pool = (content.public_replies || []).filter(Boolean)
       await adapter.publicReply(sendContext(tenant, event, true), event.commentId, pickRandom(pool.length ? pool : publicReplies(tenantLocale(tenant))))
     }
-    if (mode !== "public_only") {
+    if (mode !== "public_only" && !organicTikTok) {
       const lead = await runLead(supabase, adapter, tenant, event, action.rule, content, event.displayName || "User", event.commentId)
       if (lead.shouldContinue) {
-        await sendTracked(supabase, adapter, tenant, policy, sendContext(tenant, event, true), content, event, {
+        const sent = await sendTracked(supabase, adapter, tenant, policy, sendContext(tenant, event, true), content, event, {
           privateComment: true,
           automationId: action.rule.id,
           variantId,
         })
+        await noteTikTokSend(supabase, tenant, event, sent)
       }
       if (lead.lead) await touch(supabase, tenant, event, "comment", action.rule.id, lead.lead)
     }
-    await touch(supabase, tenant, event, "comment", action.rule.id)
+    const leadSource = organicTikTok ? "tiktok_comment" : "comment"
+    const shaped = organicTikTok
+      ? commentLead({
+          uniqueIdentifier: event.contactExternalId,
+          username: event.username,
+          text: event.text,
+          videoId: event.mediaId,
+          commentId: event.commentId,
+        })
+      : null
+    await touch(supabase, tenant, event, leadSource, action.rule.id, shaped?.username ? { name: shaped.username } : undefined)
+    if (organicTikTok && content.cross_post_instagram) {
+      const plan = instagramCrossPostPlan(action.rule.trigger_value || event.text)
+      await logAutomationEvent(supabase, {
+        user_id: tenant.userId,
+        automation_id: action.rule.id,
+        event_type: "comment_cross_post",
+        recipient_id: event.contactExternalId,
+        platform: plan.channel,
+        variant_id: variantId,
+        comment_id: event.commentId,
+      })
+    }
     await logAutomationEvent(supabase, {
       user_id: tenant.userId,
       automation_id: action.rule.id,
@@ -446,8 +502,34 @@ async function runAction(
   if (!direct) return
   if (paused.has(event.contactExternalId)) return
 
+  const priorContact = event.channel === "tiktok"
+    ? await loadContact(supabase, tenant.userId, event.channel, event.contactExternalId)
+    : null
   const recorded = await recordDirect(supabase, tenant, policy, event, adapter)
   await touch(supabase, tenant, event, event.kind)
+  if (event.channel === "tiktok" && tenant.tiktokSettings) {
+    const plan = tiktokDmPlan({
+      firstSeen: !priorContact,
+      matched: action.type === "dm",
+      welcome: tenant.tiktokSettings.welcome,
+      defaultReply: tenant.tiktokSettings.defaultReply,
+      suggestedQuestions: tenant.tiktokSettings.suggestedQuestions,
+    })
+    if (plan.sendWelcome) {
+      const welcome = await adapter.sendText(sendContext(tenant, event), tenant.tiktokSettings.welcome)
+      await noteTikTokSend(supabase, tenant, event, welcome)
+    }
+    if (plan.sendQuestions && adapter.sendQaCard) {
+      const card = await adapter.sendQaCard(sendContext(tenant, event), tenant.tiktokSettings.suggestedQuestions)
+      await noteTikTokSend(supabase, tenant, event, card)
+    }
+    if (plan.sendDefault && action.type !== "dm") {
+      const fallback = await adapter.sendText(sendContext(tenant, event), tenant.tiktokSettings.defaultReply)
+      await noteTikTokSend(supabase, tenant, event, fallback)
+      await recordOutbound(supabase, tenant, policy, recorded.conversation?.id, tenant.tiktokSettings.defaultReply)
+      return
+    }
+  }
   if (event.channel === "whatsapp" && event.messageId && adapter.markSeen) {
     await adapter.markSeen(sendContext(tenant, event), event.messageId)
   }
@@ -510,6 +592,7 @@ async function runAction(
     automationId: matchRule?.id,
     variantId,
   })
+  await noteTikTokSend(supabase, tenant, event, sent)
   if (sent.ok) {
     await recordOutbound(supabase, tenant, policy, recorded.conversation?.id, previewOf(content))
     if (matchRule) {

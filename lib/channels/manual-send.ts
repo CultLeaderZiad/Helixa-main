@@ -4,6 +4,9 @@ import { latestInboundAt, insertMessage, loadContact } from "@/lib/channels/stor
 import { windowForAdapter, type WindowVerdict } from "@/lib/channels/window"
 import type { Db } from "@/lib/channels/types"
 import { openAccessToken } from "@/lib/token-crypto"
+import { dmMessagingAllowed } from "@/lib/tiktok/region"
+import { readTikTokSettings } from "@/lib/tiktok/settings"
+import { readTikTokWindow, recordTikTokBusinessSend } from "@/lib/tiktok/windows"
 import { isMetaAuthError, markInstagramReconnect } from "@/lib/instagram-token"
 import { pickPageConnection } from "@/lib/channel-ids"
 
@@ -28,7 +31,7 @@ export type HumanSendResult =
 async function credentials(
   supabase: Db,
   input: HumanSendInput,
-): Promise<{ token: string; senderRef?: string; senderId?: string; senderName?: string } | { ambiguous: true } | null> {
+): Promise<{ token: string; senderRef?: string; senderId?: string; senderName?: string; tiktokRegion?: string | null } | { ambiguous: true } | null> {
   if (input.channel === "instagram" || !input.channel) {
     const { data } = await supabase
       .from("users")
@@ -43,7 +46,7 @@ async function credentials(
   const platform = input.channel === "messenger" || input.channel === "facebook" ? ["facebook", "messenger"] : [input.channel]
   const { data } = await supabase
     .from("platform_connections")
-    .select("platform, access_token, page_id, external_account_id")
+    .select("platform, access_token, page_id, external_account_id, metadata")
     .eq("user_id", input.userId)
     .in("platform", platform)
     .limit(20)
@@ -52,6 +55,7 @@ async function credentials(
     access_token?: string | null
     page_id?: string | null
     external_account_id?: string | null
+    metadata?: unknown
   }>
   if (input.channel === "messenger" || input.channel === "facebook") {
     const row = pickPageConnection(rows)
@@ -65,11 +69,13 @@ async function credentials(
   const token = openAccessToken(row?.access_token)
   if (!token || !row) return null
   const needsSender = input.channel === "whatsapp" || input.channel === "tiktok" || input.channel === "webchat"
+  const tiktokRegion = input.channel === "tiktok" ? readTikTokSettings(row.metadata).region : undefined
   return {
     token,
     senderRef: needsSender ? row.page_id || undefined : undefined,
     senderId: row.page_id || row.external_account_id || undefined,
     senderName: input.username || input.channel,
+    tiktokRegion,
   }
 }
 
@@ -95,14 +101,29 @@ export async function sendHumanMessage(supabase: Db, input: HumanSendInput): Pro
   }
   const window = windowForAdapter(adapter, lastInbound, Date.now())
   if (window.status === "closed") {
+    const hours = channel === "tiktok" ? "48-hour" : "24-hour"
     return {
       ok: false,
       status: 409,
       error: window.reason === "no_inbound"
         ? "This contact has not messaged you yet, so the messaging window is closed."
-        : "The 24-hour messaging window is closed. Wait for the contact to message again.",
+        : `The ${hours} messaging window is closed. Wait for the contact to message again.`,
       window,
     }
+  }
+
+  if (channel === "tiktok" && creds.tiktokRegion !== undefined) {
+    const region = dmMessagingAllowed(creds.tiktokRegion)
+    if (!region.allowed) {
+      return { ok: false, status: 403, error: "TikTok DMs are not available for this account's region.", window }
+    }
+  }
+  const tiktokWindow = channel === "tiktok" && creds.senderRef
+    ? await readTikTokWindow(supabase, creds.senderRef, input.recipientId)
+    : undefined
+  if (tiktokWindow && !tiktokWindow.lastUserMessageAt && lastInbound) {
+    const started = Date.parse(lastInbound)
+    if (Number.isFinite(started)) tiktokWindow.lastUserMessageAt = started
   }
 
   const result = await adapter.sendText(
@@ -112,6 +133,8 @@ export async function sendHumanMessage(supabase: Db, input: HumanSendInput): Pro
       senderRef: creds.senderRef,
       messagingType: window.messagingType,
       tag: window.tag,
+      tiktokRegion: channel === "tiktok" ? (creds.tiktokRegion ?? null) : undefined,
+      tiktokWindow,
     },
     input.text,
   )
@@ -124,6 +147,9 @@ export async function sendHumanMessage(supabase: Db, input: HumanSendInput): Pro
       return { ok: false, status: 409, error: "The messaging window is closed.", window: { ...window, status: "closed", flagged: true, reason: "outside_window" } }
     }
     return { ok: false, status: 502, error: result.error || "Send failed", window }
+  }
+  if (channel === "tiktok" && tiktokWindow && creds.senderRef) {
+    await recordTikTokBusinessSend(supabase, creds.senderRef, input.recipientId, tiktokWindow)
   }
 
   if (input.conversationId) {

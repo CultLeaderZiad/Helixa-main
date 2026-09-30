@@ -112,9 +112,10 @@ export function normalizeLead(input: {
 const REF_CODE = /^[A-Za-z0-9_-]{2,64}$/
 
 export function buildRefLink(input: {
-  channel: "instagram" | "messenger" | "whatsapp" | "telegram"
+  channel: "instagram" | "messenger" | "whatsapp" | "telegram" | "tiktok"
   handle: string
   code: string
+  message?: string | null
 }): { ok: true; url: string; code: string; triggerText: string } | { ok: false; error: string } {
   const code = input.code.trim()
   if (!REF_CODE.test(code)) return { ok: false, error: "Code must be 2–64 letters, numbers, _ or -" }
@@ -127,6 +128,15 @@ export function buildRefLink(input: {
     const handle = input.handle.trim().replace(/^@/, "")
     if (!/^[A-Za-z0-9._]{1,64}$/.test(handle)) return { ok: false, error: "Messenger username is invalid" }
     return { ok: true, url: `https://m.me/${handle}?ref=${encodeURIComponent(code)}`, code, triggerText: code }
+  }
+  if (input.channel === "tiktok") {
+    const handle = input.handle.trim().replace(/^@/, "")
+    if (!/^[A-Za-z0-9._]{2,24}$/.test(handle)) return { ok: false, error: "TikTok username is invalid" }
+    const params = new URLSearchParams()
+    params.set("ref", code)
+    const message = (input.message || "").trim()
+    if (message) params.set("message", message.slice(0, 500))
+    return { ok: true, url: `https://tiktok.me/${handle}?${params.toString()}`, code, triggerText: code }
   }
   if (input.channel === "whatsapp") {
     const phone = input.handle.replace(/\D/g, "")

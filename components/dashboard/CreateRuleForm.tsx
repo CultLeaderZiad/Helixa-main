@@ -214,6 +214,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
   /* ---------- Public comment reply ---------- */
   const [replyMode, setReplyMode] = useState<"both" | "dm_only" | "public_only">("both")
   const [publicReplies, setPublicReplies] = useState<string[]>([])
+  const [crossPostInstagram, setCrossPostInstagram] = useState(false)
   const [includeReplies, setIncludeReplies] = useState(false)
 
   /* ---------- EXTRAS ---------- */
@@ -479,6 +480,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
     setQuickReplies((content.quick_replies || []).map((q: any, i: number) => ({ id: `${Date.now()}_qr${i}`, title: q.title, payload: q.payload })))
     setReplyMode(content.reply_mode || "both")
     setPublicReplies(content.public_replies || [])
+    setCrossPostInstagram(!!content.cross_post_instagram)
     setIncludeReplies(!!content.include_replies)
     setCheckFollow(!!content.check_follow)
     setDelaySeconds(content.delay_seconds || 0)
@@ -594,6 +596,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
       content.reply_mode = replyMode
       if (publicReplies.length > 0) content.public_replies = publicReplies
       if (includeReplies) content.include_replies = true
+      if (platform === "tiktok" && crossPostInstagram) content.cross_post_instagram = true
     }
     if (quickReplies.filter((q) => q.title.trim()).length > 0) {
       content.quick_replies = quickReplies.filter((q) => q.title.trim()).map((q) => ({ title: q.title.trim(), payload: q.payload }))
@@ -760,9 +763,15 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
               )}
 
               {triggerSource === "comment" && platform === "tiktok" && (
-                <p className="text-xs text-neutral-400 leading-relaxed">
-                  TikTok can only DM a high-intent comment after Comment-to-Message is enabled, and only for Business Accounts registered in Vietnam, Indonesia, or Thailand. A keyword here matches that comment. It does not reply publicly.
-                </p>
+                <div className="space-y-2">
+                  <p className="text-xs text-neutral-400 leading-relaxed">
+                    A keyword on a TikTok comment posts a public reply, for example “Check your DMs” or “DM us PRICE”. It does not DM that commenter. Comment-to-Message DMs stay limited to high-intent comments on accounts registered in Vietnam, Indonesia, or Thailand.
+                  </p>
+                  <label className="flex items-center gap-2 text-xs text-neutral-300">
+                    <input type="checkbox" checked={crossPostInstagram} onChange={(event) => setCrossPostInstagram(event.target.checked)} />
+                    Also run this keyword as an Instagram comment-to-DM
+                  </label>
+                </div>
               )}
 
               {triggerSource === "comment" && platform !== "tiktok" && (

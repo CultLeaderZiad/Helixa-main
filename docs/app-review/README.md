@@ -32,5 +32,16 @@ Helixa requests only the permissions below. Each file has the product use case a
 - [message.list.read](tiktok_message.list.read.md)
 - [message.list.send](tiktok_message.list.send.md)
 - [message.list.manage](tiktok_message.list.manage.md)
+- [comment.list](tiktok_comment.list.md)
+
+### TikTok access path
+
+For Egypt and the GCC, apply without the United States so approval is not held for the US data security review.
+
+1. Create the developer app. Include Ad Account Management, CTX Events Management, and Measurement if the form asks for them on a new app.
+2. Accounts API access form: https://bytedance.sg.larkoffice.com/share/base/form/shrlgu4WEvtSXpEDLcCw56u4Rfc
+3. Business Messaging review: https://bytedance.sg.larkoffice.com/share/base/form/shrlg7vFArGhg9V20neYCEwIKrb
+
+Turn on `TIKTOK_MESSAGING_ENABLED` after that review. Set `TIKTOK_US_REVIEW_APPROVED` only after the separate US review. Details are in [phase 4](../phase4-channels.md).
 
 Public URLs for the Meta form are in [DEPLOY.md](../DEPLOY.md): `/privacy`, `/terms`, `/data-deletion`, `/api/meta/data-deletion`, and `/api/meta/deauthorize`.

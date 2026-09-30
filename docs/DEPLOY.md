@@ -65,8 +65,9 @@ TikTok. Leave the flags unset until the app is approved. See `docs/phase4-channe
 | `TIKTOK_APP_ID` | Client key |
 | `TIKTOK_APP_SECRET` | Client secret |
 | `TIKTOK_REDIRECT_URI` | Defaults to `{APP_URL}/api/tiktok/callback` |
-| `TIKTOK_MESSAGING_ENABLED` | Must be the string `true` |
-| `TIKTOK_COMMENT_TO_DM_ENABLED` | Also requires messaging enabled |
+| `TIKTOK_MESSAGING_ENABLED` | Must be the string `true` after the access forms below |
+| `TIKTOK_COMMENT_TO_DM_ENABLED` | `false` kills Comment-to-Message. `true` only matters when the account region is not stored |
+| `TIKTOK_US_REVIEW_APPROVED` | Must be `true` before a US Business Account can send DMs |
 
 AI providers, all optional except Groq for the default agent:
 
@@ -168,7 +169,15 @@ Requested permissions and the screencast script for each one are in `docs/app-re
 
 ## 6. TikTok
 
-Create the app in TikTok Business, set the redirect to `{APP_URL}/api/tiktok/callback`, and subscribe the webhook to `{APP_URL}/api/tiktok/webhook`. Request only the scopes in `lib/tiktok/config.ts`. Do not request `video.publish`. Turn on `TIKTOK_MESSAGING_ENABLED` after approval.
+Create the developer app, set the redirect to `{APP_URL}/api/tiktok/callback`, and subscribe the webhook to `{APP_URL}/api/tiktok/webhook`. Request the scopes in `lib/tiktok/config.ts`, including `comment.list`. Do not request `video.publish`.
+
+For Egypt and the GCC, apply without the US:
+
+1. Developer app. Include Ad Account Management, CTX Events Management, and Measurement if TikTok requires them on a new app.
+2. Accounts API access form: https://bytedance.sg.larkoffice.com/share/base/form/shrlgu4WEvtSXpEDLcCw56u4Rfc
+3. Business Messaging review: https://bytedance.sg.larkoffice.com/share/base/form/shrlg7vFArGhg9V20neYCEwIKrb
+
+Turn on `TIKTOK_MESSAGING_ENABLED` after that review. Leave `TIKTOK_US_REVIEW_APPROVED` unset unless the US data security review has passed. Run `supabase/migrations/20260930_phase7_tiktok_windows.sql` so the 10-message window survives a restart. The app still enforces the cap in memory if that table is missing. See `docs/phase4-channels.md`.
 
 ## 7. Payments
 

@@ -88,7 +88,7 @@ WhatsApp broadcasts always need an approved template and an opted-in contact,
 including inside 24 hours. Instagram and Messenger send inside 24 hours, or
 later with `HUMAN_AGENT` (only through 7 days) or `ACCOUNT_UPDATE`,
 `POST_PURCHASE_UPDATE`, or `CONFIRMED_EVENT_UPDATE`. Telegram and website chat
-send freely. Opted-out contacts are skipped.
+send freely. TikTok broadcasts are refused. Opted-out contacts are skipped.
 
 Jobs are spaced at `60000 / perMinute` (1–600 per minute) and drained with the
 flow queue. Opens move when that contact messages again. Clicks move when a
@@ -106,7 +106,7 @@ and a live flow for one Reel.
 `/b/{slug}` collects an email or phone into a contact on channel `bio` and
 can enqueue one flow start. The page is public.
 
-Ref links build `ig.me`, `m.me`, `wa.me`, and `t.me` URLs with a code. The
+Ref links build `ig.me`, `m.me`, `wa.me`, `t.me`, and `tiktok.me` URLs with a code. The
 matching trigger is case-insensitive, including `/start CODE` and the
 referral field on an open-thread event. The API returns an SVG QR code.
 

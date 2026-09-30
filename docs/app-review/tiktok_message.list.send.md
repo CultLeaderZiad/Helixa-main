@@ -1,7 +1,7 @@
 # message.list.send
 
 ## Use case
-Send the reply the creator configured, or a manual inbox reply, back to the person who messaged the business on TikTok. Helixa does not cold-message TikTok users.
+Send the reply the creator configured, or a manual inbox reply, back to the person who messaged the business on TikTok. Helixa does not cold-message TikTok users. Sends stop for EEA, Switzerland, and UK accounts, and for US accounts until the US data security review is approved. Each user message allows at most 10 replies in the next 48 hours. Broadcasts are not sent.
 
 ## Screencast
 1. With the thread from the read-scope recording open, send a reply from Helixa.

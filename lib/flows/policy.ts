@@ -1,4 +1,6 @@
 import { evaluateMessagingWindow, HUMAN_AGENT_WINDOW_MS, STANDARD_WINDOW_MS } from "@/lib/channels/window"
+import { judgeTikTokSend, type TikTokWindowState } from "@/lib/tiktok/quota"
+import { dmMessagingAllowed } from "@/lib/tiktok/region"
 
 /** TikTok Business Messaging documents a 48 hour window and no human-agent tag. */
 export const TIKTOK_FLOW_WINDOW_MS = 48 * 60 * 60 * 1000
@@ -21,6 +23,10 @@ export type ComplianceReason =
   | "whatsapp_template_not_approved"
   | "whatsapp_not_opted_in"
   | "tiktok_disabled"
+  | "tiktok_broadcast"
+  | "tiktok_region"
+  | "tiktok_message_cap"
+  | "tiktok_user_initiated"
   | "channel_unsupported"
   | "bot_paused"
 
@@ -65,6 +71,10 @@ export function flowSendAllowed(input: {
   templateName?: string | null
   templateApproved?: boolean
   tiktokEnabled?: boolean
+  /** When set, including null, the Business Account sign-up region gates the send. */
+  tiktokRegion?: string | null
+  /** When set, the 10-message cap inside the 48-hour window applies. */
+  tiktokWindow?: TikTokWindowState
 }): SendDecision {
   const channel = input.channel
   if (channel === "telegram" || channel === "webchat" || channel === "bio") {
@@ -72,6 +82,23 @@ export function flowSendAllowed(input: {
   }
   if (channel === "tiktok" && input.tiktokEnabled === false) {
     return { allowed: false, reason: "tiktok_disabled" }
+  }
+  if (channel === "tiktok" && input.tiktokRegion !== undefined) {
+    const region = dmMessagingAllowed(input.tiktokRegion)
+    if (!region.allowed) return { allowed: false, reason: "tiktok_region" }
+  }
+  if (channel === "tiktok" && input.tiktokWindow) {
+    const quota = judgeTikTokSend({
+      lastUserMessageAt: input.tiktokWindow.lastUserMessageAt,
+      businessSends: input.tiktokWindow.businessSends,
+      now: input.now,
+      kind: "reply",
+    })
+    if (!quota.allowed) {
+      if (quota.reason === "message_cap") return { allowed: false, reason: "tiktok_message_cap" }
+      if (quota.reason === "no_user_message") return { allowed: false, reason: "tiktok_user_initiated" }
+      return { allowed: false, reason: "outside_window" }
+    }
   }
   const policy = channelWindow(channel)
   const verdict = evaluateMessagingWindow({
@@ -129,14 +156,7 @@ export function evaluateBroadcastCompliance(input: {
   }
 
   if (channel === "tiktok") {
-    const verdict = evaluateMessagingWindow({
-      windowMs: TIKTOK_FLOW_WINDOW_MS,
-      supportsHumanAgent: false,
-      lastInboundAt: input.lastInboundAt,
-      now: input.now,
-    })
-    if (verdict.status === "open") return { allowed: true, messagingType: "RESPONSE" }
-    return { allowed: false, reason: "outside_window" }
+    return { allowed: false, reason: "tiktok_broadcast" }
   }
 
   if (channel === "instagram" || channel === "messenger" || channel === "facebook") {
