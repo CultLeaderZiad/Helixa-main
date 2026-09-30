@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { sendWhatsAppText, markWhatsAppSeen } from "@/lib/whatsapp-api"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { openAccessToken } from "@/lib/token-crypto"
+import { parseContent } from "@/lib/webhook-utils"
 
 const WEBHOOK_VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN
 // WhatsApp uses the Meta App Secret for signature verification
@@ -221,7 +222,7 @@ export async function POST(request: NextRequest) {
               console.log(`[wa-webhook] ✅ Match! rule=${rule.name} sender=${senderPhone}`)
               
               // A/B Testing selection
-              let content = rule.response_content
+              let content = parseContent(rule.response_content)
               let variantId = null
               if (rule.automation_variants && rule.automation_variants.length > 0) {
                 const allOptions = [
@@ -233,7 +234,7 @@ export async function POST(request: NextRequest) {
                 for (const opt of allOptions) {
                   sum += Math.max(0, opt.weight)
                   if (random <= sum) {
-                    content = opt.content
+                    content = parseContent(opt.content)
                     variantId = opt.id
                     break
                   }
@@ -297,7 +298,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error("[wa-webhook] Server error:", error)
-    return NextResponse.json({ error: "Internal error" }, { status: 500 })
+    return NextResponse.json({ ok: true })
   }
 }
 

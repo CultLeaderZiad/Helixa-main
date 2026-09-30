@@ -12,6 +12,7 @@ import {
 import { processLeadCapture } from "./lead-capture"
 import { parseContent, pickRandom, pickVariant, keywordMatches, checkTrialStatus } from "./webhook-utils"
 import { openAccessToken } from "./token-crypto"
+import { aiReplyEvent, pickPageConnection } from "./channel-ids"
 
 const DEFAULT_PUBLIC_REPLIES = ["Check your inbox! 📥", "Sent you a message! 🔥", "Check your DMs! ✨"]
 
@@ -94,13 +95,25 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
 
     const webhookId = String(entry.id)
 
-    // User resolution via platform_connections
-    let { data: connection } = await supabase
+    // maybeSingle() on both the facebook and messenger rows never matches,
+    // and interpolating the page id into .or() breaks when the id is unexpected.
+    const connectionSelect = "user_id, platform, access_token, page_id"
+    const { data: byPage } = await supabase
       .from("platform_connections")
-      .select("user_id, platform, access_token, page_id")
-      .or(`page_id.eq.${webhookId},external_account_id.eq.${webhookId}`)
+      .select(connectionSelect)
+      .eq("page_id", webhookId)
       .in("platform", ["facebook", "messenger"])
-      .maybeSingle()
+      .limit(5)
+    let connection = pickPageConnection(byPage)
+    if (!connection) {
+      const { data: byExternal } = await supabase
+        .from("platform_connections")
+        .select(connectionSelect)
+        .eq("external_account_id", webhookId)
+        .in("platform", ["facebook", "messenger"])
+        .limit(5)
+      connection = pickPageConnection(byExternal)
+    }
 
     if (!connection) {
       console.log(`[fb-webhook] ❌ Could not resolve Facebook page ID ${webhookId}`)
@@ -127,7 +140,7 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
     // Plan enforcement
     const { data: account } = await supabase
       .from("accounts")
-      .select("plan, trial_ends_at, trial_exempt, is_banned")
+      .select("id, plan, trial_ends_at, trial_exempt, is_banned")
       .eq("id", user.account_id)
       .single()
 
@@ -263,6 +276,7 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
             match,
             content,
             commentId,
+            { sendText: sendFacebookText },
           )
 
           if (leadCaptureResult.shouldContinue) {
@@ -461,12 +475,9 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
               }
 
               try {
-                const { error: evErr } = await supabase.from("automation_events").insert({
-                  user_id: user.id,
-                  automation_id: "AI_AUTO_REPLY",
-                  event_type: "sent",
-                  platform: "facebook",
-                })
+                const { error: evErr } = await supabase.from("automation_events").insert(
+                  aiReplyEvent({ userId: user.id, platform: "facebook", recipientId: senderId }),
+                )
                 if (evErr) console.warn("[fb-webhook] Failed to log automation_event (AI auto-reply):", evErr.message)
               } catch (e) {
                 console.warn("[fb-webhook] Failed to log automation_event (AI auto-reply):", e)

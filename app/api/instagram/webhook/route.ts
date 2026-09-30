@@ -18,6 +18,7 @@ import {
 import { openAccessToken, sealAccessToken, tokenNeedsReseal } from "@/lib/token-crypto"
 import { markInstagramReconnect } from "@/lib/instagram-token"
 import { watchInstagramAuthFailures } from "@/lib/instagram-api"
+import { aiReplyEvent, storyEventKey } from "@/lib/channel-ids"
 
 const WEBHOOK_VERIFY_TOKEN = process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN
 // Meta signs every webhook POST with HMAC-SHA256 of the raw body. Depending on app setup the
@@ -402,6 +403,10 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Story events that already received a story automation reply must not
+      // also match a DM keyword rule on the same text.
+      const handledStoryEvents = new Set<string>()
+
       // ============================================================
       //  PART A.5: STORY AUTOMATIONS (mention / reaction / reply)
       // ============================================================
@@ -454,6 +459,8 @@ export async function POST(request: NextRequest) {
           }
 
           if (match) {
+            const handledKey = storyEventKey(event)
+            if (handledKey) handledStoryEvents.add(handledKey)
             console.log(`[webhook] ✨ Story match: "${match.name}"`)
             const { content: rawContent, variantId } = pickVariant(match)
             const content = parseContent(rawContent)
@@ -496,6 +503,8 @@ export async function POST(request: NextRequest) {
       if (entry.messaging) {
         for (const event of entry.messaging) {
           if (event.read || event.delivery || event.reaction || event.message?.is_echo) continue
+          const handledKey = storyEventKey(event)
+          if (handledKey && handledStoryEvents.has(handledKey)) continue
 
           const senderId = event.sender.id
           if (senderId === webhookId || senderId === user.business_account_id || senderId === user.page_id) continue
@@ -683,13 +692,9 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
                   }
                   
                   try {
-                    const { error: evErr } = await supabase.from("automation_events").insert({
-                      user_id: user.id,
-                      automation_id: "AI_AUTO_REPLY",
-                      event_type: "dm_reply",
-                      recipient_id: senderId,
-                      platform: "instagram",
-                    })
+                    const { error: evErr } = await supabase.from("automation_events").insert(
+                      aiReplyEvent({ userId: user.id, platform: "instagram", recipientId: senderId }),
+                    )
                     if (evErr) console.warn("[webhook] Failed to log automation_event (AI auto-reply):", evErr.message)
                   } catch (e) {
                     console.warn("[webhook] Failed to log automation_event (AI auto-reply):", e)

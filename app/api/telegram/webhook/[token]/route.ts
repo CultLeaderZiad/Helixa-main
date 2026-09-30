@@ -10,6 +10,7 @@ import {
   answerTelegramCallbackQuery,
 } from "@/lib/telegram-api"
 import { parseContent, pickVariant, keywordMatches, checkTrialStatus } from "@/lib/webhook-utils"
+import { aiReplyEvent, telegramMessageId } from "@/lib/channel-ids"
 
 export async function POST(
   request: NextRequest,
@@ -31,12 +32,24 @@ export async function POST(
     const supabase = await getSupabaseBypassClient()
 
     // 2. Fetch the corresponding platform connection
-    const { data: connection, error: connError } = await supabase
+    const { data: byPage, error: pageError } = await supabase
       .from("platform_connections")
       .select("*")
       .eq("platform", "telegram")
-      .or(`page_id.eq.${botId},external_account_id.eq.${botId}`)
-      .maybeSingle()
+      .eq("page_id", botId)
+      .limit(1)
+    let connection = byPage?.[0]
+    let connError = pageError
+    if (!connection && !connError) {
+      const byExternal = await supabase
+        .from("platform_connections")
+        .select("*")
+        .eq("platform", "telegram")
+        .eq("external_account_id", botId)
+        .limit(1)
+      connection = byExternal.data?.[0]
+      connError = byExternal.error
+    }
 
     if (connError || !connection) {
       console.warn(`[Telegram Webhook] Unknown bot ID: ${botId}`)
@@ -158,7 +171,7 @@ export async function POST(
 
       if (conv) {
         await supabase.from("messages").insert({
-          id: update.message?.message_id?.toString() || `tg_${Date.now()}_${Math.random()}`,
+          id: telegramMessageId(chatId, update.message?.message_id ?? update.callback_query?.message?.message_id),
           conversation_id: conv.id,
           user_id: userId,
           sender_id: senderId,
@@ -263,12 +276,9 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
           }
 
           try {
-            const { error: evErr } = await supabase.from("automation_events").insert({
-              user_id: userId,
-              automation_id: "AI_AUTO_REPLY",
-              event_type: "sent",
-              platform: "telegram",
-            })
+            const { error: evErr } = await supabase.from("automation_events").insert(
+              aiReplyEvent({ userId, platform: "telegram", recipientId: senderId }),
+            )
             if (evErr) console.warn("[Telegram Webhook] Failed to log automation_event (AI auto-reply):", evErr.message)
           } catch (e) {
             console.warn("[Telegram Webhook] Failed to log automation_event (AI auto-reply):", e)

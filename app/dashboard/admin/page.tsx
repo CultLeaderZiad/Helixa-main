@@ -172,7 +172,7 @@ export default function AdminPage() {
       
       const { count } = await supabase
         .from("users")
-        .select("*", { count: "exact", head: true })
+        .select("id", { count: "exact", head: true })
         .eq("plan", "trial")
         .gte("created_at", oneWeekAgo.toISOString())
       

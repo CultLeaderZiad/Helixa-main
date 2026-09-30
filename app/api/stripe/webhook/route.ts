@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
-import { getSupabaseServerClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 const stripeKey = process.env.STRIPE_SECRET_KEY
 const stripe = new Stripe(stripeKey || "sk_test_placeholder_do_not_use", {
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Webhook signature verification failed" }, { status: 400 })
   }
 
-  const supabase = await getSupabaseServerClient()
+  const supabase = await getSupabaseBypassClient()
   const now = new Date().toISOString()
 
   try {

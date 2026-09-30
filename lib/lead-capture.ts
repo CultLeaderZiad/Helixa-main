@@ -1,6 +1,12 @@
 import { SupabaseClient } from "@supabase/supabase-js"
 import { sendTextDM } from "./instagram-api"
 
+type LeadSender = (
+  token: string,
+  recipient: { id?: string; comment_id?: string },
+  text: string,
+) => Promise<unknown>
+
 export async function processLeadCapture(
   supabase: SupabaseClient,
   userId: string,
@@ -10,7 +16,8 @@ export async function processLeadCapture(
   triggerValue: string,
   automation: any,
   parsedContent: any,
-  commentId?: string
+  commentId?: string,
+  options?: { sendText?: LeadSender },
 ) {
   // 1. Fetch current conversation state
   const { data: leadState } = await supabase
@@ -102,7 +109,8 @@ export async function processLeadCapture(
 
   if (promptText) {
     const recipient = justStarted && commentId ? { comment_id: commentId } : { id: senderId }
-    await sendTextDM(accessToken, recipient, promptText)
+    const sendText = options?.sendText || sendTextDM
+    await sendText(accessToken, recipient, promptText)
     return { shouldContinue: false, replyTextLog: `[Lead Capture] ${promptText}` }
   }
 
