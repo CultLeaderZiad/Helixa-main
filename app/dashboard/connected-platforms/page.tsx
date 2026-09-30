@@ -695,9 +695,9 @@ export default function ConnectedPlatformsPage() {
                 <div className="space-y-3">
                   <p className="text-[11px] text-neutral-500 leading-relaxed">
                     {tiktokStatus?.messagingEnabled
-                      ? "Business Messaging is enabled for this deployment."
+                      ? "Business Messaging is on. DMs work outside the EEA, Switzerland, and the UK. US accounts stay off until the US review flag is set. Egypt and the GCC are included."
                       : "Connect stays off until TikTok approves Business Messaging and TIKTOK_MESSAGING_ENABLED=true."}
-                    {tiktokStatus?.commentToDmEnabled ? " Comment-to-DM is on." : " Comment-to-DM is off."}
+                    {" Public comment replies run everywhere the account is connected. Comment-to-Message DMs stay limited to Vietnam, Indonesia, and Thailand."}
                   </p>
                   <a
                     href="/api/tiktok/auth"

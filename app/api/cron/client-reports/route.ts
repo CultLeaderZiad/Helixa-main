@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     })
     const origin = process.env.NEXT_PUBLIC_APP_URL || "https://helixa.local"
     const link = `${origin}/share/report/${token}`
-    const pdf = report.format === "pdf" ? renderReportPdf({ appName: "Helixa", clientName: report.recipient_email, periodLabel: period, kpis }) : null
+    const pdf = report.format === "pdf" ? await renderReportPdf({ appName: "Helixa", clientName: report.recipient_email, periodLabel: period, kpis }) : null
     const mailed = await sendEmail({
       to: report.recipient_email,
       subject: `Your Helixa report · ${period}`,

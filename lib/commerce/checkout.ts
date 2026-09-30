@@ -84,24 +84,37 @@ async function linkForOrder(
   request: { amountCents: number; currency: string; description: string; orderId: string; successUrl: string; cancelUrl: string },
   fetchImpl?: typeof fetch,
 ) {
-  const configs = await supabase.from("integration_configs").select("kind, config, secret_ciphertext").eq("user_id", userId).in("kind", ["paymob", "stripe"])
+  return paymentLinkForUser(supabase, userId, request, fetchImpl)
+}
+
+export async function paymentLinkForUser(
+  supabase: Db,
+  userId: string | number,
+  request: { amountCents: number; currency: string; description: string; orderId: string; successUrl: string; cancelUrl: string; customer?: { name?: string; email?: string; phone?: string } },
+  fetchImpl?: typeof fetch,
+  preferred?: PaymentProviderId | null,
+) {
+  const configs = await supabase.from("integration_configs").select("kind, config, secret_ciphertext").eq("user_id", userId).in("kind", ["paymob", "stripe", "tap"])
   if (configs.error || !Array.isArray(configs.data)) return null
-  const paymob = configs.data.find((row: any) => row.kind === "paymob")
-  const stripe = configs.data.find((row: any) => row.kind === "stripe")
-  const provider: PaymentProviderId | null = paymob?.secret_ciphertext ? "paymob" : stripe?.secret_ciphertext ? "stripe" : null
+  const byKind = new Map<string, { config?: { integration_id?: string; iframe_id?: string }; secret_ciphertext?: string }>()
+  for (const row of configs.data as Array<{ kind?: string; config?: { integration_id?: string; iframe_id?: string }; secret_ciphertext?: string }>) {
+    if (row?.kind) byKind.set(row.kind, row)
+  }
+  const order: PaymentProviderId[] = preferred ? [preferred, "paymob", "stripe", "tap"] : ["paymob", "stripe", "tap"]
+  const provider = order.find((kind) => byKind.get(kind)?.secret_ciphertext) || null
   if (!provider) return null
-  const row = provider === "paymob" ? paymob : stripe
+  const row = byKind.get(provider)
+  if (!row) return null
   const secret = decryptString(String(row.secret_ciphertext || ""))
   if (!secret) return null
   const parsed = parseStoredSecret(secret)
-  return createPaymentLink(
-    provider,
-    request,
+  const secrets =
     provider === "paymob"
       ? { paymob: { apiKey: parsed.apiKey || secret, integrationId: String(row.config?.integration_id || ""), iframeId: String(row.config?.iframe_id || "") } }
-      : { stripe: { secretKey: parsed.secretKey || secret } },
-    fetchImpl,
-  )
+      : provider === "tap"
+        ? { tap: { secretKey: parsed.secretKey || secret } }
+        : { stripe: { secretKey: parsed.secretKey || secret } }
+  return createPaymentLink(provider, request, secrets, fetchImpl)
 }
 
 export function parseStoredSecret(secret: string): { apiKey?: string; hmac?: string; secretKey?: string; webhookSecret?: string } {

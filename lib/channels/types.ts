@@ -64,6 +64,8 @@ export interface OutboundContent {
   mark_seen?: boolean
   reply_mode?: "both" | "dm_only" | "public_only"
   public_replies?: string[]
+  /** When set on a TikTok comment rule, also build the Instagram comment-to-DM for this keyword. */
+  cross_post_instagram?: boolean
   include_replies?: boolean
   check_follow?: boolean
   lead_capture?: {
@@ -84,6 +86,16 @@ export interface SendContext {
   senderRef?: string
   messagingType?: "RESPONSE" | "UPDATE" | "MESSAGE_TAG"
   tag?: "HUMAN_AGENT"
+  /** TikTok public comment replies need the video id. */
+  mediaId?: string | null
+  /**
+   * TikTok Business Account sign-up region.
+   * Undefined skips the region check (callers that predate region gating).
+   * Null means the region is unknown and DMs stay on the rest-of-world default.
+   */
+  tiktokRegion?: string | null
+  /** Present only when this send must obey the 48-hour / 10-message window. */
+  tiktokWindow?: { lastUserMessageAt: number | null; businessSends: number }
 }
 
 export interface SendOutcome {
@@ -112,6 +124,8 @@ export interface ChannelAdapter {
   sendCarousel?(ctx: SendContext, cards: OutboundCard[]): Promise<SendOutcome>
   sendMedia(ctx: SendContext, media: OutboundMedia, caption?: string): Promise<SendOutcome>
   sendList?(ctx: SendContext, list: OutboundList): Promise<SendOutcome>
+  /** TikTok QA_BUTTON_CARD. Other adapters ignore it. */
+  sendQaCard?(ctx: SendContext, questions: string[]): Promise<SendOutcome>
   privateReply?(ctx: SendContext, text: string, quickReplies?: QuickReply[]): Promise<SendOutcome>
   publicReply?(ctx: SendContext, commentId: string, text: string): Promise<SendOutcome>
   profile?(ctx: SendContext, externalId: string): Promise<{ name?: string; username?: string } | null>
@@ -148,8 +162,14 @@ export interface NormalizedInbound {
   chatId?: string
   /** Page id, Instagram entry id, WhatsApp phone-number id, TikTok open id, or widget key. */
   accountRef?: string
-  /** ig.me / m.me `ref` parameter, when the channel includes one. */
+  /** ig.me / m.me / tiktok.me `ref` parameter, when the channel includes one. */
   referral?: string
+  /**
+   * TikTok comments only.
+   * `organic` is comment.update and must not send a DM.
+   * `direct` is a high-intent comment and may use Comment-to-Message.
+   */
+  commentSurface?: "organic" | "direct"
 }
 
 export interface AutomationRule {

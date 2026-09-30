@@ -1,5 +1,6 @@
 import { parseContent } from "@/lib/webhook-utils"
 import type { FlowGraph, FlowNode, FlowTrigger } from "@/lib/flows/types"
+import { botLocale, botText, followSubtitle, publicReplies, type BotLocale } from "@/lib/bot-copy"
 
 export interface LegacyAutomation {
   id: string
@@ -23,7 +24,9 @@ export interface MigratedFlow {
   graph: FlowGraph
 }
 
-const DEFAULT_PUBLIC = ["Check your inbox! 📥", "Sent you a message! 🔥", "Check your DMs! ✨"]
+function defaultPublic(locale: BotLocale): string[] {
+  return publicReplies(locale)
+}
 
 function node(id: string, type: FlowNode["type"], y: number, data: Record<string, unknown>): FlowNode {
   return { id, type, position: { x: 80, y }, data }
@@ -93,7 +96,7 @@ export function triggerForAutomation(rule: LegacyAutomation): FlowTrigger {
  * delay, an optional follow gate, and the same outbound message.
  * The legacy row stays. A live flow with this source id replaces its send.
  */
-export function automationToFlow(rule: LegacyAutomation): MigratedFlow {
+export function automationToFlow(rule: LegacyAutomation, locale: BotLocale = "en"): MigratedFlow {
   const content = parseContent(rule.response_content)
   const channel = channelOf(rule)
   const trigger = triggerForAutomation(rule)
@@ -108,7 +111,7 @@ export function automationToFlow(rule: LegacyAutomation): MigratedFlow {
     const variants = Array.isArray(content.public_replies)
       ? content.public_replies.map((item: unknown) => String(item || "")).filter(Boolean)
       : []
-    nodes.push(node("public", "public_reply", y, { variants: variants.length ? variants : DEFAULT_PUBLIC }))
+    nodes.push(node("public", "public_reply", y, { variants: variants.length ? variants : defaultPublic(locale) }))
     edges.push(edge(previous, "public"))
     previous = "public"
     y += 160
@@ -140,10 +143,10 @@ export function automationToFlow(rule: LegacyAutomation): MigratedFlow {
   if (rule.check_follow || content.check_follow) {
     nodes.push(
       node("gate", "send_message", y, {
-        text: `Please follow @us to see this.`,
+        text: followSubtitle(locale, "us"),
         buttons: [
-          { title: "Follow", url: "https://instagram.com/" },
-          { title: "I Followed!", payload: `UNLOCK_CONTENT_${rule.id}` },
+          { title: botText(locale, "follow"), url: "https://instagram.com/" },
+          { title: botText(locale, "followed"), payload: `UNLOCK_CONTENT_${rule.id}` },
         ],
         waitFor: "button",
       }),
@@ -166,13 +169,13 @@ export function automationToFlow(rule: LegacyAutomation): MigratedFlow {
 }
 
 /** Rules that already have a flow are left untouched, so running this twice does not fork them. */
-export function planAutomationMigration(rules: LegacyAutomation[], alreadyMigrated: Set<string>): MigratedFlow[] {
+export function planAutomationMigration(rules: LegacyAutomation[], alreadyMigrated: Set<string>, locale: BotLocale = "en"): MigratedFlow[] {
   const seen = new Set<string>()
   const planned: MigratedFlow[] = []
   for (const rule of rules) {
     if (!rule?.id || alreadyMigrated.has(rule.id) || seen.has(rule.id)) continue
     seen.add(rule.id)
-    planned.push(automationToFlow(rule))
+    planned.push(automationToFlow(rule, botLocale(locale)))
   }
   return planned
 }

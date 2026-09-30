@@ -5,6 +5,7 @@ import { forbidBelow, requireSessionUser } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { ensureTenantProfile } from "@/lib/tenant-user"
 import { newWidgetKey, widgetSnippet } from "@/lib/webchat/security"
+import { assertChannelConnect, limitPayload, PlanLimitError } from "@/lib/billing/enforce"
 
 function originOf(request: NextRequest): string {
   const configured = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "")
@@ -87,6 +88,12 @@ export async function POST(request: NextRequest) {
   }
 
   const publicKey = newWidgetKey()
+  try {
+    await assertChannelConnect(supabase, result.user, { platform: "webchat", pageId: publicKey })
+  } catch (error) {
+    if (error instanceof PlanLimitError) return NextResponse.json(limitPayload(error), { status: 402 })
+    throw error
+  }
   const row = {
     user_id: profile.id,
     workspace_id: result.workspace?.id || profile.workspace_id || null,

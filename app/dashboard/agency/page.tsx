@@ -17,6 +17,12 @@ export default function AgencyPage() {
   const [domain, setDomain] = useState("")
   const [email, setEmail] = useState("")
   const [note, setNote] = useState("")
+  const prices = useSWR("/api/agency/pricing", fetcher)
+  const [priceWorkspace, setPriceWorkspace] = useState("")
+  const [amountCents, setAmountCents] = useState("4900")
+  const [currency, setCurrency] = useState("sar")
+  const [priceInterval, setPriceInterval] = useState("month")
+  const [provider, setProvider] = useState("tap")
 
   async function save() {
     const response = await fetch("/api/agency", {
@@ -34,6 +40,33 @@ export default function AgencyPage() {
     const json = await response.json()
     setNote(response.ok ? "Branding saved" : json.error || "Save failed")
     agency.mutate()
+  }
+
+  async function savePrice() {
+    const response = await fetch("/api/agency/pricing", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        workspaceId: priceWorkspace,
+        amountCents: Number(amountCents),
+        currency,
+        interval: priceInterval,
+        provider,
+      }),
+    })
+    const json = await response.json()
+    setNote(response.ok ? "Client price saved" : json.error || "Could not save the price")
+    if (response.ok) prices.mutate()
+  }
+
+  async function createInvoice() {
+    const response = await fetch("/api/agency/invoices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workspaceId: priceWorkspace }),
+    })
+    const json = await response.json()
+    setNote(response.ok ? json.url || "Invoice created" : json.error || "Could not create the invoice")
   }
 
   async function schedule(cadence: "weekly" | "monthly", format: "pdf" | "link") {
@@ -91,6 +124,38 @@ export default function AgencyPage() {
         <p className="text-xs text-neutral-500">Add the domain in Vercel, then point DNS at it. Helixa matches the Host header to this agency. Steps are in docs/phase6-differentiators.md.</p>
         <button type="button" className={button} onClick={save}>Save branding</button>
         <a href="/portal" className="block text-sm text-neutral-300 underline">Open the client portal</a>
+      </section>
+      <section className="border border-white/10 rounded-2xl p-4 space-y-2">
+        <h2 className="text-sm text-white">Client price</h2>
+        <p className="text-xs text-neutral-500">Set what this client pays you. Checkout uses the Paymob, Stripe, or Tap credentials saved on the workspace.</p>
+        <select className={field} value={priceWorkspace} onChange={(event) => setPriceWorkspace(event.target.value)}>
+          <option value="">Choose a client workspace</option>
+          {(overview.data?.clients || []).map((client: { workspaceId: string; name: string }) => (
+            <option key={client.workspaceId} value={client.workspaceId}>{client.name}</option>
+          ))}
+        </select>
+        <div className="grid sm:grid-cols-4 gap-2">
+          <input className={field} inputMode="numeric" value={amountCents} onChange={(event) => setAmountCents(event.target.value)} placeholder="Minor units" />
+          <select className={field} value={currency} onChange={(event) => setCurrency(event.target.value)}>
+            {["usd", "egp", "sar", "aed", "qar", "kwd", "bhd", "omr"].map((code) => <option key={code} value={code}>{code.toUpperCase()}</option>)}
+          </select>
+          <select className={field} value={priceInterval} onChange={(event) => setPriceInterval(event.target.value)}>
+            <option value="month">Monthly</option>
+            <option value="year">Yearly</option>
+          </select>
+          <select className={field} value={provider} onChange={(event) => setProvider(event.target.value)}>
+            <option value="tap">Tap</option>
+            <option value="stripe">Stripe</option>
+            <option value="paymob">Paymob</option>
+          </select>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className={button} onClick={savePrice}>Save price</button>
+          <button type="button" className={ghost} onClick={createInvoice}>Create invoice</button>
+        </div>
+        {(prices.data?.prices || []).map((price: { workspace_id: string; amount_cents: number; currency: string; interval: string; provider: string }) => (
+          <p key={price.workspace_id} className="text-xs text-neutral-400">{price.workspace_id.slice(0, 8)} · {price.amount_cents} {price.currency} / {price.interval} via {price.provider}</p>
+        ))}
       </section>
       <section className="border border-white/10 rounded-2xl p-4 space-y-2">
         <h2 className="text-sm text-white">Scheduled report</h2>

@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireUser } from "@/lib/auth"
 import { createWorkspace, listMemberships } from "@/lib/workspaces"
+import { limitPayload, PlanLimitError } from "@/lib/billing/enforce"
 
 /**
  * GET /api/workspaces
@@ -64,6 +65,7 @@ export async function POST(request: NextRequest) {
     response.cookies.set(WORKSPACE_COOKIE, workspace.workspaceId, oauthCookieOptions(60 * 60 * 24 * 365))
     return response
   } catch (error: any) {
+    if (error instanceof PlanLimitError) return NextResponse.json(limitPayload(error), { status: 402 })
     const message = error?.message || "Could not create workspace"
     const status = /not installed|does not exist|schema cache/i.test(message) ? 503 : 400
     return NextResponse.json({ error: message }, { status })

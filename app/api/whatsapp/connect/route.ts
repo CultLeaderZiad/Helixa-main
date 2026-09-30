@@ -5,6 +5,7 @@ import { forbidBelow, requireSessionUser } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { ensureTenantProfile } from "@/lib/tenant-user"
 import { sealAccessToken } from "@/lib/token-crypto"
+import { assertChannelConnect, limitPayload, PlanLimitError } from "@/lib/billing/enforce"
 import {
   debugTokenWabaIds,
   exchangeEmbeddedSignupCode,
@@ -79,6 +80,15 @@ export async function POST(request: NextRequest) {
       console.error("[whatsapp] profile:", error)
       return NextResponse.json({ error: "Could not prepare a workspace profile" }, { status: 500 })
     }
+  }
+
+  try {
+    for (const number of numbers) {
+      await assertChannelConnect(supabase, result.user, { platform: "whatsapp", pageId: number.phoneNumberId })
+    }
+  } catch (error) {
+    if (error instanceof PlanLimitError) return NextResponse.json(limitPayload(error), { status: 402 })
+    throw error
   }
 
   const saved = []

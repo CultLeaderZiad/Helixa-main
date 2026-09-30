@@ -6,8 +6,10 @@ import { oauthCookieOptions, safeEqual } from "@/lib/instagram-oauth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { ensureTenantProfile } from "@/lib/tenant-user"
 import { sealAccessToken } from "@/lib/token-crypto"
-import { TIKTOK_API_BASE, tiktokAppId, tiktokAppSecret, tiktokCommentToDmEnabled, tiktokMessagingEnabled } from "@/lib/tiktok/config"
+import { TIKTOK_API_BASE, tiktokAppId, tiktokAppSecret, tiktokMessagingEnabled } from "@/lib/tiktok/config"
+import { commentToMessageAllowed, normalizeRegion } from "@/lib/tiktok/region"
 import { exchangeTikTokCode, tiktokTokenExpiry, TT_OAUTH_STATE_COOKIE } from "@/lib/tiktok/oauth"
+import { assertChannelConnect, PlanLimitError } from "@/lib/billing/enforce"
 
 function fail(request: NextRequest, error: string) {
   const response = NextResponse.redirect(new URL(`/dashboard/connected-platforms?error=${error}`, request.url))
@@ -56,13 +58,21 @@ export async function GET(request: NextRequest) {
   if (!exchanged.ok || !exchanged.token.openId) return fail(request, "tiktok_token")
 
   const token = exchanged.token
-  const profile = await tiktokGet(
+  const profileFields = ["username", "display_name", "region", "country", "country_code"]
+  let profile = await tiktokGet(
     token.accessToken,
-    `/business/get/?business_id=${encodeURIComponent(token.openId)}&fields=${encodeURIComponent(JSON.stringify(["username", "display_name"]))}`,
+    `/business/get/?business_id=${encodeURIComponent(token.openId)}&fields=${encodeURIComponent(JSON.stringify(profileFields))}`,
   )
+  if (profile?.code !== undefined && profile.code !== 0) {
+    profile = await tiktokGet(
+      token.accessToken,
+      `/business/get/?business_id=${encodeURIComponent(token.openId)}&fields=${encodeURIComponent(JSON.stringify(["username", "display_name"]))}`,
+    )
+  }
   const business = profile?.data || {}
   const username = business.username ? String(business.username) : null
   const displayName = business.display_name ? String(business.display_name) : username
+  const region = normalizeRegion(business.region || business.country || business.country_code)
 
   const origin = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "")
   let webhookSubscribed = false
@@ -74,10 +84,17 @@ export async function GET(request: NextRequest) {
       callback_url: `${origin}/api/tiktok/webhook`,
     })
     webhookSubscribed = subscribed?.code === 0
+    const commentHook = await tiktokPost(token.accessToken, "/business/webhook/update/", {
+      app_id: tiktokAppId(),
+      secret: tiktokAppSecret(),
+      event_type: "COMMENT",
+      callback_url: `${origin}/api/tiktok/webhook`,
+    })
+    if (commentHook?.code === 0) webhookSubscribed = true
   }
 
   let commentToDm = false
-  if (tiktokCommentToDmEnabled()) {
+  if (region && commentToMessageAllowed(region)) {
     const enabled = await tiktokPost(token.accessToken, "/business/message/direct_reply/update/", {
       business_id: token.openId,
       direct_reply_type: "COMMENT_TO_MESSAGE",
@@ -103,13 +120,21 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const metadata = {
+  try {
+    await assertChannelConnect(supabase, session.account, { platform: "tiktok", pageId: token.openId })
+  } catch (error) {
+    if (error instanceof PlanLimitError) return fail(request, "limit_channels")
+    throw error
+  }
+
+  const metadata: Record<string, unknown> = {
     username,
     name: displayName || username || token.openId,
     scope: token.scope,
     webhook_subscribed: webhookSubscribed,
     comment_to_dm: commentToDm,
   }
+  if (region) metadata.region = region
   const fields: Record<string, unknown> = {
     user_id: profileRow.id,
     account_id: session.account.id,

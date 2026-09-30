@@ -8,6 +8,7 @@ import Image from "next/image"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { Loader2 } from "lucide-react"
 import { TrialBanner } from "@/components/layout/TrialBanner"
+import { UsageNotice } from "@/components/layout/UsageNotice"
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"
 import { DashboardBackground } from "@/components/layout/DashboardBackground"
 
@@ -125,6 +126,7 @@ export default function DashboardLayout({
 
                 <main className="flex-1 relative overflow-auto z-10">
                     {!trialExempt && <TrialBanner plan={plan || ""} trialEndsAt={trialEndsAt} />}
+                    <UsageNotice />
                     {instagramReconnectRequired && (
                         <div className="mx-4 mt-4 md:mx-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <p className="text-sm text-amber-100">

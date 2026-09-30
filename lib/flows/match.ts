@@ -1,6 +1,7 @@
 import { matchesSpecificPost } from "@/lib/channels/match"
 import type { NormalizedInbound } from "@/lib/channels/types"
 import { keywordMatches } from "@/lib/webhook-utils"
+import { isKnownTikTokIntent, matchTikTokIntent } from "@/lib/tiktok/intents"
 import type { FlowTrigger } from "@/lib/flows/types"
 
 export interface TriggerContext {
@@ -88,7 +89,12 @@ export function triggerMatches(trigger: FlowTrigger, event: NormalizedInbound, c
       if (!context.tiktokEnabled) return false
       if (event.channel !== "tiktok") return false
       if (event.kind !== "dm" && event.kind !== "postback") return false
-      if (trigger.keywords && trigger.match !== "reply_all") return keywordMatches(trigger.keywords, event.text || "")
+      if (trigger.intent) return matchTikTokIntent(trigger.intent, event.text || "")
+      if (trigger.keywords && trigger.match !== "reply_all") {
+        if (keywordMatches(trigger.keywords, event.text || "")) return true
+        if (isKnownTikTokIntent(trigger.keywords)) return matchTikTokIntent(trigger.keywords, event.text || "")
+        return false
+      }
       return true
     }
     case "ref": {

@@ -85,10 +85,13 @@ unchanged.
 
 `/dashboard/broadcasts` sends to a segment of tags, fields, and channel.
 WhatsApp broadcasts always need an approved template and an opted-in contact,
-including inside 24 hours. Instagram and Messenger send inside 24 hours, or
-later with `HUMAN_AGENT` (only through 7 days) or `ACCOUNT_UPDATE`,
-`POST_PURCHASE_UPDATE`, or `CONFIRMED_EVENT_UPDATE`. Telegram and website chat
-send freely. Opted-out contacts are skipped.
+including inside 24 hours. Instagram and Messenger send inside 24 hours.
+`HUMAN_AGENT` is the only tag Meta still accepts, and only through 7 days.
+`ACCOUNT_UPDATE`, `POST_PURCHASE_UPDATE`, and `CONFIRMED_EVENT_UPDATE` were
+retired on 27 April 2026 and are rejected.
+See https://developers.facebook.com/docs/messenger-platform/send-messages/.
+Telegram and website chat
+send freely. TikTok broadcasts are refused. Opted-out contacts are skipped.
 
 Jobs are spaced at `60000 / perMinute` (1–600 per minute) and drained with the
 flow queue. Opens move when that contact messages again. Clicks move when a
@@ -106,7 +109,7 @@ and a live flow for one Reel.
 `/b/{slug}` collects an email or phone into a contact on channel `bio` and
 can enqueue one flow start. The page is public.
 
-Ref links build `ig.me`, `m.me`, `wa.me`, and `t.me` URLs with a code. The
+Ref links build `ig.me`, `m.me`, `wa.me`, `t.me`, and `tiktok.me` URLs with a code. The
 matching trigger is case-insensitive, including `/start CODE` and the
 referral field on an open-thread event. The API returns an SVG QR code.
 

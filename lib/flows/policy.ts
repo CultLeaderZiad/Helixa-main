@@ -1,14 +1,17 @@
 import { evaluateMessagingWindow, HUMAN_AGENT_WINDOW_MS, STANDARD_WINDOW_MS } from "@/lib/channels/window"
+import { judgeTikTokSend, type TikTokWindowState } from "@/lib/tiktok/quota"
+import { dmMessagingAllowed } from "@/lib/tiktok/region"
 
 /** TikTok Business Messaging documents a 48 hour window and no human-agent tag. */
 export const TIKTOK_FLOW_WINDOW_MS = 48 * 60 * 60 * 1000
 
-export const BROADCAST_MESSAGE_TAGS = [
-  "HUMAN_AGENT",
-  "ACCOUNT_UPDATE",
-  "CONFIRMED_EVENT_UPDATE",
-  "POST_PURCHASE_UPDATE",
-] as const
+/**
+ * The only Messenger and Instagram message tag Meta still accepts.
+ * On 27 April 2026, `ACCOUNT_UPDATE`, `CONFIRMED_EVENT_UPDATE`, and
+ * `POST_PURCHASE_UPDATE` started returning error 100.
+ * https://developers.facebook.com/docs/messenger-platform/send-messages/
+ */
+export const BROADCAST_MESSAGE_TAGS = ["HUMAN_AGENT"] as const
 
 export type BroadcastMessageTag = (typeof BROADCAST_MESSAGE_TAGS)[number]
 
@@ -21,6 +24,10 @@ export type ComplianceReason =
   | "whatsapp_template_not_approved"
   | "whatsapp_not_opted_in"
   | "tiktok_disabled"
+  | "tiktok_broadcast"
+  | "tiktok_region"
+  | "tiktok_message_cap"
+  | "tiktok_user_initiated"
   | "channel_unsupported"
   | "bot_paused"
 
@@ -65,6 +72,10 @@ export function flowSendAllowed(input: {
   templateName?: string | null
   templateApproved?: boolean
   tiktokEnabled?: boolean
+  /** When set, including null, the Business Account sign-up region gates the send. */
+  tiktokRegion?: string | null
+  /** When set, the 10-message cap inside the 48-hour window applies. */
+  tiktokWindow?: TikTokWindowState
 }): SendDecision {
   const channel = input.channel
   if (channel === "telegram" || channel === "webchat" || channel === "bio") {
@@ -72,6 +83,23 @@ export function flowSendAllowed(input: {
   }
   if (channel === "tiktok" && input.tiktokEnabled === false) {
     return { allowed: false, reason: "tiktok_disabled" }
+  }
+  if (channel === "tiktok" && input.tiktokRegion !== undefined) {
+    const region = dmMessagingAllowed(input.tiktokRegion)
+    if (!region.allowed) return { allowed: false, reason: "tiktok_region" }
+  }
+  if (channel === "tiktok" && input.tiktokWindow) {
+    const quota = judgeTikTokSend({
+      lastUserMessageAt: input.tiktokWindow.lastUserMessageAt,
+      businessSends: input.tiktokWindow.businessSends,
+      now: input.now,
+      kind: "reply",
+    })
+    if (!quota.allowed) {
+      if (quota.reason === "message_cap") return { allowed: false, reason: "tiktok_message_cap" }
+      if (quota.reason === "no_user_message") return { allowed: false, reason: "tiktok_user_initiated" }
+      return { allowed: false, reason: "outside_window" }
+    }
   }
   const policy = channelWindow(channel)
   const verdict = evaluateMessagingWindow({
@@ -103,8 +131,8 @@ export function flowSendAllowed(input: {
 /**
  * Broadcasts are stricter than flow replies.
  * WhatsApp is templates only, and only to opted-in contacts, even inside 24h.
- * Instagram and Messenger send inside 24h, or later with a real message tag.
- * HUMAN_AGENT is only valid through 7 days. The other tags are not capped at 7 days.
+ * Instagram and Messenger send inside 24h. From 24 hours through 7 days the
+ * only supported tag is HUMAN_AGENT. Retired tags are invalid.
  * Telegram and website chat send freely. Opted-out contacts are skipped everywhere.
  */
 export function evaluateBroadcastCompliance(input: {
@@ -129,14 +157,7 @@ export function evaluateBroadcastCompliance(input: {
   }
 
   if (channel === "tiktok") {
-    const verdict = evaluateMessagingWindow({
-      windowMs: TIKTOK_FLOW_WINDOW_MS,
-      supportsHumanAgent: false,
-      lastInboundAt: input.lastInboundAt,
-      now: input.now,
-    })
-    if (verdict.status === "open") return { allowed: true, messagingType: "RESPONSE" }
-    return { allowed: false, reason: "outside_window" }
+    return { allowed: false, reason: "tiktok_broadcast" }
   }
 
   if (channel === "instagram" || channel === "messenger" || channel === "facebook") {
@@ -150,11 +171,8 @@ export function evaluateBroadcastCompliance(input: {
     const tag = (input.messageTag || "").trim()
     if (!tag) return { allowed: false, reason: verdict.status === "human_agent" ? "tag_required" : "outside_window" }
     if (!isBroadcastTag(tag)) return { allowed: false, reason: "invalid_tag" }
-    if (tag === "HUMAN_AGENT") {
-      if (verdict.status !== "human_agent") return { allowed: false, reason: "outside_window" }
-      return { allowed: true, messagingType: "MESSAGE_TAG", tag: "HUMAN_AGENT" }
-    }
-    return { allowed: true, messagingType: "MESSAGE_TAG", tag }
+    if (verdict.status !== "human_agent") return { allowed: false, reason: "outside_window" }
+    return { allowed: true, messagingType: "MESSAGE_TAG", tag: "HUMAN_AGENT" }
   }
 
   return { allowed: false, reason: "channel_unsupported" }

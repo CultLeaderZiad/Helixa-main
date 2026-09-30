@@ -1,6 +1,7 @@
 import type { AutomationRule, InboundKind, NormalizedInbound, OutboundContent } from "@/lib/channels/types"
 import { parseContent, keywordMatches } from "@/lib/webhook-utils"
 import { commentReplyOpen } from "@/lib/channels/window"
+import { isKnownTikTokIntent, matchTikTokIntent } from "@/lib/tiktok/intents"
 
 export function matchesSpecificPost(specificMediaId?: string | null, eventPostId?: string | null): boolean {
   if (!specificMediaId || !eventPostId) return false
@@ -89,7 +90,7 @@ export function interpretPostback(rules: AutomationRule[], payload: string): DmM
 
 export function matchDmRule(
   rules: AutomationRule[],
-  input: { triggerType: "keyword" | "postback"; text: string; replyAll: boolean; includeUntyped?: boolean },
+  input: { triggerType: "keyword" | "postback"; text: string; replyAll: boolean; includeUntyped?: boolean; channel?: string },
 ): AutomationRule | null {
   const pool = rules.filter((rule) => isDmRule(rule, input.includeUntyped !== false))
   if (input.triggerType === "postback") {
@@ -101,6 +102,15 @@ export function matchDmRule(
   }
   const keyword = pool.find((rule) => rule.trigger_type === "keyword" && keywordMatches(rule.trigger_value || "", input.text))
   if (keyword) return keyword
+  if (input.channel === "tiktok") {
+    const intent = pool.find((rule) => {
+      const name = rule.trigger_value || ""
+      if (rule.trigger_type === "intent") return matchTikTokIntent(name, input.text)
+      if (rule.trigger_type === "keyword" && isKnownTikTokIntent(name)) return matchTikTokIntent(name, input.text)
+      return false
+    })
+    if (intent) return intent
+  }
   if (input.replyAll) {
     return pool.find((rule) => rule.trigger_type === "reply_all") || null
   }
@@ -247,6 +257,7 @@ export function planInboundActions(input: {
         triggerType: event.kind === "postback" ? "postback" : "keyword",
         text: event.text,
         replyAll: input.dmReplyAll,
+        channel: event.channel,
       })
       if (rule) actions.push({ type: "dm", event, match: { kind: "rule", rule } })
       else actions.push({ type: "unmatched_dm", event })

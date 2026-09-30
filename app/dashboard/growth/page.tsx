@@ -114,6 +114,7 @@ export default function GrowthPage() {
             <option value="messenger">m.me</option>
             <option value="whatsapp">wa.me</option>
             <option value="telegram">t.me</option>
+            <option value="tiktok">tiktok.me</option>
           </select>
           <input className="h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm text-white" placeholder="username or phone" value={refForm.handle} onChange={(event) => setRefForm({ ...refForm, handle: event.target.value })} />
           <input className="h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm text-white" placeholder="CODE" value={refForm.code} onChange={(event) => setRefForm({ ...refForm, code: event.target.value })} />

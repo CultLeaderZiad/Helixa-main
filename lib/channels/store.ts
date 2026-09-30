@@ -39,6 +39,22 @@ export async function saveContactTouch(
   touch: ContactTouch,
   nowIso: string,
 ): Promise<ContactRecord | null> {
+  if (!existing) {
+    const { accountIdForProfile, assertWithinLimit, loadAccount, PlanLimitError } = await import("@/lib/billing/enforce")
+    const accountId = await accountIdForProfile(supabase, touch.userId)
+    const account = accountId ? await loadAccount(supabase, accountId) : null
+    if (account) {
+      try {
+        await assertWithinLimit(supabase, account, "contacts", 1)
+      } catch (error) {
+        if (error instanceof PlanLimitError) {
+          console.warn("[contacts] plan limit:", error.message)
+          return null
+        }
+        throw error
+      }
+    }
+  }
   const next = mergeContactTouch(existing, touch, nowIso)
   const row = {
     workspace_id: next.workspace_id,

@@ -5,6 +5,7 @@ import { forbidBelow, requireSessionUser } from "@/lib/auth"
 import { sealAccessToken } from "@/lib/token-crypto"
 import { ensureTenantProfile } from "@/lib/tenant-user"
 import { FACEBOOK_GRAPH_BASE } from "@/lib/graph"
+import { assertChannelConnect, limitPayload, PlanLimitError } from "@/lib/billing/enforce"
 
 /**
  * POST /api/facebook/connect
@@ -37,6 +38,12 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = await getSupabaseBypassClient()
+  try {
+    await assertChannelConnect(supabase, account, { platform: "facebook", pageId: page_id })
+  } catch (error) {
+    if (error instanceof PlanLimitError) return NextResponse.json(limitPayload(error), { status: 402 })
+    throw error
+  }
 
   // Resolve the user access token. Preferred path: server-side OAuth session
   // (encrypted, short-lived, one-time-use). Legacy `_token` is still accepted

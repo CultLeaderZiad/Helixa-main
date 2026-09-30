@@ -9,6 +9,7 @@ const PLACEHOLDER_TOKENS = new Set([
   "workspace_managed",
   "webchat_managed",
   "TEST_TOKEN_NOT_REAL",
+  "revoked_meta",
 ])
 
 export function isPlaceholderToken(token: string | null | undefined): boolean {

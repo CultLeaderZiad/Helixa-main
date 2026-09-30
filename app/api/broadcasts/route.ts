@@ -4,8 +4,9 @@ import { randomUUID } from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { planBroadcast, rollupBroadcast, type SegmentFilter } from "@/lib/broadcasts/plan"
 import { contactFromRow } from "@/lib/contacts"
-import { evaluateBroadcastCompliance } from "@/lib/flows/policy"
+import { evaluateBroadcastCompliance, isBroadcastTag } from "@/lib/flows/policy"
 import { isMissingTable, workspaceSession } from "@/lib/flows/session"
+import { accountIdForProfile, assertWithinLimit, incrementMeter, limitPayload, loadAccount, PlanLimitError } from "@/lib/billing/enforce"
 
 async function approved(supabase: any, userId: string | number, name: string | null | undefined): Promise<boolean> {
   if (!name) return false
@@ -37,6 +38,20 @@ export async function POST(request: NextRequest) {
     const name = String(body.name || "").trim().slice(0, 120)
     const channel = String(body.channel || "")
     if (!name || !channel) return NextResponse.json({ error: "Name and channel are required" }, { status: 400 })
+    const messageTag = typeof body.messageTag === "string" ? body.messageTag.trim() : ""
+    if (messageTag && !isBroadcastTag(messageTag)) {
+      return NextResponse.json({ error: "That message tag is no longer supported. HUMAN_AGENT is the only tag, and only through 7 days." }, { status: 400 })
+    }
+    const accountId = await accountIdForProfile(session.supabase, session.userId)
+    const account = accountId ? await loadAccount(session.supabase, accountId) : null
+    if (account) {
+      try {
+        await assertWithinLimit(session.supabase, account, "broadcasts", 1)
+      } catch (error) {
+        if (error instanceof PlanLimitError) return NextResponse.json(limitPayload(error), { status: 402 })
+        throw error
+      }
+    }
     const segment = (body.segment || {}) as SegmentFilter
     const id = randomUUID()
     const inserted = await session.supabase.from("broadcasts").insert({
@@ -49,7 +64,7 @@ export async function POST(request: NextRequest) {
       content: body.content || { message: String(body.text || "") },
       template_name: body.templateName || null,
       template_language: body.templateLanguage || null,
-      message_tag: body.messageTag || null,
+      message_tag: messageTag || null,
       status: "draft",
       scheduled_at: body.scheduledAt || null,
       per_minute: Math.min(600, Math.max(1, Number(body.perMinute) || 30)),
@@ -58,6 +73,7 @@ export async function POST(request: NextRequest) {
       if (isMissingTable(inserted.error)) return NextResponse.json({ error: "Run the phase 5 migration first" }, { status: 503 })
       throw inserted.error
     }
+    if (account) await incrementMeter(session.supabase, account.id, "broadcasts", 1)
     if (body.send !== true) return NextResponse.json({ id })
 
     const contacts = await session.supabase.from("contacts").select("*").eq("user_id", session.userId).limit(2000)
@@ -86,7 +102,7 @@ export async function POST(request: NextRequest) {
         perMinute: Number(body.perMinute) || 30,
         templateName: body.templateName || null,
         templateApproved: templateOk,
-        messageTag: body.messageTag || null,
+        messageTag: messageTag || null,
       },
       (contact) =>
         evaluateBroadcastCompliance({
@@ -97,7 +113,7 @@ export async function POST(request: NextRequest) {
           optedOut: contact.optedOut,
           templateName: body.templateName || null,
           templateApproved: templateOk,
-          messageTag: body.messageTag || null,
+          messageTag: messageTag || null,
         }),
     )
     for (const skipped of plan.skipped) {

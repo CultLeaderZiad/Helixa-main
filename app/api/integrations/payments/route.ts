@@ -8,8 +8,8 @@ export async function POST(request: NextRequest) {
   const session = await workspaceSession(request)
   if ("response" in session && session.response) return session.response
   const body = await request.json().catch(() => ({}))
-  const kind = body.provider === "stripe" ? "stripe" : body.provider === "paymob" ? "paymob" : null
-  if (!kind) return NextResponse.json({ error: "provider must be paymob or stripe" }, { status: 400 })
+  const kind = body.provider === "stripe" ? "stripe" : body.provider === "paymob" ? "paymob" : body.provider === "tap" ? "tap" : null
+  if (!kind) return NextResponse.json({ error: "provider must be paymob, stripe, or tap" }, { status: 400 })
   const secret = kind === "paymob"
     ? JSON.stringify({ apiKey: String(body.apiKey || ""), hmac: String(body.hmac || "") })
     : JSON.stringify({ secretKey: String(body.secretKey || ""), webhookSecret: String(body.webhookSecret || "") })

@@ -130,6 +130,9 @@ export async function createWorkspace(
 ): Promise<WorkspaceMembership> {
   const trimmed = name.trim().slice(0, 80)
   if (!trimmed) throw new Error("Workspace name is required")
+  const { assertWithinLimit, loadAccount } = await import("@/lib/billing/enforce")
+  const accountRow = await loadAccount(supabase, account.id)
+  if (accountRow) await assertWithinLimit(supabase, accountRow, "workspaces", 1)
 
   const { data: created, error } = await supabase
     .from("workspaces")

@@ -1,3 +1,9 @@
+import { readFileSync } from "fs"
+import path from "path"
+import fontkit from "@pdf-lib/fontkit"
+import { PDFDocument, rgb } from "pdf-lib"
+import { lineIsRtl, shapeForPdf } from "@/lib/pdf/arabic"
+
 export interface ReportKpis {
   conversations: number
   newContacts: number
@@ -41,25 +47,33 @@ export function sumKpis(rows: ReportKpis[]): ReportKpis {
   )
 }
 
-function pdfEscape(text: string): string {
-  return text.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)")
+let arabicFont: Uint8Array | null = null
+
+function loadArabicFont(): Uint8Array {
+  if (!arabicFont) {
+    arabicFont = readFileSync(path.join(process.cwd(), "lib/pdf/fonts/NotoNaskhArabic-Regular.ttf"))
+  }
+  return arabicFont
 }
 
-/**
- * One-page PDF using the built-in Helvetica font.
- * Helvetica has no Arabic glyphs, so the file uses Latin labels. The share
- * page is the Arabic-capable copy of the same numbers.
- */
-export function renderReportPdf(input: {
-  appName: string
-  clientName: string
-  periodLabel: string
-  kpis: ReportKpis
-}): Uint8Array {
-  const lines = [
-    pdfEscape(input.appName || "Helixa"),
-    pdfEscape(`Client: ${input.clientName}`),
-    pdfEscape(input.periodLabel),
+function reportLines(input: { appName: string; clientName: string; periodLabel: string; kpis: ReportKpis }, arabic: boolean): string[] {
+  if (arabic) {
+    return [
+      input.appName || "Helixa",
+      `العميل: ${input.clientName}`,
+      input.periodLabel,
+      `المحادثات: ${input.kpis.conversations}`,
+      `جهات اتصال جديدة: ${input.kpis.newContacts}`,
+      `الطلبات: ${input.kpis.orders}`,
+      `الإيراد (أصغر وحدة): ${input.kpis.revenueCents}`,
+      `ردود الذكاء الاصطناعي: ${input.kpis.aiReplies}`,
+      `التحويل للفريق: ${input.kpis.handoffs}`,
+    ]
+  }
+  return [
+    input.appName || "Helixa",
+    `Client: ${input.clientName}`,
+    input.periodLabel,
     `Conversations: ${input.kpis.conversations}`,
     `New contacts: ${input.kpis.newContacts}`,
     `Orders: ${input.kpis.orders}`,
@@ -67,32 +81,35 @@ export function renderReportPdf(input: {
     `AI replies: ${input.kpis.aiReplies}`,
     `Handoffs: ${input.kpis.handoffs}`,
   ]
-  const commands = ["BT", "/F1 16 Tf", "48 740 Td"]
-  lines.forEach((line, index) => {
-    if (index === 0) commands.push(`(${line}) Tj`)
-    else commands.push(`0 -28 Td (${line}) Tj`)
-  })
-  commands.push("ET")
-  const stream = commands.join("\n")
-  const objects = [
-    "<< /Type /Catalog /Pages 2 0 R >>",
-    "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
-    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
-    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-  ]
-  let body = "%PDF-1.4\n"
-  const offsets: number[] = [0]
-  objects.forEach((object, index) => {
-    offsets.push(body.length)
-    body += `${index + 1} 0 obj\n${object}\nendobj\n`
-  })
-  const xref = body.length
-  body += `xref\n0 ${objects.length + 1}\n`
-  body += "0000000000 65535 f \n"
-  for (const offset of offsets.slice(1)) body += `${String(offset).padStart(10, "0")} 00000 n \n`
-  body += `trailer << /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`
-  return new TextEncoder().encode(body)
+}
+
+/**
+ * One-page PDF with Noto Naskh Arabic embedded.
+ * Arabic runs are shaped to presentation forms and drawn in visual order.
+ */
+export async function renderReportPdf(input: {
+  appName: string
+  clientName: string
+  periodLabel: string
+  kpis: ReportKpis
+}): Promise<Uint8Array> {
+  const arabic = /[\u0600-\u06FF]/.test(`${input.appName} ${input.clientName} ${input.periodLabel}`)
+  const pdf = await PDFDocument.create()
+  pdf.registerFontkit(fontkit)
+  pdf.setTitle(`${input.appName || "Helixa"} report`)
+  const font = await pdf.embedFont(loadArabicFont(), { subset: true })
+  const page = pdf.addPage([612, 792])
+  const lines = reportLines(input, arabic)
+  let y = 740
+  for (const line of lines) {
+    const visual = shapeForPdf(line)
+    const size = y === 740 ? 18 : 13
+    const width = font.widthOfTextAtSize(visual, size)
+    const x = lineIsRtl(line) ? Math.max(48, 564 - width) : 48
+    page.drawText(visual, { x, y, size, font, color: rgb(0.1, 0.1, 0.12) })
+    y -= 28
+  }
+  return pdf.save()
 }
 
 export function shareToken(): string {

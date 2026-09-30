@@ -394,9 +394,12 @@ describe("broadcast compliance", () => {
     assert.equal(evaluateBroadcastCompliance(outside).reason, "tag_required")
     assert.equal(evaluateBroadcastCompliance({ ...outside, messageTag: "NOT_A_TAG" }).reason, "invalid_tag")
     assert.equal(evaluateBroadcastCompliance({ ...outside, messageTag: "HUMAN_AGENT" }).tag, "HUMAN_AGENT")
+    for (const retired of ["ACCOUNT_UPDATE", "POST_PURCHASE_UPDATE", "CONFIRMED_EVENT_UPDATE"]) {
+      assert.equal(evaluateBroadcastCompliance({ ...outside, messageTag: retired }).reason, "invalid_tag")
+    }
     const week = { ...outside, lastInboundAt: new Date(NOW - HUMAN_AGENT_WINDOW_MS - 1000).toISOString(), messageTag: "HUMAN_AGENT" }
     assert.equal(evaluateBroadcastCompliance(week).reason, "outside_window")
-    assert.equal(evaluateBroadcastCompliance({ ...week, messageTag: "POST_PURCHASE_UPDATE" }).allowed, true)
+    assert.equal(evaluateBroadcastCompliance({ ...week, messageTag: "POST_PURCHASE_UPDATE" }).reason, "invalid_tag")
   })
 
   it("sends Telegram and website chat freely and skips opted-out contacts", () => {

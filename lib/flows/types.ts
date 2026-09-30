@@ -45,6 +45,8 @@ export interface FlowTrigger {
   iceBreakerId?: string | null
   question?: string | null
   refCode?: string | null
+  /** TikTok DM intent name: price, link, or hello. Matches the phrases in lib/tiktok/intents.ts. */
+  intent?: string | null
   reaction?: string | null
   /** Website visitor trigger fires only for a contact seen for the first time. */
   firstOnly?: boolean

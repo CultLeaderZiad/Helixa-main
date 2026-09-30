@@ -37,6 +37,11 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
       document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
       document.documentElement.lang = lang;
     }
+    fetch("/api/settings/locale", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locale: lang }),
+    }).catch(() => {})
   };
 
   const t = language === "ar" ? ar : en;

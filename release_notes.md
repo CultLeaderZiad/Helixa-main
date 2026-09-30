@@ -1,6 +1,6 @@
-# ⚡ InstaAuto v1.0.0 - Initial Release & Setup Video Tutorial
+# Helixa v1.0.0 - Initial release and setup video
 
-Welcome to the first official release of **InstaAuto**—the self-hosted, open-source ManyChat alternative for Instagram automation.
+Welcome to the first official release of **Helixa**—the self-hosted, open-source ManyChat alternative for Instagram automation.
 
 ## 🎬 Step-by-Step Video Tutorial
 Get your self-hosted setup up and running in under 18 minutes!

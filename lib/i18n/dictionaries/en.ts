@@ -358,4 +358,6 @@ export const en = {
   newWorkspace: "New workspace",
   workspaceName: "Client name",
   createWorkspace: "Create",
+  usage: "Usage",
+  dataDeletion: "Data deletion",
 };

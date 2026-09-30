@@ -9,7 +9,9 @@ import { answerTelegramCallbackQuery } from "@/lib/telegram-api"
 import { openAccessToken, sealAccessToken, tokenNeedsReseal } from "@/lib/token-crypto"
 import { normalizeTikTokWebhook } from "@/lib/tiktok/events"
 import { refreshTikTokToken, tiktokTokenNeedsRefresh } from "@/lib/tiktok/oauth"
-import { tiktokCommentToDmEnabled, tiktokMessagingEnabled } from "@/lib/tiktok/config"
+import { tiktokMessagingEnabled } from "@/lib/tiktok/config"
+import { commentToMessageAllowed } from "@/lib/tiktok/region"
+import { readTikTokSettings } from "@/lib/tiktok/settings"
 
 const INSTAGRAM_POLICY: ChannelPolicy = {
   commentMatch: "instagram",
@@ -188,6 +190,7 @@ export async function processInstagramWebhookBody(body: unknown, supabase: Db): 
         ownIds: [webhookId, text(user.business_account_id), text(user.page_id)].filter(Boolean),
         aiEnabled: Boolean(user.ai_enabled),
         aiContext: user.ai_context || null,
+        locale: user.bot_locale === "ar" ? "ar" : "en",
         pageId: text(user.business_account_id) || text(user.page_id) || null,
       }
       const events = normalized.filter((event) => event.accountRef === webhookId)
@@ -260,6 +263,7 @@ export async function handleFacebookWebhook(body: unknown, supabase: Db): Promis
       ownIds: [webhookId, text(connection.page_id)].filter(Boolean),
       aiEnabled: Boolean(user.ai_enabled),
       aiContext: user.ai_context || null,
+      locale: user.bot_locale === "ar" ? "ar" : "en",
       pageId: text(connection.page_id) || webhookId,
     }
     await runChannelPipeline({
@@ -318,6 +322,7 @@ export async function processWhatsAppWebhookBody(body: unknown, supabase: Db): P
         ownIds: [phoneNumberId],
         aiEnabled: Boolean(user.ai_enabled),
         aiContext: user.ai_context || null,
+        locale: user.bot_locale === "ar" ? "ar" : "en",
         pageId: phoneNumberId,
       },
       rules: await loadRules(supabase, user.id, "whatsapp"),
@@ -365,6 +370,7 @@ export async function processTelegramUpdate(supabase: Db, botId: string, update:
       ownIds: [botId],
       aiEnabled: Boolean(user.ai_enabled),
       aiContext: user.ai_context || null,
+      locale: user.bot_locale === "ar" ? "ar" : "en",
       pageId: botId,
     },
     rules: await loadRules(supabase, user.id, "telegram"),
@@ -418,8 +424,7 @@ async function freshTikTokToken(supabase: Db, connection: any): Promise<string |
 
 export async function processTikTokWebhookBody(body: unknown, supabase: Db): Promise<void> {
   if (!tiktokMessagingEnabled()) return
-  let events = normalizeTikTokWebhook(body)
-  if (!tiktokCommentToDmEnabled()) events = events.filter((event) => event.kind !== "comment")
+  const events = normalizeTikTokWebhook(body)
   const groups = new Map<string, typeof events>()
   for (const event of events) {
     const key = event.accountRef || ""
@@ -437,6 +442,12 @@ export async function processTikTokWebhookBody(body: unknown, supabase: Db): Pro
     if (!(await accountMayAutomate(supabase, account))) continue
     const accessToken = await freshTikTokToken(supabase, connection)
     if (!accessToken) continue
+    const settings = readTikTokSettings(connection.metadata)
+    const visible = group.filter((event) => {
+      if (event.kind !== "comment" || event.commentSurface === "organic") return true
+      return commentToMessageAllowed(settings.region)
+    })
+    if (visible.length === 0) continue
     await runChannelPipeline({
       supabase,
       adapter: createTikTokAdapter(),
@@ -449,10 +460,13 @@ export async function processTikTokWebhookBody(body: unknown, supabase: Db): Pro
         ownIds: [openId],
         aiEnabled: Boolean(user.ai_enabled),
         aiContext: user.ai_context || null,
+        locale: user.bot_locale === "ar" ? "ar" : "en",
         pageId: openId,
+        tiktokRegion: settings.region,
+        tiktokSettings: settings,
       },
       rules: await loadRules(supabase, user.id, "tiktok"),
-      events: group,
+      events: visible,
       policy: TIKTOK_POLICY,
     })
   }
@@ -484,6 +498,7 @@ export async function processWebchatEvent(body: unknown, supabase: Db): Promise<
       ownIds: [widgetKey],
       aiEnabled: Boolean(user.ai_enabled),
       aiContext: user.ai_context || null,
+      locale: user.bot_locale === "ar" ? "ar" : "en",
       pageId: widgetKey,
     },
     rules: await loadRules(supabase, user.id, "webchat"),

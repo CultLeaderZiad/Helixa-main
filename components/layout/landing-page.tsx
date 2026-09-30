@@ -40,7 +40,7 @@ export function LandingPage() {
   }, [])
 
   useEffect(() => {
-    fetch("https://api.github.com/repos/CultLeaderZiad/insta-p8")
+    fetch("https://api.github.com/repos/CultLeaderZiad/Helixa-main")
       .then(r => r.json())
       .then(d => { if (typeof d.stargazers_count === "number") setStars(d.stargazers_count) })
       .catch(() => {})
