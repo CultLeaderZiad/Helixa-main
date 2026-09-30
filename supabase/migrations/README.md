@@ -188,3 +188,56 @@ select conname from pg_constraint
  where conname in ('inbound_events_platform_check', 'platform_connections_platform_check');
 select count(*) from public.webchat_widgets;
 ```
+
+## Phase 5 manual steps
+
+Run `20260930_phase5_flows_broadcasts.sql` after phase 4. It is idempotent.
+It does not delete rows. It was not run against a live database from this
+change. Do not run it from the app.
+
+The script:
+
+1. Adds `contacts.opted_in`, `contacts.opted_out`, and `contacts.is_follower`.
+   Existing contacts stay opted out of broadcasts until something sets
+   `opted_in`. Flow replies inside an open window do not require that flag.
+2. Adds `tracked_links.broadcast_id` so `/r/{code}` can mark a broadcast click.
+   If the column is missing, link tracking still redirects and skips the
+   broadcast update.
+3. Creates `flows`, `flow_versions`, `flow_runs`, `flow_jobs`,
+   `flow_node_stats`, `broadcasts`, `broadcast_recipients`, `sequences`,
+   `sequence_enrollments`, `bio_pages`, `ref_links`, `giveaways`, and
+   `giveaway_entries`.
+4. Adds `claim_flow_jobs` and `bump_flow_node_stat`, executable by
+   `service_role` only.
+5. Enables row-level security. Authenticated users can read their workspace's
+   rows. `flow_jobs` has no read policy. The service role bypasses RLS.
+
+The existing cron `GET /api/cron/process-inbound-events` also drains
+`flow_jobs` (delays, button resumes, broadcasts, sequence steps). No new cron
+path is required. `CRON_SECRET` stays required.
+
+`NEXT_PUBLIC_APP_URL` is the origin for `/b/{slug}`, ref-link QR targets that
+point back at Helixa, and tracked broadcast links. Without it, public pages
+still work at whatever host is serving the app, and outbound links stay
+untracked.
+
+`TIKTOK_MESSAGING_ENABLED=true` is still required before a TikTok DM trigger
+matches. Leave it unset until Business Messaging is approved.
+
+WhatsApp templates still sync the way phase 4 documents. A broadcast or a
+flow step outside 24 hours sends only a template whose row is `approved`,
+and only to a contact with `opted_in = true`.
+
+After the SQL succeeds, open Flows and use Import automations. That publishes
+each active single-step rule as a live flow. Until that import, the old
+automations keep sending. After it, the live flow replaces that send so the
+contact does not get two replies.
+
+Confirm after it succeeds:
+
+```sql
+select column_name from information_schema.columns
+ where table_name = 'contacts' and column_name in ('opted_in', 'opted_out', 'is_follower');
+select proname from pg_proc where proname in ('claim_flow_jobs', 'bump_flow_node_stat');
+select count(*) from public.flows;
+```

@@ -4,7 +4,7 @@ import type React from "react"
 import { cn } from "@/lib/utils"
 import {
   Zap, LayoutDashboard, LogOut, Settings, BarChart3,
-  MessageSquare, Snowflake, Send, Linkedin, Share2, CreditCard, Mail, Sparkles, Bell, Users
+  MessageSquare, Snowflake, Send, Linkedin, Share2, CreditCard, Mail, Sparkles, Bell, Users, GitBranch, Megaphone, Sprout
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -30,6 +30,9 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
   const NAV = [
     { href: "/dashboard", icon: LayoutDashboard, label: t.overview },
     { href: "/dashboard/automations", icon: Zap, label: t.automations },
+    { href: "/dashboard/flows", icon: GitBranch, label: "Flows" },
+    { href: "/dashboard/broadcasts", icon: Megaphone, label: "Broadcasts" },
+    { href: "/dashboard/growth", icon: Sprout, label: "Growth" },
     { href: "/dashboard/inbox", icon: MessageSquare, label: t.inbox },
     { href: "/dashboard/contacts", icon: Users, label: t.contacts },
     { href: "/dashboard/ai-engine", icon: Sparkles, label: t.aiEngine || "AI Engine" },
@@ -51,6 +54,8 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
         {NAV.map(({ href, icon: Icon, label }) => {
           const active =
             pathname === href ||
+            ((href === "/dashboard/flows" || href === "/dashboard/broadcasts" || href === "/dashboard/growth") &&
+              pathname.startsWith(href)) ||
             (href === "/dashboard/ai-engine" &&
               (pathname.startsWith("/dashboard/ai-engine") ||
                 pathname === "/dashboard/ice-breakers" ||

@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { AutomationList } from "@/components/dashboard/AutomationList"
 import { CreateRuleForm } from "@/components/dashboard/CreateRuleForm"
-import { MessageCircle, Send, Sparkles, Zap, Plus, Brain, Loader2 } from "lucide-react"
+import { MessageCircle, Send, Sparkles, Zap, Plus, Brain, Loader2, GitBranch } from "lucide-react"
 import type { Automation } from "@/lib/types"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
 import { toast } from "sonner"
@@ -147,6 +147,13 @@ function AutomationsPageContent() {
                         <p className="text-zinc-400 text-sm mt-1">{t.rulesEngine}</p>
                     </div>
                     <div className="flex items-center gap-2">
+                        <a
+                            href="/dashboard/flows"
+                            className="flex items-center gap-2 h-9 px-4 rounded-xl border border-white/15 text-white font-mono-ui text-[11px] font-bold uppercase tracking-widest hover:bg-white/[0.04]"
+                        >
+                            <GitBranch className="w-4 h-4" />
+                            Flow builder
+                        </a>
                         {userRole !== "viewer" && (
                             <button
                                 onClick={() => {

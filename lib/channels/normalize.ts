@@ -84,6 +84,7 @@ function messagingEvents(entry: Record<string, unknown>, channel: Channel, occur
 
     const payload = text(quickReply?.payload) || text(postback?.payload)
     const body = text(message?.text)
+    const referral = text(record(event.referral)?.ref) || undefined
     if (payload) {
       events.push({
         channel,
@@ -93,16 +94,19 @@ function messagingEvents(entry: Record<string, unknown>, channel: Channel, occur
         messageId: text(message?.mid) || text(postback?.mid) || undefined,
         occurredAtMs,
         groupId,
+        referral,
       })
-    } else if (body) {
+    } else if (body || referral) {
+      const textBody = body || referral || ""
       events.push({
         channel,
         kind: "dm",
         contactExternalId,
-        text: channel === "instagram" ? body.toLowerCase().trim() : body.trim(),
+        text: channel === "instagram" ? textBody.toLowerCase().trim() : textBody.trim(),
         messageId: text(message?.mid) || undefined,
         occurredAtMs,
         groupId,
+        referral,
       })
     }
   }
