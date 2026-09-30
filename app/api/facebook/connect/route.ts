@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireSessionUser } from "@/lib/auth"
 import { sealAccessToken } from "@/lib/token-crypto"
+import { FACEBOOK_GRAPH_BASE } from "@/lib/graph"
 
 /**
  * POST /api/facebook/connect
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // 1. Fetch the Page Access Token + metadata for the specific page
-    const pageUrl = new URL(`https://graph.facebook.com/v25.0/${page_id}`)
+    const pageUrl = new URL(`${FACEBOOK_GRAPH_BASE}/${page_id}`)
     pageUrl.searchParams.set("fields", "access_token,name,category")
     pageUrl.searchParams.set("access_token", userAccessToken)
 
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
     // 2. Subscribe the Page to webhook events (best-effort — don't block on failure)
     let webhookSubscribed = false
     try {
-      const subscribeUrl = new URL(`https://graph.facebook.com/v25.0/${page_id}/subscribed_apps`)
+      const subscribeUrl = new URL(`${FACEBOOK_GRAPH_BASE}/${page_id}/subscribed_apps`)
       subscribeUrl.searchParams.set("subscribed_fields", "messages,messaging_postbacks,feed")
       subscribeUrl.searchParams.set("access_token", pageAccessToken)
 

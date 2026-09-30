@@ -19,6 +19,7 @@ import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import SpotlightCard from "@/components/ui/SpotlightCard"
 import Link from "next/link"
+import { GRAPH_API_VERSION } from "@/lib/graph"
 import { toast } from "sonner"
 
 declare global {
@@ -143,6 +144,7 @@ export default function ConnectedPlatformsPage() {
         not_logged_in: "Your session expired. Please log in again and retry.",
         access_denied: "Facebook login was cancelled or permissions were declined.",
         server_error: "Something went wrong on our side while connecting. Please try again.",
+        oauth_state: "Instagram login could not be verified. Start the connection again from this page.",
       }
       setOauthNotice({ type: "error", message: MESSAGES[err] || `Facebook connection failed (${err}). Please try again.` })
     } else if (ok) {
@@ -168,9 +170,8 @@ export default function ConnectedPlatformsPage() {
       return
     }
     window.fbAsyncInit = function () {
-      // v20.0 was removed by Meta on 2026-09-24 — keep in sync with the
-      // graph.facebook.com pins in app/api/facebook/**.
-      window.FB.init({ appId, cookie: true, xfbml: false, version: "v25.0" })
+      // Graph version is lib/graph.ts (GRAPH_API_VERSION).
+      window.FB.init({ appId, cookie: true, xfbml: false, version: GRAPH_API_VERSION })
       setFbSdkReady(true)
     }
     if (!document.getElementById("facebook-jssdk")) {

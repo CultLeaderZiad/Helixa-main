@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { getSessionUser } from "@/lib/auth"
 import { sealAccessToken } from "@/lib/token-crypto"
+import { FACEBOOK_GRAPH_BASE } from "@/lib/graph"
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -96,7 +97,7 @@ export async function GET(request: NextRequest) {
       code,
     })
 
-    const tokenRes = await fetch("https://graph.facebook.com/v25.0/oauth/access_token?" + tokenParams.toString())
+    const tokenRes = await fetch(FACEBOOK_GRAPH_BASE + "/oauth/access_token?" + tokenParams.toString())
     const tokenData = await tokenRes.json()
 
     if (!tokenRes.ok) {
@@ -106,13 +107,13 @@ export async function GET(request: NextRequest) {
     const shortToken = tokenData.access_token
 
     // 2. Exchange for long token (60 Days)
-    const longLivedUrl = `https://graph.facebook.com/v25.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&fb_exchange_token=${shortToken}`
+    const longLivedUrl = `${FACEBOOK_GRAPH_BASE}/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&fb_exchange_token=${shortToken}`
     const longRes = await fetch(longLivedUrl)
     const longData = await longRes.json()
     const accessToken = longData.access_token || shortToken
 
     // 3. Get Pages (Accounts) user manages
-    const accountsRes = await fetch(`https://graph.facebook.com/v25.0/me/accounts?access_token=${accessToken}`)
+    const accountsRes = await fetch(`${FACEBOOK_GRAPH_BASE}/me/accounts?access_token=${accessToken}`)
     const accountsData = await accountsRes.json()
 
     if (!accountsData.data || accountsData.data.length === 0) {
@@ -133,7 +134,7 @@ export async function GET(request: NextRequest) {
         // Subscribe the Page to webhook events (best-effort)
         let webhookSubscribed = false
         try {
-          const subscribeUrl = new URL(`https://graph.facebook.com/v25.0/${pageId}/subscribed_apps`)
+          const subscribeUrl = new URL(`${FACEBOOK_GRAPH_BASE}/${pageId}/subscribed_apps`)
           subscribeUrl.searchParams.set("subscribed_fields", "messages,messaging_postbacks,feed")
           subscribeUrl.searchParams.set("access_token", pageAccessToken)
           const subRes = await fetch(subscribeUrl.toString(), { method: "POST" })

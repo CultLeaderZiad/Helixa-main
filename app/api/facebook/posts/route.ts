@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireSessionUser } from "@/lib/auth"
 import { openAccessToken } from "@/lib/token-crypto"
-import { openAccessToken } from "@/lib/token-crypto"
+import { FACEBOOK_GRAPH_BASE } from "@/lib/graph"
 
 export async function GET(request: NextRequest) {
   try {
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Fetch recent posts from the Page via Graph API
-    const graphUrl = `https://graph.facebook.com/v25.0/${encodeURIComponent(
+    const graphUrl = `${FACEBOOK_GRAPH_BASE}/${encodeURIComponent(
       page_id
     )}/posts?fields=id,message,created_time,full_picture,permalink_url,attachments{media_type,unshimmed_url}&limit=30&access_token=${encodeURIComponent(
       access_token

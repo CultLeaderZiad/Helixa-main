@@ -20,7 +20,8 @@ dashboard setting to the code that requires it.
 | `NEXT_PUBLIC_APP_URL` | Telegram webhook, default redirect URIs | Must be `https://` in production. |
 | `NEXT_PUBLIC_FACEBOOK_REDIRECT_URI` | Legacy OAuth flow | Defaults to `${APP_URL}/api/facebook/callback`. |
 | `FACEBOOK_WEBHOOK_VERIFY_TOKEN` | `GET /api/facebook/webhook` | Must match the "Verify token" Meta sends as `hub.verify_token`, or Meta marks the callback **Not verified**. |
-| `NEXT_PUBLIC_INSTAGRAM_APP_ID` / `INSTAGRAM_APP_ID` | IG OAuth + server calls | |
+| `NEXT_PUBLIC_INSTAGRAM_APP_ID` | Browser fallback for the Facebook JS SDK | Same App ID as `INSTAGRAM_APP_ID`. Baked at build time. |
+| `INSTAGRAM_APP_ID` | Instagram OAuth start and token exchange | **Required on the server.** Falls back to `NEXT_PUBLIC_INSTAGRAM_APP_ID` if unset. `.env.example` lists both. |
 | `INSTAGRAM_APP_SECRET` (or `META_APP_SECRET`) | IG token exchange (`instagram/callback`), IG webhook HMAC | Same-app rule as above. |
 | `NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI` | IG OAuth | Defaults to `${APP_URL}/api/instagram/callback`. |
 | `INSTAGRAM_WEBHOOK_VERIFY_TOKEN` | `GET /api/instagram/webhook` | Same pattern as Facebook. |
@@ -64,10 +65,16 @@ App Dashboard → **Add Product**:
 | `business_management` | **Only** when the "My Pages are managed in Meta Business Manager" checkbox is ticked. See §6. |
 
 ### Instagram scope
-(`instagram/auth/route.ts`)
+(`INSTAGRAM_LOGIN_SCOPES` in `lib/instagram-oauth.ts`, requested by `instagram/auth/route.ts`)
 
-`business_basic`, `business_content_publish`, `business_manage_messages`,
-`business_manage_comments`
+`instagram_business_basic`, `instagram_business_manage_messages`,
+`instagram_business_manage_comments`
+
+The old names (`business_basic`, `business_manage_messages`,
+`business_manage_comments`, `business_content_publish`) were deprecated on
+2025-01-27. Content publishing is not requested because Helixa does not
+publish media. Add the three new permissions on the Meta app (App Review →
+Permissions) or Instagram login will fail for accounts outside an app role.
 
 ---
 
@@ -100,8 +107,8 @@ App Dashboard → **Add Product**:
    Instagram accepts `INSTAGRAM_APP_SECRET` **or** `META_APP_SECRET`
    (`facebook/webhook/route.ts`, `instagram/webhook/route.ts`). If neither
    secret matches the sending app → **401 and every event is dropped**.
-   - Debug escape hatch: `DISABLE_WEBHOOK_SIGNATURE_CHECK=true` (Facebook only)
-     — **never leave this on in production.**
+   - Debug escape hatch: `DISABLE_WEBHOOK_SIGNATURE_CHECK=true` skips the check on
+     the Instagram, Facebook, and WhatsApp webhooks — **never leave this on in production.**
 
 ---
 
@@ -126,8 +133,8 @@ Pick ONE:
    - `pages_show_list`, `pages_read_engagement`, `pages_manage_metadata`,
      `pages_messaging`
    - `business_management` (separately; requires §6 Business Verification)
-   - Instagram: `business_basic`, `business_content_publish`,
-     `business_manage_messages`, `business_manage_comments`
+   - Instagram: `instagram_business_basic`, `instagram_business_manage_messages`,
+     `instagram_business_manage_comments`
 3. For each: use-case description + screencast showing the permission being
    used in the live product.
 
@@ -149,32 +156,25 @@ checkbox **off**.
 
 ---
 
-## 7. API version policy (how v20 broke the app)
+## 7. API version policy
 
-The codebase pins Meta API versions in these places — check them **quarterly**
-against https://developers.facebook.com/docs/graph-api/changelog :
+Every Graph call and the Facebook JS SDK use `GRAPH_API_VERSION` in
+`lib/graph.ts` (currently **v25.0**, supported until 2028-07-29).
+WhatsApp previously pinned v20.0, which Meta removed on 2026-09-24.
 
-| Location | Pin |
-|---|---|
-| `lib/facebook-api.ts` | `v25.0` |
-| `app/api/facebook/**` (discover, connect, callback, auth, posts, fetch-post) | `v25.0` |
-| `app/dashboard/connected-platforms/page.tsx` (JS SDK `FB.init`) | `v25.0` |
-| `lib/instagram-api.ts` + IG routes | `v24.0` (graph.instagram.com) |
-| `app/api/instagram/media`, `instagram/fetch-post` oEmbed | `v24.0` / `v25.0` |
-
-Current retirement calendar:
-- **v21.0 → removed 2027-01-21**
-- **v22.0 → removed 2027-05-20**
-- **v24.0 → removed 2028-02-18**
-- **v25.0 → removed 2028-07-29**
-
-`v20.0` was removed **2026-09-24** (the incident that triggered this
-checklist). Fastest audit command:
+Check the version quarterly against
+https://developers.facebook.com/docs/graph-api/changelog and change the
+constant in that one file.
 
 ```bash
-rg -n 'graph\.(facebook|instagram)\.com/v\d|facebook\.com/v\d|version: "v\d' \
+rg -n 'graph\.(facebook|instagram)\.com/v\d|version: "v\d' \
   --glob '!node_modules' --glob '!pnpm-lock.yaml'
 ```
+
+That search should return nothing. Unversioned Instagram token exchange
+(`graph.instagram.com/access_token` and `refresh_access_token`) is the
+documented host for those two calls and is intentional.
+
 
 ---
 

@@ -3,10 +3,19 @@ import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient, getSupabaseBypassClient } from "@/lib/supabase-server"
 import { sealAccessToken } from "@/lib/token-crypto"
+import { INSTAGRAM_GRAPH_BASE } from "@/lib/graph"
+import {
+  IG_OAUTH_CODE_COOKIE,
+  IG_OAUTH_STATE_COOKIE,
+  instagramAppId,
+  oauthCookieOptions,
+  safeEqual,
+} from "@/lib/instagram-oauth"
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const code = searchParams.get("code")
+  const state = searchParams.get("state")
   const error = searchParams.get("error")
 
   if (error) {
@@ -15,30 +24,45 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  if (code) {
+  const expectedState = request.cookies.get(IG_OAUTH_STATE_COOKIE)?.value
+  if (!code || !state || !expectedState || !safeEqual(state, expectedState)) {
     const redirectUrl = new URL("/dashboard/connected-platforms", request.url)
-    redirectUrl.searchParams.set("code", code)
-    return NextResponse.redirect(redirectUrl)
+    redirectUrl.searchParams.set("error", "oauth_state")
+    const response = NextResponse.redirect(redirectUrl)
+    response.cookies.set(IG_OAUTH_STATE_COOKIE, "", oauthCookieOptions(0))
+    return response
   }
 
-  return NextResponse.json({ error: "Invalid callback" }, { status: 400 })
+  // Keep the authorization code in an httpOnly cookie. The browser never
+  // posts it back, so a logged-in user cannot be tricked into exchanging
+  // an attacker's code.
+  const redirectUrl = new URL("/dashboard/connected-platforms", request.url)
+  redirectUrl.searchParams.set("ig_oauth", "1")
+  const response = NextResponse.redirect(redirectUrl)
+  response.cookies.set(IG_OAUTH_STATE_COOKIE, "", oauthCookieOptions(0))
+  response.cookies.set(IG_OAUTH_CODE_COOKIE, code, oauthCookieOptions(5 * 60))
+  return response
 }
 
 export async function POST(request: NextRequest) {
+  const code = request.cookies.get(IG_OAUTH_CODE_COOKIE)?.value
+  const clearCode = (response: NextResponse) => {
+    response.cookies.set(IG_OAUTH_CODE_COOKIE, "", oauthCookieOptions(0))
+    return response
+  }
+  if (!code) return NextResponse.json({ error: "No code" }, { status: 400 })
+
   try {
-    const body = await request.json()
-    const { code } = body
-    if (!code) return NextResponse.json({ error: "No code" }, { status: 400 })
 
     // 1. Env Vars
-    const clientId = process.env.INSTAGRAM_APP_ID
+    const clientId = instagramAppId()
     const clientSecret = process.env.INSTAGRAM_APP_SECRET
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.headers.get("origin") || "https://helixa-main-ecru.vercel.app"
     const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI || `${appUrl}/api/instagram/callback`
 
     if (!clientId || !clientSecret || !redirectUri) {
       console.error("[instagram/callback] Missing env vars: INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET, or NEXT_PUBLIC_APP_URL")
-      return NextResponse.json({ error: "Instagram integration is not configured. Please contact support." }, { status: 503 })
+      return clearCode(NextResponse.json({ error: "Instagram integration is not configured. Please contact support." }, { status: 503 }))
     }
 
     // 2. Exchange Code for Short Token
@@ -60,10 +84,10 @@ export async function POST(request: NextRequest) {
     if (!tokenRes.ok) {
       if (tokenData.error_message?.includes("authorization code has been used")) {
         // Harmless double-fire from React StrictMode or double clicks
-        return NextResponse.json({ error: "Code already used" }, { status: 400 })
+        return clearCode(NextResponse.json({ error: "Code already used" }, { status: 400 }))
       }
       console.error("[v0] 🔴 Token Error:", JSON.stringify(tokenData, null, 2))
-      return NextResponse.json({ error: tokenData.error_description || "Token failed" }, { status: 400 })
+      return clearCode(NextResponse.json({ error: tokenData.error_description || "Token failed" }, { status: 400 }))
     }
 
     const shortToken = tokenData.access_token
@@ -85,7 +109,7 @@ export async function POST(request: NextRequest) {
 
     try {
       const meRes = await fetch(
-        `https://graph.instagram.com/v24.0/me?fields=user_id,username,profile_picture_url&access_token=${accessToken}`
+        `${INSTAGRAM_GRAPH_BASE}/me?fields=user_id,username,profile_picture_url&access_token=${accessToken}`
       )
       const meData = await meRes.json()
       console.log("[v0] 📋 /me response:", JSON.stringify(meData))
@@ -118,7 +142,7 @@ export async function POST(request: NextRequest) {
     // 5a. Get Supabase Auth User & Account
     const { data: { user: authUser } } = await supabase.auth.getUser()
     if (!authUser) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+      return clearCode(NextResponse.json({ error: "Not authenticated" }, { status: 401 }))
     }
 
     const { data: account } = await db
@@ -128,7 +152,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (!account) {
-      return NextResponse.json({ error: "Account not found" }, { status: 404 })
+      return clearCode(NextResponse.json({ error: "Account not found" }, { status: 404 }))
     }
 
     const updates: any = {
@@ -209,10 +233,10 @@ export async function POST(request: NextRequest) {
 
     // 6. Return response (no need for insta_session cookie, we use Supabase Auth now)
     const response = NextResponse.json({ success: true, username, userId: loginUserId, profilePic })
-    return response
+    return clearCode(response)
 
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return clearCode(NextResponse.json({ error: error.message }, { status: 500 }))
   }
 }
 

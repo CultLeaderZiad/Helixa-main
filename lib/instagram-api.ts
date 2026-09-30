@@ -1,4 +1,6 @@
-const GRAPH = "https://graph.instagram.com/v24.0"
+import { INSTAGRAM_GRAPH_BASE } from "@/lib/graph"
+
+const GRAPH = INSTAGRAM_GRAPH_BASE
 
 export interface IGButton {
   type: "web_url" | "postback"

@@ -1,4 +1,6 @@
-const GRAPH = "https://graph.facebook.com/v20.0"
+import { FACEBOOK_GRAPH_BASE } from "@/lib/graph"
+
+const GRAPH = FACEBOOK_GRAPH_BASE
 
 export interface SendResult {
   ok: boolean

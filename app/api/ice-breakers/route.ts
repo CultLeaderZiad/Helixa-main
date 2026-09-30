@@ -4,6 +4,7 @@ import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireSessionUser } from "@/lib/auth"
 import { openAccessToken } from "@/lib/token-crypto"
 import { isMetaAuthError, markInstagramReconnect } from "@/lib/instagram-token"
+import { INSTAGRAM_GRAPH_BASE } from "@/lib/graph"
 
 export async function GET(request: NextRequest) {
     try {
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
             }))
 
             const response = await fetch(
-                `https://graph.instagram.com/v24.0/me/messenger_profile?access_token=${accessToken}`,
+                `${INSTAGRAM_GRAPH_BASE}/me/messenger_profile?access_token=${accessToken}`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },

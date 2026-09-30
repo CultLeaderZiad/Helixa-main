@@ -1,32 +1,42 @@
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic"
 import { NextResponse } from "next/server"
+import {
+  createOAuthState,
+  IG_OAUTH_STATE_COOKIE,
+  INSTAGRAM_LOGIN_SCOPES,
+  instagramAppId,
+  oauthCookieOptions,
+} from "@/lib/instagram-oauth"
 
 /**
  * GET /api/instagram/auth
  * Redirects the user to Meta's Instagram OAuth dialog ("Instagram API with
- * Instagram Login"). The redirect_uri must exactly match one of the entries
- * configured under the Instagram product -> Business login settings.
+ * Instagram Login"). A random `state` is stored in an httpOnly cookie and
+ * checked on the callback so a forged redirect cannot attach someone else's
+ * Instagram account to the logged-in Helixa user.
  */
 export async function GET() {
-  const clientId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID || process.env.INSTAGRAM_APP_ID
+  const clientId = instagramAppId()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL
   const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI || `${appUrl}/api/instagram/callback`
 
   if (!clientId || !redirectUri) {
     return NextResponse.json(
       { error: "Instagram integration is not configured. Please contact support." },
-      { status: 503 }
+      { status: 503 },
     )
   }
 
-  const scope = "business_basic,business_content_publish,business_manage_comments,business_manage_messages"
+  const state = createOAuthState()
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
-    scope,
+    scope: INSTAGRAM_LOGIN_SCOPES,
     response_type: "code",
+    state,
   })
 
-  return NextResponse.redirect(`https://api.instagram.com/oauth/authorize?${params.toString()}`)
+  const response = NextResponse.redirect(`https://api.instagram.com/oauth/authorize?${params.toString()}`)
+  response.cookies.set(IG_OAUTH_STATE_COOKIE, state, oauthCookieOptions(10 * 60))
+  return response
 }
-

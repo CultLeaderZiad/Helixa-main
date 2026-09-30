@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireInstagramUser } from "@/lib/auth"
+import { INSTAGRAM_GRAPH_BASE } from "@/lib/graph"
 
 /**
  * POST /api/instagram/send-message
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     console.log("[v0] Sending DM from", igUser.username, "to", recipient_id)
 
     // Send message via Instagram API
-    const sendUrl = `https://graph.instagram.com/v24.0/me/messages?access_token=${encodeURIComponent(igUser.access_token)}`
+    const sendUrl = `${INSTAGRAM_GRAPH_BASE}/me/messages?access_token=${encodeURIComponent(igUser.access_token)}`
 
     const response = await fetch(sendUrl, {
       method: "POST",

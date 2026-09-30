@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireSessionUser } from "@/lib/auth"
 import { openAccessToken } from "@/lib/token-crypto"
+import { FACEBOOK_GRAPH_BASE } from "@/lib/graph"
 
 /**
  * Normalizes and extracts post ID or canonical reference from Facebook URLs
@@ -164,11 +165,11 @@ export async function POST(request: NextRequest) {
     // Endpoint: GET /oembed_post?url=<encoded_url>&access_token=<token>
     const oembedUrls = [
       activeToken
-        ? `https://graph.facebook.com/v25.0/oembed_post?url=${encodeURIComponent(resolvedUrl)}&access_token=${encodeURIComponent(activeToken)}`
-        : `https://graph.facebook.com/v25.0/oembed_post?url=${encodeURIComponent(resolvedUrl)}`,
+        ? `${FACEBOOK_GRAPH_BASE}/oembed_post?url=${encodeURIComponent(resolvedUrl)}&access_token=${encodeURIComponent(activeToken)}`
+        : `${FACEBOOK_GRAPH_BASE}/oembed_post?url=${encodeURIComponent(resolvedUrl)}`,
       // Fallback with original URL if resolvedUrl differed
       resolvedUrl !== rawUrl && activeToken
-        ? `https://graph.facebook.com/v25.0/oembed_post?url=${encodeURIComponent(rawUrl)}&access_token=${encodeURIComponent(activeToken)}`
+        ? `${FACEBOOK_GRAPH_BASE}/oembed_post?url=${encodeURIComponent(rawUrl)}&access_token=${encodeURIComponent(activeToken)}`
         : null,
     ].filter(Boolean) as string[]
 
@@ -224,7 +225,7 @@ export async function POST(request: NextRequest) {
 
         for (const pid of candidateIds) {
           const detailRes = await fetch(
-            `https://graph.facebook.com/v25.0/${pid}?fields=id,message,full_picture,permalink_url,from&access_token=${encodeURIComponent(fbToken)}`,
+            `${FACEBOOK_GRAPH_BASE}/${pid}?fields=id,message,full_picture,permalink_url,from&access_token=${encodeURIComponent(fbToken)}`,
             { cache: "no-store" }
           )
           const detailData = await detailRes.json()

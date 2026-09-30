@@ -129,17 +129,17 @@ async function fetchMe(): Promise<boolean> {
  * Initialize the singleton exactly once per page session, regardless of how
  * many components (layout + pages) mount it simultaneously.
  */
-function initSession(code: string | null, router: ReturnType<typeof useRouter>) {
+function initSession(igOauth: boolean, router: ReturnType<typeof useRouter>) {
     if (started) return
     started = true
 
-    // CASE A: New Login from Instagram — exchange code for session
-    if (code) {
+    // CASE A: Instagram redirected back with a verified OAuth code in an httpOnly cookie.
+    if (igOauth) {
         ;(async () => {
             try {
                 const res = await fetch("/api/instagram/callback", {
                     method: "POST",
-                    body: JSON.stringify({ code }),
+                    credentials: "same-origin",
                 })
                 const data = await res.json()
 
@@ -248,7 +248,7 @@ export function useInstagramSession() {
     const state = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
     useEffect(() => {
-        initSession(searchParams.get("code"), router)
+        initSession(searchParams.get("ig_oauth") === "1", router)
     }, [searchParams, router])
 
     // Single global realtime subscription (shared by every component using this
