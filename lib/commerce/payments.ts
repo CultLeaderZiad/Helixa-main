@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto"
 import type { FetchLike } from "@/lib/channels/types"
 
-export type PaymentProviderId = "paymob" | "stripe"
+export type PaymentProviderId = "paymob" | "stripe" | "tap"
 
 export interface PaymentLinkRequest {
   amountCents: number
@@ -27,6 +27,10 @@ export interface PaymobConfig {
 }
 
 export interface StripeConfig {
+  secretKey: string
+}
+
+export interface TapConfig {
   secretKey: string
 }
 
@@ -179,6 +183,35 @@ export function verifyStripeSignature(secret: string, payload: string, header: s
   return timingSafeEqual(left, right)
 }
 
+export async function createStripeSubscriptionLink(
+  input: PaymentLinkRequest & { interval: "month" | "year"; metadata?: Record<string, string> },
+  config: StripeConfig,
+  fetchImpl: FetchLike = fetch,
+): Promise<PaymentLink> {
+  const body = new URLSearchParams()
+  body.set("mode", "subscription")
+  body.set("success_url", input.successUrl)
+  body.set("cancel_url", input.cancelUrl)
+  body.set("client_reference_id", input.orderId)
+  body.set("line_items[0][quantity]", "1")
+  body.set("line_items[0][price_data][currency]", input.currency.toLowerCase())
+  body.set("line_items[0][price_data][unit_amount]", String(input.amountCents))
+  body.set("line_items[0][price_data][recurring][interval]", input.interval)
+  body.set("line_items[0][price_data][product_data][name]", input.description.slice(0, 120) || "Helixa")
+  for (const [key, value] of Object.entries(input.metadata || {})) {
+    if (value) body.set(`metadata[${key}]`, value)
+    if (value) body.set(`subscription_data[metadata][${key}]`, value)
+  }
+  const response = await fetchImpl("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${config.secretKey}`, "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  })
+  const json = await readJson(response as Response)
+  if (!response.ok || !json?.url) throw new Error(json?.error?.message || "Stripe subscription checkout failed")
+  return { provider: "stripe", reference: String(json.id), url: String(json.url) }
+}
+
 export async function createStripeLink(input: PaymentLinkRequest, config: StripeConfig, fetchImpl: FetchLike = fetch): Promise<PaymentLink> {
   const body = new URLSearchParams()
   body.set("mode", "payment")
@@ -199,15 +232,100 @@ export async function createStripeLink(input: PaymentLinkRequest, config: Stripe
   return { provider: "stripe", reference: String(json.id), url: String(json.url) }
 }
 
+/** Tap's webhook string. Amount uses the currency's decimal places. */
+export function tapHashString(charge: {
+  id?: unknown
+  amount?: unknown
+  currency?: unknown
+  status?: unknown
+  reference?: { gateway?: unknown; payment?: unknown }
+  transaction?: { created?: unknown }
+}): string {
+  const currency = String(charge.currency || "USD")
+  const amount = typeof charge.amount === "number" ? charge.amount.toFixed(currencyMinorDigits(currency)) : String(charge.amount ?? "")
+  return [
+    "x_id",
+    String(charge.id ?? ""),
+    "x_amount",
+    amount,
+    "x_currency",
+    currency,
+    "x_gateway_reference",
+    String(charge.reference?.gateway ?? ""),
+    "x_payment_reference",
+    String(charge.reference?.payment ?? ""),
+    "x_status",
+    String(charge.status ?? ""),
+    "x_created",
+    String(charge.transaction?.created ?? ""),
+  ].join("")
+}
+
+function currencyMinorDigits(currency: string): number {
+  const code = currency.toUpperCase()
+  if (code === "KWD" || code === "BHD" || code === "OMR") return 3
+  return 2
+}
+
+export function signTap(charge: Parameters<typeof tapHashString>[0], secret: string): string {
+  return createHmac("sha256", secret).update(tapHashString(charge)).digest("hex")
+}
+
+export function verifyTapHash(charge: Parameters<typeof tapHashString>[0], secret: string, hash: string | null | undefined): boolean {
+  if (!hash || !secret) return false
+  const expected = signTap(charge, secret)
+  const left = Buffer.from(expected)
+  const right = Buffer.from(String(hash))
+  if (left.length !== right.length) return false
+  return timingSafeEqual(left, right)
+}
+
+export async function createTapLink(input: PaymentLinkRequest, config: TapConfig, fetchImpl: FetchLike = fetch): Promise<PaymentLink> {
+  const digits = currencyMinorDigits(input.currency)
+  const amount = Number((input.amountCents / 10 ** digits).toFixed(digits))
+  const name = (input.customer?.name || "Customer").split(" ")
+  const response = await fetchImpl("https://api.tap.company/v2/charges", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${config.secretKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      amount,
+      currency: input.currency.toUpperCase(),
+      customer_initiated: true,
+      threeDSecure: true,
+      save_card: false,
+      description: input.description.slice(0, 120) || "Helixa",
+      metadata: { orderId: input.orderId },
+      reference: { transaction: input.orderId, order: input.orderId },
+      receipt: { email: false, sms: false },
+      customer: {
+        first_name: name[0] || "Customer",
+        last_name: name.slice(1).join(" ") || "Helixa",
+        email: input.customer?.email || "customer@example.com",
+        phone: input.customer?.phone ? { country_code: "966", number: input.customer.phone.replace(/\D/g, "").slice(-12) } : undefined,
+      },
+      source: { id: "src_all" },
+      redirect: { url: input.successUrl },
+    }),
+  })
+  const json = await readJson(response as Response)
+  const url = json?.transaction?.url || json?.redirect?.url
+  if (!response.ok || !url) throw new Error(json?.errors?.[0]?.description || json?.message || "Tap charge failed")
+  return { provider: "tap", reference: String(json.id), url: String(url) }
+}
+
 export async function createPaymentLink(
   provider: PaymentProviderId,
   input: PaymentLinkRequest,
-  secrets: { paymob?: PaymobConfig; stripe?: StripeConfig },
+  secrets: { paymob?: PaymobConfig; stripe?: StripeConfig; tap?: TapConfig },
   fetchImpl: FetchLike = fetch,
 ): Promise<PaymentLink> {
   if (provider === "paymob") {
     if (!secrets.paymob) throw new Error("Paymob is not configured")
     return createPaymobLink(input, secrets.paymob, fetchImpl)
+  }
+  if (provider === "tap") {
+    if (!secrets.tap) throw new Error("Tap is not configured")
+    return createTapLink(input, secrets.tap, fetchImpl)
   }
   if (!secrets.stripe) throw new Error("Stripe is not configured")
   return createStripeLink(input, secrets.stripe, fetchImpl)

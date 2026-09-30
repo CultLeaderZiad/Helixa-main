@@ -254,3 +254,14 @@ delete rows. Details and the Vercel custom-domain steps are in
 
 The inbound cron also drains `outgoing_webhook_deliveries`. Client reports use
 a separate daily cron, `GET /api/cron/client-reports`.
+
+## Phase 7
+
+Run `20260930_phase7_launch.sql` after phase 6. It adds plan billing, usage
+meters, agency client prices and invoices, Meta deletion receipts, and
+`bot_locale` on `users` and `accounts`. It does not delete rows.
+`increment_usage` is executable by `service_role` only.
+`data_deletion_requests` is revoked from `anon` and `authenticated`.
+
+The new cron is `GET /api/cron/dunning` at 04:00 UTC. Full setup, including
+every environment variable and the Meta callback URLs, is in `docs/DEPLOY.md`.

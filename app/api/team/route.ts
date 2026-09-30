@@ -3,8 +3,8 @@ import { type NextRequest, NextResponse } from "next/server"
 import { forbidBelow, loadWorkspaceContext } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { workspaceRoleFromLegacy, type WorkspaceRole } from "@/lib/workspace-access"
-
-const MAX_SEATS = 5
+import { assertWithinLimit, limitPayload, PlanLimitError, resolveAccountPlan } from "@/lib/billing/enforce"
+import { limitFor } from "@/lib/billing/plans"
 
 export async function GET(request: NextRequest) {
   const session = await loadWorkspaceContext(request)
@@ -12,17 +12,19 @@ export async function GET(request: NextRequest) {
   if (session.denied) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const supabase = await getSupabaseBypassClient()
+  const plan = await resolveAccountPlan(supabase, session.account)
+  const seatLimit = limitFor(plan, "seats")
   if (session.workspace) {
     const members = await listWorkspaceMembers(supabase, session.workspace.id)
     if (members) {
-      return NextResponse.json({ members, limit: MAX_SEATS, workspaceId: session.workspace.id })
+      return NextResponse.json({ members, limit: seatLimit < 0 ? null : seatLimit, workspaceId: session.workspace.id })
     }
   }
 
   const agencyId = session.workspace?.ownerAccountId || session.account.id
   const { data, error } = await supabase.from("agency_team_members").select("*").eq("agency_account_id", agencyId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ members: data, limit: MAX_SEATS })
+  return NextResponse.json({ members: data, limit: seatLimit < 0 ? null : seatLimit })
 }
 
 export async function POST(request: NextRequest) {
@@ -46,9 +48,11 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await getSupabaseBypassClient()
-    const seats = await countSeats(supabase, workspaceId, agencyId)
-    if (seats >= MAX_SEATS) {
-      return NextResponse.json({ error: `Seat limit reached (${MAX_SEATS} max)` }, { status: 403 })
+    try {
+      await assertWithinLimit(supabase, session.account, "seats", 1, workspaceId)
+    } catch (error) {
+      if (error instanceof PlanLimitError) return NextResponse.json(limitPayload(error), { status: 402 })
+      throw error
     }
 
     const { data: memberAcc } = await supabase.from("accounts").select("id").eq("email", email).maybeSingle()

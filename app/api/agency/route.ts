@@ -5,6 +5,7 @@ import { requireSessionUser } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { sanitizeBrand } from "@/lib/agency/tenant"
 import { isMissingTable } from "@/lib/flows/session"
+import { assertFeature, limitPayload, PlanLimitError } from "@/lib/billing/enforce"
 
 export async function GET(request: NextRequest) {
   const session = await requireSessionUser(request)
@@ -24,10 +25,16 @@ export async function PUT(request: NextRequest) {
   if (session.user.workspace_role && session.user.workspace_role !== "owner" && session.user.role !== "admin") {
     return NextResponse.json({ error: "Only the workspace owner can change branding" }, { status: 403 })
   }
+  const supabase = await getSupabaseBypassClient()
+  try {
+    await assertFeature(supabase, session.user, "whiteLabel")
+  } catch (error) {
+    if (error instanceof PlanLimitError) return NextResponse.json(limitPayload(error), { status: 402 })
+    throw error
+  }
   const body = await request.json().catch(() => ({}))
   const brand = sanitizeBrand(body)
   if (!brand.ok) return NextResponse.json({ error: brand.error }, { status: 400 })
-  const supabase = await getSupabaseBypassClient()
   const existing = await supabase.from("agencies").select("id").eq("owner_account_id", session.user.id).maybeSingle()
   if (existing.error && isMissingTable(existing.error)) {
     return NextResponse.json({ error: "Run the phase 6 migration first" }, { status: 503 })

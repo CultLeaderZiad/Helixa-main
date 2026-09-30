@@ -358,4 +358,6 @@ export const ar = {
   newWorkspace: "مساحة جديدة",
   workspaceName: "اسم العميل",
   createWorkspace: "إنشاء",
+  usage: "الاستخدام",
+  dataDeletion: "حذف البيانات",
 };

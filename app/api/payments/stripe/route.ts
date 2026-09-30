@@ -18,8 +18,10 @@ export async function POST(request: NextRequest) {
   if (!orderId) return NextResponse.json({ received: true })
   const supabase = await getSupabaseBypassClient()
   const order = await supabase.from("orders").select("id, user_id, workspace_id").eq("id", orderId).maybeSingle()
-  if (!order.data) return NextResponse.json({ error: "Unknown order" }, { status: 404 })
-  const config = await supabase.from("integration_configs").select("secret_ciphertext, config").eq("user_id", order.data.user_id).eq("kind", "stripe").maybeSingle()
+  const invoice = order.data ? null : await supabase.from("client_invoices").select("id, user_id").eq("id", orderId).maybeSingle()
+  const owner = order.data || invoice?.data
+  if (!owner) return NextResponse.json({ error: "Unknown order" }, { status: 404 })
+  const config = await supabase.from("integration_configs").select("secret_ciphertext, config").eq("user_id", owner.user_id).eq("kind", "stripe").maybeSingle()
   const stored = config.data?.secret_ciphertext ? decryptString(config.data.secret_ciphertext) : null
   const { parseStoredSecret } = await import("@/lib/commerce/checkout")
   const webhookSecret = stored ? parseStoredSecret(stored).webhookSecret || null : null
@@ -28,7 +30,7 @@ export async function POST(request: NextRequest) {
   }
   const type = String(event.type || "")
   const status = type === "checkout.session.completed" ? "paid" : type === "checkout.session.expired" ? "cancelled" : null
-  if (status) {
+  if (status && order.data) {
     await markOrderFromProvider({
       supabase,
       userId: order.data.user_id,
@@ -37,6 +39,12 @@ export async function POST(request: NextRequest) {
       status,
       reference: String(event.data?.object?.id || ""),
     })
+  } else if (status && invoice?.data) {
+    await supabase.from("client_invoices").update({
+      status: status === "paid" ? "paid" : "void",
+      paid_at: status === "paid" ? new Date().toISOString() : null,
+      provider_reference: String(event.data?.object?.id || ""),
+    }).eq("id", invoice.data.id)
   }
   return NextResponse.json({ received: true })
 }

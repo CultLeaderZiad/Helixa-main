@@ -8,6 +8,7 @@ import { ensureTenantProfile } from "@/lib/tenant-user"
 import { sealAccessToken } from "@/lib/token-crypto"
 import { TIKTOK_API_BASE, tiktokAppId, tiktokAppSecret, tiktokCommentToDmEnabled, tiktokMessagingEnabled } from "@/lib/tiktok/config"
 import { exchangeTikTokCode, tiktokTokenExpiry, TT_OAUTH_STATE_COOKIE } from "@/lib/tiktok/oauth"
+import { assertChannelConnect, PlanLimitError } from "@/lib/billing/enforce"
 
 function fail(request: NextRequest, error: string) {
   const response = NextResponse.redirect(new URL(`/dashboard/connected-platforms?error=${error}`, request.url))
@@ -101,6 +102,13 @@ export async function GET(request: NextRequest) {
       console.error("[tiktok] profile:", error)
       return fail(request, "server_error")
     }
+  }
+
+  try {
+    await assertChannelConnect(supabase, session.account, { platform: "tiktok", pageId: token.openId })
+  } catch (error) {
+    if (error instanceof PlanLimitError) return fail(request, "limit_channels")
+    throw error
   }
 
   const metadata = {

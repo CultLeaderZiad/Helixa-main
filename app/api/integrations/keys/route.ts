@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic"
 import { type NextRequest, NextResponse } from "next/server"
 import { workspaceSession, isMissingTable } from "@/lib/flows/session"
 import { generateApiKey } from "@/lib/integrations/webhooks"
+import { accountIdForProfile, assertFeature, limitPayload, loadAccount, PlanLimitError } from "@/lib/billing/enforce"
 
 export async function GET(request: NextRequest) {
   const session = await workspaceSession(request)
@@ -19,6 +20,16 @@ export async function POST(request: NextRequest) {
   const session = await workspaceSession(request)
   if ("response" in session && session.response) return session.response
   const body = await request.json().catch(() => ({}))
+  const accountId = await accountIdForProfile(session.supabase, session.userId)
+  const account = accountId ? await loadAccount(session.supabase, accountId) : null
+  if (account) {
+    try {
+      await assertFeature(session.supabase, account, "apiAccess")
+    } catch (error) {
+      if (error instanceof PlanLimitError) return NextResponse.json(limitPayload(error), { status: 402 })
+      throw error
+    }
+  }
   const created = generateApiKey()
   const inserted = await session.supabase.from("workspace_api_keys").insert({
     workspace_id: session.workspaceId,

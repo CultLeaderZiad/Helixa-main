@@ -6,6 +6,7 @@ import { planBroadcast, rollupBroadcast, type SegmentFilter } from "@/lib/broadc
 import { contactFromRow } from "@/lib/contacts"
 import { evaluateBroadcastCompliance } from "@/lib/flows/policy"
 import { isMissingTable, workspaceSession } from "@/lib/flows/session"
+import { accountIdForProfile, assertWithinLimit, incrementMeter, limitPayload, loadAccount, PlanLimitError } from "@/lib/billing/enforce"
 
 async function approved(supabase: any, userId: string | number, name: string | null | undefined): Promise<boolean> {
   if (!name) return false
@@ -37,6 +38,16 @@ export async function POST(request: NextRequest) {
     const name = String(body.name || "").trim().slice(0, 120)
     const channel = String(body.channel || "")
     if (!name || !channel) return NextResponse.json({ error: "Name and channel are required" }, { status: 400 })
+    const accountId = await accountIdForProfile(session.supabase, session.userId)
+    const account = accountId ? await loadAccount(session.supabase, accountId) : null
+    if (account) {
+      try {
+        await assertWithinLimit(session.supabase, account, "broadcasts", 1)
+      } catch (error) {
+        if (error instanceof PlanLimitError) return NextResponse.json(limitPayload(error), { status: 402 })
+        throw error
+      }
+    }
     const segment = (body.segment || {}) as SegmentFilter
     const id = randomUUID()
     const inserted = await session.supabase.from("broadcasts").insert({
@@ -58,6 +69,7 @@ export async function POST(request: NextRequest) {
       if (isMissingTable(inserted.error)) return NextResponse.json({ error: "Run the phase 5 migration first" }, { status: 503 })
       throw inserted.error
     }
+    if (account) await incrementMeter(session.supabase, account.id, "broadcasts", 1)
     if (body.send !== true) return NextResponse.json({ id })
 
     const contacts = await session.supabase.from("contacts").select("*").eq("user_id", session.userId).limit(2000)

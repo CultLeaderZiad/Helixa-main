@@ -188,6 +188,7 @@ export async function processInstagramWebhookBody(body: unknown, supabase: Db): 
         ownIds: [webhookId, text(user.business_account_id), text(user.page_id)].filter(Boolean),
         aiEnabled: Boolean(user.ai_enabled),
         aiContext: user.ai_context || null,
+        locale: user.bot_locale === "ar" ? "ar" : "en",
         pageId: text(user.business_account_id) || text(user.page_id) || null,
       }
       const events = normalized.filter((event) => event.accountRef === webhookId)
@@ -260,6 +261,7 @@ export async function handleFacebookWebhook(body: unknown, supabase: Db): Promis
       ownIds: [webhookId, text(connection.page_id)].filter(Boolean),
       aiEnabled: Boolean(user.ai_enabled),
       aiContext: user.ai_context || null,
+      locale: user.bot_locale === "ar" ? "ar" : "en",
       pageId: text(connection.page_id) || webhookId,
     }
     await runChannelPipeline({
@@ -318,6 +320,7 @@ export async function processWhatsAppWebhookBody(body: unknown, supabase: Db): P
         ownIds: [phoneNumberId],
         aiEnabled: Boolean(user.ai_enabled),
         aiContext: user.ai_context || null,
+        locale: user.bot_locale === "ar" ? "ar" : "en",
         pageId: phoneNumberId,
       },
       rules: await loadRules(supabase, user.id, "whatsapp"),
@@ -365,6 +368,7 @@ export async function processTelegramUpdate(supabase: Db, botId: string, update:
       ownIds: [botId],
       aiEnabled: Boolean(user.ai_enabled),
       aiContext: user.ai_context || null,
+      locale: user.bot_locale === "ar" ? "ar" : "en",
       pageId: botId,
     },
     rules: await loadRules(supabase, user.id, "telegram"),
@@ -449,6 +453,7 @@ export async function processTikTokWebhookBody(body: unknown, supabase: Db): Pro
         ownIds: [openId],
         aiEnabled: Boolean(user.ai_enabled),
         aiContext: user.ai_context || null,
+        locale: user.bot_locale === "ar" ? "ar" : "en",
         pageId: openId,
       },
       rules: await loadRules(supabase, user.id, "tiktok"),
@@ -484,6 +489,7 @@ export async function processWebchatEvent(body: unknown, supabase: Db): Promise<
       ownIds: [widgetKey],
       aiEnabled: Boolean(user.ai_enabled),
       aiContext: user.ai_context || null,
+      locale: user.bot_locale === "ar" ? "ar" : "en",
       pageId: widgetKey,
     },
     rules: await loadRules(supabase, user.id, "webchat"),

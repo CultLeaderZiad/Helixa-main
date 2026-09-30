@@ -171,6 +171,21 @@ export function Sidebar({ className, username = "creator", profilePic, email, us
         )}
 
         <Link
+          href="/dashboard/usage"
+          onClick={onNavigate}
+          className={cn(
+            "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-colors relative",
+            pathname === "/dashboard/usage"
+              ? "text-white bg-white/[0.06]"
+              : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
+          )}
+        >
+          {pathname === "/dashboard/usage" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#e5a93c]" />}
+          <BarChart3 className="w-4 h-4 shrink-0" strokeWidth={1.8} />
+          <span>{t.usage}</span>
+        </Link>
+
+        <Link
           href="/dashboard/billing"
           onClick={onNavigate}
           className={cn(

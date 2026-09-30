@@ -23,6 +23,7 @@ import type {
   SendContext,
 } from "@/lib/channels/types"
 import { isBotPaused } from "@/lib/contacts"
+import { botLocale, botText, followSubtitle, publicReplies, type BotLocale } from "@/lib/bot-copy"
 
 export interface TenantContext {
   userId: string | number
@@ -34,9 +35,12 @@ export interface TenantContext {
   aiEnabled: boolean
   aiContext?: string | null
   pageId?: string | null
+  locale?: BotLocale | null
 }
 
-const PUBLIC_REPLIES = ["Check your inbox! 📥", "Sent you a message! 🔥", "Check your DMs! ✨"]
+function tenantLocale(tenant: TenantContext): BotLocale {
+  return botLocale(tenant.locale)
+}
 
 export async function accountMayAutomate(
   supabase: Db,
@@ -216,6 +220,7 @@ async function runLead(
     content,
     commentId,
     {
+      locale: tenant.locale === "ar" ? "ar" : tenant.locale === "en" ? "en" : undefined,
       sendText: async (_token, recipient, text) => {
         const target: SendContext = {
           ...ctx,
@@ -238,6 +243,17 @@ async function maybeAi(
 ) {
   if (!tenant.aiEnabled) return false
   try {
+    const { accountIdForProfile, assertWithinLimit, incrementMeter, loadAccount, PlanLimitError } = await import("@/lib/billing/enforce")
+    const accountId = await accountIdForProfile(supabase, tenant.userId)
+    const account = accountId ? await loadAccount(supabase, accountId) : null
+    if (account) {
+      try {
+        await assertWithinLimit(supabase, account, "aiReplies", 1)
+      } catch (error) {
+        if (error instanceof PlanLimitError) return false
+        throw error
+      }
+    }
     const { fetchConversationHistory } = await import("@/lib/llm-provider")
     const { historyRole } = await import("@/lib/analytics-metrics")
     const { answerWithWorkspaceAgent } = await import("@/lib/ai-agent/service")
@@ -260,6 +276,7 @@ async function maybeAi(
       supabase,
       aiReplyEvent({ userId: tenant.userId, platform: policy.eventPlatform, recipientId: event.contactExternalId }),
     )
+    if (accountId) await incrementMeter(supabase, accountId, "aiReplies", 1)
     return true
   } catch (error) {
     console.error("[pipeline] AI reply failed:", error)
@@ -377,7 +394,7 @@ async function runAction(
     const mode = content.reply_mode || "both"
     if (mode !== "dm_only" && adapter.publicReply) {
       const pool = (content.public_replies || []).filter(Boolean)
-      await adapter.publicReply(sendContext(tenant, event, true), event.commentId, pickRandom(pool.length ? pool : PUBLIC_REPLIES))
+      await adapter.publicReply(sendContext(tenant, event, true), event.commentId, pickRandom(pool.length ? pool : publicReplies(tenantLocale(tenant))))
     }
     if (mode !== "public_only") {
       const lead = await runLead(supabase, adapter, tenant, event, action.rule, content, event.displayName || "User", event.commentId)
@@ -457,12 +474,13 @@ async function runAction(
   const isUnlock = event.kind === "postback" && event.text.startsWith("UNLOCK_CONTENT_")
 
   if (policy.followGate && content.check_follow === true && !isUnlock && matchRule) {
+    const locale = tenantLocale(tenant)
     await adapter.sendCard(sendContext(tenant, event), {
-      title: "Content locked",
-      subtitle: `Please follow @${tenant.username || "us"} to see this.`,
+      title: botText(locale, "contentLocked"),
+      subtitle: followSubtitle(locale, tenant.username || "us"),
       buttons: [
-        { type: "web_url", title: "Follow", url: `https://instagram.com/${tenant.username || ""}` },
-        { type: "postback", title: "I Followed!", payload: `UNLOCK_CONTENT_${matchRule.id}` },
+        { type: "web_url", title: botText(locale, "follow"), url: `https://instagram.com/${tenant.username || ""}` },
+        { type: "postback", title: botText(locale, "followed"), payload: `UNLOCK_CONTENT_${matchRule.id}` },
       ],
     })
     await recordOutbound(supabase, tenant, policy, recorded.conversation?.id, "[Locked Content Gate]")

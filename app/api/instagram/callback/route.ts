@@ -6,6 +6,7 @@ import { sealAccessToken } from "@/lib/token-crypto"
 import { hasInstagramCredentials, resolveTenantProfile, resolveWorkspaceProfile } from "@/lib/tenant-user"
 import { forbidBelow, loadWorkspaceContext } from "@/lib/auth"
 import { INSTAGRAM_GRAPH_BASE } from "@/lib/graph"
+import { assertChannelConnect, PlanLimitError } from "@/lib/billing/enforce"
 import {
   IG_OAUTH_CODE_COOKIE,
   IG_OAUTH_STATE_COOKIE,
@@ -154,6 +155,16 @@ export async function POST(request: NextRequest) {
       : await resolveTenantProfile(db, account.id)
     const profileId = existingUser?.id ?? loginUserId
     const firstInstagramConnect = !existingUser || !hasInstagramCredentials(existingUser)
+    if (firstInstagramConnect) {
+      try {
+        await assertChannelConnect(db, session.account, { kind: "instagram", businessAccountId: businessAccountId ? String(businessAccountId) : null })
+      } catch (error) {
+        if (error instanceof PlanLimitError) {
+          return clearCode(NextResponse.json({ error: error.message, code: "limit_hard" }, { status: 402 }))
+        }
+        throw error
+      }
+    }
 
     const updates: any = {
       username,

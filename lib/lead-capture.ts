@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js"
 import { sendTextDM } from "./instagram-api"
+import { botLocale, botText } from "./bot-copy"
 
 type LeadSender = (
   token: string,
@@ -23,7 +24,7 @@ export async function processLeadCapture(
   automation: any,
   parsedContent: any,
   commentId?: string,
-  options?: { sendText?: LeadSender },
+  options?: { sendText?: LeadSender; locale?: "en" | "ar" },
 ) {
   // 1. Fetch current conversation state
   const { data: leadState } = await supabase
@@ -114,10 +115,11 @@ export async function processLeadCapture(
   }
 
   // 3. Prompt user for current step
+  const locale = botLocale(options?.locale)
   let promptText = ""
-  if (currentStep === "ask_email") promptText = "What's your best email address?"
-  else if (currentStep === "ask_phone") promptText = "What's a good phone number to reach you at?"
-  else if (currentStep === "ask_name") promptText = "What's your name?"
+  if (currentStep === "ask_email") promptText = botText(locale, "leadEmail")
+  else if (currentStep === "ask_phone") promptText = botText(locale, "leadPhone")
+  else if (currentStep === "ask_name") promptText = botText(locale, "leadName")
 
   if (promptText) {
     const recipient = justStarted && commentId ? { comment_id: commentId } : { id: senderId }

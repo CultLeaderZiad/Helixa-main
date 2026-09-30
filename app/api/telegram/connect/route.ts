@@ -5,6 +5,7 @@ import { forbidBelow, requireSessionUser } from "@/lib/auth"
 import { getBotInfo, setWebhook } from "@/lib/telegram-api"
 import { sealAccessToken } from "@/lib/token-crypto"
 import { ensureTenantProfile } from "@/lib/tenant-user"
+import { assertChannelConnect, limitPayload, PlanLimitError } from "@/lib/billing/enforce"
 
 /**
  * POST /api/telegram/connect
@@ -50,6 +51,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Invalid Telegram bot token: ${botInfoResult.error}` }, { status: 400 })
     }
     const botInfo = botInfoResult.bot
+    try {
+      await assertChannelConnect(supabase, account, { platform: "telegram", pageId: String(botInfo.id) })
+    } catch (error) {
+      if (error instanceof PlanLimitError) return NextResponse.json(limitPayload(error), { status: 402 })
+      throw error
+    }
 
     // 2. Set the webhook
     const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || "https://helixa-main-ecru.vercel.app"

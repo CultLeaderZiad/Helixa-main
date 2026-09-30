@@ -170,6 +170,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/data-deletion" className="hover:text-white transition-colors">
+                  {t.dataDeletion || "Data deletion"}
+                </Link>
+              </li>
+              <li>
                 <Link href="/privacy" className="hover:text-white transition-colors">
                   {isAr ? "الأمان والحماية" : "Security"}
                 </Link>

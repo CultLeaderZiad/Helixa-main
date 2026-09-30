@@ -5,6 +5,7 @@ import { forbidBelow, loadWorkspaceContext } from "@/lib/auth"
 import { sealAccessToken } from "@/lib/token-crypto"
 import { resolveTenantProfile } from "@/lib/tenant-user"
 import { FACEBOOK_GRAPH_BASE } from "@/lib/graph"
+import { assertChannelConnect, PlanLimitError } from "@/lib/billing/enforce"
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -138,6 +139,17 @@ export async function GET(request: NextRequest) {
     // Previously this callback saved pages without subscribing them to webhook
     // events, which made the connection look "Live" in the UI while
     // Messenger/comment events never arrived - i.e. a fake connection.
+    for (const page of accountsData.data) {
+      try {
+        await assertChannelConnect(supabase, account, { platform: "facebook", pageId: String(page.id) })
+      } catch (error) {
+        if (error instanceof PlanLimitError) {
+          return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=limit_channels", request.url))
+        }
+        throw error
+      }
+    }
+
     const results = await Promise.allSettled(
       accountsData.data.map(async (page: any) => {
         const pageAccessToken = page.access_token

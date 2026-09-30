@@ -1,6 +1,6 @@
 -- ============================================================
 -- 02-supabase-schema-upgrade.sql
--- Additive, idempotent migration for InstaAuto security overhaul.
+-- Additive, idempotent migration for the Helixa security overhaul.
 -- Safe to run multiple times — uses IF NOT EXISTS throughout.
 -- ============================================================
 

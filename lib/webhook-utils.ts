@@ -103,12 +103,12 @@ export async function checkTrialStatus(
   if (account.plan === "trial" && account.trial_ends_at && !account.trial_exempt) {
     const trialEnded = new Date(account.trial_ends_at) < new Date()
     if (trialEnded) {
-      // Mark as expired in the database
+      // The trial is over. The account stays on Creator Free so limits still apply.
       await supabase
         .from("accounts")
-        .update({ plan: "expired", updated_at: new Date().toISOString() })
+        .update({ plan: "creator_free", updated_at: new Date().toISOString() })
         .eq("id", account.id)
-      return "expired"
+      return "creator_free"
     }
   }
   return account.plan
