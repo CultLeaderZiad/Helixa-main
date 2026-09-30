@@ -352,5 +352,9 @@ export const en = {
   close: "Close",
   getHelp: "Get help",
   linkedIn: "LinkedIn",
-  admin: "Admin"
+  admin: "Admin",
+  workspace: "Workspace",
+  newWorkspace: "New workspace",
+  workspaceName: "Client name",
+  createWorkspace: "Create",
 };

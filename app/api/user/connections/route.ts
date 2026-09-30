@@ -1,14 +1,14 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireUser } from "@/lib/auth"
+import { forbidBelow, requireSessionUser } from "@/lib/auth"
 import { instagramNeedsReconnect } from "@/lib/instagram-token"
-import { resolveTenantProfile } from "@/lib/tenant-user"
+import { isPlaceholderToken } from "@/lib/token-crypto"
 
 export async function GET(request: NextRequest) {
-  const result = await requireUser(request)
+  const result = await requireSessionUser(request)
   if (result.response) return result.response
-  const { user: account } = result
+  const { user: account, igUser } = result
 
   if (!account) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -16,15 +16,10 @@ export async function GET(request: NextRequest) {
 
   const supabase = await getSupabaseBypassClient()
 
-  // Prefer a row that actually has Instagram ids. Duplicate placeholder rows
-  // from an earlier Facebook/Telegram connect are ignored here; consolidation
-  // happens when the session is loaded.
-  const igUser = await loadInstagramProfile(supabase, account.id)
-
   const connections: any[] = []
 
   // Surface Instagram connection if real Instagram account is connected
-  if (igUser && (igUser.business_account_id || igUser.page_id || (igUser.access_token && igUser.access_token !== "facebook_managed" && igUser.access_token !== "telegram_managed"))) {
+  if (igUser && (igUser.business_account_id || igUser.page_id || (igUser.access_token && !isPlaceholderToken(igUser.access_token)))) {
     connections.push({
       id: `ig_${igUser.id}`,
       platform: "instagram",
@@ -54,12 +49,12 @@ export async function GET(request: NextRequest) {
         .in("user_id", [igUser.id])
     )
   }
-  if (account.id) {
+  if (result.workspace?.id) {
     queries.push(
       supabase
         .from("platform_connections")
         .select("id, platform, page_id, metadata, connected_at")
-        .eq("account_id", account.id)
+        .eq("workspace_id", result.workspace.id)
     )
   }
 
@@ -90,19 +85,12 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ connections })
 }
 
-async function loadInstagramProfile(supabase: { from: (table: string) => any }, accountId: string) {
-  try {
-    return await resolveTenantProfile(supabase, accountId)
-  } catch (error) {
-    console.error("[connections] Failed to load instagram profile:", error)
-    return null
-  }
-}
-
 export async function DELETE(request: NextRequest) {
-  const result = await requireUser(request)
+  const result = await requireSessionUser(request)
   if (result.response) return result.response
-  const { user: account } = result
+  const roleDenied = forbidBelow(result.user.workspace_role, "admin")
+  if (roleDenied) return roleDenied
+  const { user: account, igUser } = result
 
   if (!account) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -137,13 +125,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Cannot disconnect your primary Instagram account" }, { status: 400 })
     }
 
-    // Resolve ALL user ids owned by this account (BIGINT users.id values only).
-    const { data: ownedUsers } = await supabase
-      .from("users")
-      .select("id")
-      .eq("account_id", account.id)
-
-    const ownedUserIds = new Set((ownedUsers || []).map((u: any) => String(u.id)))
+    // Only the active workspace's profile. Another client workspace on the
+    // same login has its own users.id and must not be disconnected from here.
+    const ownedUserIds = new Set<string>()
+    if (igUser?.id) ownedUserIds.add(String(igUser.id))
 
     // Ownership check WITHOUT mixing the account UUID into a user_id filter:
     // user_id is BIGINT, and a combined .in([uuid, ...]) makes PostgREST

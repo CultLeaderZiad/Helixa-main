@@ -218,11 +218,9 @@ export async function sendTelegramAutomationResponse(
   content: any,
   opts: { skipTyping?: boolean; automationId?: string; variantId?: string | null } = {},
 ): Promise<TgSendResult> {
-  const delaySeconds = Number(content.delay_seconds) || 0
   const useTyping = content.typing_indicator === true && !opts.skipTyping
 
   if (useTyping) await sendTelegramChatAction(botToken, chatId, "typing")
-  if (delaySeconds > 0) await sleep(delaySeconds * 1000)
 
   let result: TgSendResult
 

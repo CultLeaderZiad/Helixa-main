@@ -2,7 +2,6 @@ export const dynamic = 'force-dynamic'
 import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { handleFacebookWebhook } from "@/lib/facebook-webhook"
 
 const WEBHOOK_VERIFY_TOKEN = process.env.FACEBOOK_WEBHOOK_VERIFY_TOKEN
 
@@ -57,20 +56,30 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const body = JSON.parse(rawBody)
-    if (!body.entry) return NextResponse.json({ ok: true })
-    
-    // Facebook Messenger / Pages send body.object === "page"
-    if (body.object === "page") {
-      const supabase = await getSupabaseBypassClient()
-      return handleFacebookWebhook(body, supabase)
+    let body: any
+    try {
+      body = JSON.parse(rawBody)
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
     }
+    if (!body.entry) return NextResponse.json({ ok: true })
+    if (body.object !== "page") return NextResponse.json({ ok: true })
 
-    // Acknowledge unknown objects to prevent retries
-    return NextResponse.json({ ok: true })
+    const supabase = await getSupabaseBypassClient()
+    const { acceptInboundWebhook } = await import("@/lib/inbound-queue")
+    const queued = await acceptInboundWebhook(supabase, "facebook", body)
+    if (queued.fallback) {
+      try {
+        const { handleFacebookWebhook } = await import("@/lib/facebook-webhook")
+        await handleFacebookWebhook(body, supabase)
+      } catch (error) {
+        console.error("[fb-webhook] Inline processing failed", error)
+      }
+    }
+    return NextResponse.json({ ok: true, ...queued })
   } catch (error) {
-    console.error("[fb-webhook] Error", error)
-    return NextResponse.json({ ok: true })
+    console.error("[fb-webhook] Failed to queue event", error)
+    return NextResponse.json({ error: "queue_unavailable" }, { status: 500 })
   }
 }
 

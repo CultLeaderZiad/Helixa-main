@@ -1,7 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient, getSupabaseBypassClient } from "@/lib/supabase-server"
 import { openAccessToken } from "@/lib/token-crypto"
-import { resolveTenantProfile } from "@/lib/tenant-user"
+import { resolveTenantProfile, resolveWorkspaceProfile } from "@/lib/tenant-user"
+import {
+  authorizeWorkspaceAction,
+  legacyPermissionLevel,
+  pickWorkspace,
+  workspaceChoiceDenied,
+  WORKSPACE_COOKIE,
+  type WorkspaceRole,
+} from "@/lib/workspace-access"
+import { ensureDefaultWorkspace, listMemberships } from "@/lib/workspaces"
 
 /**
  * Reads the Supabase Auth session, looks up the matching row in the
@@ -81,69 +90,126 @@ async function createAdminClient() {
   return getSupabaseBypassClient()
 }
 
+export interface LoadedWorkspace {
+  id: string
+  name: string
+  role: WorkspaceRole
+  ownerAccountId: string
+}
+
+export interface WorkspaceSession {
+  account: any
+  igUser: any | null
+  workspace: LoadedWorkspace | null
+  /** True when the caller named a workspace they are not a member of. */
+  denied: boolean
+  /** True when the phase 2 tables are not installed yet. The account is treated as owner. */
+  legacy: boolean
+}
+
+function requestedWorkspaceId(request?: NextRequest): string | null {
+  if (!request) return null
+  const header = request.headers.get("x-helixa-workspace")?.trim()
+  if (header) return header
+  return null
+}
+
+function cookieWorkspaceId(request?: NextRequest): string | null {
+  return request?.cookies.get(WORKSPACE_COOKIE)?.value?.trim() || null
+}
+
 /**
- * Returns the authenticated session plus the connected Instagram `users` row.
+ * Resolves the signed-in account and the workspace they are acting in.
  *
- * IMPORTANT: `accounts.id` is the Supabase Auth uuid; business tables
- * (`automations`, `conversations`, `messages`, `ice_breakers`, `ai_usage_log`,
- * `subscriptions`, `payment_submissions`, `automation_events`) all key by the
- * int64 `users.id` (the Instagram user id). Callers MUST use `igUser.id` for
- * `user_id` filters/inserts, and `igUser.access_token` for Instagram API calls.
- *
- * Returns `null` when there is no session or no `users` row is linked to the
- * account (i.e. Instagram has not been connected yet).
+ * Order: `x-helixa-workspace` header, then the `helixa_workspace` cookie,
+ * then `accounts.active_workspace_id`, then a workspace they own. An owned
+ * workspace is preferred over an invited one, so a person in more than one
+ * agency is not pinned to the oldest seat. A header that names a workspace
+ * they are not in is denied. A stale cookie is ignored.
  */
-export async function getSessionInstagramUser(request?: NextRequest) {
+export async function loadWorkspaceContext(request?: NextRequest): Promise<WorkspaceSession | null> {
   const account = await getSessionUser(request)
   if (!account) return null
 
   const adminSupabase = await createAdminClient()
-  
-  // More than one accepted membership used to make maybeSingle() error and
-  // drop the user onto their own empty account. Pick the oldest active one.
-  let teamQuery = await adminSupabase
-    .from("agency_team_members")
-    .select("agency_account_id, permission_level")
-    .eq("member_account_id", account.id)
-    .eq("status", "active")
-    .order("created_at", { ascending: true })
-    .limit(1)
-  if (teamQuery.error && /created_at/i.test(teamQuery.error.message || "")) {
-    teamQuery = await adminSupabase
-      .from("agency_team_members")
-      .select("agency_account_id, permission_level")
-      .eq("member_account_id", account.id)
-      .eq("status", "active")
-      .limit(1)
+  let memberships = await listMemberships(adminSupabase, account.id)
+  const legacy = memberships === null
+  if (memberships && memberships.length === 0) {
+    const created = await ensureDefaultWorkspace(adminSupabase, account)
+    memberships = created ? await listMemberships(adminSupabase, account.id) : memberships
   }
-  const teamMember = teamQuery.data?.[0]
+  const choices = memberships || []
 
-  const lookupAccountId = teamMember ? teamMember.agency_account_id : account.id
+  const headerId = requestedWorkspaceId(request)
+  if (headerId && !legacy && workspaceChoiceDenied(choices, headerId)) {
+    return { account, igUser: null, workspace: null, denied: true, legacy: false }
+  }
+
+  const cookieId = cookieWorkspaceId(request)
+  const requestedId =
+    (headerId && choices.some((membership) => membership.workspaceId === headerId) ? headerId : null) ||
+    (cookieId && choices.some((membership) => membership.workspaceId === cookieId) ? cookieId : null)
+
+  const picked = legacy
+    ? null
+    : pickWorkspace(choices, { requestedId, activeId: account.active_workspace_id || null })
 
   let igUser: any = null
   try {
-    igUser = await resolveTenantProfile(adminSupabase, lookupAccountId)
+    if (picked) {
+      igUser = await resolveWorkspaceProfile(adminSupabase, picked.workspaceId)
+      if (!igUser) {
+        igUser = await resolveTenantProfile(adminSupabase, picked.ownerAccountId, picked.workspaceId)
+      }
+    } else {
+      igUser = await resolveTenantProfile(adminSupabase, account.id)
+    }
   } catch (error: any) {
-    console.error("[auth] Failed to load instagram user:", {
-      accountId: lookupAccountId,
+    console.error("[auth] Failed to load workspace profile:", {
+      accountId: account.id,
+      workspaceId: picked?.workspaceId,
       message: error?.message,
     })
     return null
   }
 
-  // Attach permission info to the account object for the frontend/API
-  // Clone the object first because Next.js fetch cache might freeze the Supabase response object
+  const role: WorkspaceRole = picked?.role ?? "owner"
   const clonedAccount = { ...account }
-  if (teamMember) {
-    clonedAccount.is_team_member = true
-    clonedAccount.agency_account_id = teamMember.agency_account_id
-    clonedAccount.permission_level = teamMember.permission_level
-  } else {
-    clonedAccount.is_team_member = false
-    clonedAccount.permission_level = "admin" // The owner of the account
-  }
+  clonedAccount.workspace_id = picked?.workspaceId ?? null
+  clonedAccount.workspace_name = picked?.name ?? null
+  clonedAccount.workspace_role = role
+  clonedAccount.permission_level = legacyPermissionLevel(role)
+  clonedAccount.is_team_member = Boolean(picked && picked.role !== "owner")
+  clonedAccount.agency_account_id = picked && picked.role !== "owner" ? picked.ownerAccountId : null
 
-  return { account: clonedAccount, igUser: withPlainAccessToken(igUser) }
+  const workspace: LoadedWorkspace | null = picked
+    ? {
+        id: picked.workspaceId,
+        name: picked.name,
+        role: picked.role,
+        ownerAccountId: picked.ownerAccountId,
+      }
+    : null
+
+  return { account: clonedAccount, igUser: withPlainAccessToken(igUser), workspace, denied: false, legacy }
+}
+
+/**
+ * Returns the authenticated session plus the profile for the active workspace.
+ * Business tables still key by `igUser.id`. Each workspace has its own profile,
+ * so existing `user_id` filters stay inside that client.
+ */
+export async function getSessionInstagramUser(request?: NextRequest) {
+  const session = await loadWorkspaceContext(request)
+  if (!session || session.denied) return null
+  return { account: session.account, igUser: session.igUser, workspace: session.workspace }
+}
+
+export function forbidBelow(role: WorkspaceRole | null | undefined, minimum: WorkspaceRole): NextResponse | null {
+  if (authorizeWorkspaceAction({ role, minimum }) === "forbidden") {
+    return NextResponse.json({ error: "Forbidden", requiredRole: minimum }, { status: 403 })
+  }
+  return null
 }
 
 function withPlainAccessToken(igUser: any) {
@@ -170,19 +236,14 @@ function withPlainAccessToken(igUser: any) {
  * ```
  */
 export async function requireInstagramUser(request?: NextRequest): Promise<
-  { user: any; igUser: any; response?: never } | { user?: never; response: NextResponse }
+  { user: any; igUser: any; workspace: LoadedWorkspace | null; response?: never } | { user?: never; response: NextResponse }
 > {
-  const session = await getSessionInstagramUser(request)
-  if (!session) {
-    return { response: NextResponse.json({ error: "Not authenticated" }, { status: 401 }) }
-  }
-  if (session.account.is_banned) {
-    return { response: NextResponse.json({ error: "Account is banned", isBanned: true }, { status: 403 }) }
-  }
+  const session = await openWorkspaceSession(request)
+  if (session.response) return { response: session.response }
   if (!session.igUser) {
     return { response: NextResponse.json({ error: "Connect Instagram first" }, { status: 400 }) }
   }
-  return { user: session.account, igUser: session.igUser }
+  return { user: session.account, igUser: session.igUser, workspace: session.workspace }
 }
 
 /**
@@ -244,15 +305,32 @@ export async function requireUser(request?: NextRequest): Promise<
  * route should fall back to platform_connections or return gracefully.
  */
 export async function requireSessionUser(request?: NextRequest): Promise<
-  { user: any; igUser: any | null; response?: never } | { user?: never; igUser?: never; response: NextResponse }
+  { user: any; igUser: any | null; workspace: LoadedWorkspace | null; response?: never } | { user?: never; igUser?: never; response: NextResponse }
 > {
-  const session = await getSessionInstagramUser(request)
+  const session = await openWorkspaceSession(request)
+  if (session.response) return { response: session.response }
+  return { user: session.account, igUser: session.igUser || null, workspace: session.workspace }
+}
+
+async function openWorkspaceSession(request?: NextRequest): Promise<
+  { account: any; igUser: any | null; workspace: LoadedWorkspace | null; response?: never } | { response: NextResponse }
+> {
+  const session = await loadWorkspaceContext(request)
   if (!session) {
     return { response: NextResponse.json({ error: "Not authenticated" }, { status: 401 }) }
+  }
+  if (session.denied) {
+    return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) }
   }
   if (session.account.is_banned) {
     return { response: NextResponse.json({ error: "Account is banned", isBanned: true }, { status: 403 }) }
   }
-  // igUser may be null if Instagram is not connected — that's OK
-  return { user: session.account, igUser: session.igUser || null }
+  const decision = authorizeWorkspaceAction({
+    role: session.account.workspace_role,
+    method: request?.method,
+  })
+  if (!session.legacy && decision === "forbidden") {
+    return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) }
+  }
+  return { account: session.account, igUser: session.igUser, workspace: session.workspace }
 }

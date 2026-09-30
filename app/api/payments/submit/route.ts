@@ -1,12 +1,14 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { requireSessionUser } from "@/lib/auth"
+import { forbidBelow, requireSessionUser } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
     const result = await requireSessionUser(request)
     if (result.response) return result.response
+    const roleDenied = forbidBelow(result.user.workspace_role, "owner")
+    if (roleDenied) return roleDenied
     const { user: account, igUser } = result
 
     const supabase = await getSupabaseBypassClient()

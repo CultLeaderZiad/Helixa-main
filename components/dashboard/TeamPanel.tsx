@@ -13,7 +13,7 @@ export function TeamPanel() {
   const [userRole, setUserRole] = useState("admin")
   
   const [inviteEmail, setInviteEmail] = useState("")
-  const [inviteRole, setInviteRole] = useState("viewer")
+  const [inviteRole, setInviteRole] = useState("client-viewer")
   const [inviting, setInviting] = useState(false)
 
   const fetchTeam = async () => {
@@ -168,8 +168,8 @@ export function TeamPanel() {
             onChange={e => setInviteRole(e.target.value)}
             className="bg-white/5 border border-white/10 rounded-lg px-3 text-sm text-white focus:outline-none [&>option]:bg-[#0b0b10] [&>option]:text-white"
           >
-            <option value="viewer">Viewer</option>
-            <option value="editor">Editor</option>
+            <option value="client-viewer">Client viewer</option>
+            <option value="member">Member</option>
             <option value="admin">Admin</option>
           </select>
           <button

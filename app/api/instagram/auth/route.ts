@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic"
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
+import { forbidBelow, loadWorkspaceContext } from "@/lib/auth"
 import {
   createOAuthState,
   IG_OAUTH_STATE_COOKIE,
@@ -15,7 +16,13 @@ import {
  * checked on the callback so a forged redirect cannot attach someone else's
  * Instagram account to the logged-in Helixa user.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const session = await loadWorkspaceContext(request)
+  if (!session) return NextResponse.redirect(new URL("/login", request.url))
+  if (session.denied || forbidBelow(session.account.workspace_role, "admin")) {
+    return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=forbidden", request.url))
+  }
+
   const clientId = instagramAppId()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL
   const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI || `${appUrl}/api/instagram/callback`

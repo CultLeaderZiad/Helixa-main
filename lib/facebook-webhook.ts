@@ -7,8 +7,8 @@ import {
   sendFacebookSenderAction,
   replyToFacebookComment,
   fetchFacebookProfile,
-  sleep,
 } from "./facebook-api"
+import { RetryableInboundError } from "./event-pipeline"
 import { processLeadCapture } from "./lead-capture"
 import { parseContent, pickRandom, pickVariant, keywordMatches, checkTrialStatus } from "./webhook-utils"
 import { openAccessToken } from "./token-crypto"
@@ -34,11 +34,9 @@ async function sendAutomationResponse(
   content: any,
   opts: { skipTyping?: boolean; automationId?: string; variantId?: string | null } = {},
 ) {
-  const delaySeconds = Number(content.delay_seconds) || 0
   const useTyping = content.typing_indicator === true && recipient.id && !opts.skipTyping
 
   if (useTyping) await sendFacebookSenderAction(token, recipient.id!, "typing_on")
-  if (delaySeconds > 0) await sleep(delaySeconds * 1000)
 
   let result
   if (recipient.comment_id) {
@@ -80,6 +78,9 @@ async function sendAutomationResponse(
   }
 
   if (useTyping) await sendFacebookSenderAction(token, recipient.id!, "typing_off")
+  if (result && result.ok === false && result.error !== "empty content") {
+    throw new RetryableInboundError(String(result.error || "Facebook send failed"))
+  }
   return result
 }
 

@@ -5,6 +5,7 @@ import { sendWhatsAppText, markWhatsAppSeen } from "@/lib/whatsapp-api"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { openAccessToken } from "@/lib/token-crypto"
 import { parseContent } from "@/lib/webhook-utils"
+import { RetryableInboundError } from "@/lib/event-pipeline"
 
 const WEBHOOK_VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN
 // WhatsApp uses the Meta App Secret for signature verification
@@ -57,12 +58,36 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const body = JSON.parse(rawBody)
+    let body: any
+    try {
+      body = JSON.parse(rawBody)
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
+    }
     if (body.object !== "whatsapp_business_account") {
       return NextResponse.json({ ok: true })
     }
 
     const supabase = await getSupabaseBypassClient()
+    const { acceptInboundWebhook } = await import("@/lib/inbound-queue")
+    const queued = await acceptInboundWebhook(supabase, "whatsapp", body)
+    if (queued.fallback) {
+      try {
+        await processWhatsAppWebhookBody(body, supabase)
+      } catch (error) {
+        console.error("[wa-webhook] Inline processing failed", error)
+      }
+    }
+    return NextResponse.json({ ok: true, ...queued })
+  } catch (error) {
+    console.error("[wa-webhook] Failed to queue event", error)
+    return NextResponse.json({ error: "queue_unavailable" }, { status: 500 })
+  }
+}
+
+export async function processWhatsAppWebhookBody(body: any, supabase: any) {
+  try {
+    if (body?.object !== "whatsapp_business_account" || !body.entry) return
 
     for (const entry of body.entry) {
       const waAccountId = entry.id
@@ -252,9 +277,8 @@ export async function POST(request: NextRequest) {
                 const result = await sendWhatsAppText(phoneNumberId, waToken, senderPhone, sendText, quickReplies)
                 
                 // If it fails because outside 24h window, log it
-                if (!result.ok && result.error === "OUTSIDE_WINDOW") {
-                  console.error(`[wa-webhook] ❌ Failed to send to ${senderPhone}: Outside 24h window (template required)`)
-                  // Could optionally store this failure in automation_events
+                if (!result.ok) {
+                  throw new RetryableInboundError(String(result.error || "WhatsApp send failed"))
                 }
                 
                 // Log outgoing message to Inbox
@@ -295,10 +319,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true })
   } catch (error) {
     console.error("[wa-webhook] Server error:", error)
-    return NextResponse.json({ ok: true })
+    throw error
   }
 }
 

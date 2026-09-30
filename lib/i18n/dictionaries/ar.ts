@@ -352,5 +352,9 @@ export const ar = {
   close: "إغلاق",
   getHelp: "مساعدة",
   linkedIn: "لينكد إن",
-  admin: "مسؤول"
+  admin: "مسؤول",
+  workspace: "مساحة العمل",
+  newWorkspace: "مساحة جديدة",
+  workspaceName: "اسم العميل",
+  createWorkspace: "إنشاء",
 };
