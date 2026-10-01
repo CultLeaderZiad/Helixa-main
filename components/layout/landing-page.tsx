@@ -55,6 +55,7 @@ export function LandingPage() {
       {/* ─── Shape Grid & Ambient Background ─── */}
       <FrontBackground />
       <div className="grain-overlay" />
+      <main id="main-content">
 
       {/* ─── Inline styles for CSS animations ─── */}
       <style>{`
@@ -110,7 +111,7 @@ export function LandingPage() {
             <span className="w-2 h-2 rounded-full bg-[#e5a93c] animate-pulse" />
             <span className="font-semibold text-white">{t.heroBadge1 || "Helix Auto DM 2.0"}</span>
             <span className="text-neutral-500">•</span>
-            <span>{t.heroBadge2 || "Meta Graph API Certified Automation"}</span>
+            <span>{t.heroBadge2 || "Built on the official Meta Graph API"}</span>
             <ArrowUpRight className="w-3.5 h-3.5 text-[#e5a93c]" />
           </div>
 
@@ -172,7 +173,7 @@ export function LandingPage() {
             </span>
             <span className="flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5 text-blue-400" />
-              {t.replyLatency || "0.3s Reply Latency"}
+              {t.replyLatency || "Near-instant automated replies"}
             </span>
           </div>
 
@@ -240,7 +241,7 @@ export function LandingPage() {
                         H
                       </div>
                       <span className="text-xs font-bold text-white">Helix Auto DM</span>
-                      <span className="text-[9px] font-mono-ui text-[#e5a93c] border border-[#e5a93c]/30 px-1 rounded">{t.verifiedBot || "Verified Bot"}</span>
+                      <span className="text-[9px] font-mono-ui text-[#e5a93c] border border-[#e5a93c]/30 px-1 rounded">{t.verifiedBot || "Automated"}</span>
                     </div>
 
                     <p className="text-xs text-neutral-200 leading-relaxed">
@@ -436,7 +437,8 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════ FOOTER ═══════════════════════════════════════════ */}
+      {/* ═════════════════════════════════════════ FOOTER ═══════════════════════════════════════════ */}
+      </main>
       <Footer />
     </div>
   )

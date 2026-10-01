@@ -13,6 +13,8 @@ import { WebVitalsReporter } from "@/components/performance/WebVitalsReporter"
 import { LanguageProvider } from "@/lib/i18n/LanguageContext"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { SWRProvider } from "@/components/swr-provider"
+import SkipLink from "@/components/a11y/SkipLink"
+import CookieBanner from "@/components/layout/CookieBanner"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _instrumentSerif = Instrument_Serif({ subsets: ["latin"], weight: "400", variable: "--font-instrument-serif" })
@@ -48,6 +50,7 @@ export default function RootLayout({
     <html lang="en" className={fontVariables}>
       <body className="font-sans antialiased bg-[#03010A]" suppressHydrationWarning>
         <ErrorBoundary>
+          <SkipLink />
           <LanguageProvider>
             <ThemeProvider>
               <SWRProvider>
@@ -56,6 +59,7 @@ export default function RootLayout({
                 <WebVitalsReporter />
                 {children}
                 <Toaster />
+                <CookieBanner />
               </SWRProvider>
             </ThemeProvider>
           </LanguageProvider>

@@ -668,7 +668,7 @@ export default function DashboardPage() {
                     <div className="pt-4 mt-4 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-neutral-400">
                         <span className="flex items-center gap-1.5">
                             <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                            All Services Online
+                            Platform online
                         </span>
                         <span className="font-mono text-neutral-400">v2.4.0</span>
                     </div>

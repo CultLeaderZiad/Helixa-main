@@ -11,7 +11,8 @@ export function TeamPanel() {
   const [loading, setLoading] = useState(true)
   const [limit, setLimit] = useState(0)
   const [userRole, setUserRole] = useState("admin")
-  
+  const [myEmail, setMyEmail] = useState<string | null>(null)
+
   const [inviteEmail, setInviteEmail] = useState("")
   const [inviteRole, setInviteRole] = useState("client-viewer")
   const [inviting, setInviting] = useState(false)
@@ -31,6 +32,7 @@ export function TeamPanel() {
       const authData = await authRes.json()
       if (authRes.ok) {
         setUserRole(authData.permission_level || "admin")
+        setMyEmail(authData.email || null)
       }
 
       const inviteRes = await fetch("/api/team/invites")
@@ -201,8 +203,8 @@ export function TeamPanel() {
               <div>
                 <p className="text-sm text-white font-medium">{member.email}</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className={`text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded ${member.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-neutral-500/20 text-neutral-400'}`}>
-                    {member.status}
+                  <span className={`text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded ${member.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                    {member.status === 'active' ? 'active' : 'pending'}
                   </span>
                   <span className="flex items-center gap-1 text-[10px] text-neutral-400 uppercase tracking-wider">
                     <Shield className="w-3 h-3" />
@@ -210,7 +212,15 @@ export function TeamPanel() {
                   </span>
                 </div>
               </div>
-              {userRole === "admin" && (
+              {member.status === 'invited' && myEmail && member.email?.toLowerCase() === myEmail.toLowerCase() ? (
+                <button
+                  onClick={() => handleAccept(member.id)}
+                  disabled={acceptingId === member.id}
+                  className="bg-[#e5a93c] hover:bg-[#d4952b] disabled:opacity-50 text-black font-semibold px-3 py-1.5 rounded-lg text-xs transition-colors"
+                >
+                  {acceptingId === member.id ? <Loader2 className="w-4 h-4 animate-spin" /> : "Accept invite"}
+                </button>
+              ) : userRole === "admin" ? (
                 <button
                   onClick={() => handleRemove(member.id)}
                   className="p-2 text-neutral-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
@@ -218,7 +228,7 @@ export function TeamPanel() {
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
-              )}
+              ) : null}
             </div>
           ))
         )}

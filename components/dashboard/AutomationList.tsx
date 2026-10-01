@@ -174,7 +174,7 @@ const RuleCard = memo(function RuleCard({ rule, onDelete, onEdit, onToggle, onDu
                   {confirming ? (
                     <div className="flex items-center gap-1 animate-in fade-in">
                       <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} className="h-7 text-xs text-neutral-500">Cancel</Button>
-                      <Button size="sm" onClick={() => onDelete(rule.id)} className="h-7 text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/20">Delete</Button>
+                      <Button size="sm" aria-label={`Delete automation rule "${rule.name}"`} onClick={() => onDelete(rule.id)} className="h-7 text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/20">Delete “{rule.name}”</Button>
                     </div>
                   ) : (
                     <>

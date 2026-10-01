@@ -1,8 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { CreditCard, AlertTriangle, CheckCircle, Package } from "lucide-react"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { toast } from "sonner"
 
 
 interface Subscription {
@@ -19,6 +22,8 @@ export default function BillingPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const [isAnnual, setIsAnnual] = useState(false)
+    const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
+    const [canceling, setCanceling] = useState(false)
     const { t } = useLanguage()
 
     useEffect(() => {
@@ -59,6 +64,25 @@ export default function BillingPage() {
         }
         fetchSubscriptionAndPlans()
     }, [])
+
+    const subscriptionIsMonthly = subscription?.plan === "monthly"
+    const subscriptionIsCanceling = subscription?.status === "canceling"
+
+    const handleCancelSubscription = async () => {
+        setCanceling(true)
+        try {
+            const res = await fetch("/api/stripe/cancel", { method: "POST" })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || "Failed to cancel subscription")
+            toast.success("Subscription canceled. It stays active until the end of the paid period.")
+            setSubscription((s) => (s ? { ...s, status: "canceling" } : s))
+            setCancelDialogOpen(false)
+        } catch (err: any) {
+            toast.error(err.message || "Failed to cancel subscription")
+        } finally {
+            setCanceling(false)
+        }
+    }
 
     const renderPlatformIcons = (plan: any) => {
         const p = plan?.platforms || { instagram: true, facebook: true, whatsapp: false, telegram: false, tiktok: false }
@@ -120,8 +144,30 @@ export default function BillingPage() {
                                         <div className="text-[10px] uppercase tracking-wider font-bold text-[#e5a93c] bg-[#e5a93c]/10 border border-[#e5a93c]/20 px-3 py-1.5 rounded-full">{subscription.status}</div>
                                     </div>
                                     <div className="text-sm text-neutral-400">
-                                        {subscription.plan === "Free Trial" ? "Trial ends on" : "Renews on"} <span className="text-white font-medium">{new Date(subscription.current_period_end).toLocaleDateString()}</span>
+                                        {subscription.plan === "Free Trial" ? "Trial ends on" : subscriptionIsCanceling ? "Access ends on" : "Renews on"} <span className="text-white font-medium">{new Date(subscription.current_period_end).toLocaleDateString()}</span>
                                     </div>
+
+                                    {subscriptionIsCanceling && (
+                                        <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
+                                            <p className="text-xs text-yellow-400 leading-relaxed font-medium">
+                                                Cancellation scheduled — your plan stays active until the end of the paid period, then automations pause. You can resubscribe anytime.
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {subscriptionIsMonthly && !subscriptionIsCanceling && (
+                                        <div className="mt-4">
+                                            <button
+                                                onClick={() => setCancelDialogOpen(true)}
+                                                className="text-xs text-neutral-400 hover:text-red-400 underline underline-offset-4 transition-colors cursor-pointer"
+                                            >
+                                                Cancel subscription
+                                            </button>
+                                            <p className="text-[11px] text-neutral-500 mt-1.5 leading-relaxed">
+                                                Canceling stops future charges — no cancellation fee. Access continues until <span className="text-neutral-300">{new Date(subscription.current_period_end).toLocaleDateString()}</span>. See the <Link href="/refund" target="_blank" className="text-[#e5a93c] hover:underline">Refund &amp; Cancellation Policy</Link>.
+                                            </p>
+                                        </div>
+                                    )}
                                     
                                     {subscription.plan === "Free Trial" && subscription.role !== "admin" && (
                                         <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
@@ -265,6 +311,18 @@ export default function BillingPage() {
                     })}
                 </div>
             </div>
+
+            {/* Cancel subscription confirmation — never fire from a single click */}
+            <ConfirmDialog
+                open={cancelDialogOpen}
+                onOpenChange={setCancelDialogOpen}
+                title="Cancel your subscription?"
+                description={`Your Monthly Pro plan will stop renewing. You keep full access until ${subscription ? new Date(subscription.current_period_end).toLocaleDateString() : "the end of the paid period"}, then automations pause. Your data is preserved and there is no cancellation fee.`}
+                confirmLabel="Yes, cancel subscription"
+                cancelLabel="Keep my subscription"
+                loading={canceling}
+                onConfirm={handleCancelSubscription}
+            />
         </div>
     )
 }

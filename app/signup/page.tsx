@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createBrowserClient } from "@supabase/ssr"
 import { Suspense } from "react"
-import dynamic from "next/dynamic"
 import BackToHome from "@/components/ui/back-to-home"
 import { Mail } from "lucide-react"
 import HelixaLogo from "@/components/ui/HelixaLogo"
@@ -15,6 +14,8 @@ import { PasswordInput } from "@/components/ui/password-input"
 function SignupForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [agreeTerms, setAgreeTerms] = useState(false)
+  const [agreeError, setAgreeError] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -29,8 +30,15 @@ function SignupForm() {
 
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setError(null)
+    
+    if (!agreeTerms) {
+      setAgreeError(true)
+      return
+    }
+    setAgreeError(false)
+
+    setLoading(true)
     
     const { error } = await supabase.auth.signUp({
       email,
@@ -116,7 +124,7 @@ function SignupForm() {
         </div>
         <form className="mt-6 space-y-5" onSubmit={handleEmailSignup}>
           {error && (
-            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-400">
+            <div role="alert" className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-400">
               {error}
             </div>
           )}
@@ -154,13 +162,40 @@ function SignupForm() {
             </div>
           </div>
 
+          <div className="space-y-1">
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={agreeTerms}
+                onChange={(e) => {
+                  setAgreeTerms(e.target.checked)
+                  if (e.target.checked) setAgreeError(false)
+                }}
+                aria-describedby={agreeError ? "agree-error" : undefined}
+                aria-invalid={agreeError}
+                className="mt-0.5 w-4 h-4 accent-[#e5a93c] cursor-pointer"
+              />
+              <span className="text-xs text-zinc-400 leading-relaxed">
+                I agree to the{" "}
+                <Link href="/terms" target="_blank" className="text-[#e5a93c] hover:underline">Terms of Service</Link>{" "}
+                and{" "}
+                <Link href="/privacy" target="_blank" className="text-[#e5a93c] hover:underline">Privacy Policy</Link>
+              </span>
+            </label>
+            {agreeError && (
+              <p id="agree-error" role="alert" className="text-[11px] text-red-400 pl-7">
+                You must agree to the Terms and Privacy Policy before creating an account.
+              </p>
+            )}
+          </div>
+
           <div>
             <button
               type="submit"
               disabled={loading}
               className="group relative flex w-full justify-center rounded-xl bg-[#e5a93c] hover:bg-[#d4952b] py-2.5 px-4 text-xs font-bold uppercase tracking-wider font-mono-ui text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e5a93c] disabled:opacity-50 transition-all shadow-lg shadow-[#e5a93c]/20 cursor-pointer"
             >
-              {loading ? "Creating account..." : "Sign up with Email"}
+              {loading ? "Creating account..." : "Create free account"}
             </button>
           </div>
         </form>
@@ -178,8 +213,9 @@ function SignupForm() {
           <div className="mt-4">
             <button
               onClick={handleGoogleSignup}
-              disabled={loading}
-              className="flex w-full items-center justify-center gap-3 rounded-xl bg-white/[0.04] border border-white/10 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider font-mono-ui text-white hover:bg-white/[0.08] hover:border-white/20 transition-all cursor-pointer"
+              disabled={loading || !agreeTerms}
+              title={agreeTerms ? "Sign up with Google" : "Agree to the Terms and Privacy Policy first"}
+              className="flex w-full items-center justify-center gap-3 rounded-xl bg-white/[0.04] border border-white/10 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider font-mono-ui text-white hover:bg-white/[0.08] hover:border-white/20 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <svg className="h-4 w-4" aria-hidden="true" viewBox="0 0 24 24">
                 <path

@@ -6,6 +6,7 @@ import { useLanguage } from "@/lib/i18n/LanguageContext"
 const GITHUB_URL = "https://github.com/CultLeaderZiad"
 const LINKEDIN_URL = "https://www.linkedin.com/in/ziad-sabry-cl/"
 const TELEGRAM_URL = "https://t.me/cultleaderziad"
+const CONTACT_EMAIL = "cultleaderzoz.dev@gmail.com"
 
 export function Footer() {
   const { t, language } = useLanguage()
@@ -73,6 +74,12 @@ export function Footer() {
                 <span>Telegram Support</span>
               </a>
             </div>
+            <p className="text-xs text-neutral-500 leading-relaxed">
+              {isAr ? "للتواصل:" : "Contact:"}{" "}
+              <a href={`mailto:${CONTACT_EMAIL}`} className="text-neutral-400 hover:text-white transition-colors">
+                {CONTACT_EMAIL}
+              </a>
+            </p>
           </div>
 
           {/* Product Col */}
@@ -175,12 +182,12 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="hover:text-white transition-colors">
-                  {isAr ? "الأمان والحماية" : "Security"}
+                <Link href="/refund" className="hover:text-white transition-colors">
+                  {isAr ? "سياسة الاسترداد والإلغاء" : "Refund & Cancellation"}
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="hover:text-white transition-colors">
+                <Link href="/cookies" className="hover:text-white transition-colors">
                   {isAr ? "ملفات تعريف الارتباط" : "Cookie Policy"}
                 </Link>
               </li>
@@ -191,7 +198,9 @@ export function Footer() {
         {/* Bottom Bar matching Screenshot 3 & 4 */}
         <div className="border-t border-white/[0.08] mt-12 pt-8 flex flex-col xl:flex-row items-center justify-between gap-6 text-xs font-mono-ui text-neutral-500">
           <div>
-            © 2026 HELIX AUTO DM. {t.rightsReserved ? t.rightsReserved.toUpperCase() : "ALL RIGHTS RESERVED."}
+            {isAr ? "© 2026 هيليكسا أوتو دي إم." : "© 2026 Helix Auto DM."} {t.rightsReserved ? t.rightsReserved.toUpperCase() : "ALL RIGHTS RESERVED."}
+            {/* TODO(business): add registered legal entity name + address here once confirmed —
+                required by some consumer-protection rules (imprint). Do not invent. */}
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-y-2 gap-x-4">
@@ -202,8 +211,14 @@ export function Footer() {
               <Link href="/privacy" className="hover:text-neutral-300 transition-colors">
                 {t.privacy || "Privacy"}
               </Link>
+              <Link href="/refund" className="hover:text-neutral-300 transition-colors">
+                {isAr ? "الاسترداد" : "Refunds"}
+              </Link>
               <Link href="/terms" className="hover:text-neutral-300 transition-colors">
                 {t.terms || "Terms"}
+              </Link>
+              <Link href="/cookies" className="hover:text-neutral-300 transition-colors">
+                {isAr ? "الكوكيز" : "Cookies"}
               </Link>
             </div>
 
@@ -240,7 +255,7 @@ export function Footer() {
           <div className="inline-flex items-center gap-2">
             <span className="w-2 h-2 rounded-[2px] bg-emerald-500 animate-pulse" />
             <span className="font-bold text-neutral-400 tracking-wider text-[11px]">
-              {isAr ? "جميع الأنظمة تعمل بكفاءة" : "ALL SYSTEMS OPERATIONAL"}
+              {isAr ? "المنصة تعمل" : "PLATFORM ONLINE"}
             </span>
           </div>
         </div>

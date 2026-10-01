@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { sendPaymentReceipt, getEmailForAccountId } from "@/lib/receipt-emails"
 
 const stripeKey = process.env.STRIPE_SECRET_KEY
 const stripe = new Stripe(stripeKey || "sk_test_placeholder_do_not_use", {
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Webhook signature verification failed" }, { status: 400 })
   }
 
+  // Webhooks have no user session. Use the service-role client.
   const supabase = await getSupabaseBypassClient()
   const now = new Date().toISOString()
 
@@ -133,6 +135,24 @@ export async function POST(request: NextRequest) {
         })
 
         }
+
+        try {
+          if (resolvedAccountId) {
+            const toEmail = session.customer_details?.email || (await getEmailForAccountId(resolvedAccountId))
+            if (toEmail) {
+              await sendPaymentReceipt({
+                to: toEmail,
+                planName: storedPlan || (planType === "monthly" ? "Monthly Pro (subscription)" : "Lifetime Access"),
+                amount: (session.amount_total ?? 0) / 100,
+                currency: (session.currency || "usd").toUpperCase(),
+                paymentMethod: "stripe",
+              })
+            }
+          }
+        } catch (e) {
+          console.error("[stripe/webhook] Receipt email failed (non-blocking):", e)
+        }
+
         console.log(`[stripe/webhook] ✅ Checkout complete — user ${userId || accountId} → plan ${storedPlan}`)
         break
       }
@@ -188,6 +208,24 @@ export async function POST(request: NextRequest) {
             payment_method: "stripe",
             updated_at: now,
           })
+
+          // Receipt for renewal invoices (transactional, non-blocking)
+          try {
+            const toEmail = invoice.customer_email || (user.account_id ? await getEmailForAccountId(user.account_id) : null)
+            if (toEmail) {
+              await sendPaymentReceipt({
+                to: toEmail,
+                planName: "Monthly Pro (subscription)",
+                amount: invoice.amount_paid / 100,
+                currency: (invoice.currency || "usd").toUpperCase(),
+                paymentMethod: "stripe",
+                isRenewal: true,
+                billingPeriod: currentPeriodEnd ? new Date(currentPeriodEnd).toLocaleDateString() : undefined,
+              })
+            }
+          } catch (e) {
+            console.error("[stripe/webhook] Receipt email failed (non-blocking):", e)
+          }
 
           console.log(`[stripe/webhook] ✅ Invoice paid — user ${user.id} renewed`)
         }

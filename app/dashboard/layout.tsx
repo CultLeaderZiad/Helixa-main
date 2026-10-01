@@ -11,6 +11,7 @@ import { TrialBanner } from "@/components/layout/TrialBanner"
 import { UsageNotice } from "@/components/layout/UsageNotice"
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"
 import { DashboardBackground } from "@/components/layout/DashboardBackground"
+import FloatingHelp from "@/components/layout/FloatingHelp"
 
 export default function DashboardLayout({
     children,
@@ -124,7 +125,7 @@ export default function DashboardLayout({
                     </div>
                 </header>
 
-                <main className="flex-1 relative overflow-auto z-10">
+                <main id="main-content" className="flex-1 relative overflow-auto z-10">
                     {!trialExempt && <TrialBanner plan={plan || ""} trialEndsAt={trialEndsAt} />}
                     <UsageNotice />
                     {instagramReconnectRequired && (
@@ -143,6 +144,9 @@ export default function DashboardLayout({
                     {children}
                 </main>
             </div>
+
+            {/* Persistent support affordance on every dashboard page */}
+            <FloatingHelp />
         </div>
     )
 }
