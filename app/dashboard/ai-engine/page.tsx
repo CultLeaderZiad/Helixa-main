@@ -82,7 +82,7 @@ function AiEngineContent() {
             AI Engine & Marketing Intelligence
           </h1>
           <p className="text-neutral-400 text-xs md:text-sm mt-1 max-w-2xl">
-            Unified mission control: manage autonomous agents, track post-link targeting & sentiment, and analyze conversion funnels with 100% verified account data.
+            Unified mission control: manage autonomous agents, track post-link targeting & sentiment, and analyze conversion funnels using data from your connected accounts.
           </p>
         </div>
 

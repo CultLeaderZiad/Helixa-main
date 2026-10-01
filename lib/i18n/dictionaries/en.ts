@@ -19,7 +19,7 @@ export const en = {
 
   // Landing Page
   heroBadge1: "Helix Auto DM 2.0",
-  heroBadge2: "Meta Graph API Certified Automation",
+  heroBadge2: "Built on the official Meta Graph API",
   heroTitle: "Turn Comments & DMs Into Revenue",
   heroTitleGradient: "on Autopilot.",
   heroSubtitleLong: "The open-source, self-hosted social automation engine. Automatically reply to Instagram & Facebook comments, deliver instant lead magnets, and route conversations through intelligent AI funnels.",
@@ -31,7 +31,7 @@ export const en = {
   star: "Star",
   noCreditCardReq: "No Credit Card Required",
   officialMetaApi: "Official Meta Graph API",
-  replyLatency: "0.3s Reply Latency",
+  replyLatency: "Near-instant automated replies",
   noCreditCard: "No credit card required.",
   connect: "Connect",
 
@@ -44,7 +44,7 @@ export const en = {
   publicReplyLabel: "Helix Auto DM (Public Reply)",
   publicReplyContent: "Sent straight to your DMs, Sarah! Check your requests 🚀",
   step2Title: "2. Instant Private DM & Lead Capture",
-  verifiedBot: "Verified Bot",
+  verifiedBot: "Automated",
   privateDmIntro: "Hey Sarah! Here is your download link for the 2026 Social Automation Blueprint:",
   downloadBlueprint: "Download 2026 Blueprint (.PDF)",
   scheduleStrategyCall: "Schedule a Free Strategy Call",
@@ -266,7 +266,7 @@ export const en = {
   provider: "Provider",
   apiKey: "API Key",
   cancel: "Cancel",
-  secureAndConnect: "Secure & Connect",
+  secureAndConnect: "Save key & connect agent",
   agentCategory: "{{category}} Agents",
 
   // Analytics Page

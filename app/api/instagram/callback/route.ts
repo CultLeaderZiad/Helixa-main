@@ -29,8 +29,9 @@ export async function POST(request: NextRequest) {
     const { code } = body
     if (!code) return NextResponse.json({ error: "No code" }, { status: 400 })
 
-    // 1. Env Vars
-    const clientId = process.env.INSTAGRAM_APP_ID
+    // 1. Env Vars — accept both the public and server-side app ID so this route
+    // matches /api/instagram/auth exactly (whichever one is configured works).
+    const clientId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID || process.env.INSTAGRAM_APP_ID
     const clientSecret = process.env.INSTAGRAM_APP_SECRET
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.headers.get("origin") || "https://helixa-main-ecru.vercel.app"
     const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI || `${appUrl}/api/instagram/callback`
@@ -193,11 +194,38 @@ export async function POST(request: NextRequest) {
 
     console.log(`[v0] 💾 Saving user: ${username} | id=${loginUserId} | biz_id=${businessAccountId}`)
 
-    const { error: upsertError } = await db
+    // Duplicate-row guard: if a placeholder users row was already created for this
+    // account by the Telegram/Facebook connect flows (random int64 id), update THAT
+    // row in place instead of inserting a second row for the same account_id.
+    // Two rows per account_id breaks getSessionInstagramUser (.maybeSingle() errors
+    // on duplicates) → every authenticated route would 401 from then on.
+    const { data: accountUserRow } = await db
       .from("users")
-      .upsert({ id: loginUserId, ...updates }, { onConflict: "id" })
+      .select("id")
+      .eq("account_id", account.id)
+      .order("created_at", { ascending: true })
+      .limit(1)
 
-    if (upsertError) throw upsertError
+    const placeholderRow = accountUserRow?.find((r: any) => String(r.id) !== String(loginUserId))
+
+    // A genuine Instagram row for this login already exists — normal upsert wins.
+    const hasOwnRow = accountUserRow?.some((r: any) => String(r.id) === String(loginUserId))
+
+    if (placeholderRow && !hasOwnRow) {
+      // Preserve the existing row's id — business tables (automations, conversations,
+      // messages, subscriptions…) already reference it. Attach the Instagram identity.
+      const { error: mergeError } = await db
+        .from("users")
+        .update({ ...updates })
+        .eq("id", placeholderRow.id)
+      if (mergeError) throw mergeError
+    } else {
+      const { error: upsertError } = await db
+        .from("users")
+        .upsert({ id: loginUserId, ...updates }, { onConflict: "id" })
+
+      if (upsertError) throw upsertError
+    }
 
     // 6. Return response (no need for insta_session cookie, we use Supabase Auth now)
     const response = NextResponse.json({ success: true, username, userId: loginUserId, profilePic })

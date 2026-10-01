@@ -63,7 +63,7 @@ export default function FAQPage() {
       <FrontBackground />
       <div>
         <Header activeHref="/faq" />
-        <main className="max-w-3xl mx-auto px-4 pt-12 pb-24 space-y-10 relative z-10">
+        <main id="main-content" className="max-w-3xl mx-auto px-4 pt-12 pb-24 space-y-10 relative z-10">
           <div>
             <Link
               href="/"

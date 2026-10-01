@@ -19,7 +19,7 @@ export const ar = {
 
   // Landing Page
   heroBadge1: "هيليكسا أوتو دي إم 2.0",
-  heroBadge2: "أتمتة معتمدة من Meta Graph API",
+  heroBadge2: "مبنية على واجهة Meta Graph API الرسمية",
   heroTitle: "حوّل التعليقات والرسائل إلى أرباح",
   heroTitleGradient: "على الطيار الآلي.",
   heroSubtitleLong: "محرك الأتمتة الاجتماعية مفتوح المصدر والمستضاف ذاتياً. قم بالرد التلقائي على تعليقات انستغرام وفيسبوك، وأرسل الهدايا الترويجية فوراً، ووجّه المحادثات عبر مسارات ذكاء اصطناعي ذكية لتحقيق المبيعات.",
@@ -31,7 +31,7 @@ export const ar = {
   star: "نجمة",
   noCreditCardReq: "لا يلزم بطاقة ائتمان",
   officialMetaApi: "واجهة Meta Graph API الرسمية",
-  replyLatency: "سرعة استجابة 0.3 ثانية",
+  replyLatency: "ردود آلية فورية تقريبًا",
   noCreditCard: "لا يتطلب بطاقة ائتمان.",
   connect: "ربط",
 
@@ -266,7 +266,7 @@ export const ar = {
   provider: "المزود",
   apiKey: "مفتاح API",
   cancel: "إلغاء",
-  secureAndConnect: "تأمين وربط",
+  secureAndConnect: "حفظ المفتاح وربط الوكيل",
   agentCategory: "وكلاء {{category}}",
 
   // Analytics Page

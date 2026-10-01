@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { sendManualPaymentApproved, sendManualPaymentRejected, getEmailForUserId } from "@/lib/receipt-emails"
 
 export async function PATCH(
   request: NextRequest,
@@ -128,6 +129,39 @@ export async function PATCH(
         action: `payment_${action}`,
         details: { payment_id: paymentId, amount: payment.amount }
       })
+    }
+
+    // Transactional notice to the customer (approval = receipt, rejection = refund path). Non-blocking.
+    try {
+      const toEmail = await getEmailForUserId(payment.user_id)
+      if (toEmail) {
+        let planName = "Helixa Plan"
+        if (payment.plan_id) {
+          const { data: planRow } = await supabase.from("plans").select("name").eq("id", payment.plan_id).maybeSingle()
+          planName = planRow?.name || planName
+        }
+        if (action === "approve") {
+          const { data: subRow } = await supabase.from("subscriptions").select("current_period_end").eq("user_id", payment.user_id).maybeSingle()
+          await sendManualPaymentApproved({
+            to: toEmail,
+            planName,
+            amount: Number(payment.amount),
+            transactionReference: payment.transaction_reference,
+            periodEnd: subRow?.current_period_end ? new Date(subRow.current_period_end).toLocaleDateString() : undefined,
+          })
+        } else {
+          await sendManualPaymentRejected({
+            to: toEmail,
+            amount: Number(payment.amount),
+            transactionReference: payment.transaction_reference,
+            reason: rejection_reason || undefined,
+          })
+        }
+      } else {
+        console.warn("[admin/payments] No email found for user; skipping notice")
+      }
+    } catch (e) {
+      console.error("[admin/payments] Notice email failed (non-blocking):", e)
     }
 
     return NextResponse.json({ success: true })

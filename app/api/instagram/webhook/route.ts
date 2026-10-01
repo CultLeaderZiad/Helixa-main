@@ -395,14 +395,27 @@ export async function POST(request: NextRequest) {
       // ============================================================
       //  PART A.5: STORY AUTOMATIONS (mention / reaction / reply)
       // ============================================================
+      // Track senders whose messaging event was already handled here, so the
+      // DM handler in PART B doesn't process the same event twice (a story
+      // reply with text would otherwise trigger both a story automation AND
+      // a DM keyword automation → two replies to one message).
+      const storyHandledSenderIds = new Set<string>()
       if (entry.messaging) {
         for (const event of entry.messaging) {
           const senderId = event.sender.id
           const recipientId = event.recipient.id
           if (event.read || event.delivery || event.message?.is_echo || senderId === recipientId) continue
 
+          const isStoryEvent =
+            event.message?.attachments?.[0]?.type === "story_mention" ||
+            event.reaction ||
+            event.message?.reply_to?.story
           const storyAutomations = automations.filter((a: any) => a.trigger_source === "story")
-          if (storyAutomations.length === 0) continue
+          if (storyAutomations.length === 0) {
+            // Still mark story-shaped events as handled so PART B doesn't fire on them
+            if (isStoryEvent) storyHandledSenderIds.add(senderId)
+            continue
+          }
 
           let match = null
           let storyMediaId: string | null = null
@@ -445,6 +458,7 @@ export async function POST(request: NextRequest) {
 
           if (match) {
             console.log(`[webhook] ✨ Story match: "${match.name}"`)
+            storyHandledSenderIds.add(senderId)
             const { content: rawContent, variantId } = pickVariant(match)
             const content = parseContent(rawContent)
             const leadCaptureResult = await processLeadCapture(
@@ -489,6 +503,13 @@ export async function POST(request: NextRequest) {
 
           const senderId = event.sender.id
           if (senderId === webhookId || senderId === user.business_account_id || senderId === user.page_id) continue
+
+          // Skip events already handled by the story automation pass above —
+          // otherwise a story reply with text gets TWO automated responses.
+          if (storyHandledSenderIds.has(senderId)) {
+            console.log(`[webhook] ⏭️ Skipping DM handling for ${senderId} — already handled as story event`)
+            continue
+          }
 
           let triggerType = ""
           let triggerValue = ""
@@ -675,8 +696,8 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
                   try {
                     const { error: evErr } = await supabase.from("automation_events").insert({
                       user_id: user.id,
-                      automation_id: "AI_AUTO_REPLY",
-                      event_type: "dm_reply",
+                      automation_id: null,
+                      event_type: "ai_reply",
                       recipient_id: senderId,
                       platform: "instagram",
                     })

@@ -157,8 +157,12 @@ export async function POST(
       }
 
       if (conv) {
+        // Telegram's message_id is only unique per chat, not globally — prefix with
+        // the chat id so messages from different chats/bots can't collide on the PK.
+        const rawMessageId = update.message?.message_id?.toString()
+        const globalMessageId = rawMessageId ? `tg_${chatId}_${rawMessageId}` : `tg_${Date.now()}_${Math.random()}`
         await supabase.from("messages").insert({
-          id: update.message?.message_id?.toString() || `tg_${Date.now()}_${Math.random()}`,
+          id: globalMessageId,
           conversation_id: conv.id,
           user_id: userId,
           sender_id: senderId,
@@ -265,8 +269,8 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
           try {
             const { error: evErr } = await supabase.from("automation_events").insert({
               user_id: userId,
-              automation_id: "AI_AUTO_REPLY",
-              event_type: "sent",
+              automation_id: null,
+              event_type: "ai_reply",
               platform: "telegram",
             })
             if (evErr) console.warn("[Telegram Webhook] Failed to log automation_event (AI auto-reply):", evErr.message)

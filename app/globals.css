@@ -264,6 +264,46 @@ html[dir="rtl"] .font-mono-ui {
   box-shadow: 0 0 0 2px var(--surface-0), 0 0 0 4px var(--brand);
 }
 
+/* ─── Accessibility: global visible keyboard focus ───
+   Ensures every interactive element shows a clear focus indicator when
+   navigated to via keyboard (Tab / Shift+Tab), without changing mouse UX. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+  /* Buttons/links inside dark surfaces get a double ring for contrast */
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  [role="radio"]:focus-visible,
+  [role="tab"]:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+}
+
+/* ─── Contrast: muted text on dark backgrounds ───
+   Raised from oklch(0.55) to oklch(0.66) ≈ #a3a3a3 to keep secondary text
+   at ≥ 4.5:1 against the near-black app background (WCAG AA for body text). */
+:root,
+.dark {
+  --muted-foreground: oklch(0.66 0 0);
+}
+
+/* Tailwind neutral grays used directly as text colors: lifted so secondary
+   text passes AA on the near-black background (neutral-500 #8f8f8f ≈ 6.9:1,
+   neutral-600 #7c7c7c ≈ 5.1:1). Borders mostly use white/xx tokens, so the
+   visual impact is limited to muted text. */
+@theme inline {
+  --color-neutral-500: #8f8f8f;
+  --color-neutral-600: #7c7c7c;
+}
+
 /* ─── Lightweight Motion Utilities ─── */
 /* Pure CSS transitions — zero JS, GPU-composited */
 

@@ -32,17 +32,25 @@ export async function POST(request: NextRequest) {
   let userId = igUser?.id
 
   if (!userId) {
-    const { data: existingUser } = await supabase
+    // Reuse an existing users row for this account if one exists — inserting a
+    // second row per account_id breaks getSessionInstagramUser (it uses
+    // .maybeSingle() and errors on duplicates → permanent 401 lockout).
+    const { data: existingUser, error: existingUserErr } = await supabase
       .from("users")
       .select("id")
       .eq("account_id", account.id)
-      .maybeSingle()
+      .order("created_at", { ascending: true })
+      .limit(1)
 
-    if (existingUser) {
-      userId = existingUser.id
+    if (existingUserErr) {
+      return NextResponse.json({ error: "Database error while resolving user" }, { status: 500 })
+    }
+
+    if (existingUser?.length) {
+      userId = existingUser[0].id
     } else {
       const fallbackId = Math.floor(1000000000 + Math.random() * 9000000000)
-      const { data: newUser } = await supabase
+      const { data: newUser, error: newUserError } = await supabase
         .from("users")
         .insert({
           id: fallbackId,
@@ -52,7 +60,16 @@ export async function POST(request: NextRequest) {
         })
         .select("id")
         .maybeSingle()
-      userId = newUser?.id || fallbackId
+      // Never fall through to a fabricated ID: the connection would reference a
+      // users row that doesn't exist, silently breaking webhooks and analytics.
+      if (newUserError || !newUser?.id) {
+        console.error("[Telegram Connect] Failed to create user row:", newUserError)
+        return NextResponse.json(
+          { error: "Could not create the platform user record. Please try again or contact support." },
+          { status: 500 },
+        )
+      }
+      userId = newUser.id
     }
   }
 

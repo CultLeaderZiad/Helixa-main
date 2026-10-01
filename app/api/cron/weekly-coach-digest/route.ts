@@ -25,9 +25,17 @@ function isoWeekStart(d: Date): string {
 
 export async function GET(request: NextRequest) {
   try {
+    // CRON_SECRET is mandatory — if it's missing the endpoint must fail CLOSED,
+    // never silently accept unauthenticated requests.
+    const cronSecret = process.env.CRON_SECRET
+    if (!cronSecret) {
+      console.error("[cron/weekly-coach-digest] CRON_SECRET is not configured. Rejecting request.")
+      return NextResponse.json({ error: "Server misconfiguration: CRON_SECRET not set" }, { status: 503 })
+    }
+
     const authHeader = request.headers.get("authorization")
-    const expectedAuth = `Bearer ${process.env.CRON_SECRET}`
-    if (process.env.CRON_SECRET && authHeader !== expectedAuth) {
+    const expectedAuth = `Bearer ${cronSecret}`
+    if (authHeader !== expectedAuth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 

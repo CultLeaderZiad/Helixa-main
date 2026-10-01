@@ -1,4 +1,4 @@
--- Supabase Database Schema Dump for Insta-P8
+-- Supabase Database Schema for Helixa (forked from InstaAuto / insta-p8)
 -- This script contains all 11 tables, constraints, indexes, and storage bucket settings.
 
 -- Enable UUID extension

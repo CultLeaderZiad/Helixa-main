@@ -94,12 +94,18 @@ export async function handleFacebookWebhook(body: any, supabase: any) {
     const webhookId = String(entry.id)
 
     // User resolution via platform_connections
-    let { data: connection } = await supabase
+    // NOTE: the connect flow stores TWO rows per page (one "facebook", one "messenger")
+    // with the same page_id and token, so this lookup can match multiple rows.
+    // .maybeSingle() errors on >1 row and would silently break every webhook —
+    // use .limit(1) instead. Both rows carry the same user_id/page token, so
+    // either is valid for this handler.
+    const { data: connectionCandidates } = await supabase
       .from("platform_connections")
       .select("user_id, platform, access_token, page_id")
       .or(`page_id.eq.${webhookId},external_account_id.eq.${webhookId}`)
       .in("platform", ["facebook", "messenger"])
-      .maybeSingle()
+      .limit(1)
+    const connection = connectionCandidates?.[0]
 
     if (!connection) {
       console.log(`[fb-webhook] ❌ Could not resolve Facebook page ID ${webhookId}`)
@@ -458,8 +464,8 @@ Reply in the same language the customer uses. Keep responses short (1-3 sentence
               try {
                 const { error: evErr } = await supabase.from("automation_events").insert({
                   user_id: user.id,
-                  automation_id: "AI_AUTO_REPLY",
-                  event_type: "sent",
+                  automation_id: null,
+                  event_type: "ai_reply",
                   platform: "facebook",
                 })
                 if (evErr) console.warn("[fb-webhook] Failed to log automation_event (AI auto-reply):", evErr.message)

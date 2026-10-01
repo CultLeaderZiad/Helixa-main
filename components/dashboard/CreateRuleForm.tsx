@@ -903,7 +903,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                 disabled={!stepValid[step]}
                 className="flex items-center gap-2 h-11 px-6 rounded-full bg-white text-black font-mono-ui text-xs font-bold hover:bg-[#e5a93c] hover:shadow-[0_0_20px_rgba(229,169,60,0.25)] active:scale-[0.98] transition-all disabled:opacity-30 disabled:cursor-not-allowed ml-auto"
               >
-                Continue
+                {step === 0 ? "Continue to message" : "Review & activate"}
                 <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
