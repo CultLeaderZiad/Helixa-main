@@ -1,75 +1,81 @@
-export const dynamic = 'force-dynamic'
+// Stripe cancellation at period end. Access is preserved; only the account owner
+// (or a platform admin) may cancel, and we never write 'canceling' anywhere.
+// Gating reads billing_accounts.status, so the paid period keeps its plan until
+// current_period_end.
+//
+// POST /api/stripe/cancel
 import { type NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
-import { requireUser } from "@/lib/auth"
+import { requireSessionUser } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { resolvePlan } from "@/lib/billing/plans"
+import { scheduleCancel } from "@/lib/billing/activation"
 
 const stripeKey = process.env.STRIPE_SECRET_KEY
 const stripe = new Stripe(stripeKey || "sk_test_placeholder_do_not_use", {
   apiVersion: "2026-08-26.dahlia",
 })
 
-/**
- * POST /api/stripe/cancel
- * Cancels the caller's Stripe subscription at period end (access preserved until then).
- * The customer.subscription.deleted webhook fires when the period actually ends and
- * flips the plan to expired — we don't do that here so the paid period is honored.
- */
 export async function POST(request: NextRequest) {
-  if (!stripeKey || stripeKey === "sk_test_placeholder_do_not_use") {
-    return NextResponse.json({ error: "Payments are not configured." }, { status: 503 })
-  }
+  const session = await requireSessionUser(request)
+  if (session.response) return session.response
+  const account = session.user
 
-  const result = await requireUser(request)
-  if (result.response) return result.response
-  const { user: account } = result
+  // Only the owner of the account (or a platform admin) may cancel the paid
+  // period; a team member gets an explicit 403 rather than a silent no-op.
+  const role = account.workspace_role ?? account.role
+  if (role !== "owner" && account.role !== "admin") {
+    return NextResponse.json({ error: "Only the account owner can cancel at period end." }, { status: 403 })
+  }
 
   try {
     const supabase = await getSupabaseBypassClient()
 
-    // Resolve users.id (int64) from the account UUID — subscriptions key by users.id
-    const { data: userRow } = await supabase
-      .from("users")
-      .select("id")
+    const { data: billing, error: billingError } = await supabase
+      .from("billing_accounts")
+      .select("status, plan_id, current_period_end, cancel_at_period_end, provider, provider_subscription_id")
       .eq("account_id", account.id)
       .maybeSingle()
-
-    if (!userRow) {
-      return NextResponse.json({ error: "No active Stripe subscription found to cancel." }, { status: 404 })
+    if (billingError) {
+      return NextResponse.json({ error: "Could not load the billing account." }, { status: 500 })
     }
 
-    // Find the active Stripe subscription for this user
-    const { data: sub } = await supabase
-      .from("subscriptions")
-      .select("id, stripe_subscription_id, plan_type, status, current_period_end")
-      .eq("user_id", userRow.id)
-      .maybeSingle()
-
-    if (!sub || sub.plan_type !== "monthly" || sub.status !== "active" || !sub.stripe_subscription_id) {
-      return NextResponse.json(
-        { error: "No active Stripe subscription found to cancel." },
-        { status: 404 }
-      )
+    if (!billing || (billing.status !== "active" && billing.status !== "past_due")) {
+      return NextResponse.json({ error: "No active paid plan to cancel." }, { status: 404 })
     }
 
-    // Cancel at period end — user keeps access until the paid period ends.
-    await stripe.subscriptions.update(sub.stripe_subscription_id, {
-      cancel_at_period_end: true,
+    const plan = resolvePlan(billing.plan_id)
+    if (plan.monthlyUsd <= 0) {
+      return NextResponse.json({ error: "Only paid plans can be canceled at period end." }, { status: 400 })
+    }
+
+    // Mirror the cancel on the provider so no further invoices are raised, while
+    // the customer keeps access until current_period_end.
+    const subscriptionId = billing.provider_subscription_id
+    if (billing.provider === "stripe" && subscriptionId && stripeKey && stripeKey !== "sk_test_placeholder_do_not_use") {
+      try {
+        await stripe.subscriptions.update(String(subscriptionId), { cancel_at_period_end: true })
+      } catch (stripeError: any) {
+        console.error("[stripe/cancel] provider update failed:", stripeError?.message ?? stripeError)
+        return NextResponse.json({ error: "Stripe could not schedule the cancellation." }, { status: 502 })
+      }
+    }
+
+    // Source of truth: keep status='active', only flag the period-end cancel.
+    await scheduleCancel({
+      accountId: account.id,
+      providerRef: subscriptionId ? String(subscriptionId) : null,
+      periodEnd: billing.current_period_end ?? null,
+      actorId: account.id,
     })
-
-    // Mark locally so the UI can show pending-cancellation state immediately.
-    await supabase
-      .from("subscriptions")
-      .update({ status: "canceling", updated_at: new Date().toISOString() })
-      .eq("user_id", userRow.id)
 
     return NextResponse.json({
       success: true,
-      periodEnd: sub.current_period_end,
+      periodEnd: billing.current_period_end,
       message: "Subscription canceled. It stays active until the end of the paid period.",
     })
   } catch (error: any) {
-    console.error("[stripe/cancel] Error:", error)
-    return NextResponse.json({ error: error.message || "Failed to cancel subscription" }, { status: 500 })
+    console.error("[stripe/cancel] Error:", error?.message ?? error)
+    return NextResponse.json({ error: "Failed to cancel subscription" }, { status: 500 })
   }
 }

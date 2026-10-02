@@ -1,3 +1,5 @@
+import { minorUnits } from "@/lib/money"
+
 export const CLIENT_CURRENCIES = ["usd", "egp", "sar", "aed", "qar", "kwd", "bhd", "omr"] as const
 export type ClientCurrency = (typeof CLIENT_CURRENCIES)[number]
 export type ClientInterval = "month" | "year"
@@ -10,10 +12,9 @@ export interface ClientPrice {
   provider: ClientProvider
 }
 
+// Single source of truth for minor-unit digits (lib/money.ts).
 export function minorUnitDigits(currency: string): number {
-  const code = currency.toLowerCase()
-  if (code === "kwd" || code === "bhd" || code === "omr") return 3
-  return 2
+  return minorUnits(currency)
 }
 
 /** Minor units to the decimal string Tap and statement text expect. */

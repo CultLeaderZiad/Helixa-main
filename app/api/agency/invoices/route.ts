@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { requireSessionUser } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { paymentLinkForUser } from "@/lib/commerce/checkout"
+import { recordPaymentIntent } from "@/lib/commerce/intents"
 import { invoiceForPrice, normalizeClientPrice } from "@/lib/billing/reseller"
 import { isMissingTable } from "@/lib/flows/session"
 
@@ -60,6 +61,16 @@ export async function POST(request: NextRequest) {
     }, undefined, price.price.provider)
     if (!link) return NextResponse.json({ invoiceId: inserted.data.id, url: null, error: "Save a Paymob, Stripe, or Tap key under Integrations." }, { status: 409 })
     await supabase.from("client_invoices").update({ checkout_url: link.url, provider_reference: link.reference, provider: link.provider }).eq("id", inserted.data.id)
+    // Bind the provider's signed id to the invoice so the callback trusts the
+    // stored intent, not body metadata.
+    await recordPaymentIntent(supabase, {
+      accountId: session.user.id,
+      invoiceId: inserted.data.id,
+      provider: link.provider,
+      providerOrderId: link.reference,
+      amountMinor: draft.amountCents,
+      currency: draft.currency,
+    })
     return NextResponse.json({ invoiceId: inserted.data.id, url: link.url, provider: link.provider })
   } catch (error) {
     return NextResponse.json({ invoiceId: inserted.data.id, error: error instanceof Error ? error.message : "Payment link failed" }, { status: 502 })

@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { requireSessionUser } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { schedulePlanChange } from "@/lib/billing/lifecycle"
+import { syncLegacyPlanMirrors } from "@/lib/billing/activation"
 import { resolvePlan } from "@/lib/billing/plans"
 
 export async function POST(request: NextRequest) {
@@ -25,7 +26,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ checkoutRequired: true, planId: next.id })
   }
   if (change.immediatePlan) {
-    await supabase.from("accounts").update({ plan: change.immediatePlan, updated_at: new Date().toISOString() }).eq("id", session.user.id)
     await supabase.from("billing_accounts").upsert({
       account_id: session.user.id,
       plan_id: change.immediatePlan,
@@ -33,6 +33,8 @@ export async function POST(request: NextRequest) {
       scheduled_plan_id: null,
       updated_at: new Date().toISOString(),
     }, { onConflict: "account_id" })
+    // Keep the legacy plan mirrors in step with the source of truth.
+    await syncLegacyPlanMirrors(session.user.id, change.immediatePlan)
     return NextResponse.json({ applied: change.immediatePlan })
   }
   if (change.scheduledPlan) {

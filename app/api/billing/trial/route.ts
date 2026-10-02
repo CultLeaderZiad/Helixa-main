@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { requireSessionUser } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { startTrial } from "@/lib/billing/lifecycle"
+import { startTrialPlan } from "@/lib/billing/activation"
 
 export async function POST(request: NextRequest) {
   const session = await requireSessionUser(request)
@@ -18,15 +19,11 @@ export async function POST(request: NextRequest) {
     nowMs: Date.now(),
   })
   if (!decision.ok) return NextResponse.json({ error: decision.error }, { status: 409 })
-  const saved = await supabase.from("billing_accounts").upsert({
-    account_id: session.user.id,
-    plan_id: decision.planId,
-    status: "trialing",
-    trial_ends_at: decision.trialEndsAt,
-    interval: "month",
-    updated_at: new Date().toISOString(),
-  }, { onConflict: "account_id" })
-  if (saved.error) return NextResponse.json({ error: saved.error.message }, { status: 503 })
-  await supabase.from("accounts").update({ plan: decision.planId, trial_ends_at: decision.trialEndsAt, updated_at: new Date().toISOString() }).eq("id", session.user.id)
+  try {
+    await startTrialPlan({ accountId: session.user.id, planId: decision.planId, trialEndsAt: decision.trialEndsAt })
+  } catch (error: any) {
+    console.error("[billing/trial] activation failed:", error?.message ?? error)
+    return NextResponse.json({ error: "Could not start the trial." }, { status: 503 })
+  }
   return NextResponse.json({ planId: decision.planId, trialEndsAt: decision.trialEndsAt, status: "trialing" })
 }

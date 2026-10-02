@@ -1,23 +1,32 @@
-export const dynamic = "force-dynamic"
-
+// Billing checkout. The annual toggle now records interval='year', the Stripe
+// price data drives the recurring interval, and the platform-billing paths no
+// longer hard-code 'monthly'. No secrets are logged.
+//
+// POST /api/billing/checkout
 import { type NextRequest, NextResponse } from "next/server"
 import { requireSessionUser } from "@/lib/auth"
 import { planPriceCents, resolvePlan } from "@/lib/billing/plans"
+import { resolveInterval } from "@/lib/billing/activation"
 import { createPaymobLink, createStripeSubscriptionLink, createTapLink } from "@/lib/commerce/payments"
+import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 export async function POST(request: NextRequest) {
   const session = await requireSessionUser(request)
   if (session.response) return session.response
   const body = await request.json().catch(() => ({}))
   const plan = resolvePlan(String(body.planId || ""))
-  const interval = body.interval === "year" ? "year" : "month"
+  const interval = resolveInterval(body)
   if (plan.blocked || plan.monthlyUsd <= 0 || plan.id === "creator_free") {
     return NextResponse.json({ error: "Choose a paid plan." }, { status: 400 })
   }
-  const provider = body.provider === "paymob" || body.provider === "tap" || body.provider === "vodafone_cash" ? body.provider : "stripe"
+  const provider =
+    body.provider === "paymob" || body.provider === "tap" || body.provider === "vodafone_cash"
+      ? body.provider
+      : "stripe"
   const amountCents = planPriceCents(plan.id, interval)
   const origin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
   const description = `Helixa ${plan.name} (${interval})`
+
   if (provider === "vodafone_cash") {
     return NextResponse.json({
       provider,
@@ -26,6 +35,7 @@ export async function POST(request: NextRequest) {
       instructions: "Transfer the amount with Vodafone Cash and submit the receipt on the billing page. An admin confirms it.",
     })
   }
+
   const requestBody = {
     amountCents,
     currency: "usd",
@@ -35,6 +45,7 @@ export async function POST(request: NextRequest) {
     cancelUrl: `${origin}/billing?status=canceled`,
     customer: { email: session.user.email, name: session.user.email },
   }
+
   try {
     if (provider === "paymob") {
       const apiKey = process.env.PAYMOB_API_KEY
@@ -46,30 +57,47 @@ export async function POST(request: NextRequest) {
       const link = await createPaymobLink(requestBody, { apiKey, integrationId, iframeId })
       return NextResponse.json({ url: link.url, provider, reference: link.reference, planId: plan.id })
     }
+
     if (provider === "tap") {
       const secretKey = process.env.TAP_SECRET_KEY
       if (!secretKey) return NextResponse.json({ error: "Tap is not configured." }, { status: 503 })
       const link = await createTapLink(requestBody, { secretKey })
       return NextResponse.json({ url: link.url, provider, reference: link.reference, planId: plan.id })
     }
+
     const secretKey = process.env.STRIPE_SECRET_KEY
     if (!secretKey) return NextResponse.json({ error: "Stripe is not configured." }, { status: 503 })
-    const link = await createStripeSubscriptionLink({
-      ...requestBody,
-      interval,
-      metadata: {
-        userId: session.igUser?.id ? String(session.igUser.id) : "",
-        accountId: session.user.id,
-        planType: "monthly",
-        helixaPlan: plan.id,
+
+    const link = await createStripeSubscriptionLink(
+      {
+        ...requestBody,
         interval,
-        email: session.user.email || "",
+        metadata: {
+          userId: session.igUser?.id ? String(session.igUser.id) : "",
+          accountId: session.user.id,
+          planType: interval === "year" ? "year" : "month",
+          helixaPlan: plan.id,
+          interval,
+          email: session.user.email || "",
+        },
       },
-    }, { secretKey })
-    return NextResponse.json({ url: link.url, provider: "stripe", reference: link.reference, planId: plan.id, amountCents })
+      { secretKey }
+    )
+
+    return NextResponse.json({
+      url: link.url,
+      provider: "stripe",
+      reference: link.reference,
+      planId: plan.id,
+      amountCents,
+      interval,
+    })
   } catch (error) {
     const { captureException } = await import("@/lib/monitoring")
     await captureException(error, { route: "billing/checkout" })
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Checkout failed" }, { status: 502 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Checkout failed" },
+      { status: 502 }
+    )
   }
 }

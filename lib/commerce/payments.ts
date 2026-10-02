@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto"
+import { minorUnits } from "@/lib/money"
 import type { FetchLike } from "@/lib/channels/types"
 
 export type PaymentProviderId = "paymob" | "stripe" | "tap"
@@ -242,7 +243,7 @@ export function tapHashString(charge: {
   transaction?: { created?: unknown }
 }): string {
   const currency = String(charge.currency || "USD")
-  const amount = typeof charge.amount === "number" ? charge.amount.toFixed(currencyMinorDigits(currency)) : String(charge.amount ?? "")
+  const amount = typeof charge.amount === "number" ? charge.amount.toFixed(minorUnits(currency)) : String(charge.amount ?? "")
   return [
     "x_id",
     String(charge.id ?? ""),
@@ -261,12 +262,6 @@ export function tapHashString(charge: {
   ].join("")
 }
 
-function currencyMinorDigits(currency: string): number {
-  const code = currency.toUpperCase()
-  if (code === "KWD" || code === "BHD" || code === "OMR") return 3
-  return 2
-}
-
 export function signTap(charge: Parameters<typeof tapHashString>[0], secret: string): string {
   return createHmac("sha256", secret).update(tapHashString(charge)).digest("hex")
 }
@@ -281,7 +276,7 @@ export function verifyTapHash(charge: Parameters<typeof tapHashString>[0], secre
 }
 
 export async function createTapLink(input: PaymentLinkRequest, config: TapConfig, fetchImpl: FetchLike = fetch): Promise<PaymentLink> {
-  const digits = currencyMinorDigits(input.currency)
+  const digits = minorUnits(input.currency)
   const amount = Number((input.amountCents / 10 ** digits).toFixed(digits))
   const name = (input.customer?.name || "Customer").split(" ")
   const response = await fetchImpl("https://api.tap.company/v2/charges", {

@@ -1,5 +1,6 @@
 import { buildOrderDraft } from "@/lib/commerce/orders"
 import { createPaymentLink, type PaymentProviderId } from "@/lib/commerce/payments"
+import { recordPaymentIntent } from "@/lib/commerce/intents"
 import type { Db } from "@/lib/channels/types"
 import { decryptString } from "@/lib/crypto"
 
@@ -64,6 +65,17 @@ export async function placeOrder(input: {
       provider = link.provider
       reference = link.reference
       await input.supabase.from("orders").update({ payment_link: link.url, payment_provider: link.provider, payment_ref: link.reference }).eq("id", orderId)
+      // Bind the provider's signed order/charge id to this order so the callback
+      // can trust the stored intent instead of body metadata.
+      const profile = await input.supabase.from("users").select("account_id").eq("id", input.userId).maybeSingle()
+      await recordPaymentIntent(input.supabase, {
+        accountId: profile.data?.account_id ?? null,
+        orderId,
+        provider: link.provider,
+        providerOrderId: link.reference,
+        amountMinor: draft.totalCents,
+        currency: draft.currency,
+      })
     }
   } catch (error) {
     console.warn("[orders] payment link failed:", error)
