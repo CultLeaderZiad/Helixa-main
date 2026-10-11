@@ -1,328 +1,103 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import Link from "next/link"
-import { CreditCard, AlertTriangle, CheckCircle, Package } from "lucide-react"
+import { useState, Suspense } from "react"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
-import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { CurrentPlanCard } from "@/components/billing/CurrentPlanCard"
+import { PaymentMethodCard } from "@/components/billing/PaymentMethodCard"
+import { PlansComparisonRow } from "@/components/billing/PlansComparisonRow"
+import { RecentPaymentsTable } from "@/components/billing/RecentPaymentsTable"
+import { Button } from "@/components/ui/button"
+import { FileText, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
+function BillingPageContent() {
+  const [selectedCurrency, setSelectedCurrency] = useState<"EGP" | "SAR" | "USD">("EGP")
 
-interface Subscription {
-    id: string
-    plan: string
-    status: string
-    current_period_end: string
-    role?: string
+  return (
+    <div className="min-h-[calc(100vh-52px)] bg-[var(--bg)] text-[var(--t1)] flex flex-col select-none">
+      {/* Top Actions Bar */}
+      <div className="h-[52px] border-b border-[var(--line)] px-6 flex items-center justify-between bg-[var(--s1)] shrink-0 z-10">
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] text-[var(--t3)] font-medium">Mirage Digital</span>
+          <span className="text-[12px] text-[var(--t4)]">/</span>
+          <span className="text-[12px] text-[var(--t1)] font-semibold">Billing</span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {/* Currency Segmented Control */}
+          <div className="flex items-center p-0.5 rounded-[6px] bg-[var(--s2)] border border-[var(--line)] text-[11px] font-mono">
+            {(["EGP", "SAR", "USD"] as const).map((curr) => (
+              <button
+                key={curr}
+                type="button"
+                onClick={() => setSelectedCurrency(curr)}
+                className={cn(
+                  "px-2 py-0.5 rounded-[4px] font-medium transition-colors cursor-pointer",
+                  selectedCurrency === curr
+                    ? "bg-[var(--s3)] text-[var(--t1)]"
+                    : "text-[var(--t3)] hover:text-[var(--t2)]"
+                )}
+              >
+                {curr}
+              </button>
+            ))}
+          </div>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => toast.info("Opening Invoices and payment receipts")}
+            className="h-[30px] px-3 text-[12px] font-medium gap-1.5"
+          >
+            <FileText className="w-3.5 h-3.5 text-[var(--t3)]" />
+            <span>Invoices</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6 overflow-y-auto scrollbar-thin scrollbar-thumb-[var(--line2)]">
+        {/* Header */}
+        <div className="space-y-1">
+          <h1 className="text-[20px] font-bold text-[var(--t1)] tracking-tight">
+            Billing
+          </h1>
+          <p className="text-[12.5px] text-[var(--t3)]">
+            One subscription for the agency. Pay by card or Vodafone Cash.
+          </p>
+        </div>
+
+        {/* Top Grid: Current Plan & Payment Method */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CurrentPlanCard
+            onChangePlan={() => toast.info("Select a plan below to upgrade or modify your subscription")}
+            onAddWorkspaces={() => toast.info("Add extra workspace seats (EGP 950 / client)")}
+            onCancelSubscription={() => toast.info("Cancellation scheduled")}
+          />
+          <PaymentMethodCard />
+        </div>
+
+        {/* Plans Comparison Row */}
+        <PlansComparisonRow />
+
+        {/* Recent Payments Table */}
+        <RecentPaymentsTable />
+      </div>
+    </div>
+  )
 }
 
 export default function BillingPage() {
-    const [subscription, setSubscription] = useState<Subscription | null>(null)
-    const [plans, setPlans] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState("")
-    const [isAnnual, setIsAnnual] = useState(false)
-    const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
-    const [canceling, setCanceling] = useState(false)
-    const { t } = useLanguage()
-
-    useEffect(() => {
-        const fetchSubscriptionAndPlans = async () => {
-            try {
-                const authRes = await fetch("/api/auth/me", { cache: "no-store" })
-                const authData = await authRes.json()
-                
-                if (authData.authenticated) {
-                    setSubscription({
-                        id: "sub_123",
-                        plan: authData.plan || "Free Trial",
-                        status: "active",
-                        current_period_end: authData.trial_ends_at || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-                        role: authData.role
-                    })
-                } else {
-                    setSubscription({
-                        id: "sub_123",
-                        plan: "Free Trial",
-                        status: "active",
-                        current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-                    })
-                }
-
-                // Fetch dynamic plans
-                const res = await fetch("/api/plans")
-                if (res.ok) {
-                    const data = await res.json()
-                    setPlans(data)
-                }
-            } catch (err) {
-                console.error("Failed to fetch subscription", err)
-                setError("Failed to load subscription details")
-            } finally {
-                setLoading(false)
-            }
-        }
-        fetchSubscriptionAndPlans()
-    }, [])
-
-    const subscriptionIsMonthly = subscription?.plan === "monthly"
-    const subscriptionIsCanceling = subscription?.status === "canceling"
-
-    const handleCancelSubscription = async () => {
-        setCanceling(true)
-        try {
-            const res = await fetch("/api/stripe/cancel", { method: "POST" })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error || "Failed to cancel subscription")
-            toast.success("Subscription canceled. It stays active until the end of the paid period.")
-            setSubscription((s) => (s ? { ...s, status: "canceling" } : s))
-            setCancelDialogOpen(false)
-        } catch (err: any) {
-            toast.error(err.message || "Failed to cancel subscription")
-        } finally {
-            setCanceling(false)
-        }
-    }
-
-    const renderPlatformIcons = (plan: any) => {
-        const p = plan?.platforms || { instagram: true, facebook: true, whatsapp: false, telegram: false, tiktok: false }
-        return (
-            <div className="flex items-center gap-3 mt-4 pt-4 border-t border-white/10 mb-6">
-                {p.instagram && <img src="/instagram.svg" alt="Instagram" className="w-5 h-5 opacity-100" title="Instagram" />}
-                {p.facebook && <img src="/facebook.svg" alt="Facebook" className="w-5 h-5 opacity-100" title="Facebook" />}
-                {p.whatsapp && <img src="/whatsapp.svg" alt="WhatsApp" className="w-5 h-5 opacity-100" title="WhatsApp" />}
-                {p.telegram && <img src="/telegram.svg" alt="Telegram" className="w-5 h-5 opacity-100" title="Telegram" />}
-                {p.tiktok && (
-                    <div className="relative group flex items-center justify-center" title="TikTok (Coming Soon)">
-                        <img src="/tiktok.svg" alt="TikTok" className="w-5 h-5 opacity-30 invert" />
-                    </div>
-                )}
-            </div>
-        )
-    }
-
-    return (
-        <div className="p-8 space-y-12 animate-in fade-in duration-700 max-w-6xl mx-auto">
-            <div>
-                <h1 className="font-serif-display text-4xl text-white mb-2 tracking-tight">{t.billingTitle}</h1>
-                <p className="text-neutral-400 text-sm max-w-lg">
-                    {t.billingDesc}
-                </p>
-            </div>
-
-            {error && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl flex items-center gap-3">
-                    <AlertTriangle className="w-5 h-5" />
-                    <span className="font-medium text-sm">{error}</span>
-                </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Current Plan */}
-                <div className="p-6 rounded-3xl border border-white/[0.08] bg-black/40 backdrop-blur-xl relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-                                    <Package className="w-6 h-6 text-indigo-400" />
-                                </div>
-                                <div>
-                                    <h3 className="text-white font-bold text-lg">Current Plan</h3>
-                                    <p className="text-xs text-neutral-400 font-mono">Your active subscription</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div className="space-y-4 mb-8">
-                            {loading ? (
-                                <div className="text-sm text-neutral-500 animate-pulse">Loading subscription data...</div>
-                            ) : subscription ? (
-                                <div className="bg-white/[0.03] p-5 rounded-2xl border border-white/[0.05]">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <div className="text-2xl text-white font-black tracking-tight">{subscription.plan}</div>
-                                        <div className="text-[10px] uppercase tracking-wider font-bold text-[#e5a93c] bg-[#e5a93c]/10 border border-[#e5a93c]/20 px-3 py-1.5 rounded-full">{subscription.status}</div>
-                                    </div>
-                                    <div className="text-sm text-neutral-400">
-                                        {subscription.plan === "Free Trial" ? "Trial ends on" : subscriptionIsCanceling ? "Access ends on" : "Renews on"} <span className="text-white font-medium">{new Date(subscription.current_period_end).toLocaleDateString()}</span>
-                                    </div>
-
-                                    {subscriptionIsCanceling && (
-                                        <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
-                                            <p className="text-xs text-yellow-400 leading-relaxed font-medium">
-                                                Cancellation scheduled — your plan stays active until the end of the paid period, then automations pause. You can resubscribe anytime.
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {subscriptionIsMonthly && !subscriptionIsCanceling && (
-                                        <div className="mt-4">
-                                            <button
-                                                onClick={() => setCancelDialogOpen(true)}
-                                                className="text-xs text-neutral-400 hover:text-red-400 underline underline-offset-4 transition-colors cursor-pointer"
-                                            >
-                                                Cancel subscription
-                                            </button>
-                                            <p className="text-[11px] text-neutral-500 mt-1.5 leading-relaxed">
-                                                Canceling stops future charges — no cancellation fee. Access continues until <span className="text-neutral-300">{new Date(subscription.current_period_end).toLocaleDateString()}</span>. See the <Link href="/refund" target="_blank" className="text-[#e5a93c] hover:underline">Refund &amp; Cancellation Policy</Link>.
-                                            </p>
-                                        </div>
-                                    )}
-                                    
-                                    {subscription.plan === "Free Trial" && subscription.role !== "admin" && (
-                                        <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                                            <p className="text-xs text-red-400 leading-relaxed font-medium">
-                                                Your 7-day free trial banner will be removed and AI features unlocked once you upgrade to a paid plan.
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="text-sm text-neutral-500">No active subscription found.</div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Billing Methods & Vodafone Cash */}
-                <div className="p-6 rounded-3xl border border-white/[0.08] bg-black/40 backdrop-blur-xl relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-4 mb-6">
-                            <div className="w-12 h-12 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center">
-                                <CreditCard className="w-6 h-6 text-neutral-400" />
-                            </div>
-                            <div>
-                                <h3 className="text-white font-bold text-lg">Payment Methods</h3>
-                                <p className="text-xs text-neutral-400 font-mono">Manage billing options</p>
-                            </div>
-                        </div>
-                        
-                        <div className="space-y-3 mb-6">
-                            {/* Stripe (Default) */}
-                            <div className="flex items-center justify-between p-4 bg-white/[0.03] rounded-2xl border border-white/[0.05]">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-6 bg-white rounded flex items-center justify-center overflow-hidden">
-                                        {/* Stripe Logo Placeholder */}
-                                        <div className="text-[#635BFF] font-black text-xs">Stripe</div>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-white">Credit Card (Stripe)</p>
-                                        <p className="text-xs text-neutral-500">Available for global users</p>
-                                    </div>
-                                </div>
-                                <span className="text-[10px] bg-green-500/10 text-green-400 px-2 py-1 rounded-full border border-green-500/20 font-bold uppercase tracking-wider">Active</span>
-                            </div>
-
-                            {/* Vodafone Cash */}
-                            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-red-600/10 to-transparent rounded-2xl border border-red-500/20">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden p-1">
-                                        <img src="/vodafone-cash-logo.png" alt="Vodafone Cash" className="w-full h-full object-contain" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-white">Vodafone Cash</p>
-                                        <p className="text-[11px] text-red-200/70">Local mobile wallet (Egypt)</p>
-                                    </div>
-                                </div>
-                                <span className="text-[10px] bg-yellow-500/10 text-yellow-500 px-2 py-1 rounded-full border border-yellow-500/20 font-bold uppercase tracking-wider">Manual</span>
-                            </div>
-                            <div className="px-4 py-4 bg-[#E60000]/5 border border-[#E60000]/20 rounded-xl relative overflow-hidden">
-                                <div className="absolute top-0 right-0 p-2 opacity-10 pointer-events-none">
-                                    <img src="/vodafone-cash-logo.png" alt="Vodafone Cash" className="w-32 h-32 object-contain filter grayscale contrast-200" />
-                                </div>
-                                <h4 className="text-white font-bold text-sm mb-2">How to upgrade with Vodafone Cash:</h4>
-                                <ol className="text-xs text-neutral-300 space-y-2 list-decimal list-inside relative z-10">
-                                    <li>Transfer the plan amount to <strong className="text-[#e5a93c] font-mono text-sm px-1 bg-black/40 rounded">+20 01037312994</strong></li>
-                                    <li>Take a screenshot of the successful transfer receipt</li>
-                                    <li>Send the screenshot to <a href="mailto:cultleaderzoz.dev@gmail.com" className="text-blue-400 hover:underline">cultleaderzoz.dev@gmail.com</a> or <a href="https://wa.me/201037312994?text=Hi!%20I%20transferred%20*insert%20the%20amount*%20and%20here%27s%20my%20screenshot.%20Please%20upgrade%20my%20plan." target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline font-bold">contact</a> us on WhatsApp</li>
-                                    <li>Your account features will be unlocked within 24 hours</li>
-                                 </ol>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Upgrade Plans (Electric Border) */}
-            <div className="pt-8 border-t border-white/5">
-                <div className="text-center mb-10">
-                    <h2 className="text-2xl font-serif-display text-white mb-3">Upgrade Your Plan</h2>
-                    <p className="text-neutral-400 text-sm mb-6">Remove the 7-day trial banner and unlock all AI capabilities.</p>
-                    {plans.some(p => p.price_yearly) && (
-                        <div className="flex items-center justify-center gap-4">
-                            <div className="bg-white/5 border border-white/10 p-1 rounded-xl flex items-center">
-                                <button 
-                                onClick={() => setIsAnnual(false)}
-                                className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${!isAnnual ? 'bg-[#e5a93c] text-black shadow-lg font-semibold' : 'text-neutral-400 hover:text-white'}`}
-                                >
-                                Monthly
-                                </button>
-                                <button 
-                                onClick={() => setIsAnnual(true)}
-                                className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-all ${isAnnual ? 'bg-[#e5a93c] text-black shadow-lg font-semibold' : 'text-neutral-400 hover:text-white'}`}
-                                >
-                                Annually <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${isAnnual ? 'bg-black/20 text-black' : 'bg-green-500/20 text-green-400'}`}>Save 20%</span>
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
-                    {plans.map((plan, idx) => {
-                        const isFeatured = idx === 0;
-                        const titleColor = isFeatured ? "text-white" : "text-white";
-                        
-                        return (
-                            <div key={plan.id} className="relative pt-4 flex flex-col h-full">
-                              {!isFeatured && (
-                                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#e5a93c] text-black px-4 py-1 rounded-full text-[11px] font-mono-ui font-bold uppercase tracking-widest z-30 whitespace-nowrap shadow-xl">
-                                      BEST VALUE
-                                  </div>
-                              )}
-                              <div className={`relative h-full ${!isFeatured ? 'bg-[#101217]/95 border-2 border-[#e5a93c]/50 hover:border-[#e5a93c]/80 shadow-[0_0_35px_rgba(229,169,60,0.12)]' : 'bg-[#0d0e13]/85 border border-white/[0.08] hover:border-white/[0.16] shadow-xl'} p-8 rounded-2xl flex flex-col backdrop-blur-md transition-all duration-300`}>
-                                  <div className="mb-6">
-                                      <h3 className={`text-xl font-bold ${!isFeatured ? 'text-[#e5a93c]' : 'text-white'} mb-2`}>{plan.name}</h3>
-                                      <p className="text-sm text-neutral-400">{plan.description}</p>
-                                  </div>
-                                  <div className="mb-8">
-                                      <span className="text-4xl md:text-5xl font-bold text-white tracking-tight font-mono-ui">${isAnnual && plan.price_yearly ? plan.price_yearly : plan.price_usd}</span>
-                                      <span className="text-neutral-500 text-xs">/{isAnnual && plan.price_yearly ? 'yr' : 'mo'}</span>
-                                  </div>
-                                  <ul className="space-y-4 mb-8 flex-1">
-                                      {((plan.features || []).concat(plan.active_agents?.map((a: any) => a.name) || [])).map((f: string, i: number) => (
-                                          <li key={i} className="flex items-center gap-3 text-sm text-neutral-300">
-                                              <CheckCircle className={`w-5 h-5 shrink-0 ${!isFeatured ? 'text-[#e5a93c]' : 'text-neutral-400'}`} />
-                                              <span>{f}</span>
-                                          </li>
-                                      ))}
-                                  </ul>
-                                  {renderPlatformIcons(plan)}
-                                  <button 
-                                      onClick={() => window.location.href = `/checkout/${plan.id}${isAnnual && plan.price_yearly ? '?cycle=yearly' : '?cycle=monthly'}`}
-                                      className={`w-full py-3 rounded-xl font-semibold transition-all font-mono-ui text-xs uppercase tracking-wider cursor-pointer ${!isFeatured ? 'bg-[#e5a93c] hover:bg-[#d4952b] text-black shadow-lg shadow-[#e5a93c]/20' : 'bg-white/10 hover:bg-white/20 text-white'}`}
-                                  >
-                                      Select {plan.name}
-                                  </button>
-                              </div>
-                            </div>
-                        )
-                    })}
-                </div>
-            </div>
-
-            {/* Cancel subscription confirmation — never fire from a single click */}
-            <ConfirmDialog
-                open={cancelDialogOpen}
-                onOpenChange={setCancelDialogOpen}
-                title="Cancel your subscription?"
-                description={`Your Monthly Pro plan will stop renewing. You keep full access until ${subscription ? new Date(subscription.current_period_end).toLocaleDateString() : "the end of the paid period"}, then automations pause. Your data is preserved and there is no cancellation fee.`}
-                confirmLabel="Yes, cancel subscription"
-                cancelLabel="Keep my subscription"
-                loading={canceling}
-                onConfirm={handleCancelSubscription}
-            />
+  return (
+    <Suspense
+      fallback={
+        <div className="h-[calc(100vh-52px)] flex items-center justify-center bg-[var(--bg)]">
+          <Loader2 className="w-7 h-7 text-[var(--t3)] animate-spin" />
         </div>
-    )
+      }
+    >
+      <BillingPageContent />
+    </Suspense>
+  )
 }
