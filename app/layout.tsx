@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Geist, Instrument_Serif, JetBrains_Mono, Cairo } from "next/font/google"
+import { Geist, Geist_Mono, Noto_Sans_Arabic, Cairo } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
@@ -16,19 +16,19 @@ import { SWRProvider } from "@/components/swr-provider"
 import SkipLink from "@/components/a11y/SkipLink"
 import CookieBanner from "@/components/layout/CookieBanner"
 
-const _geist = Geist({ subsets: ["latin"] })
-const _instrumentSerif = Instrument_Serif({ subsets: ["latin"], weight: "400", variable: "--font-instrument-serif" })
-const _jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" })
+const _geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" })
+const _geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" })
+const _notoSansArabic = Noto_Sans_Arabic({ subsets: ["arabic"], variable: "--font-noto-arabic", display: "swap" })
 const _cairo = Cairo({ subsets: ["arabic", "latin"], variable: "--font-cairo", display: "swap" })
 
 export const metadata: Metadata = {
   title: "Helixa - Automate your Dm's",
-  description: "Auto-reply to comments, DMs, and stories with keyword triggers.",
+  description: "AI solutions for comments, DMs, and social conversations.",
   icons: {
     icon: "/icon.svg",
   },
   other: {
-    "theme-color": "#03010A",
+    "theme-color": "#09090B",
   },
 }
 
@@ -39,7 +39,7 @@ export const viewport = {
   userScalable: true,
 }
 
-const fontVariables = [_instrumentSerif.variable, _jetbrainsMono.variable, _cairo.variable].filter(Boolean).join(' ')
+const fontVariables = [_geist.variable, _geistMono.variable, _notoSansArabic.variable, _cairo.variable].filter(Boolean).join(' ')
 
 export default function RootLayout({
   children,
@@ -48,7 +48,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={fontVariables}>
-      <body className="font-sans antialiased bg-[#03010A]" suppressHydrationWarning>
+      <body className="font-sans antialiased bg-[#09090B] text-[#EDEDEF]" suppressHydrationWarning>
         <ErrorBoundary>
           <SkipLink />
           <LanguageProvider>

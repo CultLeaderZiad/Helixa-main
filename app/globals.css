@@ -3,109 +3,139 @@
 
 @custom-variant dark (&:is(.dark *));
 
-:root {
-  /* ─── Color Tokens ─── */
-  --background: oklch(0.05 0 0);
-  --foreground: oklch(0.98 0 0);
-  --accent-yellow: #e5a93c;
+:root,
+.dark {
+  /* ─── Dark, Restrained-Gold Redesign Tokens ─── */
+  --bg: #09090B;
+  --s1: #101013;
+  --s2: #151519;
+  --s3: #1B1B20;
+  --s4: #232329;
 
-  --card: oklch(0.07 0 0);
-  --card-foreground: oklch(0.98 0 0);
+  --line: #222228;
+  --line2: #2C2C33;
+  --line3: #3A3A42;
 
-  --popover: oklch(0.07 0 0);
-  --popover-foreground: oklch(0.98 0 0);
+  --t1: #EDEDEF;
+  --t2: #A3A3AD;
+  --t3: #7A7A85;
+  --t4: #4A4A53;
 
-  --primary: oklch(0.98 0 0);
-  --primary-foreground: oklch(0.05 0 0);
+  --gold: #D6AE5C;
+  --gold2: #E9C77E;
+  --goldbg: rgba(214, 174, 92, 0.10);
+  --goldline: rgba(214, 174, 92, 0.28);
 
-  --secondary: oklch(0.14 0 0);
-  --secondary-foreground: oklch(0.98 0 0);
+  --green: #3DD68C;
+  --greenbg: rgba(61, 214, 140, 0.10);
+  --red: #F2555A;
+  --redbg: rgba(242, 85, 90, 0.10);
+  --amber: #F5A524;
+  --amberbg: rgba(245, 165, 36, 0.10);
+  --blue: #6EA8FE;
+  --bluebg: rgba(110, 168, 254, 0.10);
 
-  --muted: oklch(0.14 0 0);
-  --muted-foreground: oklch(0.55 0 0);
+  --bubble-out: #1E2230;
 
-  --accent: oklch(0.14 0 0);
-  --accent-foreground: oklch(0.98 0 0);
+  /* ─── Radii ─── */
+  --radius-ctrl: 6px;
+  --radius-row: 8px;
+  --radius-card: 12px;
+  --radius-modal: 16px;
+  --radius-pill: 10px;
+  --radius: 0.375rem;
 
-  --destructive: oklch(0.55 0.18 27);
-  --destructive-foreground: oklch(0.98 0 0);
+  /* ─── Shadcn Semantic Tokens Mapped to System Tokens ─── */
+  --background: var(--bg);
+  --foreground: var(--t1);
 
-  --border: oklch(0.14 0 0);
-  --input: oklch(0.14 0 0);
-  --ring: oklch(0.25 0 0);
+  --card: var(--s1);
+  --card-foreground: var(--t1);
 
-  --radius: 0.625rem;
+  --popover: var(--s1);
+  --popover-foreground: var(--t1);
+
+  --primary: var(--t1);
+  --primary-foreground: #0B0B0D;
+
+  --secondary: var(--s2);
+  --secondary-foreground: var(--t1);
+
+  --muted: var(--s2);
+  --muted-foreground: var(--t2);
+
+  --accent: var(--s3);
+  --accent-foreground: var(--t1);
+
+  --destructive: var(--red);
+  --destructive-foreground: #FFFFFF;
+
+  --border: var(--line);
+  --input: var(--line2);
+  --ring: var(--t1);
 
   /* ─── Sidebar Tokens ─── */
-  --sidebar: oklch(0.05 0 0);
-  --sidebar-foreground: oklch(0.65 0 0);
-  --sidebar-primary: oklch(0.98 0 0);
-  --sidebar-primary-foreground: oklch(0.05 0 0);
-  --sidebar-border: oklch(0.12 0 0);
-  --sidebar-accent: oklch(0.10 0 0);
-  --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-ring: oklch(0.25 0 0);
+  --sidebar: var(--s1);
+  --sidebar-foreground: var(--t2);
+  --sidebar-primary: var(--gold);
+  --sidebar-primary-foreground: #0B0B0D;
+  --sidebar-border: var(--line);
+  --sidebar-accent: var(--s3);
+  --sidebar-accent-foreground: var(--t1);
+  --sidebar-ring: var(--t1);
 
-  /* ─── Brand ─── */
-  --brand: #e5a93c;
-  --brand-hover: #d4952b;
-  --brand-glow: rgba(229, 169, 60, 0.15);
+  /* Clean fallbacks for legacy references */
+  --brand: var(--gold);
+  --brand-hover: var(--gold2);
+  --brand-glow: transparent;
+  --gold-primary: var(--gold);
+  --gold-hover: var(--gold2);
+  --gold-light: var(--gold2);
+  --gold-glow: transparent;
+  --gold-badge-bg: var(--goldbg);
+  --gold-border: var(--goldline);
 
-  /* ─── Executive Carbon & Champagne Gold ─── */
-  --gold-primary: #e5a93c;
-  --gold-hover: #d4952b;
-  --gold-light: #fef3c7;
-  --gold-glow: rgba(229, 169, 60, 0.15);
-  --gold-badge-bg: rgba(229, 169, 60, 0.10);
-  --gold-border: rgba(229, 169, 60, 0.25);
-
-  --carbon-bg: #090a0d;
-  --carbon-card: #111216;
-  --carbon-card-hover: #16171d;
-  --carbon-surface: #17181d;
-  --carbon-border: rgba(255, 255, 255, 0.07);
-  --carbon-border-hover: rgba(255, 255, 255, 0.14);
-
-  /* ─── Surfaces ─── */
-  --surface-0: #090a0d;
-  --surface-1: #0e0f13;
-  --surface-2: #14151a;
-  --surface-3: #1a1c23;
-}
-
-.dark {
-  --background: oklch(0.05 0 0);
-  --foreground: oklch(0.98 0 0);
-  --card: oklch(0.07 0 0);
-  --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0.07 0 0);
-  --popover-foreground: oklch(0.98 0 0);
-  --primary: oklch(0.98 0 0);
-  --primary-foreground: oklch(0.05 0 0);
-  --secondary: oklch(0.14 0 0);
-  --secondary-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.14 0 0);
-  --muted-foreground: oklch(0.55 0 0);
-  --accent: oklch(0.14 0 0);
-  --accent-foreground: oklch(0.98 0 0);
-  --destructive: oklch(0.55 0.18 27);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.14 0 0);
-  --input: oklch(0.14 0 0);
-  --ring: oklch(0.25 0 0);
-  --sidebar: oklch(0.05 0 0);
-  --sidebar-foreground: oklch(0.65 0 0);
-  --sidebar-primary: oklch(0.98 0 0);
-  --sidebar-primary-foreground: oklch(0.05 0 0);
-  --sidebar-accent: oklch(0.10 0 0);
-  --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-border: oklch(0.12 0 0);
-  --sidebar-ring: oklch(0.25 0 0);
+  --surface-0: var(--bg);
+  --surface-1: var(--s1);
+  --surface-2: var(--s2);
+  --surface-3: var(--s3);
 }
 
 @theme inline {
-  --font-sans: "Geist", "Geist Fallback";
-  --font-serif: "Crimson Pro", serif;
+  --font-sans: "Geist", "Geist Fallback", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-arabic: var(--font-noto-arabic), var(--font-cairo), sans-serif;
+
+  --color-bg: var(--bg);
+  --color-s1: var(--s1);
+  --color-s2: var(--s2);
+  --color-s3: var(--s3);
+  --color-s4: var(--s4);
+
+  --color-line: var(--line);
+  --color-line2: var(--line2);
+  --color-line3: var(--line3);
+
+  --color-t1: var(--t1);
+  --color-t2: var(--t2);
+  --color-t3: var(--t3);
+  --color-t4: var(--t4);
+
+  --color-gold: var(--gold);
+  --color-gold2: var(--gold2);
+  --color-goldbg: var(--goldbg);
+  --color-goldline: var(--goldline);
+
+  --color-green: var(--green);
+  --color-greenbg: var(--greenbg);
+  --color-red: var(--red);
+  --color-redbg: var(--redbg);
+  --color-amber: var(--amber);
+  --color-amberbg: var(--amberbg);
+  --color-blue: var(--blue);
+  --color-bluebg: var(--bluebg);
+  --color-bubble-out: var(--bubble-out);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -125,10 +155,13 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+
+  --radius-sm: var(--radius-ctrl);
+  --radius-md: var(--radius-row);
+  --radius-lg: var(--radius-card);
+  --radius-xl: var(--radius-modal);
+  --radius-pill: var(--radius-pill);
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -137,9 +170,6 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --color-brand-400: #f5cf7a;
-  --color-brand-500: #e5a93c;
-  --color-brand-600: #d4952b;
 }
 
 /* ─── Base Layer ─── */
@@ -232,47 +262,23 @@ html[dir="rtl"] .font-mono-ui {
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-/* ─── Brand Glow ─── */
-.brand-glow {
-  box-shadow: 0 0 0 1px rgba(229, 169, 60, 0.2), 0 0 20px rgba(229, 169, 60, 0.08);
-}
-
-/* ─── Executive Carbon & Champagne Gold Utilities ─── */
-.bg-carbon-bg { background-color: var(--carbon-bg); }
-.bg-carbon-card { background-color: var(--carbon-card); }
-.bg-carbon-surface { background-color: var(--carbon-surface); }
-.border-carbon { border-color: var(--carbon-border); }
-.border-carbon-hover:hover { border-color: var(--carbon-border-hover); }
-
-.text-gold { color: var(--gold-primary); }
-.bg-gold { background-color: var(--gold-primary); }
-.border-gold { border-color: var(--gold-border); }
-.bg-gold-subtle { background-color: var(--gold-badge-bg); }
-
-.gold-glow {
-  box-shadow: 0 0 0 1px rgba(229, 169, 60, 0.25), 0 0 24px rgba(229, 169, 60, 0.09);
-}
-.gold-glow-sm {
-  box-shadow: 0 0 12px rgba(229, 169, 60, 0.15);
-}
-
 /* ─── Focus Ring ─── */
 .focus-ring {
   outline: none;
 }
 .focus-ring:focus-visible {
-  box-shadow: 0 0 0 2px var(--surface-0), 0 0 0 4px var(--brand);
+  outline: 2px solid var(--t1);
+  outline-offset: 2px;
 }
 
 /* ─── Accessibility: global visible keyboard focus ───
-   Ensures every interactive element shows a clear focus indicator when
-   navigated to via keyboard (Tab / Shift+Tab), without changing mouse UX. */
+   Every control keyboard reachable with a visible focus-visible ring
+   (off-white --t1 2px ring with 2px offset, not gold). */
 @layer base {
   :focus-visible {
-    outline: 2px solid var(--brand);
+    outline: 2px solid var(--t1);
     outline-offset: 2px;
   }
-  /* Buttons/links inside dark surfaces get a double ring for contrast */
   a:focus-visible,
   button:focus-visible,
   [role="button"]:focus-visible,
@@ -282,7 +288,7 @@ html[dir="rtl"] .font-mono-ui {
   select:focus-visible,
   textarea:focus-visible,
   summary:focus-visible {
-    outline: 2px solid var(--brand);
+    outline: 2px solid var(--t1);
     outline-offset: 2px;
   }
 }

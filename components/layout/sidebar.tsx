@@ -1,293 +1,367 @@
 "use client"
 
 import type React from "react"
+import { useState, useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import {
-  Zap, LayoutDashboard, LogOut, Settings, BarChart3,
-  MessageSquare, Snowflake, Send, Linkedin, Share2, CreditCard, Mail, Sparkles, Bell, Users, GitBranch, Megaphone, Sprout, Bot, ShoppingBag, Building2, Webhook
+  LayoutDashboard,
+  MessageSquare,
+  Zap,
+  Sparkles,
+  Users,
+  Megaphone,
+  BarChart3,
+  Share2,
+  CreditCard,
+  Settings,
+  Search,
+  ChevronRight,
+  MoreHorizontal,
+  HelpCircle,
+  Globe,
+  LogOut,
+  Shield,
+  Bell,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import useSWR from "swr"
 import { HelixaLogo } from "@/components/ui/HelixaLogo"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
-import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"
 import { WorkspaceSwitcher } from "@/components/layout/WorkspaceSwitcher"
+import { BRAND_CONFIG } from "@/lib/brand"
 
 interface SidebarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "role"> {
   username?: string
   profilePic?: string | null
   email?: string | null
   userRole?: string | null
+  plan?: string | null
   className?: string
   onLogout?: () => void
   onNavigate?: () => void
 }
 
-export function Sidebar({ className, username = "creator", profilePic, email, userRole, onLogout, onNavigate, ...props }: SidebarProps) {
+export function Sidebar({
+  className,
+  username = "Creator",
+  profilePic,
+  email,
+  userRole,
+  plan,
+  onLogout,
+  onNavigate,
+  ...props
+}: SidebarProps) {
   const pathname = usePathname()
-  const { t } = useLanguage()
+  const { t, language, setLanguage } = useLanguage()
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
 
-  const NAV = [
-    { href: "/dashboard", icon: LayoutDashboard, label: t.overview },
-    { href: "/dashboard/automations", icon: Zap, label: t.automations },
-    { href: "/dashboard/flows", icon: GitBranch, label: "Flows" },
-    { href: "/dashboard/broadcasts", icon: Megaphone, label: "Broadcasts" },
-    { href: "/dashboard/growth", icon: Sprout, label: "Growth" },
-    { href: "/dashboard/inbox", icon: MessageSquare, label: t.inbox },
-    { href: "/dashboard/contacts", icon: Users, label: t.contacts },
-    { href: "/dashboard/ai", icon: Bot, label: "AI agent" },
-    { href: "/dashboard/catalog", icon: ShoppingBag, label: "Catalog" },
-    { href: "/dashboard/agency", icon: Building2, label: "Agency" },
-    { href: "/dashboard/integrations", icon: Webhook, label: "Integrations" },
-    { href: "/dashboard/ai-engine", icon: Sparkles, label: t.aiEngine || "AI Engine" },
-    { href: "/dashboard/updates", icon: Bell, label: "Updates" },
+  // Fetch unread inbox count
+  const { data: inboxData } = useSWR<{ unreadCount?: number }>(
+    "/api/inbox/conversations?limit=1",
+    (url) => fetch(url).then((r) => r.ok ? r.json() : {}),
+    { revalidateOnFocus: false, dedupingInterval: 30000 }
+  )
+
+  // Fetch real plan usage
+  const { data: usageData } = useSWR<{
+    usage?: { messages_count?: number; plan_limit?: number }
+    plan?: { name?: string }
+  }>(
+    "/api/billing/usage",
+    (url) => fetch(url).then((r) => r.ok ? r.json() : {}),
+    { revalidateOnFocus: false, dedupingInterval: 60000 }
+  )
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false)
+      }
+    }
+    if (userMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [userMenuOpen])
+
+  const unreadCount = inboxData?.unreadCount ?? 0
+
+  const CORE_NAV = [
+    { href: "/dashboard", icon: LayoutDashboard, label: t.overview || "Overview", isAi: false },
+    { href: "/dashboard/inbox", icon: MessageSquare, label: t.inbox || "Inbox", badge: unreadCount > 0 ? unreadCount : undefined, isAi: false },
+    { href: "/dashboard/automations", icon: Zap, label: t.automations || "Automations", isAi: false },
+    { href: "/dashboard/ai-engine", icon: Sparkles, label: "AI Agent", isAi: true },
+    { href: "/dashboard/contacts", icon: Users, label: t.contacts || "Contacts", isAi: false },
+    { href: "/dashboard/broadcasts", icon: Megaphone, label: "Broadcasts", isAi: false },
+    { href: "/dashboard/analytics", icon: BarChart3, label: "Analytics", isAi: false },
   ]
 
-  return (
-    <aside className={cn("flex flex-col bg-[#0c0d10] border-e border-white/[0.07]", className)} {...props}>
+  const WORKSPACE_NAV = [
+    { href: "/dashboard/connected-platforms", icon: Share2, label: "Channels" },
+    { href: "/dashboard/billing", icon: CreditCard, label: t.billingTitle || "Billing" },
+    { href: "/dashboard/settings", icon: Settings, label: t.settings || "Settings" },
+  ]
 
-      {/* Logo */}
-      <div className="px-5 pt-5 pb-3">
-        <HelixaLogo size="md" href="/dashboard" />
+  const usedReplies = usageData?.usage?.messages_count ?? 0
+  const maxReplies = usageData?.usage?.plan_limit || 1000
+  const usagePercent = Math.min(Math.round((usedReplies / maxReplies) * 100), 100)
+  const planName = usageData?.plan?.name || (plan ? plan.toUpperCase() : "PRO")
+
+  const userInitial = (username || "U").charAt(0).toUpperCase()
+
+  return (
+    <aside
+      className={cn(
+        "flex flex-col w-[240px] bg-[var(--s1)] border-e border-[var(--line)] select-none text-[var(--t1)]",
+        className
+      )}
+      {...props}
+    >
+      {/* Brand Header */}
+      <div className="px-4 pt-4 pb-3 flex items-center justify-between">
+        <HelixaLogo size="sm" href="/dashboard" />
+        <span className="text-[10px] font-mono tracking-wider px-1.5 py-0.5 rounded-[4px] bg-[var(--s2)] border border-[var(--line2)] text-[var(--t3)] uppercase">
+          AGENCY
+        </span>
       </div>
 
+      {/* Workspace Switcher */}
       <WorkspaceSwitcher />
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto overflow-x-hidden">
-        {NAV.map(({ href, icon: Icon, label }) => {
+      {/* Search / Jump Row */}
+      <div className="px-3 pb-3">
+        <button
+          type="button"
+          onClick={() => {
+            const event = new KeyboardEvent("keydown", { key: "k", metaKey: true })
+            window.dispatchEvent(event)
+          }}
+          className="w-full h-8 px-2.5 rounded-[6px] bg-[var(--s2)] border border-[var(--line)] text-start flex items-center justify-between text-[12px] text-[var(--t3)] hover:border-[var(--line2)] hover:text-[var(--t2)] transition-colors cursor-pointer outline-none focus-visible:outline-2 focus-visible:outline-[var(--t1)]"
+        >
+          <span className="flex items-center gap-2">
+            <Search className="size-3.5 shrink-0" />
+            <span>Search or jump to...</span>
+          </span>
+          <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded-[4px] bg-[var(--s3)] border border-[var(--line2)] text-[var(--t3)]">
+            ⌘K
+          </kbd>
+        </button>
+      </div>
+
+      {/* Navigation List */}
+      <nav className="flex-1 px-2.5 space-y-0.5 overflow-y-auto overflow-x-hidden">
+        {CORE_NAV.map(({ href, icon: Icon, label, badge, isAi }) => {
           const active =
             pathname === href ||
-            ((href === "/dashboard/flows" || href === "/dashboard/broadcasts" || href === "/dashboard/growth" || href === "/dashboard/ai" || href === "/dashboard/catalog" || href === "/dashboard/agency" || href === "/dashboard/integrations") &&
-              pathname.startsWith(href)) ||
-            (href === "/dashboard/ai-engine" &&
-              (pathname.startsWith("/dashboard/ai-engine") ||
-                pathname === "/dashboard/ice-breakers" ||
-                pathname === "/dashboard/analytics" ||
-                pathname === "/dashboard/agents"))
+            (href !== "/dashboard" && pathname.startsWith(href))
+
           return (
             <Link
               key={href}
               href={href}
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-colors relative",
+                "group relative flex items-center justify-between h-[32px] px-2.5 rounded-[6px] text-[13px] transition-colors outline-none focus-visible:outline-2 focus-visible:outline-[var(--t1)]",
                 active
-                  ? "text-white bg-[#e5a93c]/10 font-medium"
-                  : "text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.04]",
+                  ? "bg-[var(--s3)] text-[var(--t1)] font-medium border-s-2 border-s-[var(--gold)]"
+                  : "text-[var(--t2)] hover:text-[var(--t1)] hover:bg-[var(--s3)]/60"
               )}
             >
-              {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#e5a93c]" />}
-              <Icon className={cn("w-4 h-4 shrink-0", active ? "text-[#e5a93c]" : "")} strokeWidth={active ? 2.2 : 1.8} />
-              <span className={active ? "font-medium" : ""}>{label}</span>
+              <span className="flex items-center gap-2.5 min-w-0">
+                <Icon
+                  className={cn(
+                    "size-4 shrink-0 transition-colors",
+                    active
+                      ? isAi || href === "/dashboard"
+                        ? "text-[var(--gold)]"
+                        : "text-[var(--t1)]"
+                      : isAi
+                      ? "text-[var(--gold)]/80 group-hover:text-[var(--gold)]"
+                      : "text-[var(--t3)] group-hover:text-[var(--t2)]"
+                  )}
+                  strokeWidth={active ? 2.2 : 1.8}
+                />
+                <span className="truncate">{label}</span>
+              </span>
+
+              {badge !== undefined && (
+                <span className="px-1.5 py-0.5 text-[11px] font-mono rounded-full bg-[var(--s3)] border border-[var(--line2)] text-[var(--t2)]">
+                  {badge}
+                </span>
+              )}
             </Link>
           )
         })}
 
-        <div className="pt-5 pb-1 px-3">
-          <div className="h-px bg-white/[0.06]" />
+        {/* WORKSPACE group label */}
+        <div className="pt-4 pb-1 px-2.5">
+          <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--t4)]">
+            WORKSPACE
+          </p>
         </div>
 
-        <Link
-          href="/dashboard/connected-platforms"
-          onClick={onNavigate}
-          className={cn(
-            "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-colors relative",
-            pathname === "/dashboard/connected-platforms"
-              ? "text-white bg-white/[0.06]"
-              : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
-          )}
-        >
-          {pathname === "/dashboard/connected-platforms" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#e5a93c]" />}
-          <Share2 className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-          <span>{t.connectedPlatforms}</span>
-        </Link>
+        {WORKSPACE_NAV.map(({ href, icon: Icon, label }) => {
+          const active = pathname === href || pathname.startsWith(href)
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={onNavigate}
+              className={cn(
+                "group relative flex items-center gap-2.5 h-[32px] px-2.5 rounded-[6px] text-[13px] transition-colors outline-none focus-visible:outline-2 focus-visible:outline-[var(--t1)]",
+                active
+                  ? "bg-[var(--s3)] text-[var(--t1)] font-medium border-s-2 border-s-[var(--gold)]"
+                  : "text-[var(--t2)] hover:text-[var(--t1)] hover:bg-[var(--s3)]/60"
+              )}
+            >
+              <Icon
+                className={cn(
+                  "size-4 shrink-0",
+                  active ? "text-[var(--t1)]" : "text-[var(--t3)] group-hover:text-[var(--t2)]"
+                )}
+                strokeWidth={active ? 2.2 : 1.8}
+              />
+              <span className="truncate">{label}</span>
+            </Link>
+          )
+        })}
 
-            {userRole === "admin" && (
+        {userRole === "admin" && (
           <>
-            <div className="pt-5 pb-1 px-3">
-              <div className="h-px bg-white/[0.06]" />
-            </div>
-            <div className="px-3 pb-1 pt-2 font-mono-ui text-[9px] uppercase tracking-widest text-neutral-600">
-              {t.admin}
+            <div className="pt-4 pb-1 px-2.5">
+              <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--t4)]">
+                ADMIN
+              </p>
             </div>
             <Link
               href="/dashboard/admin"
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-colors relative",
+                "flex items-center gap-2.5 h-[32px] px-2.5 rounded-[6px] text-[13px] transition-colors",
                 pathname === "/dashboard/admin"
-                  ? "text-white bg-white/[0.06]"
-                  : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
+                  ? "bg-[var(--s3)] text-[var(--t1)] font-medium border-s-2 border-s-[var(--gold)]"
+                  : "text-[var(--t2)] hover:text-[var(--t1)] hover:bg-[var(--s3)]/60"
               )}
             >
-              {pathname === "/dashboard/admin" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#e5a93c]" />}
-              <BarChart3 className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-              <span>{t.usersAndStats}</span>
-            </Link>
-            <Link
-              href="/dashboard/admin/plans"
-              onClick={onNavigate}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-colors relative",
-                pathname === "/dashboard/admin/plans"
-                  ? "text-white bg-white/[0.06]"
-                  : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
-              )}
-            >
-              {pathname === "/dashboard/admin/plans" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#e5a93c]" />}
-              <CreditCard className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-              <span>{t.billing}</span>
-            </Link>
-            <Link
-              href="/dashboard/admin/agents"
-              onClick={onNavigate}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-colors relative",
-                pathname === "/dashboard/admin/agents"
-                  ? "text-white bg-white/[0.06]"
-                  : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
-              )}
-            >
-              {pathname === "/dashboard/admin/agents" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#e5a93c]" />}
-              <Zap className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-              <span>{t.agents}</span>
-            </Link>
-            <Link
-              href="/dashboard/admin/campaigns"
-              onClick={onNavigate}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-colors relative",
-                pathname.startsWith("/dashboard/admin/campaigns")
-                  ? "text-white bg-white/[0.06]"
-                  : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
-              )}
-            >
-              {pathname.startsWith("/dashboard/admin/campaigns") && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#e5a93c]" />}
-              <Mail className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-              <span>{t.campaigns}</span>
+              <Shield className="size-4 shrink-0 text-[var(--t3)]" />
+              <span>Admin overview</span>
             </Link>
           </>
         )}
-
-        <Link
-          href="/dashboard/usage"
-          onClick={onNavigate}
-          className={cn(
-            "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-colors relative",
-            pathname === "/dashboard/usage"
-              ? "text-white bg-white/[0.06]"
-              : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
-          )}
-        >
-          {pathname === "/dashboard/usage" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#e5a93c]" />}
-          <BarChart3 className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-          <span>{t.usage}</span>
-        </Link>
-
-        <Link
-          href="/dashboard/billing"
-          onClick={onNavigate}
-          className={cn(
-            "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-colors relative",
-            pathname === "/dashboard/billing"
-              ? "text-white bg-white/[0.06]"
-              : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
-          )}
-        >
-          {pathname === "/dashboard/billing" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#e5a93c]" />}
-          <CreditCard className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-          <span>{t.billingTitle}</span>
-        </Link>
-
-        <Link
-          href="/dashboard/settings"
-          onClick={onNavigate}
-          className={cn(
-            "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-colors relative",
-            pathname === "/dashboard/settings"
-              ? "text-white bg-white/[0.06]"
-              : "text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.03]",
-          )}
-        >
-          {pathname === "/dashboard/settings" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-[#e5a93c]" />}
-          <Settings className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-          <span>{t.settings}</span>
-        </Link>
-
-        <a
-          href="https://t.me/cultleaderziad"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] text-neutral-500 hover:text-[#2AABEE] hover:bg-white/[0.03] transition-colors"
-        >
-          <Send className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-          <span>{t.getHelp}</span>
-        </a>
-
-        <a
-          href="https://www.linkedin.com/in/ziad-sabry-cl/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] text-neutral-500 hover:text-[#0A66C2] hover:bg-white/[0.03] transition-colors"
-        >
-          <Linkedin className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-          <span>{t.linkedIn}</span>
-        </a>
-
-        <div className="pt-2 flex flex-col gap-1">
-          <div className="px-1 flex justify-start">
-            <LanguageSwitcher />
-          </div>
-          <button
-            onClick={onLogout}
-            className="flex w-full items-center gap-3 px-3 py-2 rounded-md text-[13px] text-neutral-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-          >
-            <LogOut className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-            <span>{t.logout}</span>
-          </button>
-        </div>
       </nav>
 
-      {/* Account */}
-      <div className="px-3 pb-4">
-        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-white/[0.06] group">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-500 p-[1.5px] shrink-0">
-            <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
-              {profilePic ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={profilePic} alt={username} className="w-full h-full rounded-full object-cover" loading="lazy" decoding="async" />
-              ) : (
-                <span className="text-[10px] font-bold text-white">{username.charAt(0).toUpperCase()}</span>
-              )}
+      {/* Footer / Usage / User Section */}
+      <div className="p-3 border-t border-[var(--line)] space-y-3 shrink-0">
+        {/* What's new link row */}
+        <Link
+          href="/dashboard/updates"
+          onClick={onNavigate}
+          className="flex items-center justify-between px-2 py-1.5 rounded-[6px] text-[12px] text-[var(--t2)] hover:text-[var(--t1)] hover:bg-[var(--s2)] transition-colors group"
+        >
+          <span className="flex items-center gap-2">
+            <span className="size-1.5 rounded-full bg-[var(--amber)]" />
+            <span>What&apos;s new</span>
+          </span>
+          <ChevronRight className="size-3 text-[var(--t3)] group-hover:text-[var(--t2)] transition-transform group-hover:translate-x-0.5" />
+        </Link>
+
+        {/* Plan Usage Meter */}
+        <div className="p-2.5 rounded-[8px] bg-[var(--s2)] border border-[var(--line)] space-y-1.5">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-[var(--t2)]">AI replies</span>
+            <span className="font-mono text-[var(--t1)] tabular-nums">
+              {usedReplies.toLocaleString()} / {maxReplies >= 1000 ? `${maxReplies / 1000}k` : maxReplies}
+            </span>
+          </div>
+          {/* Progress bar */}
+          <div className="h-1.5 w-full rounded-full bg-[var(--s4)] overflow-hidden">
+            <div
+              className="h-full bg-[var(--gold)] rounded-full transition-all duration-300"
+              style={{ width: `${Math.max(usagePercent, 2)}%` }}
+            />
+          </div>
+          <p className="text-[10.5px] text-[var(--t3)] truncate">
+            {planName} plan
+          </p>
+        </div>
+
+        {/* User Account Row with Popover */}
+        <div className="relative" ref={userMenuRef}>
+          <button
+            type="button"
+            onClick={() => setUserMenuOpen(!userMenuOpen)}
+            className="w-full flex items-center justify-between p-2 rounded-[8px] bg-[var(--s2)] border border-[var(--line)] hover:border-[var(--line2)] transition-colors text-start cursor-pointer outline-none focus-visible:outline-2 focus-visible:outline-[var(--t1)]"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="size-7 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center shrink-0 overflow-hidden">
+                {profilePic ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={profilePic} alt={username} className="size-full object-cover" />
+                ) : (
+                  <span className="text-[11px] font-bold text-[var(--t1)]">{userInitial}</span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[12px] font-semibold text-[var(--t1)] truncate leading-tight">
+                  {username}
+                </p>
+                <p className="text-[10px] text-[var(--t3)] truncate leading-tight mt-0.5">
+                  {email || "Workspace admin"}
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-white truncate">@{username}</p>
-            {email && (
-              <p className="text-[10px] text-neutral-500 truncate">{email}</p>
-            )}
-        {userRole === "admin" && (
-              <p className="font-mono-ui text-[8px] uppercase tracking-wider text-[#e5a93c]">admin</p>
-            )}
-          </div>
-          <div className="flex items-center gap-1">
-            <Link
-              href="/dashboard/settings"
-              onClick={onNavigate}
-              title="Account settings"
-              className="p-1.5 rounded-md text-neutral-600 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              <Settings className="w-3.5 h-3.5" />
-            </Link>
-            <button
-              onClick={onLogout}
-              title="Log out"
-              className="p-1.5 rounded-md text-neutral-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
-          </div>
+            <MoreHorizontal className="size-3.5 text-[var(--t3)] shrink-0" />
+          </button>
+
+          {/* User Popover Menu */}
+          {userMenuOpen && (
+            <div className="absolute start-0 end-0 bottom-full mb-1.5 z-50 rounded-[8px] bg-[var(--s1)] border border-[var(--line2)] shadow-2xl p-1 space-y-0.5">
+              <a
+                href={`mailto:${BRAND_CONFIG.supportEmail}`}
+                className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-[4px] text-[12px] text-[var(--t2)] hover:text-[var(--t1)] hover:bg-[var(--s2)] transition-colors"
+                onClick={() => setUserMenuOpen(false)}
+              >
+                <HelpCircle className="size-3.5 text-[var(--t3)]" />
+                <span>Help & support</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setLanguage(language === "ar" ? "en" : "ar")
+                  setUserMenuOpen(false)
+                }}
+                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-[4px] text-[12px] text-[var(--t2)] hover:text-[var(--t1)] hover:bg-[var(--s2)] transition-colors cursor-pointer"
+              >
+                <span className="flex items-center gap-2.5">
+                  <Globe className="size-3.5 text-[var(--t3)]" />
+                  <span>Language</span>
+                </span>
+                <span className="text-[11px] font-medium text-[var(--gold)]">
+                  {language === "ar" ? "English" : "عربي"}
+                </span>
+              </button>
+
+              <div className="h-px bg-[var(--line)] my-1" />
+
+              <button
+                type="button"
+                onClick={() => {
+                  setUserMenuOpen(false)
+                  if (onLogout) onLogout()
+                }}
+                className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-[4px] text-[12px] text-[var(--red)] hover:bg-[var(--redbg)] transition-colors cursor-pointer"
+              >
+                <LogOut className="size-3.5 text-[var(--red)]" />
+                <span>Log out</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </aside>
