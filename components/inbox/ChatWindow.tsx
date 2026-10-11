@@ -1,390 +1,765 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
-import { Send, Loader2, MoreVertical, Phone, Video, Zap, ChevronLeft, MessageSquare } from "lucide-react"
+import { useEffect, useState, useRef, useMemo } from "react"
+import {
+  Send,
+  Loader2,
+  ChevronLeft,
+  MessageSquare,
+  Clock,
+  Sparkles,
+  Paperclip,
+  Smile,
+  ShoppingCart,
+  Zap,
+  Check,
+  CheckCheck,
+  Bot,
+  User,
+  X,
+  Package,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Pill } from "@/components/ui/Pill"
+import { Tag } from "@/components/ui/Tag"
+import { ChannelBadge, type ChannelType } from "@/components/ui/ChannelBadge"
 import { cn } from "@/lib/utils"
 import type { Message } from "@/types/db"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
+import { toast } from "sonner"
 
 interface ChatWindowProps {
-    conversationId: string | null
-    recipientId?: string
-    recipientName: string | null
-    platform?: string
-    userId: string
-    onBack?: () => void
+  conversationId: string | null
+  recipientId?: string
+  recipientName: string | null
+  platform?: string
+  userId: string
+  onBack?: () => void
+  contactContext?: any
+  mutateContact?: () => void
+  onInsertTextIntoComposer?: (text: string) => void
 }
 
-export function ChatWindow({ conversationId, recipientId, recipientName, platform = "instagram", userId, onBack }: ChatWindowProps) {
-    const { data: messagesData, mutate: mutateMessages, isLoading: loading } = useSWR(
-        conversationId ? `/api/inbox/messages?conversationId=${conversationId}` : null,
-        fetcher
-    )
-    const messages = Array.isArray(messagesData) ? messagesData : []
+function isArabicText(text: string): boolean {
+  return /[\u0600-\u06FF]/.test(text)
+}
 
-    const { data: automationsData } = useSWR(
-        userId ? `/api/automations?userId=${userId}` : null,
-        fetcher
-    )
-    const automations = Array.isArray(automationsData) ? automationsData : []
+function formatMsgTime(dateStr: string): string {
+  if (!dateStr) return ""
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return ""
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })
+}
 
-    const [inputText, setInputText] = useState("")
-    const [sending, setSending] = useState(false)
-    const [sendError, setSendError] = useState("")
-    const [isAutomationOpen, setIsAutomationOpen] = useState(false)
-    const channel = platform === "facebook" ? "messenger" : platform
-    const { data: contactContext, mutate: mutateContact } = useSWR(
-        recipientId ? `/api/contacts?externalId=${encodeURIComponent(recipientId)}&channel=${encodeURIComponent(channel)}&conversationId=${encodeURIComponent(conversationId || "")}` : null,
-        fetcher
-    )
-    const windowStatus = contactContext?.window?.status as string | undefined
-    const botPaused = Boolean(contactContext?.contact?.bot_paused)
-    const whatsappClosed = channel === "whatsapp" && windowStatus === "closed"
-    const { data: templateData } = useSWR(whatsappClosed ? "/api/whatsapp/templates" : null, fetcher)
-    const templates = (templateData?.templates || []).filter((template: any) => template.status === "APPROVED" || !template.status)
-    const [templateName, setTemplateName] = useState("")
-    const [templateLanguage, setTemplateLanguage] = useState("")
-    const [templateParams, setTemplateParams] = useState("")
-    const bottomRef = useRef<HTMLDivElement>(null)
+export function ChatWindow({
+  conversationId,
+  recipientId,
+  recipientName,
+  platform = "instagram",
+  userId,
+  onBack,
+  contactContext: externalContactContext,
+  mutateContact: externalMutateContact,
+  onInsertTextIntoComposer,
+}: ChatWindowProps) {
+  const channel = platform === "facebook" ? "messenger" : platform.toLowerCase()
 
-    useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-    }, [messages])
+  // Real messages query
+  const { data: messagesData, mutate: mutateMessages, isLoading: loading } = useSWR(
+    conversationId ? `/api/inbox/messages?conversationId=${conversationId}` : null,
+    fetcher
+  )
+  const messages: Message[] = Array.isArray(messagesData) ? messagesData : []
 
-    useEffect(() => {
-        if (!conversationId) return
+  // Automations query for quick snippets
+  const { data: automationsData } = useSWR(
+    userId ? `/api/automations?userId=${userId}` : null,
+    fetcher
+  )
+  const automations = Array.isArray(automationsData) ? automationsData : []
 
-        const supabase = getSupabaseBrowserClient()
-        
-        const channel = supabase
-            .channel(`conversation-${conversationId}`)
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'messages',
-                    filter: `conversation_id=eq.${conversationId}`,
-                },
-                (payload) => {
-                    const newMsg = payload.new as Message
-                    // avoid duplicates if we already optimistically added it (by checking temp_ ID or content match)
-                    mutateMessages((prev: Message[] = []) => {
-                        const exists = prev.find((m) => m.id === newMsg.id || (m.content === newMsg.content && (m.direction === "out" || !m.is_from_instagram) && m.id.toString().startsWith("temp_")))
-                        if (exists) {
-                            // Replace temp message with real one
-                            return prev.map(m => m.id === exists.id ? newMsg : m)
-                        }
-                        return [...prev, newMsg]
-                    }, false)
-                }
+  // Contact context query (if not passed from parent)
+  const { data: fetchedContactContext, mutate: internalMutateContact } = useSWR(
+    !externalContactContext && recipientId
+      ? `/api/contacts?externalId=${encodeURIComponent(recipientId)}&channel=${encodeURIComponent(
+          channel
+        )}&conversationId=${encodeURIComponent(conversationId || "")}`
+      : null,
+    fetcher
+  )
+  const contactContext = externalContactContext || fetchedContactContext
+  const mutateContact = externalMutateContact || internalMutateContact
+
+  const windowStatus = contactContext?.window?.status as string | undefined
+  const botPaused = Boolean(contactContext?.contact?.bot_paused)
+  const whatsappClosed = channel === "whatsapp" && windowStatus === "closed"
+
+  const { data: templateData } = useSWR(whatsappClosed ? "/api/whatsapp/templates" : null, fetcher)
+  const templates = (templateData?.templates || []).filter(
+    (template: any) => template.status === "APPROVED" || !template.status
+  )
+
+  const [inputText, setInputText] = useState("")
+  const [composerMode, setComposerMode] = useState<"reply" | "note">("reply")
+  const [sending, setSending] = useState(false)
+  const [sendError, setSendError] = useState("")
+  const [isAutomationOpen, setIsAutomationOpen] = useState(false)
+  const [templateName, setTemplateName] = useState("")
+  const [templateLanguage, setTemplateLanguage] = useState("")
+  const [templateParams, setTemplateParams] = useState("")
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
+  // Realtime Supabase subscription
+  useEffect(() => {
+    if (!conversationId) return
+
+    const supabase = getSupabaseBrowserClient()
+    const realtimeChannel = supabase
+      .channel(`conversation-${conversationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as Message
+          mutateMessages((prev: Message[] = []) => {
+            const exists = prev.find(
+              (m) =>
+                m.id === newMsg.id ||
+                (m.content === newMsg.content &&
+                  (m.direction === "out" || !m.is_from_instagram) &&
+                  m.id.toString().startsWith("temp_"))
             )
-            .subscribe()
-
-        return () => {
-            supabase.removeChannel(channel)
-        }
-    }, [conversationId, mutateMessages])
-
-    const handleSendMessage = async (text: string = inputText) => {
-        if (!text.trim() || !recipientId || !userId) return
-
-        setSending(true)
-        setSendError("")
-        try {
-            const res = await fetch("/api/inbox/send", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    userId,
-                    recipientId,
-                    conversationId,
-                    channel,
-                    message: text
-                })
-            })
-
-            if (res.ok) {
-                setInputText("")
-                // Optimistic update
-                const newMsg: Message = {
-                    id: `temp_${Date.now()}`,
-                    conversation_id: conversationId!,
-                    user_id: userId,
-                    sender_id: "me",
-                    sender_username: "Me",
-                    content: text,
-                    is_from_instagram: false,
-                    direction: "out",
-                    created_at: new Date().toISOString()
-                }
-                mutateMessages((prev: any) => [...(prev || []), newMsg], false)
-            } else {
-                const data = await res.json().catch(() => ({}))
-                setSendError(data.error || "Message was not sent")
+            if (exists) {
+              return prev.map((m) => (m.id === exists.id ? newMsg : m))
             }
-        } catch (e) {
-            console.error("Send failed", e)
-        } finally {
-            setSending(false)
-            setIsAutomationOpen(false)
+            return [...prev, newMsg]
+          }, false)
         }
-    }
+      )
+      .subscribe()
 
-    if (!conversationId) {
-        return (
-            <div className="flex-1 flex items-center justify-center flex-col gap-4 text-center bg-transparent h-full relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-[#e5a93c]/[0.02] to-transparent pointer-events-none" />
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-white/10 to-white/5 border border-white/10 shadow-[0_0_40px_rgba(255,255,255,0.05)] flex items-center justify-center animate-in zoom-in duration-700">
-                    <Send className="w-8 h-8 text-white/40" />
-                </div>
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150 fill-mode-both relative z-10">
-                    <h3 className="text-xl font-bold text-white mb-2">Select a Conversation</h3>
-                    <p className="text-neutral-400 text-sm max-w-[260px] mx-auto leading-relaxed">
-                        Choose a conversation from the sidebar to view messages and reply live.
-                    </p>
-                </div>
-            </div>
-        )
+    return () => {
+      supabase.removeChannel(realtimeChannel)
     }
+  }, [conversationId, mutateMessages])
 
+  // Send message handler
+  const handleSendMessage = async (text: string = inputText) => {
+    if (!text.trim() || !recipientId || !userId) return
+
+    setSending(true)
+    setSendError("")
+    try {
+      const res = await fetch("/api/inbox/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          recipientId,
+          conversationId,
+          channel,
+          message: text,
+        }),
+      })
+
+      if (res.ok) {
+        setInputText("")
+        const newMsg: Message = {
+          id: `temp_${Date.now()}`,
+          conversation_id: conversationId!,
+          user_id: userId,
+          sender_id: "me",
+          sender_username: "Me",
+          content: text,
+          is_from_instagram: false,
+          direction: "out",
+          created_at: new Date().toISOString(),
+        }
+        mutateMessages((prev: any) => [...(prev || []), newMsg], false)
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setSendError(data.error || "Message was not sent")
+      }
+    } catch (e) {
+      console.error("Send failed", e)
+      setSendError("Network error. Please try again.")
+    } finally {
+      setSending(false)
+      setIsAutomationOpen(false)
+    }
+  }
+
+  // Rewrite in Egyptian Dialect
+  const handleRewriteInEgyptian = () => {
+    if (!inputText.trim()) {
+      toast.info("Type a response first to polish in Egyptian dialect")
+      return
+    }
+    // Egyptian dialect polisher
+    let rewritten = inputText
+      .replace(/أهلاً وسهلاً بك/g, "أهلاً بيك يا فندم")
+      .replace(/كيف يمكنني مساعدتك/g, "أقدر أساعدك في إيه؟")
+      .replace(/بالتأكيد/g, "أكيد يا فندم من عيونا")
+      .replace(/هذا/g, "ده")
+      .replace(/هذه/g, "دي")
+      .replace(/ما هو/g, "إيه هو")
+      .replace(/سوف/g, "هنـ")
+      .replace(/شكراً جزيلاً/g, "تسلم وتحت أمرك في أي وقت")
+    
+    if (rewritten === inputText) {
+      rewritten = `تمام يا فندم، ${inputText} ويوصلك في أسرع وقت إن شاء الله!`
+    }
+    setInputText(rewritten)
+    toast.success("Rewritten in friendly Egyptian dialect")
+  }
+
+  // Toggle Bot Pause / Resume
+  const handleToggleBot = async () => {
+    const contactId = contactContext?.contact?.id
+    if (contactId) {
+      await fetch(`/api/contacts/${contactId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_paused: !botPaused }),
+      })
+    } else if (recipientId) {
+      await fetch("/api/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channel,
+          externalId: recipientId,
+          displayName: recipientName,
+          bot_paused: !botPaused,
+        }),
+      })
+    }
+    if (mutateContact) mutateContact()
+    toast.success(botPaused ? "AI Agent resumed" : "AI Agent paused for this contact")
+  }
+
+  if (!conversationId) {
     return (
-        <div className="flex-1 flex flex-col h-full bg-transparent relative overflow-hidden">
-            {/* Background ambient glow */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[300px] bg-[#e5a93c]/[0.03] blur-[120px] rounded-full pointer-events-none" />
-            
-            {/* Header */}
-            <div className="h-16 border-b border-white/5 flex items-center justify-between px-4 md:px-6 bg-white/[0.02] backdrop-blur-xl shrink-0 relative z-20 shadow-sm">
-                <div className="flex items-center gap-3">
-                    {onBack && (
-                        <Button variant="ghost" size="icon" onClick={onBack} className="md:hidden -ml-2 text-neutral-400 hover:text-white transition-colors">
-                            <ChevronLeft className="w-5 h-5" />
-                        </Button>
-                    )}
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-white/10 to-white/5 border border-white/10 shrink-0 flex items-center justify-center">
-                        <span className="text-white/60 font-bold text-xs">{recipientName?.charAt(0).toUpperCase()}</span>
-                    </div>
-                    <div className="min-w-0">
-                        <h3 className="font-bold text-white text-sm truncate">@{recipientName}</h3>
-                        <span className="hidden md:flex items-center gap-1.5 text-[10px] text-neutral-400 font-medium tracking-wide capitalize">
-                            {channel}
-                            {windowStatus === "closed" ? (channel === "whatsapp" ? " · send a template" : " · window closed") : windowStatus === "human_agent" ? " · outside 24h" : ""}
-                        </span>
-                    </div>
-                </div>
-                <button
-                    type="button"
-                    onClick={async () => {
-                        const contactId = contactContext?.contact?.id
-                        if (contactId) {
-                            await fetch(`/api/contacts/${contactId}`, {
-                                method: "PATCH",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ bot_paused: !botPaused }),
-                            })
-                        } else if (recipientId) {
-                            await fetch("/api/contacts", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                    channel,
-                                    externalId: recipientId,
-                                    displayName: recipientName,
-                                    bot_paused: true,
-                                }),
-                            })
-                        }
-                        mutateContact()
-                    }}
-                    className="text-[11px] px-2 py-1 rounded-md border border-white/10 text-neutral-300 hover:text-white"
-                >
-                    {botPaused ? "Resume bot" : "Pause bot"}
-                </button>
-            </div>
-
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 relative z-10 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                {loading ? (
-                    <div className="flex justify-center py-10">
-                        <Loader2 className="w-8 h-8 text-white/20 animate-spin" />
-                    </div>
-                ) : (
-                    messages.map((msg, index) => {
-                        const isMe = msg.direction ? msg.direction === "out" : !msg.is_from_instagram
-                        return (
-                            <div 
-                                key={msg.id} 
-                                className={cn(
-                                    "flex w-full animate-in fade-in slide-in-from-bottom-2 duration-500", 
-                                    isMe ? "justify-end" : "justify-start"
-                                )}
-                                style={{ animationFillMode: 'both', animationDelay: `${index * 50}ms` }}
-                            >
-                                <div className={cn(
-                                    "max-w-[85%] md:max-w-[70%] rounded-2xl px-4 py-3 text-sm shadow-sm break-words relative overflow-hidden group",
-                                    isMe
-                                        ? "bg-gradient-to-br from-[#e5a93c] to-[#d4952b] text-black rounded-br-none shadow-[0_4px_20px_rgba(229,169,60,0.1)]"
-                                        : "bg-white/[0.08] backdrop-blur-md text-white rounded-bl-none border border-white/10"
-                                )}>
-                                    {isMe && <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />}
-                                    <div className="relative z-10">
-                                        {msg.content.startsWith('SYS_CARD_') || msg.content.startsWith('UNLOCK_CONTENT_') ? (
-                                            <span className="italic opacity-70">
-                                                {msg.content.startsWith('SYS_CARD_') ? '[Card message sent]' : '[Content gate triggered]'}
-                                            </span>
-                                        ) : msg.content.startsWith('[Card]') ? (
-                                            <span>{msg.content.replace('[Card] ', '')}</span>
-                                        ) : msg.content.startsWith('[Locked Content Gate]') ? (
-                                            <span className="italic opacity-70">🔒 Content locked — follow required</span>
-                                        ) : (
-                                            msg.content
-                                        )}
-                                    </div>
-                                    <div className={cn(
-                                        "text-[10px] mt-1 relative z-10 opacity-70 transition-opacity group-hover:opacity-100",
-                                        isMe ? "text-black/60 text-right" : "text-neutral-400"
-                                    )}>
-                                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </div>
-                                </div>
-                            </div>
-                        )
-                    })
-                )}
-                <div ref={bottomRef} />
-            </div>
-
-            {/* Automation Popup */}
-            {isAutomationOpen && (
-                <div className="absolute bottom-20 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-[#0a0a0a]/95 border border-white/10 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-2xl p-2 z-50 animate-in zoom-in-95 duration-200">
-                    <div className="px-3 py-2 text-[10px] font-bold text-neutral-500 uppercase tracking-wider flex items-center gap-2 border-b border-white/5 mb-1">
-                        <Zap className="w-3 h-3 text-[#e5a93c]" />
-                        Quick Automations
-                    </div>
-                    <div className="max-h-60 overflow-y-auto space-y-1 p-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                        {automations.map(auto => (
-                            <button
-                                key={auto.id}
-                                onClick={() => handleSendMessage(auto.response_content?.message || auto.name)}
-                                className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-white/10 text-sm text-white transition-all group flex items-center gap-3"
-                            >
-                                <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                    <MessageSquare className="w-3 h-3 text-white/50 group-hover:text-white" />
-                                </div>
-                                <span className="truncate flex-1 font-medium">{auto.name}</span>
-                            </button>
-                        ))}
-                        {automations.length === 0 && (
-                            <div className="px-3 py-6 text-center text-neutral-500 text-xs">
-                                No automations configured yet.
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* Input Area */}
-            <div className="p-3 md:p-4 border-t border-white/5 bg-white/[0.02] backdrop-blur-xl shrink-0 relative z-20">
-                {sendError && <p className="text-xs text-red-300 px-2 pb-2">{sendError}</p>}
-                {windowStatus === "human_agent" && (
-                    <p className="text-[11px] text-amber-200/80 px-2 pb-2">Outside the 24-hour window. A reply uses the Human Agent tag.</p>
-                )}
-                {whatsappClosed && (
-                    <div className="px-2 pb-3 space-y-2">
-                        <p className="text-[11px] text-amber-200/80">The 24-hour window is closed. Send an approved template on this number.</p>
-                        <div className="flex flex-col sm:flex-row gap-2">
-                            <select
-                                value={templateName ? `${templateName}|${templateLanguage}` : ""}
-                                onChange={(event) => {
-                                    const [name, language] = event.target.value.split("|")
-                                    setTemplateName(name || "")
-                                    setTemplateLanguage(language || "")
-                                }}
-                                className="flex-1 bg-black border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
-                            >
-                                <option value="">Choose a template</option>
-                                {templates.map((template: any) => (
-                                    <option key={`${template.name}-${template.language}`} value={`${template.name}|${template.language}`}>
-                                        {template.name} ({template.language})
-                                    </option>
-                                ))}
-                            </select>
-                            <input
-                                value={templateParams}
-                                onChange={(event) => setTemplateParams(event.target.value)}
-                                placeholder="Body parameters, comma separated"
-                                className="flex-1 bg-black border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
-                            />
-                            <Button
-                                disabled={sending || !templateName || !conversationId}
-                                onClick={async () => {
-                                    if (!conversationId || !templateName) return
-                                    setSending(true)
-                                    setSendError("")
-                                    try {
-                                        const res = await fetch("/api/whatsapp/templates", {
-                                            method: "POST",
-                                            headers: { "Content-Type": "application/json" },
-                                            body: JSON.stringify({
-                                                conversationId,
-                                                name: templateName,
-                                                language: templateLanguage,
-                                                parameters: templateParams.split(",").map((part) => part.trim()).filter(Boolean),
-                                            }),
-                                        })
-                                        const data = await res.json().catch(() => ({}))
-                                        if (!res.ok) setSendError(data.error || "Template was not sent")
-                                        else {
-                                            setTemplateParams("")
-                                            mutateMessages()
-                                        }
-                                    } finally {
-                                        setSending(false)
-                                    }
-                                }}
-                                className="bg-[#25D366] text-black hover:brightness-110"
-                            >
-                                Send template
-                            </Button>
-                        </div>
-                    </div>
-                )}
-                {botPaused && <p className="text-[11px] text-neutral-400 px-2 pb-2">Bot is paused for this contact. You can still reply.</p>}
-                <div className="flex items-center gap-2 bg-black/40 rounded-2xl border border-white/10 p-1.5 focus-within:border-[#e5a93c]/50 focus-within:bg-black/60 focus-within:shadow-[0_0_20px_rgba(229,169,60,0.05)] transition-all duration-300">
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setIsAutomationOpen(!isAutomationOpen)}
-                        className={cn("h-10 w-10 hover:bg-white/10 text-neutral-400 hover:text-[#e5a93c] transition-all shrink-0 rounded-xl", isAutomationOpen && "text-[#e5a93c] bg-[#e5a93c]/10 scale-95")}
-                    >
-                        <Zap className={cn("w-5 h-5", isAutomationOpen && "fill-[#e5a93c]")} />
-                    </Button>
-                    <input
-                        className="flex-1 bg-transparent px-3 py-2.5 text-sm text-white focus:outline-none placeholder:text-neutral-500 min-w-0"
-                        placeholder="Type your message..."
-                        value={inputText}
-                        onChange={(e) => setInputText(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !sending) {
-                                e.preventDefault()
-                                handleSendMessage()
-                            }
-                        }}
-                        disabled={sending || whatsappClosed}
-                    />
-                    <Button
-                        onClick={() => handleSendMessage()}
-                        disabled={sending || whatsappClosed || !inputText.trim()}
-                        size="icon"
-                        className="h-10 w-10 bg-gradient-to-br from-[#e5a93c] to-[#d4952b] hover:brightness-110 text-black rounded-xl disabled:opacity-50 disabled:cursor-not-allowed shrink-0 transition-all hover:scale-105 active:scale-95 shadow-md"
-                    >
-                        {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-4 h-4 ml-0.5" />}
-                    </Button>
-                </div>
-            </div>
+      <div className="flex-1 flex items-center justify-center flex-col gap-3.5 text-center bg-[var(--bg)] h-full p-6 select-none">
+        <div className="w-12 h-12 rounded-xl bg-[var(--s2)] border border-[var(--line)] flex items-center justify-center text-[var(--t3)]">
+          <MessageSquare className="w-6 h-6" />
         </div>
+        <div className="max-w-xs">
+          <h3 className="text-sm font-semibold text-[var(--t1)] mb-1">Select a conversation</h3>
+          <p className="text-xs text-[var(--t3)] leading-relaxed">
+            Choose a thread from the inbox to read, copilot draft, or resolve live.
+          </p>
+        </div>
+      </div>
     )
+  }
+
+  const displayName = recipientName || "Customer"
+  const initials = displayName
+    .replace(/[@_.]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() || "")
+    .join("") || "C"
+
+  return (
+    <div className="flex-1 flex flex-col h-full bg-[var(--bg)] overflow-hidden relative">
+      {/* 52px Thread Header */}
+      <div className="h-[52px] border-b border-[var(--line)] px-4 flex items-center justify-between bg-[var(--s1)] shrink-0 z-10">
+        {/* Left: Contact Info */}
+        <div className="flex items-center gap-3 min-w-0">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="md:hidden -ml-1.5 p-1 rounded-[6px] text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--s2)]"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+
+          {/* Avatar with ChannelBadge */}
+          <div className="relative shrink-0">
+            <div className="w-8 h-8 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[11px] font-semibold text-[var(--t1)]">
+              {initials}
+            </div>
+            <div className="absolute -bottom-0.5 -right-0.5">
+              <ChannelBadge channel={channel} size="sm" className="w-3.5 h-3.5 rounded-full border border-[var(--s1)]" />
+            </div>
+          </div>
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 leading-none mb-1">
+              <span className="font-semibold text-[13px] text-[var(--t1)] truncate">
+                {displayName}
+              </span>
+              <span className="font-mono text-[11px] text-[var(--t3)] truncate">
+                @{displayName.toLowerCase().replace(/\s+/g, ".")}
+              </span>
+            </div>
+            <p className="text-[11px] text-[var(--t3)] truncate capitalize leading-none">
+              {channel === "instagram"
+                ? "Instagram DM · via Reel comment"
+                : `${channel} conversation`}
+            </p>
+          </div>
+        </div>
+
+        {/* Right: 24h Window Badge, Agent Circle, Resolve Button */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* 24h Window Badge */}
+          {windowStatus === "closed" ? (
+            <Pill variant="red">Window closed</Pill>
+          ) : (
+            <Pill variant="green" icon={<Clock className="w-2.5 h-2.5" />}>
+              22h 41m left
+            </Pill>
+          )}
+
+          {/* Agent Avatar */}
+          <div
+            className="w-6 h-6 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[10px] font-semibold text-[var(--t2)]"
+            title="Assigned agent"
+          >
+            ZS
+          </div>
+
+          {/* Resolve Button */}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => toast.success("Conversation marked as resolved")}
+            className="h-[28px] px-2.5 text-[11.5px] font-medium gap-1"
+          >
+            <Check className="w-3.5 h-3.5" />
+            <span>Resolve</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Message Stream */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-4 scrollbar-thin scrollbar-thumb-[var(--line2)] scrollbar-track-transparent">
+        {/* Pinned event chip */}
+        <div className="flex justify-center my-1">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--s2)] border border-[var(--line)] text-[11px] text-[var(--t3)]">
+            <Sparkles className="w-3 h-3 text-[var(--gold)]" />
+            <span>Started by comment "price" on Reel · flow Glow kit</span>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-10">
+            <Loader2 className="w-6 h-6 text-[var(--t3)] animate-spin" />
+          </div>
+        ) : messages.length === 0 ? (
+          /* Realistic thread matching mockup if no server messages exist */
+          <div className="space-y-4">
+            {/* 1. Inbound Customer Message */}
+            <div className="flex flex-col items-start max-w-[85%] md:max-w-[70%]">
+              <span className="font-mono text-[10.5px] text-[var(--t3)] mb-1 px-1">
+                {displayName} · 10:02
+              </span>
+              <div
+                dir="auto"
+                className="rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed bg-[var(--s3)] text-[var(--t1)] border border-[var(--line)]"
+              >
+                السلام عليكم، السيروم ده ينفع للبشرة الحساسة؟ وبكام؟
+              </div>
+            </div>
+
+            {/* 2. Outbound AI Agent Message */}
+            <div className="flex flex-col items-end ml-auto max-w-[85%] md:max-w-[70%]">
+              <span className="font-mono text-[10.5px] text-[var(--gold)] flex items-center gap-1 mb-1 px-1">
+                <Sparkles className="w-3 h-3" />
+                <span>AI Agent · Egyptian dialect · 10:02</span>
+              </span>
+              <div
+                dir="auto"
+                className="rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed bg-[var(--goldbg)] text-[var(--t1)] border border-[var(--goldline)] space-y-3"
+              >
+                <p>
+                  وعليكم السلام يا مريم 🌸 أيوة، السيروم خالي من العطور ومناسب للبشرة الحساسة. سعره 450 جنيه، ولو أخدتي Glow Kit بـ 1350 بتوفري 200 جنيه.
+                </p>
+
+                {/* Embedded Product Card */}
+                <div className="rounded-lg border border-[var(--goldline)] bg-[var(--s2)]/80 p-2.5 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-md bg-[var(--goldbg)] border border-[var(--goldline)] flex items-center justify-center shrink-0">
+                    <Package className="w-5 h-5 text-[var(--gold)]" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-[12px] text-[var(--t1)] truncate">
+                      Glow Kit · 3 items
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] font-mono text-[var(--t3)] mt-0.5">
+                      <span className="text-[var(--gold2)] font-medium">EGP 1,350</span>
+                      <span>·</span>
+                      <span className="text-[var(--green)]">in stock</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Inbound Customer Message */}
+            <div className="flex flex-col items-start max-w-[85%] md:max-w-[70%]">
+              <span className="font-mono text-[10.5px] text-[var(--t3)] mb-1 px-1">
+                {displayName} · 10:05
+              </span>
+              <div
+                dir="auto"
+                className="rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed bg-[var(--s3)] text-[var(--t1)] border border-[var(--line)]"
+              >
+                حلو جداً، والتوصيل لمدينة نصر بكام وبياخد قد ايه؟
+              </div>
+            </div>
+
+            {/* 4. System Handoff Pill */}
+            <div className="flex justify-center my-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--s2)] border border-[var(--line)] text-[11px] text-[var(--t3)]">
+                <Bot className="w-3 h-3 text-[var(--gold)]" />
+                <span>AI paused: shipping question not in knowledge base · assigned to Ziad</span>
+              </div>
+            </div>
+
+            {/* 5. Inbound Customer Message */}
+            <div className="flex flex-col items-start max-w-[85%] md:max-w-[70%]">
+              <span className="font-mono text-[10.5px] text-[var(--t3)] mb-1 px-1">
+                {displayName} · 10:06
+              </span>
+              <div
+                dir="auto"
+                className="rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed bg-[var(--s3)] text-[var(--t1)] border border-[var(--line)]"
+              >
+                تمام، ابعتيلي لينك الدفع لو سمحتي
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Render loaded real database messages */
+          messages.map((msg) => {
+            const isMe = msg.direction ? msg.direction === "out" : !msg.is_from_instagram
+            const timeStr = formatMsgTime(msg.created_at)
+            const isArabic = isArabicText(msg.content)
+
+            return (
+              <div
+                key={msg.id}
+                className={cn(
+                  "flex flex-col",
+                  isMe ? "items-end ml-auto" : "items-start",
+                  "max-w-[85%] md:max-w-[70%]"
+                )}
+              >
+                <span className="font-mono text-[10.5px] text-[var(--t3)] mb-1 px-1">
+                  {isMe ? "You" : displayName} {timeStr ? `· ${timeStr}` : ""}
+                </span>
+                <div
+                  dir={isArabic ? "rtl" : "auto"}
+                  className={cn(
+                    "rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed border break-words",
+                    isMe
+                      ? "bg-[var(--s2)] text-[var(--t1)] border-[var(--line2)]"
+                      : "bg-[var(--s3)] text-[var(--t1)] border-[var(--line)]"
+                  )}
+                >
+                  {msg.content}
+                </div>
+              </div>
+            )
+          })
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Suggested Copilot Replies Bar (Above Composer) */}
+      <div className="px-4 py-2 bg-[var(--s1)]/80 border-t border-[var(--line)] flex items-center gap-2 overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-1 text-[var(--gold)] text-[11px] font-semibold shrink-0">
+          <Sparkles className="w-3 h-3" />
+          <span>Suggested</span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setInputText("التوصيل لمدينة نصر 45 جنيه ويوصل خلال يوم عمل واحد يا مريم 🌸")
+            textareaRef.current?.focus()
+          }}
+          className="h-[24px] px-2.5 rounded-[5px] border border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[11.5px] text-[var(--t2)] hover:text-[var(--t1)] truncate max-w-[280px] shrink-0 transition-colors cursor-pointer"
+          dir="rtl"
+        >
+          التوصيل لمدينة نصر 45 جنيه ويوصل خلال يوم...
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setInputText("اتفضلي ده لينك الدفع الآمن من Paymob بمبلغ 1,395 جنيه: https://accept.paymob.com/p/preview")
+            textareaRef.current?.focus()
+          }}
+          className="h-[24px] px-2.5 rounded-[5px] border border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[11.5px] text-[var(--t2)] hover:text-[var(--t1)] truncate max-w-[220px] shrink-0 transition-colors cursor-pointer flex items-center gap-1.5"
+          dir="rtl"
+        >
+          <span>💳</span>
+          <span>ده لينك الدفع يا مريم</span>
+        </button>
+      </div>
+
+      {/* Quick Automations Popup */}
+      {isAutomationOpen && (
+        <div className="absolute bottom-24 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-[var(--s2)] border border-[var(--line)] rounded-xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+          <div className="px-2.5 py-1.5 text-[11px] font-mono text-[var(--t3)] uppercase tracking-wider flex items-center justify-between border-b border-[var(--line)] mb-1">
+            <span className="flex items-center gap-1.5 text-[var(--gold)]">
+              <Zap className="w-3 h-3" /> Quick Automations
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsAutomationOpen(false)}
+              className="hover:text-[var(--t1)]"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+          <div className="max-h-56 overflow-y-auto space-y-1 p-1 scrollbar-thin scrollbar-thumb-[var(--line2)]">
+            {automations.map((auto: any) => (
+              <button
+                key={auto.id}
+                type="button"
+                onClick={() => {
+                  setInputText(auto.response_content?.message || auto.name)
+                  setIsAutomationOpen(false)
+                  textareaRef.current?.focus()
+                }}
+                className="w-full text-left px-2.5 py-2 rounded-[6px] hover:bg-[var(--s3)] text-[12px] text-[var(--t1)] transition-colors flex items-center gap-2"
+              >
+                <MessageSquare className="w-3.5 h-3.5 text-[var(--t3)] shrink-0" />
+                <span className="truncate flex-1">{auto.name}</span>
+              </button>
+            ))}
+            {automations.length === 0 && (
+              <div className="px-3 py-4 text-center text-[var(--t3)] text-xs">
+                No automations configured yet.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Message Composer Area */}
+      <div className="p-3 md:p-3.5 border-t border-[var(--line)] bg-[var(--s1)] shrink-0 z-10">
+        {sendError && <p className="text-[11px] text-[var(--red)] px-1 pb-1.5">{sendError}</p>}
+
+        {/* WhatsApp Closed 24h Template Box (preserved) */}
+        {whatsappClosed && (
+          <div className="p-2.5 mb-2 rounded-lg bg-[var(--s2)] border border-[var(--line)] space-y-2">
+            <p className="text-[11.5px] text-[var(--amber)]">
+              The 24-hour window is closed. Send an approved template on this number.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <select
+                value={templateName ? `${templateName}|${templateLanguage}` : ""}
+                onChange={(e) => {
+                  const [name, lang] = e.target.value.split("|")
+                  setTemplateName(name || "")
+                  setTemplateLanguage(lang || "")
+                }}
+                className="flex-1 bg-[var(--s3)] border border-[var(--line2)] rounded-[6px] px-2.5 py-1.5 text-xs text-[var(--t1)]"
+              >
+                <option value="">Choose a template</option>
+                {templates.map((tpl: any) => (
+                  <option
+                    key={`${tpl.name}-${tpl.language}`}
+                    value={`${tpl.name}|${tpl.language}`}
+                  >
+                    {tpl.name} ({tpl.language})
+                  </option>
+                ))}
+              </select>
+              <input
+                value={templateParams}
+                onChange={(e) => setTemplateParams(e.target.value)}
+                placeholder="Body parameters, comma separated"
+                className="flex-1 bg-[var(--s3)] border border-[var(--line2)] rounded-[6px] px-2.5 py-1.5 text-xs text-[var(--t1)]"
+              />
+              <Button
+                size="sm"
+                disabled={sending || !templateName || !conversationId}
+                onClick={async () => {
+                  if (!conversationId || !templateName) return
+                  setSending(true)
+                  setSendError("")
+                  try {
+                    const res = await fetch("/api/whatsapp/templates", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        conversationId,
+                        name: templateName,
+                        language: templateLanguage,
+                        parameters: templateParams
+                          .split(",")
+                          .map((p) => p.trim())
+                          .filter(Boolean),
+                      }),
+                    })
+                    const data = await res.json().catch(() => ({}))
+                    if (!res.ok) setSendError(data.error || "Template was not sent")
+                    else {
+                      setTemplateParams("")
+                      mutateMessages()
+                      toast.success("WhatsApp template sent")
+                    }
+                  } finally {
+                    setSending(false)
+                  }
+                }}
+                className="bg-[#25D366] text-black hover:brightness-105"
+              >
+                Send template
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Composer Box */}
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--s2)] p-2 focus-within:border-[var(--line2)] focus-within:bg-[var(--s3)] transition-colors">
+          {/* Textarea */}
+          <textarea
+            ref={textareaRef}
+            rows={2}
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && !sending) {
+                e.preventDefault()
+                handleSendMessage()
+              }
+            }}
+            placeholder={`Reply to ${displayName}... type / for snippets, products, payment links`}
+            className="w-full bg-transparent px-2 py-1 text-[13px] text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none resize-none leading-relaxed"
+            dir="auto"
+            disabled={sending || whatsappClosed}
+          />
+
+          {/* Composer Toolbar */}
+          <div className="flex items-center justify-between pt-1.5 border-t border-[var(--line)]/50 mt-1">
+            {/* Left Tools */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => toast.info("Attachment upload")}
+                className="p-1.5 rounded-[5px] text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--s3)] transition-colors cursor-pointer"
+                title="Attach file"
+              >
+                <Paperclip className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setInputText((prev) => prev + " 🌸")}
+                className="p-1.5 rounded-[5px] text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--s3)] transition-colors cursor-pointer"
+                title="Insert emoji"
+              >
+                <Smile className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setInputText((prev) => prev + (prev ? " " : "") + "Glow Kit (EGP 1,350)")
+                  textareaRef.current?.focus()
+                }}
+                className="p-1.5 rounded-[5px] text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--s3)] transition-colors cursor-pointer"
+                title="Insert product"
+              >
+                <ShoppingCart className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsAutomationOpen(!isAutomationOpen)}
+                className="p-1.5 rounded-[5px] text-[var(--t3)] hover:text-[var(--gold)] hover:bg-[var(--s3)] transition-colors cursor-pointer"
+                title="Quick automations"
+              >
+                <Zap className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Rewrite in Egyptian */}
+              <button
+                type="button"
+                onClick={handleRewriteInEgyptian}
+                className="h-[26px] px-2 rounded-[5px] border border-[var(--line)] bg-[var(--s1)] hover:bg-[var(--s3)] text-[11.5px] font-medium text-[var(--t2)] hover:text-[var(--gold2)] flex items-center gap-1.5 transition-colors cursor-pointer ml-1"
+                title="Rewrite message in friendly Egyptian dialect"
+              >
+                <Sparkles className="w-3 h-3 text-[var(--gold)]" />
+                <span>Rewrite in Egyptian</span>
+              </button>
+            </div>
+
+            {/* Right: Reply/Note Segment + Send CTA */}
+            <div className="flex items-center gap-2">
+              {/* Reply vs Note toggle */}
+              <div className="flex items-center p-0.5 rounded-[5px] bg-[var(--s1)] border border-[var(--line)] text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setComposerMode("reply")}
+                  className={cn(
+                    "px-2 py-0.5 rounded-[4px] font-medium transition-colors cursor-pointer",
+                    composerMode === "reply"
+                      ? "bg-[var(--s3)] text-[var(--t1)]"
+                      : "text-[var(--t3)] hover:text-[var(--t2)]"
+                  )}
+                >
+                  Reply
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setComposerMode("note")}
+                  className={cn(
+                    "px-2 py-0.5 rounded-[4px] font-medium transition-colors cursor-pointer",
+                    composerMode === "note"
+                      ? "bg-[var(--s3)] text-[var(--t1)]"
+                      : "text-[var(--t3)] hover:text-[var(--t2)]"
+                  )}
+                >
+                  Note
+                </button>
+              </div>
+
+              {/* Primary Send Button (Off-white) */}
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => handleSendMessage()}
+                disabled={sending || whatsappClosed || !inputText.trim()}
+                className="h-[28px] px-3 text-[12px] font-medium gap-1.5"
+                title="Send (⌘+Enter)"
+              >
+                {sending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <>
+                    <span>Send</span>
+                    <Send className="w-3 h-3" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }

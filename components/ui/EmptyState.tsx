@@ -34,36 +34,36 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
-      className={`rounded-2xl border border-white/[0.07] bg-[#0c0d12]/70 backdrop-blur-sm text-center transition-all ${
-        compact ? "p-6" : "p-10 md:p-12"
+      className={`rounded-xl border border-[var(--line)] bg-[var(--s1)] text-center transition-all ${
+        compact ? "p-6" : "p-8 md:p-10"
       } ${className}`}
     >
       {badge && (
         <div className="mb-3">
-          <span className="inline-flex items-center gap-1 rounded-full border border-[#e5a93c]/25 bg-[#e5a93c]/10 px-2.5 py-0.5 font-mono-ui text-[10px] font-semibold uppercase tracking-wider text-[#e5a93c]">
+          <span className="inline-flex items-center gap-1 rounded-full border border-[var(--line2)] bg-[var(--s2)] px-2.5 py-0.5 font-mono text-[10.5px] font-medium text-[var(--t2)]">
             {badge}
           </span>
         </div>
       )}
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#e5a93c]/20 bg-[#e5a93c]/10 text-[#e5a93c] shadow-[0_0_20px_rgba(229,169,60,0.06)]">
-        <Icon className="h-6 w-6" />
+      <div className="mx-auto mb-3.5 flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--line)] bg-[var(--s2)] text-[var(--t2)]">
+        <Icon className="h-5 w-5" />
       </div>
 
-      <h3 className="text-base font-semibold text-white tracking-tight">{title}</h3>
+      <h3 className="text-sm font-semibold text-[var(--t1)] tracking-tight">{title}</h3>
 
       {description && (
-        <p className="mx-auto mt-1.5 max-w-sm text-xs md:text-sm text-zinc-400 leading-relaxed">
+        <p className="mx-auto mt-1.5 max-w-sm text-xs text-[var(--t3)] leading-relaxed">
           {description}
         </p>
       )}
 
       {(action || secondaryAction) && (
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
           {action && (
             action.href ? (
               <Link
                 href={action.href}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#e5a93c] hover:bg-[#d4952b] px-4 py-2 text-xs font-semibold text-black transition-all active:scale-[0.98] shadow-sm font-mono-ui uppercase tracking-wider"
+                className="inline-flex items-center gap-1.5 h-[30px] rounded-[6px] bg-[var(--t1)] hover:bg-white text-[var(--bg)] px-3 text-[12.5px] font-medium transition-colors"
               >
                 {action.icon && <action.icon className="h-3.5 w-3.5" />}
                 {action.label}
@@ -72,7 +72,7 @@ export function EmptyState({
               <button
                 type="button"
                 onClick={action.onClick}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#e5a93c] hover:bg-[#d4952b] px-4 py-2 text-xs font-semibold text-black transition-all active:scale-[0.98] shadow-sm font-mono-ui uppercase tracking-wider cursor-pointer"
+                className="inline-flex items-center gap-1.5 h-[30px] rounded-[6px] bg-[var(--t1)] hover:bg-white text-[var(--bg)] px-3 text-[12.5px] font-medium transition-colors cursor-pointer"
               >
                 {action.icon && <action.icon className="h-3.5 w-3.5" />}
                 {action.label}
@@ -84,7 +84,7 @@ export function EmptyState({
             secondaryAction.href ? (
               <Link
                 href={secondaryAction.href}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:text-white px-4 py-2 text-xs font-medium text-zinc-300 transition-all active:scale-[0.98]"
+                className="inline-flex items-center gap-1.5 h-[30px] rounded-[6px] border border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[var(--t2)] hover:text-[var(--t1)] px-3 text-[12.5px] font-medium transition-colors"
               >
                 {secondaryAction.label}
               </Link>
@@ -92,7 +92,7 @@ export function EmptyState({
               <button
                 type="button"
                 onClick={secondaryAction.onClick}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:text-white px-4 py-2 text-xs font-medium text-zinc-300 transition-all active:scale-[0.98] cursor-pointer"
+                className="inline-flex items-center gap-1.5 h-[30px] rounded-[6px] border border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[var(--t2)] hover:text-[var(--t1)] px-3 text-[12.5px] font-medium transition-colors cursor-pointer"
               >
                 {secondaryAction.label}
               </button>
