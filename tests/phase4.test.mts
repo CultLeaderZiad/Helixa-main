@@ -8,7 +8,9 @@ const { normalizeWhatsAppBody } = await import("../lib/channels/normalize.ts")
 const { normalizeTikTokWebhook } = await import("../lib/tiktok/events.ts")
 const { verifyTikTokSignature } = await import("../lib/tiktok/signature.ts")
 const { bodyParameterCount, buildTemplatePayload, sendWhatsAppTemplate } = await import("../lib/whatsapp/templates.ts")
-const { wabaIdsFromDebugToken } = await import("../lib/whatsapp/connect.ts")
+const { wabaIdsFromDebugToken, fetchPhoneNumber, registerPhoneNumber, deregisterPhoneNumber, unsubscribeWaba, releaseWhatsAppConnection, preparePhoneRegistration, registrationPinCipherToStore, isPhoneNumberRegistered, shouldUnsubscribeWaba, wabaIdFromConnection, registrationFailureMessage } = await import("../lib/whatsapp/connect.ts")
+const { embeddedSignupLoginOptions, parseEmbeddedSignupMessage, logUnknownEmbeddedSignupOnce, resetEmbeddedSignupShapeLog, metadataWithoutRegistrationPin } = await import("../lib/whatsapp/embedded-signup.ts")
+const { openAccessToken } = await import("../lib/token-crypto.ts")
 const { originAllowed, consumeWebchatRate } = await import("../lib/webchat/security.ts")
 const { hashVisitorSecret } = await import("../lib/webchat/security.ts")
 const { listWebchatMessages, openWebchatSession, postWebchatMessage } = await import("../lib/webchat/service.ts")
@@ -307,5 +309,172 @@ describe("website chat widget", () => {
     assert.equal(limited.status, 429)
     assert.equal(getAdapter("webchat")?.channel, "webchat")
     assert.equal((await createWebchatAdapter().sendText({ accessToken: "webchat_managed", recipientId: visitorId }, "ok")).ok, true)
+  })
+})
+
+describe("WhatsApp Embedded Signup v4 and registration", () => {
+  it("launches v4 without sessionInfoVersion and reads the documented finish payload", () => {
+    const options = embeddedSignupLoginOptions("cfg-v4")
+    assert.equal(options.config_id, "cfg-v4")
+    assert.equal(options.response_type, "code")
+    assert.equal(options.override_default_response_type, true)
+    assert.deepEqual(options.extras, { setup: {} })
+    assert.equal("sessionInfoVersion" in options.extras, false)
+    assert.equal(JSON.stringify(options).includes("sessionInfoVersion"), false)
+
+    const finish = parseEmbeddedSignupMessage(JSON.stringify({
+      type: "WA_EMBEDDED_SIGNUP",
+      event: "FINISH",
+      data: { phone_number_id: "106540352242922", waba_id: "524126980791429", business_id: "2729063490586005" },
+    }))
+    assert.equal(finish.kind, "session")
+    if (finish.kind !== "session") return
+    assert.equal(finish.phoneNumberId, "106540352242922")
+    assert.equal(finish.wabaId, "524126980791429")
+
+    const onlyWaba = parseEmbeddedSignupMessage({
+      type: "WA_EMBEDDED_SIGNUP",
+      event: "FINISH_ONLY_WABA",
+      data: { waba_ids: ["524126980791429"] },
+    })
+    assert.equal(onlyWaba.kind, "session")
+    if (onlyWaba.kind !== "session") return
+    assert.equal(onlyWaba.phoneNumberId, undefined)
+    assert.equal(onlyWaba.wabaId, "524126980791429")
+
+    const cancelled = parseEmbeddedSignupMessage({
+      type: "WA_EMBEDDED_SIGNUP",
+      event: "CANCEL",
+      data: { error_message: "Name rejected", error_code: "524126" },
+    })
+    assert.equal(cancelled.kind, "cancel")
+    if (cancelled.kind !== "cancel") return
+    assert.equal(cancelled.message, "Name rejected")
+
+    assert.equal(parseEmbeddedSignupMessage({ type: "other" }).kind, "ignore")
+    assert.equal(parseEmbeddedSignupMessage("not-json").kind, "ignore")
+  })
+
+  it("logs an unknown Embedded Signup shape once and still keeps any ids it could read", () => {
+    resetEmbeddedSignupShapeLog()
+    const warnings: unknown[][] = []
+    const original = console.warn
+    console.warn = (...args: unknown[]) => { warnings.push(args) }
+    try {
+      const parsed = parseEmbeddedSignupMessage({
+        type: "WA_EMBEDDED_SIGNUP",
+        event: "FINISH_SOMETHING_NEW",
+        data: { phoneNumberId: "99", unexpected: true },
+      })
+      assert.equal(parsed.kind, "unknown")
+      if (parsed.kind !== "unknown") return
+      assert.equal(parsed.phoneNumberId, "99")
+      assert.equal(logUnknownEmbeddedSignupOnce(parsed.shape), true)
+      assert.equal(logUnknownEmbeddedSignupOnce(parsed.shape), false)
+      assert.equal(warnings.length, 1)
+      assert.match(String(warnings[0][1]), /FINISH_SOMETHING_NEW/)
+    } finally {
+      console.warn = original
+      resetEmbeddedSignupShapeLog()
+    }
+  })
+
+  it("registers a number that is not on Cloud API, reuses the sealed PIN, and skips when already registered", async () => {
+    const previousSecret = process.env.BYOK_ENCRYPTION_SECRET
+    process.env.BYOK_ENCRYPTION_SECRET = "phase4-whatsapp-pin-secret"
+    try {
+      const unregistered = { status: "PENDING", platformType: "NOT_APPLICABLE" }
+      assert.equal(isPhoneNumberRegistered(unregistered), false)
+      assert.equal(isPhoneNumberRegistered({ status: "CONNECTED", platformType: "CLOUD_API" }), true)
+
+      const first = preparePhoneRegistration(unregistered, null, () => 42)
+      assert.equal(first.action, "register")
+      assert.equal(first.pin, "000042")
+      assert.equal(first.reused, false)
+      const cipher = registrationPinCipherToStore(first, "registered")
+      assert.equal(cipher?.startsWith("enc:v1:"), true)
+      assert.equal(openAccessToken(cipher), "000042")
+      assert.equal(metadataWithoutRegistrationPin({ registration_pin: cipher, name: "Shop" })?.registration_pin, undefined)
+
+      const again = preparePhoneRegistration(unregistered, { registration_pin: cipher }, () => 1)
+      assert.equal(again.action, "register")
+      assert.equal(again.pin, "000042")
+      assert.equal(again.reused, true)
+
+      const skip = preparePhoneRegistration({ status: "CONNECTED", platformType: "CLOUD_API" }, { registration_pin: cipher })
+      assert.equal(skip.action, "skip")
+      assert.equal(skip.pin, "000042")
+      assert.equal(openAccessToken(registrationPinCipherToStore(skip, "skipped")), "000042")
+
+      const { fetchImpl, calls } = captureFetch(async (url) => {
+        if (url.includes("/phone-1/register")) return { json: { success: true } }
+        if (url.includes("/phone-1?")) {
+          return { json: { id: "phone-1", display_phone_number: "+20 100", status: "PENDING", platform_type: "NOT_APPLICABLE" } }
+        }
+        return { json: {} }
+      })
+      const loaded = await fetchPhoneNumber("phone-1", "token", fetchImpl)
+      assert.equal(loaded?.status, "PENDING")
+      assert.equal(loaded?.platformType, "NOT_APPLICABLE")
+      assert.match(calls[0].url, /fields=.*status/)
+      assert.match(calls[0].url, /platform_type/)
+
+      const registered = await registerPhoneNumber("phone-1", "token", "000042", fetchImpl)
+      assert.equal(registered.ok, true)
+      const body = JSON.parse(calls[1].init.body)
+      assert.deepEqual(body, { messaging_product: "whatsapp", pin: "000042" })
+      assert.equal(calls[1].init.headers.Authorization, "Bearer token")
+
+      const already = await registerPhoneNumber("phone-1", "token", "000099", async () => jsonResponse({
+        error: { message: "(#100) Phone number already registered", code: 100 },
+      }, false, 400))
+      assert.equal(already.ok, true)
+      if (already.ok) assert.equal(already.alreadyRegistered, true)
+      const fresh = preparePhoneRegistration(unregistered, null, () => 7)
+      assert.equal(registrationPinCipherToStore(fresh, "already-registered"), null)
+
+      const mismatch = registrationFailureMessage({ error: { code: 133005, message: "PIN mismatch" } })
+      assert.match(mismatch, /two-step verification PIN/)
+    } finally {
+      if (previousSecret === undefined) delete process.env.BYOK_ENCRYPTION_SECRET
+      else process.env.BYOK_ENCRYPTION_SECRET = previousSecret
+    }
+  })
+
+  it("deregisters and unsubscribes on disconnect without throwing when Meta refuses", async () => {
+    assert.equal(wabaIdFromConnection({ page_id: "phone-1", external_account_id: "phone-1", metadata: { waba_id: "waba-1" } }), "waba-1")
+    assert.equal(wabaIdFromConnection({ page_id: "phone-1", external_account_id: "phone-1" }), null)
+    assert.equal(shouldUnsubscribeWaba(["waba-1"], "waba-1"), false)
+    assert.equal(shouldUnsubscribeWaba(["waba-2"], "waba-1"), true)
+    assert.equal(shouldUnsubscribeWaba([], null), false)
+
+    const { fetchImpl, calls } = captureFetch(async (url, init) => {
+      if (String(init?.method) === "DELETE") return { json: { success: true } }
+      if (url.endsWith("/deregister")) return { ok: false, status: 400, json: { error: { message: "rate limited", code: 133016 } } }
+      return { json: { success: true } }
+    })
+    const errors: unknown[] = []
+    const original = console.error
+    console.error = (...args: unknown[]) => { errors.push(args) }
+    try {
+      await releaseWhatsAppConnection({
+        accessToken: "token",
+        phoneNumberId: "phone-1",
+        wabaId: "waba-1",
+        unsubscribe: true,
+      }, fetchImpl)
+    } finally {
+      console.error = original
+    }
+    assert.equal(calls[0].init.method, "DELETE")
+    assert.match(calls[0].url, /\/waba-1\/subscribed_apps$/)
+    assert.match(calls[1].url, /\/phone-1\/deregister$/)
+    assert.equal(calls[1].init.method, "POST")
+    assert.equal(errors.length, 1)
+
+    const removed = await unsubscribeWaba("waba-9", "token", fetchImpl)
+    assert.equal(removed, true)
+    const deregistered = await deregisterPhoneNumber("phone-9", "token", async () => jsonResponse({ success: true }))
+    assert.equal(deregistered.ok, true)
   })
 })

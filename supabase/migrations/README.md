@@ -154,11 +154,12 @@ The script:
 Meta, for WhatsApp:
 
 - Add the WhatsApp product to the same Meta app Helixa already uses.
-- Create an Embedded Signup configuration and set
-  `NEXT_PUBLIC_WHATSAPP_CONFIG_ID` to its id. Without that id, the dashboard
-  still connects a number with a phone number id and a system-user token.
-  The number must already be registered in WhatsApp Manager. This app does
-  not call `/{phone-number-id}/register`.
+- Create a **v4** Facebook Login for Business configuration (Embedded
+  Signup, product Cloud API) and set `NEXT_PUBLIC_WHATSAPP_CONFIG_ID` to
+  its id. v2 and v3 configurations stop working on 15 Oct 2026. Without
+  that id, the dashboard still connects a number with a phone number id
+  and a system-user token. Connect calls `/{phone-number-id}/register`
+  when the number is not already registered for Cloud API.
 - System-user token scopes: `whatsapp_business_messaging` and
   `whatsapp_business_management`.
 - Webhook callback `{APP_URL}/api/whatsapp/webhook`, verify token
