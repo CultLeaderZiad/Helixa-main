@@ -56,7 +56,7 @@ WhatsApp:
 | Variable | Used for |
 | --- | --- |
 | `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | Falls back to the Instagram verify token |
-| `NEXT_PUBLIC_WHATSAPP_CONFIG_ID` | Embedded Signup. Without it, paste a phone number id and system-user token |
+| `NEXT_PUBLIC_WHATSAPP_CONFIG_ID` | v4 Embedded Signup configuration id. v2/v3 stop working on 15 Oct 2026. Without it, paste a phone number id and system-user token |
 
 TikTok. Leave the flags unset until the app is approved. See `docs/phase4-channels.md`.
 

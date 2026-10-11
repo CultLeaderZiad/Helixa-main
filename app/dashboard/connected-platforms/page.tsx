@@ -20,6 +20,11 @@ import { fetcher } from "@/lib/fetcher"
 import SpotlightCard from "@/components/ui/SpotlightCard"
 import Link from "next/link"
 import { GRAPH_API_VERSION } from "@/lib/graph"
+import {
+  embeddedSignupLoginOptions,
+  logUnknownEmbeddedSignupOnce,
+  parseEmbeddedSignupMessage,
+} from "@/lib/whatsapp/embedded-signup"
 import { toast } from "sonner"
 
 declare global {
@@ -160,6 +165,7 @@ export default function ConnectedPlatformsPage() {
 
   const whatsappConfigId = process.env.NEXT_PUBLIC_WHATSAPP_CONFIG_ID || ""
   const waSessionRef = useRef<{ phone_number_id?: string; waba_id?: string }>({})
+  const waSignupNoticeRef = useRef<string | null>(null)
   const [waPhoneId, setWaPhoneId] = useState("")
   const [waToken, setWaToken] = useState("")
   const [waWabaId, setWaWabaId] = useState("")
@@ -223,12 +229,15 @@ export default function ConnectedPlatformsPage() {
       if (typeof data === "string") {
         try { data = JSON.parse(data) } catch { return }
       }
-      if (data?.type === "WA_EMBEDDED_SIGNUP" && data?.event === "FINISH") {
+      const parsed = parseEmbeddedSignupMessage(data)
+      if (parsed.kind === "session" || (parsed.kind === "unknown" && (parsed.phoneNumberId || parsed.wabaId))) {
         waSessionRef.current = {
-          phone_number_id: data.data?.phone_number_id,
-          waba_id: data.data?.waba_id,
+          phone_number_id: parsed.phoneNumberId || waSessionRef.current.phone_number_id,
+          waba_id: parsed.wabaId || waSessionRef.current.waba_id,
         }
       }
+      if (parsed.kind === "cancel" && parsed.message) waSignupNoticeRef.current = parsed.message
+      if (parsed.kind === "unknown") logUnknownEmbeddedSignupOnce(parsed.shape)
     }
     window.addEventListener("message", onMessage)
     return () => window.removeEventListener("message", onMessage)
@@ -361,6 +370,7 @@ export default function ConnectedPlatformsPage() {
       })
       const data = await res.json()
       if (!res.ok) {
+        if (data.numbers?.length) mutateConnections()
         setWaError(data.error || "WhatsApp connection failed.")
         return
       }
@@ -383,11 +393,12 @@ export default function ConnectedPlatformsPage() {
     }
     setWaError(null)
     waSessionRef.current = {}
+    waSignupNoticeRef.current = null
     window.FB.login(
       (response: any) => {
         const code = response?.authResponse?.code
         if (!code) {
-          setWaError("Embedded Signup was cancelled.")
+          setWaError(waSignupNoticeRef.current || "Embedded Signup was cancelled.")
           return
         }
         const sessionInfo = waSessionRef.current
@@ -397,12 +408,7 @@ export default function ConnectedPlatformsPage() {
           ...(sessionInfo.waba_id ? { waba_id: sessionInfo.waba_id } : {}),
         })
       },
-      {
-        config_id: whatsappConfigId,
-        response_type: "code",
-        override_default_response_type: true,
-        extras: { setup: {}, sessionInfoVersion: "3" },
-      },
+      embeddedSignupLoginOptions(whatsappConfigId),
     )
   }
 

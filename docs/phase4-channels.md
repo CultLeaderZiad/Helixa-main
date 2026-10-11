@@ -12,15 +12,29 @@ loads `conversations.channel_account_id` and sends through that number. If a
 workspace has several numbers and the conversation has no account id, the send
 returns 409 instead of using the first row.
 
-Embedded Signup uses `FB.login` with `config_id` = `NEXT_PUBLIC_WHATSAPP_CONFIG_ID`,
-`response_type: code`, `override_default_response_type: true`, and
-`extras.sessionInfoVersion: 3`. The finish postMessage supplies
-`phone_number_id` and `waba_id`. The server exchanges the code at
-`GET /oauth/access_token` with the app id and secret and no `redirect_uri`.
+Embedded Signup v4 uses `FB.login` with `config_id` =
+`NEXT_PUBLIC_WHATSAPP_CONFIG_ID`, `response_type: code`,
+`override_default_response_type: true`, and `extras: { setup: {} }`.
+Do not send `sessionInfoVersion`. v2 and v3 are deprecated on 15 Oct 2026,
+and the configuration id is what selects v4. The `WA_EMBEDDED_SIGNUP`
+postMessage still supplies `data.phone_number_id` and `data.waba_id` on
+`FINISH` (and on the other `FINISH_*` events when those assets exist). The
+server exchanges the code at `GET /oauth/access_token` with the app id and
+secret and no `redirect_uri`.
 
-Manual fallback: phone number id + system-user token + optional WABA id. The
-number must already be registered in WhatsApp Manager. This app does not call
-`/{phone-number-id}/register`.
+Connect then subscribes the app to the WABA and, when
+`platform_type` is not `CLOUD_API` or `status` is not `CONNECTED`, calls
+`POST /{phone-number-id}/register` with `messaging_product: "whatsapp"` and
+a 6-digit PIN. The PIN is sealed with `sealAccessToken` and stored on the
+connection metadata. It is stripped from `GET /api/user/connections`. A
+reconnect reuses that PIN and skips register when Meta already reports the
+number registered. Disconnect deletes the row either way, and best-effort
+calls `POST /{phone-number-id}/deregister` plus
+`DELETE /{waba-id}/subscribed_apps` when no other saved number shares that
+WABA.
+
+Manual fallback: phone number id + system-user token + optional WABA id.
+That path registers the number too, when it is not already registered.
 
 Approved templates sync from `GET /{waba-id}/message_templates` and send with
 `type: template`. That send is the one that works after the 24-hour window.
