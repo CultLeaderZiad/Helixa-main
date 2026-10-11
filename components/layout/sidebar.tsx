@@ -125,9 +125,11 @@ export function Sidebar({
       {/* Brand Header */}
       <div className="px-4 pt-4 pb-3 flex items-center justify-between">
         <HelixaLogo size="sm" href="/dashboard" />
-        <span className="text-[10px] font-mono tracking-wider px-1.5 py-0.5 rounded-[4px] bg-[var(--s2)] border border-[var(--line2)] text-[var(--t3)] uppercase">
-          AGENCY
-        </span>
+        {plan && (
+          <span className="text-[10.5px] font-medium px-1.5 py-0.5 rounded-[4px] bg-[var(--s2)] border border-[var(--line2)] text-[var(--t2)] capitalize">
+            {plan.toLowerCase()}
+          </span>
+        )}
       </div>
 
       {/* Workspace Switcher */}
@@ -156,7 +158,14 @@ export function Sidebar({
       {/* Navigation List */}
       <nav className="flex-1 px-2.5 space-y-0.5 overflow-y-auto overflow-x-hidden">
         {CORE_NAV.map(({ href, icon: Icon, label, badge, isAi }) => {
+          const isAiAgentActive =
+            href === "/dashboard/ai-engine" &&
+            (pathname.startsWith("/dashboard/ai-engine") ||
+              pathname.startsWith("/dashboard/agents") ||
+              pathname.startsWith("/dashboard/ice-breakers"))
+
           const active =
+            isAiAgentActive ||
             pathname === href ||
             (href !== "/dashboard" && pathname.startsWith(href))
 
@@ -261,10 +270,10 @@ export function Sidebar({
         <Link
           href="/dashboard/updates"
           onClick={onNavigate}
-          className="flex items-center justify-between px-2 py-1.5 rounded-[6px] text-[12px] text-[var(--t2)] hover:text-[var(--t1)] hover:bg-[var(--s2)] transition-colors group"
+          className="flex items-center justify-between px-2.5 py-1.5 rounded-[6px] border border-dashed border-[var(--line2)] text-[12px] text-[var(--t2)] hover:text-[var(--t1)] hover:bg-[var(--s2)] transition-colors group"
         >
           <span className="flex items-center gap-2">
-            <span className="size-1.5 rounded-full bg-[var(--amber)]" />
+            <span className="size-1.5 rounded-full bg-[var(--gold)] shrink-0" />
             <span>What&apos;s new</span>
           </span>
           <ChevronRight className="size-3 text-[var(--t3)] group-hover:text-[var(--t2)] transition-transform group-hover:translate-x-0.5" />

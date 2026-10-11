@@ -1,11 +1,13 @@
 import * as React from "react"
+import { Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-interface KPICardProps {
+export interface KPICardProps {
   label: string
   value: string | number
   delta?: string
   deltaType?: "increase" | "decrease" | "neutral"
+  invertDeltaColor?: boolean
   isAiMetric?: boolean
   sparklinePoints?: number[]
   className?: string
@@ -16,11 +18,12 @@ export function KPICard({
   value,
   delta,
   deltaType = "increase",
+  invertDeltaColor = false,
   isAiMetric = false,
   sparklinePoints,
   className,
 }: KPICardProps) {
-  const strokeColor = isAiMetric ? "var(--gold)" : "var(--line3)"
+  const strokeColor = isAiMetric ? "var(--gold)" : "var(--t3)"
 
   // Render a minimal, GPU-friendly 22px SVG sparkline
   const renderSparkline = () => {
@@ -57,12 +60,17 @@ export function KPICard({
     )
   }
 
+  // Determine delta color: green is good, red is bad
+  const isPositive = invertDeltaColor
+    ? deltaType === "decrease"
+    : deltaType === "increase"
+
   const deltaColorClass =
-    deltaType === "increase"
+    deltaType === "neutral"
+      ? "text-[var(--t3)]"
+      : isPositive
       ? "text-[var(--green)]"
-      : deltaType === "decrease"
-      ? "text-[var(--red)]"
-      : "text-[var(--t3)]"
+      : "text-[var(--red)]"
 
   return (
     <div
@@ -71,13 +79,11 @@ export function KPICard({
         className
       )}
     >
-      <div className="flex items-center justify-between text-[12px] text-[var(--t2)] font-medium mb-2">
-        <span className="truncate">{label}</span>
+      <div className="flex items-center gap-1.5 text-[12px] text-[var(--t2)] font-medium mb-2">
         {isAiMetric && (
-          <span className="text-[var(--gold)] text-[10px] font-mono uppercase tracking-wider">
-            AI
-          </span>
+          <Sparkles className="size-3 text-[var(--gold)] shrink-0" />
         )}
+        <span className="truncate">{label}</span>
       </div>
 
       <div className="flex items-baseline justify-between gap-2">

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { ArrowRight, Sparkles, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -14,8 +15,14 @@ interface BannerState {
 }
 
 export function GlobalBanner() {
+  const pathname = usePathname()
   const [banner, setBanner] = useState<BannerState | null>(null)
   const [isVisible, setIsVisible] = useState(false)
+
+  // Do not render banner on dashboard pages
+  if (pathname?.startsWith("/dashboard")) {
+    return null
+  }
 
   useEffect(() => {
     // Check if dismissed in this session

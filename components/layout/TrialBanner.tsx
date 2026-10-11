@@ -1,70 +1,65 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { useLanguage } from "@/lib/i18n/LanguageContext"
+import Link from "next/link"
+import { X, Clock } from "lucide-react"
 
 export function TrialBanner({ plan, trialEndsAt }: { plan: string; trialEndsAt: string | null }) {
-  const router = useRouter()
-  const { t } = useLanguage()
-  const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number, seconds: number } | null>(null)
+  const [dismissed, setDismissed] = useState(true)
+  const [daysRemaining, setDaysRemaining] = useState<number | null>(null)
 
   useEffect(() => {
-    if (plan === "expired") {
-      router.push("/dashboard/billing")
+    if (sessionStorage.getItem("trial_banner_dismissed") === "true") {
       return
     }
 
-    if (plan !== "trial" || !trialEndsAt) return
-
-    const updateTimer = () => {
-      const now = new Date().getTime()
-      const end = new Date(trialEndsAt).getTime()
-      const diff = end - now
-
-      if (diff <= 0) {
-        setTimeLeft(null)
-        router.push("/dashboard/billing")
-        return
-      }
-
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000)
-
-      setTimeLeft({ days, hours, minutes, seconds })
+    if (plan !== "trial" || !trialEndsAt) {
+      return
     }
 
-    // Initial call
-    updateTimer()
-    
-    // Update every second
-    const intervalId = setInterval(updateTimer, 1000)
-    
-    return () => clearInterval(intervalId)
-  }, [plan, trialEndsAt, router])
+    const end = new Date(trialEndsAt).getTime()
+    const now = Date.now()
+    const diff = end - now
 
-  if (plan !== "trial" || !timeLeft) {
+    if (diff > 0) {
+      const days = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)))
+      setDaysRemaining(days)
+      setDismissed(false)
+    }
+  }, [plan, trialEndsAt])
+
+  if (dismissed || plan !== "trial" || daysRemaining === null) {
     return null
   }
 
+  const handleDismiss = () => {
+    setDismissed(true)
+    sessionStorage.setItem("trial_banner_dismissed", "true")
+  }
+
   return (
-    <div className="bg-[#111318]/95 backdrop-blur-md border-b border-[#e5a93c]/20 text-zinc-300 py-2 px-4 text-xs sm:text-sm font-medium z-40 relative flex flex-wrap items-center justify-center gap-3 w-full shadow-md">
-      <span className="flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-[#e5a93c] animate-pulse" />
-        {t.trialExpiresIn}{" "}
-        <span className="font-mono bg-[#e5a93c]/10 text-[#f3ba4f] border border-[#e5a93c]/25 px-2.5 py-0.5 rounded-full text-xs font-bold tabular-nums">
-          {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s
+    <div className="h-9 bg-[var(--s2)] border-b border-[var(--line)] text-[var(--t2)] px-4 flex items-center justify-between text-[12px] select-none z-20 relative">
+      <div className="flex items-center gap-2 mx-auto">
+        <Clock className="size-3.5 text-[var(--t3)] shrink-0" />
+        <span>
+          Your trial has <strong className="font-mono text-[var(--t1)]">{daysRemaining} {daysRemaining === 1 ? "day" : "days"}</strong> remaining.
         </span>
-      </span>
-      <a 
-        href="/dashboard/billing" 
-        className="inline-flex items-center gap-1 bg-[#e5a93c] hover:bg-[#d4952b] text-black text-xs font-bold px-3 py-1 rounded-full transition-all shadow-sm"
+        <Link
+          href="/dashboard/billing"
+          className="ms-2 px-2.5 py-0.5 rounded-[4px] bg-[var(--s3)] border border-[var(--line2)] text-[var(--t1)] hover:bg-[var(--s4)] transition-colors text-[11.5px] font-medium"
+        >
+          Choose a plan
+        </Link>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleDismiss}
+        aria-label="Dismiss trial banner"
+        className="size-5 rounded-[4px] hover:bg-[var(--s3)] text-[var(--t3)] hover:text-[var(--t1)] flex items-center justify-center transition-colors cursor-pointer shrink-0"
       >
-        <span>{t.upgradeNow}</span>
-        <span aria-hidden="true">&rarr;</span>
-      </a>
+        <X className="size-3.5" />
+      </button>
     </div>
   )
 }

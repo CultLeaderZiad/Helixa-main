@@ -198,12 +198,10 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
-/* ─── Typography Utilities ─── */
-.font-serif-display {
-  font-family: var(--font-instrument-serif), Georgia, serif;
-}
-.font-mono-ui {
-  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+/* ─── Fade Mask Utilities ─── */
+.fade-b {
+  mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
 }
 
 /* ─── Arabic Typography & RTL Support ─── */
