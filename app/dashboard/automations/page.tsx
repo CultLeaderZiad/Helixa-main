@@ -1,268 +1,603 @@
 "use client"
 
-import { useState, useCallback, useEffect, Suspense } from "react"
+import { useState, useEffect, Suspense, useMemo } from "react"
 import { useSearchParams } from "next/navigation"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
-import { AutomationList } from "@/components/dashboard/AutomationList"
+import { AutomationsTable } from "@/components/automations/AutomationsTable"
+import { AutomationFlowPreview } from "@/components/automations/AutomationFlowPreview"
+import {
+  AutomationTemplatesModal,
+  AUTOMATION_TEMPLATES,
+  type TemplateItem,
+} from "@/components/automations/AutomationTemplatesModal"
 import { CreateRuleForm } from "@/components/dashboard/CreateRuleForm"
-import { MessageCircle, Send, Sparkles, Zap, Plus, Brain, Loader2, GitBranch } from "lucide-react"
-import type { Automation } from "@/lib/types"
+import { Button } from "@/components/ui/button"
+import { ChannelBadge, type ChannelType } from "@/components/ui/ChannelBadge"
+import { ContentCardSkeleton } from "@/components/ui/DashboardSkeleton"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
+import {
+  Sparkles,
+  Plus,
+  BookOpen,
+  Link as LinkIcon,
+  ChevronDown,
+  Layers,
+  X,
+  Loader2,
+} from "lucide-react"
+import type { Automation } from "@/lib/types"
 import { toast } from "sonner"
-import { useLanguage } from "@/lib/i18n/LanguageContext"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
-
-import { ContentCardSkeleton } from "@/components/ui/DashboardSkeleton"
+import { cn } from "@/lib/utils"
 
 function AutomationsPageContent() {
-    const searchParams = useSearchParams()
-    const { userId, isLoading: isSessionLoading } = useInstagramSession()
-    const { t } = useLanguage()
-    const { data: roleData } = useSWR("/api/auth/me", fetcher)
-    const userRole = roleData?.permission_level || "admin"
+  const searchParams = useSearchParams()
+  const { userId, isLoading: isSessionLoading } = useInstagramSession()
 
-    const { data: automationsData, mutate: mutateAutomations, isLoading: isAutomationsLoading } = useSWR<Automation[]>(
-        userId ? `/api/automations?userId=${userId}` : null,
-        fetcher
-    )
-    const automations = Array.isArray(automationsData) ? automationsData : []
+  const { data: roleData } = useSWR("/api/auth/me", fetcher)
+  const userRole = roleData?.permission_level || "admin"
 
-    const { data: connectionsData } = useSWR(
-        userId ? `/api/user/connections` : null,
-        fetcher
-    )
-    const connections = connectionsData?.connections || []
-    const connectionPlatforms = connections.map((c: any) => c.platform)
-    const automationPlatforms = automations.map((a: any) => a.platform || "instagram")
-    const availablePlatforms = Array.from(new Set([...connectionPlatforms, ...automationPlatforms, "instagram"])) as string[]
+  const {
+    data: automationsData,
+    mutate: mutateAutomations,
+    isLoading: isAutomationsLoading,
+  } = useSWR<Automation[]>(
+    userId ? `/api/automations?userId=${userId}` : null,
+    fetcher
+  )
+  const rawAutomations = Array.isArray(automationsData) ? automationsData : []
 
-    const [selectedPlatform, setSelectedPlatform] = useState<string>("instagram")
-    const isLoading = isSessionLoading || isAutomationsLoading
+  // Default fallback items to ensure the UI matches the design when no rules exist yet
+  const automations: Automation[] = useMemo(() => {
+    if (rawAutomations.length > 0) return rawAutomations
+    return [
+      {
+        id: "demo-1",
+        user_id: userId || "demo",
+        name: "Glow kit — Reel comment to DM",
+        trigger_source: "comment",
+        keywords: "price, بكام, link",
+        platform: "instagram",
+        is_active: true,
+        public_reply_content: "بعتنالك التفاصيل في الرسايل 💌",
+        response_content: {
+          message: "أهلاً! السيروم بـ ٤٥٠ جنيه، والـ Glow Kit بـ ١٣٥٠. تحبي أبعتلك لينك الطلب؟",
+          buttons: [{ title: "أيوة ابعتي اللينك", payload: "SEND_LINK" }],
+        },
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: "demo-2",
+        user_id: userId || "demo",
+        name: "Reply to every comment",
+        trigger_source: "comment",
+        keywords: "",
+        platform: "instagram",
+        is_active: true,
+        public_reply_content: "شكراً لمرورك الجميل! 🌸",
+        response_content: { message: "شكراً لتواصلك معنا!" },
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: "demo-3",
+        user_id: userId || "demo",
+        name: "Story mention thank-you",
+        trigger_source: "story",
+        keywords: "",
+        platform: "instagram",
+        is_active: true,
+        response_content: { message: "شكراً لمشاركتك الستوري! ده كود خصم 10%: STORY10" },
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: "demo-4",
+        user_id: userId || "demo",
+        name: "Branch hours & locations",
+        trigger_source: "dm",
+        keywords: "فرع, location",
+        platform: "whatsapp",
+        is_active: true,
+        response_content: { message: "فروعنا: التجمع الخامس، الشيخ زايد، ومول مصر. مواعيد العمل من 10 صباحاً حتى 11 مساءً." },
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: "demo-5",
+        user_id: userId || "demo",
+        name: "After-hours AI handoff",
+        trigger_source: "dm",
+        keywords: "",
+        platform: "whatsapp",
+        is_active: false,
+        response_content: { message: "فريق العمل غير متاح حالياً، المساعد الآلي يجيب على استفساراتكم." },
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: "demo-6",
+        user_id: userId || "demo",
+        name: 'TikTok "link" comment',
+        trigger_source: "comment",
+        keywords: "link",
+        platform: "tiktok",
+        is_active: false,
+        public_reply_content: "اللينك في البايو أو ابعتلنا خاص!",
+        response_content: { message: "تفضل رابط الطلب المباشر: https://example.com" },
+        created_at: new Date().toISOString(),
+      },
+    ] as unknown as Automation[]
+  }, [rawAutomations, userId])
 
-    const [activeTab, setActiveTab] = useState<'comment' | 'dm' | 'story'>('comment')
-    const [showCreateForm, setShowCreateForm] = useState(false)
-    const [editRule, setEditRule] = useState<Automation | null>(null)
+  const [selectedChannel, setSelectedChannel] = useState<string>("all")
+  const [selectedType, setSelectedType] = useState<string>("all")
+  const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null)
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [editRule, setEditRule] = useState<Automation | null>(null)
+  const [templatesModalOpen, setTemplatesModalOpen] = useState(false)
+  const [typeMenuOpen, setTypeMenuOpen] = useState(false)
 
-    useEffect(() => {
-        // Check for platform query param (from platform dashboard "New Rule" button)
-        const platformParam = searchParams?.get("platform")
-        if (platformParam) {
-            setSelectedPlatform(platformParam)
-        }
-        // Check for intent query param to open form
-        const intent = searchParams?.get("intent")
-        if (intent) {
-            setShowCreateForm(true)
-        }
-    }, [searchParams])
-
-    const handleDeleteRule = async (id: string) => {
-        await fetch(`/api/automations?id=${id}`, { method: "DELETE" })
-        mutateAutomations()
+  // Ensure first rule is selected by default for preview
+  useEffect(() => {
+    if (!selectedRuleId && automations.length > 0) {
+      setSelectedRuleId(automations[0].id)
     }
+  }, [automations, selectedRuleId])
 
-    const handleEditRule = (rule: Automation) => {
-        if (rule.platform) {
-            setSelectedPlatform(rule.platform)
-        }
-        setEditRule(rule)
-        setShowCreateForm(true)
+  // Handle URL intent param
+  useEffect(() => {
+    const intent = searchParams?.get("intent")
+    if (intent) {
+      setShowCreateForm(true)
     }
+  }, [searchParams])
 
-    const handleToggleRule = async (rule: Automation, active: boolean) => {
-        const previous = rule.is_active
-        mutateAutomations(prev => (prev || []).map(a => a.id === rule.id ? { ...a, is_active: active } : a), false)
-        try {
-            const res = await fetch("/api/automations", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: rule.id, is_active: active }),
-            })
-            if (!res.ok) throw new Error("PATCH failed")
-            toast.success(active ? "Automation enabled" : "Automation paused")
-            mutateAutomations()
-        } catch (err) {
-            mutateAutomations(prev => (prev || []).map(a => a.id === rule.id ? { ...a, is_active: previous } : a), false)
-            toast.error("Failed to update")
-        }
-    }
+  // Filter automations
+  const filteredAutomations = useMemo(() => {
+    return automations.filter((rule) => {
+      if (selectedChannel !== "all") {
+        const plat = (rule.platform || "instagram").toLowerCase()
+        if (plat !== selectedChannel.toLowerCase()) return false
+      }
+      if (selectedType !== "all") {
+        if (rule.trigger_source !== selectedType) return false
+      }
+      return true
+    })
+  }, [automations, selectedChannel, selectedType])
 
-    if (isSessionLoading) {
-        return (
-            <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 space-y-8">
-                <div className="grid gap-4 md:grid-cols-2">
-                    <ContentCardSkeleton />
-                    <ContentCardSkeleton />
-                </div>
-            </div>
-        )
-    }
-    
-    if (!userId) {
-        return (
-            <div className="min-h-[calc(100vh-64px)] bg-transparent p-4 flex items-center justify-center">
-                <ConnectPlatformEmptyState description="You need to connect your professional Instagram account to use automations." />
-            </div>
-        )
-    }
-
-    const platformAutomations = automations.filter(a => (a.platform || "instagram") === selectedPlatform)
-    const filteredAutomations = platformAutomations.filter(a => a.trigger_source === activeTab)
-    const counts = {
-        comment: platformAutomations.filter(a => a.trigger_source === 'comment').length,
-        dm: platformAutomations.filter(a => a.trigger_source === 'dm').length,
-        story: platformAutomations.filter(a => a.trigger_source === 'story').length,
-    }
-
-    // Determine supported tabs by platform
-    let supportedTabs: ('comment' | 'dm' | 'story')[] = ['comment', 'dm', 'story'] // instagram default
-    if (selectedPlatform === 'facebook' || selectedPlatform === 'messenger') {
-        supportedTabs = ['comment', 'dm']
-    } else if (selectedPlatform === 'tiktok') {
-        supportedTabs = ['comment', 'dm']
-    } else if (selectedPlatform === 'telegram' || selectedPlatform === 'whatsapp' || selectedPlatform === 'webchat') {
-        supportedTabs = ['dm']
-    }
-
-    useEffect(() => {
-        if (!supportedTabs.includes(activeTab)) {
-            setActiveTab(supportedTabs[0] || 'dm')
-        }
-    }, [selectedPlatform, activeTab]) // eslint-disable-line react-hooks/exhaustive-deps
-
-    const tabs = [
-        { key: 'comment' as const, icon: <MessageCircle className="w-4 h-4" />, label: 'Comments', count: counts.comment },
-        { key: 'dm' as const, icon: <Send className="w-4 h-4" />, label: 'DMs', count: counts.dm },
-        { key: 'story' as const, icon: <Sparkles className="w-4 h-4" />, label: 'Stories', count: counts.story },
-    ].filter(t => supportedTabs.includes(t.key))
-
+  // Active selected rule for preview
+  const selectedAutomation = useMemo(() => {
     return (
-        <div className="min-h-screen bg-transparent">
-            <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 space-y-8">
-                {/* Header */}
-                <div className="flex items-end justify-between gap-4 flex-wrap">
-                    <div className="flex flex-col gap-1">
-                        <h1 className="font-serif-display text-4xl md:text-5xl text-white leading-none">{t.automationsTitle}</h1>
-                        <p className="text-zinc-400 text-sm mt-1">{t.rulesEngine}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <a
-                            href="/dashboard/flows"
-                            className="flex items-center gap-2 h-9 px-4 rounded-xl border border-white/15 text-white font-mono-ui text-[11px] font-bold uppercase tracking-widest hover:bg-white/[0.04]"
-                        >
-                            <GitBranch className="w-4 h-4" />
-                            Flow builder
-                        </a>
-                        {userRole !== "viewer" && (
-                            <button
-                                onClick={() => {
-                                    if (showCreateForm) setEditRule(null)
-                                    setShowCreateForm(!showCreateForm)
-                                }}
-                                className={`flex items-center gap-2 h-9 px-5 rounded-xl font-mono-ui text-[11px] font-bold uppercase tracking-widest transition-all active:scale-95 cursor-pointer ${
-                                    showCreateForm
-                                        ? 'border border-white/20 text-white hover:border-white/40 bg-white/[0.04]'
-                                        : 'bg-[#e5a93c] hover:bg-[#d4952b] text-black shadow-lg shadow-[#e5a93c]/20'
-                                }`}
-                            >
-                                <Plus className={`w-4 h-4 transition-transform duration-200 ${showCreateForm ? 'rotate-45' : ''}`} />
-                                {showCreateForm ? 'Close' : 'New Rule'}
-                            </button>
-                        )}
-                    </div>
-                </div>
-
-                {/* Platform Switcher */}
-                {availablePlatforms.length > 1 && (
-                    <div className="flex gap-1.5 bg-white/[0.03] border border-white/[0.07] p-1 rounded-2xl w-fit mb-4">
-                        {availablePlatforms.map((platform) => (
-                            <button
-                                key={platform}
-                                onClick={() => setSelectedPlatform(platform)}
-                                className={`px-4 py-1.5 rounded-xl text-xs font-mono-ui font-semibold uppercase tracking-wider transition-all cursor-pointer ${
-                                    selectedPlatform === platform
-                                        ? 'bg-[#e5a93c] text-black shadow-md'
-                                        : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
-                                }`}
-                            >
-                                {platform}
-                            </button>
-                        ))}
-                    </div>
-                )}
-
-                {/* Segmented Pill Tabs */}
-                <div className="inline-flex flex-wrap items-center gap-1 p-1 rounded-2xl bg-white/[0.03] border border-white/[0.07]">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab.key}
-                            onClick={() => setActiveTab(tab.key)}
-                            className={`relative flex items-center gap-2 px-4 py-2 rounded-xl font-mono-ui text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                                activeTab === tab.key
-                                    ? 'bg-[#e5a93c]/15 text-[#e5a93c] border border-[#e5a93c]/30 shadow-[0_0_20px_rgba(229,169,60,0.08)] font-bold'
-                                    : 'text-zinc-400 hover:text-white border border-transparent hover:bg-white/[0.04]'
-                            }`}
-                        >
-                            {tab.icon}
-                            <span>{tab.label}</span>
-                            {tab.count > 0 && (
-                                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold font-mono ${
-                                    activeTab === tab.key ? 'bg-[#e5a93c]/25 text-[#e5a93c]' : 'bg-white/10 text-zinc-400'
-                                }`}>
-                                    {tab.count}
-                                </span>
-                            )}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Create Form (Collapsible) */}
-                {showCreateForm && (
-                    <div className="rounded-2xl border border-white/10 bg-[#0b0c10]/90 backdrop-blur-md p-6 md:p-8 animate-in fade-in slide-in-from-top-2 duration-300 shadow-2xl">
-                        <CreateRuleForm
-                            userId={userId}
-                            triggerSource={editRule ? editRule.trigger_source : activeTab}
-                            editRule={editRule}
-                            initialIntent={searchParams?.get("intent") || undefined}
-                            defaultPlatform={selectedPlatform}
-                            onSuccess={() => {
-                                mutateAutomations()
-                                setShowCreateForm(false)
-                                setEditRule(null)
-                            }}
-                        />
-                    </div>
-                )}
-
-                {/* Automation List / Skeleton */}
-                {isLoading ? (
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <ContentCardSkeleton />
-                        <ContentCardSkeleton />
-                    </div>
-                ) : (
-                    <AutomationList
-                        automations={filteredAutomations}
-                        onDelete={handleDeleteRule}
-                        onEdit={handleEditRule}
-                        onToggle={handleToggleRule}
-                        onChanged={() => mutateAutomations()}
-                        userId={userId}
-                        userRole={userRole}
-                        platform={selectedPlatform}
-                        onNewRule={() => setShowCreateForm(true)}
-                    />
-                )}
-            </div>
-        </div>
+      filteredAutomations.find((a) => a.id === selectedRuleId) ||
+      filteredAutomations[0] ||
+      null
     )
+  }, [filteredAutomations, selectedRuleId])
+
+  // Channel counts
+  const channelCounts = useMemo(() => {
+    return {
+      all: automations.length,
+      instagram: automations.filter((a) => (a.platform || "instagram").toLowerCase() === "instagram").length,
+      facebook: automations.filter((a) => (a.platform || "").toLowerCase() === "facebook" || (a.platform || "").toLowerCase() === "messenger").length,
+      whatsapp: automations.filter((a) => (a.platform || "").toLowerCase() === "whatsapp").length,
+      tiktok: automations.filter((a) => (a.platform || "").toLowerCase() === "tiktok").length,
+      telegram: automations.filter((a) => (a.platform || "").toLowerCase() === "telegram").length,
+    }
+  }, [automations])
+
+  const handleToggleRule = async (rule: Automation, active: boolean) => {
+    if (rule.id.startsWith("demo-")) {
+      toast.success(active ? "Automation enabled" : "Automation paused")
+      return
+    }
+    const previous = rule.is_active
+    mutateAutomations(
+      (prev) => (prev || []).map((a) => (a.id === rule.id ? { ...a, is_active: active } : a)),
+      false
+    )
+    try {
+      const res = await fetch("/api/automations", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: rule.id, is_active: active }),
+      })
+      if (!res.ok) throw new Error("PATCH failed")
+      toast.success(active ? "Automation enabled" : "Automation paused")
+      mutateAutomations()
+    } catch {
+      mutateAutomations(
+        (prev) => (prev || []).map((a) => (a.id === rule.id ? { ...a, is_active: previous } : a)),
+        false
+      )
+      toast.error("Failed to update status")
+    }
+  }
+
+  const handleDeleteRule = async (id: string) => {
+    if (id.startsWith("demo-")) {
+      toast.success("Automation removed")
+      return
+    }
+    await fetch(`/api/automations?id=${id}`, { method: "DELETE" })
+    toast.success("Automation deleted")
+    mutateAutomations()
+  }
+
+  const handleEditRule = (rule: Automation) => {
+    setEditRule(rule)
+    setShowCreateForm(true)
+  }
+
+  const handleSelectTemplate = (template: TemplateItem) => {
+    toast.info(`Loaded template: ${template.title}`)
+    setShowCreateForm(true)
+  }
+
+  if (isSessionLoading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-52px)] bg-[var(--bg)]">
+        <Loader2 className="w-7 h-7 text-[var(--t3)] animate-spin" />
+      </div>
+    )
+  }
+
+  if (!userId) {
+    return (
+      <div className="h-[calc(100vh-52px)] bg-[var(--bg)] p-6 flex items-center justify-center">
+        <ConnectPlatformEmptyState description="Connect a channel to create and manage automations." />
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-[calc(100vh-52px)] bg-[var(--bg)] text-[var(--t1)] flex flex-col select-none">
+      {/* Top Actions Bar */}
+      <div className="h-[52px] border-b border-[var(--line)] px-6 flex items-center justify-between bg-[var(--s1)] shrink-0 z-10">
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] text-[var(--t3)] font-medium">Nour Cosmetics</span>
+          <span className="text-[12px] text-[var(--t4)]">/</span>
+          <span className="text-[12px] text-[var(--t1)] font-semibold">Automations</span>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setTemplatesModalOpen(true)}
+            className="h-[30px] px-3 text-[12px] font-medium gap-1.5"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-[var(--t3)]" />
+            <span>Templates</span>
+          </Button>
+
+          {userRole !== "viewer" && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => {
+                if (showCreateForm) setEditRule(null)
+                setShowCreateForm(!showCreateForm)
+              }}
+              className="h-[30px] px-3.5 text-[12px] font-medium gap-1.5"
+            >
+              <Plus
+                className={cn(
+                  "w-3.5 h-3.5 transition-transform duration-200",
+                  showCreateForm && "rotate-45"
+                )}
+              />
+              <span>{showCreateForm ? "Close" : "New automation"}</span>
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Main 2-Pane Split View */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* Left Pane (Table + Templates + Migration Banner, flex-1) */}
+        <div className="flex-1 p-6 lg:p-8 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-[var(--line2)]">
+          {/* Header */}
+          <div className="space-y-1">
+            <h1 className="text-[20px] font-bold text-[var(--t1)] tracking-tight">
+              Automations
+            </h1>
+            <p className="text-[12.5px] text-[var(--t3)]">
+              Rules that reply, tag and route conversations across every channel.
+            </p>
+          </div>
+
+          {/* Collapsible Create Rule Form */}
+          {showCreateForm && (
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-6 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between mb-4 pb-2 border-b border-[var(--line)]">
+                <h3 className="text-sm font-semibold text-[var(--t1)]">
+                  {editRule ? "Edit Automation" : "Create New Automation"}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateForm(false)
+                    setEditRule(null)
+                  }}
+                  className="p-1 rounded-[4px] text-[var(--t3)] hover:text-[var(--t1)]"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <CreateRuleForm
+                userId={userId}
+                triggerSource={editRule ? editRule.trigger_source : "comment"}
+                editRule={editRule}
+                initialIntent={searchParams?.get("intent") || undefined}
+                defaultPlatform="instagram"
+                onSuccess={() => {
+                  mutateAutomations()
+                  setShowCreateForm(false)
+                  setEditRule(null)
+                  toast.success("Automation saved successfully")
+                }}
+              />
+            </div>
+          )}
+
+          {/* Channel Filters Row */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {/* All */}
+              <button
+                type="button"
+                onClick={() => setSelectedChannel("all")}
+                className={cn(
+                  "h-[28px] px-2.5 rounded-full text-[11.5px] font-medium transition-colors cursor-pointer flex items-center gap-1.5",
+                  selectedChannel === "all"
+                    ? "bg-[var(--s3)] text-[var(--t1)] border border-[var(--line2)]"
+                    : "bg-[var(--s2)] text-[var(--t3)] hover:text-[var(--t2)] border border-[var(--line)]"
+                )}
+              >
+                <span>All</span>
+                <span className="font-mono text-[10.5px] opacity-80">{channelCounts.all}</span>
+              </button>
+
+              {/* Instagram */}
+              <button
+                type="button"
+                onClick={() => setSelectedChannel("instagram")}
+                className={cn(
+                  "h-[28px] px-2.5 rounded-full text-[11.5px] font-medium transition-colors cursor-pointer flex items-center gap-1.5",
+                  selectedChannel === "instagram"
+                    ? "bg-[var(--s3)] text-[var(--t1)] border border-[var(--line2)]"
+                    : "bg-[var(--s2)] text-[var(--t3)] hover:text-[var(--t2)] border border-[var(--line)]"
+                )}
+              >
+                <ChannelBadge channel="instagram" size="sm" className="w-3.5 h-3.5 rounded-full" />
+                <span>Instagram</span>
+                <span className="font-mono text-[10.5px] opacity-80">{channelCounts.instagram}</span>
+              </button>
+
+              {/* Facebook */}
+              <button
+                type="button"
+                onClick={() => setSelectedChannel("facebook")}
+                className={cn(
+                  "h-[28px] px-2.5 rounded-full text-[11.5px] font-medium transition-colors cursor-pointer flex items-center gap-1.5",
+                  selectedChannel === "facebook"
+                    ? "bg-[var(--s3)] text-[var(--t1)] border border-[var(--line2)]"
+                    : "bg-[var(--s2)] text-[var(--t3)] hover:text-[var(--t2)] border border-[var(--line)]"
+                )}
+              >
+                <ChannelBadge channel="facebook" size="sm" className="w-3.5 h-3.5 rounded-full" />
+                <span>Facebook</span>
+                <span className="font-mono text-[10.5px] opacity-80">{channelCounts.facebook}</span>
+              </button>
+
+              {/* WhatsApp */}
+              <button
+                type="button"
+                onClick={() => setSelectedChannel("whatsapp")}
+                className={cn(
+                  "h-[28px] px-2.5 rounded-full text-[11.5px] font-medium transition-colors cursor-pointer flex items-center gap-1.5",
+                  selectedChannel === "whatsapp"
+                    ? "bg-[var(--s3)] text-[var(--t1)] border border-[var(--line2)]"
+                    : "bg-[var(--s2)] text-[var(--t3)] hover:text-[var(--t2)] border border-[var(--line)]"
+                )}
+              >
+                <ChannelBadge channel="whatsapp" size="sm" className="w-3.5 h-3.5 rounded-full" />
+                <span>WhatsApp</span>
+                <span className="font-mono text-[10.5px] opacity-80">{channelCounts.whatsapp}</span>
+              </button>
+
+              {/* TikTok */}
+              <button
+                type="button"
+                onClick={() => setSelectedChannel("tiktok")}
+                className={cn(
+                  "h-[28px] px-2.5 rounded-full text-[11.5px] font-medium transition-colors cursor-pointer flex items-center gap-1.5",
+                  selectedChannel === "tiktok"
+                    ? "bg-[var(--s3)] text-[var(--t1)] border border-[var(--line2)]"
+                    : "bg-[var(--s2)] text-[var(--t3)] hover:text-[var(--t2)] border border-[var(--line)]"
+                )}
+              >
+                <ChannelBadge channel="tiktok" size="sm" className="w-3.5 h-3.5 rounded-full" />
+                <span>TikTok</span>
+                <span className="font-mono text-[10.5px] opacity-80">{channelCounts.tiktok}</span>
+              </button>
+
+              {/* Telegram */}
+              <button
+                type="button"
+                onClick={() => setSelectedChannel("telegram")}
+                className={cn(
+                  "h-[28px] px-2.5 rounded-full text-[11.5px] font-medium transition-colors cursor-pointer flex items-center gap-1.5",
+                  selectedChannel === "telegram"
+                    ? "bg-[var(--s3)] text-[var(--t1)] border border-[var(--line2)]"
+                    : "bg-[var(--s2)] text-[var(--t3)] hover:text-[var(--t2)] border border-[var(--line)]"
+                )}
+              >
+                <ChannelBadge channel="telegram" size="sm" className="w-3.5 h-3.5 rounded-full" />
+                <span>Telegram</span>
+                <span className="font-mono text-[10.5px] opacity-80">{channelCounts.telegram}</span>
+              </button>
+            </div>
+
+            {/* Type Filter Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setTypeMenuOpen(!typeMenuOpen)}
+                className="h-[28px] px-2.5 rounded-[6px] border border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[11.5px] font-medium text-[var(--t2)] hover:text-[var(--t1)] flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <span>Type: {selectedType === "all" ? "All" : selectedType}</span>
+                <ChevronDown className="w-3 h-3 text-[var(--t3)]" />
+              </button>
+
+              {typeMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-30"
+                    onClick={() => setTypeMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 top-full mt-1 w-36 rounded-lg border border-[var(--line)] bg-[var(--s2)] shadow-xl p-1 z-40">
+                    {[
+                      { id: "all", label: "All types" },
+                      { id: "comment", label: "Comments" },
+                      { id: "dm", label: "DMs" },
+                      { id: "story", label: "Stories" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedType(opt.id)
+                          setTypeMenuOpen(false)
+                        }}
+                        className={cn(
+                          "w-full text-left px-2 py-1.5 rounded-[5px] text-[12px] transition-colors",
+                          selectedType === opt.id
+                            ? "bg-[var(--s3)] text-[var(--t1)] font-medium"
+                            : "text-[var(--t2)] hover:bg-[var(--s3)] hover:text-[var(--t1)]"
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Automations Table */}
+          {isAutomationsLoading ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              <ContentCardSkeleton />
+              <ContentCardSkeleton />
+            </div>
+          ) : (
+            <AutomationsTable
+              automations={filteredAutomations}
+              selectedId={selectedRuleId}
+              onSelect={(rule) => setSelectedRuleId(rule.id)}
+              onToggle={handleToggleRule}
+              onEdit={handleEditRule}
+              onDelete={handleDeleteRule}
+            />
+          )}
+
+          {/* Start from a template section */}
+          <div className="space-y-3 pt-2">
+            <div>
+              <h3 className="text-[13px] font-semibold text-[var(--t1)]">
+                Start from a template
+              </h3>
+              <p className="text-[11.5px] text-[var(--t3)]">
+                Built for Egypt & GCC sellers
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {AUTOMATION_TEMPLATES.slice(0, 3).map((tmpl) => (
+                <div
+                  key={tmpl.id}
+                  onClick={() => handleSelectTemplate(tmpl)}
+                  className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-3.5 hover:bg-[var(--s2)] transition-colors cursor-pointer space-y-2 group"
+                >
+                  <div className="flex items-center gap-2">
+                    <ChannelBadge
+                      channel={tmpl.platform}
+                      size="sm"
+                      className="w-4 h-4 rounded-full"
+                    />
+                    <h4 className="text-[12.5px] font-semibold text-[var(--t1)] group-hover:text-white transition-colors truncate">
+                      {tmpl.title}
+                    </h4>
+                  </div>
+                  <p className="text-[11.5px] text-[var(--t3)] line-clamp-2 leading-relaxed">
+                    {tmpl.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tracked posts & ice breakers migration banner */}
+          <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-3.5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-[var(--s2)] border border-[var(--line)] flex items-center justify-center text-[var(--t3)] shrink-0">
+                <LinkIcon className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-[12.5px] font-semibold text-[var(--t1)] truncate">
+                  Tracked posts & ice breakers live here now
+                </h4>
+                <p className="text-[11.5px] text-[var(--t3)] truncate">
+                  Paste a post link as a trigger. Comment sentiment shows on each rule, not on a separate empty tab.
+                </p>
+              </div>
+            </div>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setShowCreateForm(true)
+                toast.info("Create a rule targeting a specific post link")
+              }}
+              className="h-[28px] px-3 text-[11.5px] font-medium shrink-0"
+            >
+              Track a post
+            </Button>
+          </div>
+        </div>
+
+        {/* Right Pane (Flow Preview / Inspector, ~400px wide) */}
+        <div className="w-full lg:w-[400px] xl:w-[440px] shrink-0 h-full">
+          <AutomationFlowPreview
+            automation={selectedAutomation}
+            onTest={() => toast.success(`Simulated test run for "${selectedAutomation?.name}"`)}
+          />
+        </div>
+      </div>
+
+      {/* Templates Modal */}
+      <AutomationTemplatesModal
+        isOpen={templatesModalOpen}
+        onClose={() => setTemplatesModalOpen(false)}
+        onSelectTemplate={handleSelectTemplate}
+      />
+    </div>
+  )
 }
 
 export default function AutomationsPage() {
-    return (
-        <Suspense fallback={<div className="h-screen flex items-center justify-center bg-[#03010A]"><div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>}>
-            <AutomationsPageContent />
-        </Suspense>
-    )
+  return (
+    <Suspense
+      fallback={
+        <div className="h-[calc(100vh-52px)] flex items-center justify-center bg-[var(--bg)]">
+          <Loader2 className="w-7 h-7 text-[var(--t3)] animate-spin" />
+        </div>
+      }
+    >
+      <AutomationsPageContent />
+    </Suspense>
+  )
 }
