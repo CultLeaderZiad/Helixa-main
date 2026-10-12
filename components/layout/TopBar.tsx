@@ -3,7 +3,7 @@
 import * as React from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { Bell, Plus } from "lucide-react"
+import { Bell, Plus, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SegmentedControl } from "@/components/ui/SegmentedControl"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
@@ -32,13 +32,14 @@ const routeTitleMap: Record<string, string> = {
 }
 
 export function TopBar({
-  workspaceName = "Client",
+  workspaceName = "Mirage Digital",
   actions,
   className,
 }: TopBarProps) {
   const pathname = usePathname()
   const { t } = useLanguage()
   const [range, setRange] = React.useState("7d")
+  const [currency, setCurrency] = React.useState<"EGP" | "SAR" | "USD">("EGP")
 
   // Match the page title
   const pageTitle =
@@ -68,6 +69,44 @@ export function TopBar({
       <div className="flex items-center gap-2.5 shrink-0">
         {actions ? (
           actions
+        ) : pathname === "/dashboard/billing" ? (
+          <div className="flex items-center gap-3">
+            {/* Currency Segmented Control */}
+            <div className="flex items-center p-0.5 rounded-[6px] bg-[var(--s2)] border border-[var(--line)] text-[11px] font-mono">
+              {(["EGP", "SAR", "USD"] as const).map((curr) => (
+                <button
+                  key={curr}
+                  type="button"
+                  onClick={() => {
+                    setCurrency(curr)
+                    window.dispatchEvent(
+                      new CustomEvent("helixa:currency-change", { detail: curr })
+                    )
+                  }}
+                  className={cn(
+                    "px-2 py-0.5 rounded-[4px] font-medium transition-colors cursor-pointer",
+                    currency === curr
+                      ? "bg-[var(--s3)] text-[var(--t1)]"
+                      : "text-[var(--t3)] hover:text-[var(--t2)]"
+                  )}
+                >
+                  {curr}
+                </button>
+              ))}
+            </div>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent("helixa:open-invoices"))
+              }}
+              className="h-[30px] px-3 text-[12px] font-medium gap-1.5"
+            >
+              <FileText className="w-3.5 h-3.5 text-[var(--t3)]" />
+              <span>Invoices</span>
+            </Button>
+          </div>
         ) : (
           <>
             {/* Standard date range filter (only shown on overview/analytics) */}

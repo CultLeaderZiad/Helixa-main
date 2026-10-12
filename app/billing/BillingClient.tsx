@@ -5,6 +5,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Shield, Zap, Star, AlertCircle, ArrowUpRight, CheckCircle, XCircle } from "lucide-react"
 import { toast } from "sonner"
+import { brand } from "@/lib/brand"
 
 
 type PlanType = "trial" | "monthly" | "one_time" | "expired"
@@ -232,7 +233,7 @@ export default function BillingPage() {
                 <h3 className="text-xl font-bold mb-4">Pay via Vodafone Cash</h3>
                 <p className="text-neutral-400 text-sm mb-6">
                   Please transfer <strong className="text-white">${showVCForm === "monthly" ? 15 : 199}</strong> (or equivalent in EGP) to:
-                  <br /><span className="text-xl text-[#e60000] font-bold mt-2 inline-block">01037312994</span>
+                  <br /><span className="text-xl text-[#e60000] font-bold mt-2 inline-block">{brand.vodafoneCashNumber}</span>
                 </p>
                 <form onSubmit={submitVC} className="space-y-4">
                   <div>

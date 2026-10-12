@@ -6,7 +6,7 @@ import { useLanguage } from "@/lib/i18n/LanguageContext"
 const GITHUB_URL = "https://github.com/CultLeaderZiad"
 const LINKEDIN_URL = "https://www.linkedin.com/in/ziad-sabry-cl/"
 const TELEGRAM_URL = "https://t.me/cultleaderziad"
-const CONTACT_EMAIL = "cultleaderzoz.dev@gmail.com"
+const CONTACT_EMAIL = "support@helixa.app"
 
 export function Footer() {
   const { t, language } = useLanguage()

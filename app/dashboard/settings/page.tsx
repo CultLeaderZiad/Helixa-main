@@ -205,7 +205,7 @@ export default function SettingsPage() {
                     </p>
                 </div>
                 <a 
-                    href="mailto:cultleaderzoz.dev@gmail.com?subject=Support Request"
+                    href="mailto:support@helixa.app?subject=Support Request"
                     className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-medium transition-colors border border-white/10"
                 >
                     <LifeBuoy className="w-4 h-4" />

@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Loader2, ArrowRight, Clock, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import CopyButton from "@/components/ui/CopyButton"
+import { brand } from "@/lib/brand"
 
 export default function CheckoutClient({ plan, methods, user, cycle }: { plan: any, methods: any[], user: any, cycle?: string }) {
   const [selectedMethod, setSelectedMethod] = useState<string | null>(
@@ -211,8 +212,8 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
                 </div>
                 <div className="flex items-center gap-3 text-neutral-300">
                   <span className="text-neutral-500 w-20">Email:</span>
-                  <a href="mailto:cultleaderzoz.dev@gmail.com" className="font-medium text-blue-400 hover:underline">
-                    cultleaderzoz.dev@gmail.com
+                  <a href={`mailto:${brand.billingEmail}`} className="font-medium text-blue-400 hover:underline">
+                    {brand.billingEmail}
                   </a>
                 </div>
                 <div className="flex items-center gap-3 text-neutral-300">
@@ -265,8 +266,8 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
               Please transfer exactly <strong className="text-white text-base">${amountToCharge}</strong> to the following Vodafone Cash number:
             </p>
             <div className="bg-black/50 p-3 rounded-lg text-[#e5a93c] font-mono text-xl text-center border border-white/10 font-bold tracking-wider flex items-center justify-center gap-2">
-              +01037312994
-              <CopyButton value="+201037312994" label="Vodafone Cash number" />
+              {brand.vodafoneCashNumber}
+              <CopyButton value={brand.vodafoneCashNumber} label="Vodafone Cash number" />
             </div>
           </div>
 

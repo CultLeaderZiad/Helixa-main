@@ -44,7 +44,7 @@ export function FloatingHelp() {
               Telegram support
             </a>
             <a
-              href="mailto:cultleaderzoz.dev@gmail.com"
+              href="mailto:support@helixa.app"
               className="flex items-center gap-2.5 w-full p-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-neutral-200 hover:bg-white/10 hover:border-[#e5a93c]/40 transition-colors"
             >
               <Mail className="w-4 h-4 text-[#e5a93c]" />

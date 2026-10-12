@@ -1,89 +1,213 @@
 "use client"
 
-import { useState, Suspense } from "react"
-import { useLanguage } from "@/lib/i18n/LanguageContext"
+import { useState, useEffect, Suspense } from "react"
+import useSWR from "swr"
 import { CurrentPlanCard } from "@/components/billing/CurrentPlanCard"
 import { PaymentMethodCard } from "@/components/billing/PaymentMethodCard"
 import { PlansComparisonRow } from "@/components/billing/PlansComparisonRow"
 import { RecentPaymentsTable } from "@/components/billing/RecentPaymentsTable"
 import { Button } from "@/components/ui/button"
-import { FileText, Loader2 } from "lucide-react"
+import { AlertCircle, Loader2 } from "lucide-react"
 import { toast } from "sonner"
-import { cn } from "@/lib/utils"
+import { fetcher } from "@/lib/fetcher"
+
+interface BillingUsageResponse {
+  plan?: {
+    id: string
+    name: string
+    audience: string
+    monthlyUsd: number
+    yearlyUsd: number
+    blocked: boolean
+    limits: Record<string, number | boolean>
+  }
+  status?: "active" | "trialing" | "past_due" | "expired"
+  trialEndsAt?: string | null
+  periodEnd?: string | null
+  scheduledPlanId?: string | null
+  metrics?: Array<{
+    metric: string
+    used: number
+    limit: number
+    level: string
+  }>
+}
+
+function BillingLoadingSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse" aria-label="Loading billing information">
+      <div className="space-y-1">
+        <div className="h-6 w-32 bg-[var(--s2)] rounded-[4px]" />
+        <div className="h-4 w-72 bg-[var(--s2)] rounded-[4px]" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="h-[280px] bg-[var(--s1)] border border-[var(--line)] rounded-xl" />
+        <div className="h-[280px] bg-[var(--s1)] border border-[var(--line)] rounded-xl" />
+      </div>
+
+      <div className="h-[200px] bg-[var(--s1)] border border-[var(--line)] rounded-xl" />
+      <div className="h-[180px] bg-[var(--s1)] border border-[var(--line)] rounded-xl" />
+    </div>
+  )
+}
 
 function BillingPageContent() {
   const [selectedCurrency, setSelectedCurrency] = useState<"EGP" | "SAR" | "USD">("EGP")
 
-  return (
-    <div className="min-h-[calc(100vh-52px)] bg-[var(--bg)] text-[var(--t1)] flex flex-col select-none">
-      {/* Top Actions Bar */}
-      <div className="h-[52px] border-b border-[var(--line)] px-6 flex items-center justify-between bg-[var(--s1)] shrink-0 z-10">
-        <div className="flex items-center gap-2">
-          <span className="text-[12px] text-[var(--t3)] font-medium">Mirage Digital</span>
-          <span className="text-[12px] text-[var(--t4)]">/</span>
-          <span className="text-[12px] text-[var(--t1)] font-semibold">Billing</span>
-        </div>
+  // Listen to currency change & invoices event from TopBar
+  useEffect(() => {
+    const handleCurrencyChange = (e: CustomEvent<"EGP" | "SAR" | "USD">) => {
+      if (e.detail) setSelectedCurrency(e.detail)
+    }
 
-        <div className="flex items-center gap-3">
-          {/* Currency Segmented Control */}
-          <div className="flex items-center p-0.5 rounded-[6px] bg-[var(--s2)] border border-[var(--line)] text-[11px] font-mono">
-            {(["EGP", "SAR", "USD"] as const).map((curr) => (
-              <button
-                key={curr}
-                type="button"
-                onClick={() => setSelectedCurrency(curr)}
-                className={cn(
-                  "px-2 py-0.5 rounded-[4px] font-medium transition-colors cursor-pointer",
-                  selectedCurrency === curr
-                    ? "bg-[var(--s3)] text-[var(--t1)]"
-                    : "text-[var(--t3)] hover:text-[var(--t2)]"
-                )}
-              >
-                {curr}
-              </button>
-            ))}
+    const handleInvoicesOpen = () => {
+      toast.info("Opening Invoices and payment receipts")
+    }
+
+    window.addEventListener("helixa:currency-change", handleCurrencyChange as EventListener)
+    window.addEventListener("helixa:open-invoices", handleInvoicesOpen)
+
+    return () => {
+      window.removeEventListener("helixa:currency-change", handleCurrencyChange as EventListener)
+      window.removeEventListener("helixa:open-invoices", handleInvoicesOpen)
+    }
+  }, [])
+
+  const { data, error, isLoading, mutate } = useSWR<BillingUsageResponse>(
+    "/api/billing/usage",
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 30000,
+    }
+  )
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full">
+        <BillingLoadingSkeleton />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full flex items-center justify-center">
+        <div className="max-w-md w-full rounded-xl border border-[var(--line)] bg-[var(--s1)] p-8 text-center space-y-4">
+          <div className="w-10 h-10 rounded-full bg-[var(--redbg)] border border-[rgba(242,85,90,0.25)] flex items-center justify-center mx-auto text-[var(--red)]">
+            <AlertCircle className="w-5 h-5" />
           </div>
-
+          <div className="space-y-1">
+            <h3 className="text-[15px] font-semibold text-[var(--t1)]">
+              Couldn&apos;t load billing
+            </h3>
+            <p className="text-[12.5px] text-[var(--t3)]">
+              We were unable to fetch your subscription status and billing information.
+            </p>
+          </div>
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => toast.info("Opening Invoices and payment receipts")}
-            className="h-[30px] px-3 text-[12px] font-medium gap-1.5"
+            onClick={() => mutate()}
+            className="h-[30px] px-4 text-[12px] font-medium"
           >
-            <FileText className="w-3.5 h-3.5 text-[var(--t3)]" />
-            <span>Invoices</span>
+            Retry
           </Button>
         </div>
       </div>
+    )
+  }
 
-      {/* Main Content */}
-      <div className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6 overflow-y-auto scrollbar-thin scrollbar-thumb-[var(--line2)]">
-        {/* Header */}
-        <div className="space-y-1">
-          <h1 className="text-[20px] font-bold text-[var(--t1)] tracking-tight">
-            Billing
-          </h1>
-          <p className="text-[12.5px] text-[var(--t3)]">
-            One subscription for the agency. Pay by card or Vodafone Cash.
-          </p>
-        </div>
+  const rawPlanName = data?.plan?.name
+  // Always use real plan name, never "monthly"
+  const planName =
+    rawPlanName && rawPlanName.toLowerCase() !== "monthly"
+      ? rawPlanName
+      : "Agency Growth"
 
-        {/* Top Grid: Current Plan & Payment Method */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CurrentPlanCard
-            onChangePlan={() => toast.info("Select a plan below to upgrade or modify your subscription")}
-            onAddWorkspaces={() => toast.info("Add extra workspace seats (EGP 950 / client)")}
-            onCancelSubscription={() => toast.info("Cancellation scheduled")}
-          />
-          <PaymentMethodCard />
-        </div>
+  const status = data?.status || "active"
 
-        {/* Plans Comparison Row */}
-        <PlansComparisonRow />
+  // Format renewal date using Cairo time zone
+  let formattedRenewal = "Nov 1"
+  if (data?.periodEnd) {
+    try {
+      formattedRenewal = new Intl.DateTimeFormat("en-US", {
+        timeZone: "Africa/Cairo",
+        month: "short",
+        day: "numeric",
+      }).format(new Date(data.periodEnd))
+    } catch {
+      formattedRenewal = "Nov 1"
+    }
+  }
 
-        {/* Recent Payments Table */}
-        <RecentPaymentsTable />
+  let formattedTrialEnd: string | null = null
+  if (data?.trialEndsAt) {
+    try {
+      formattedTrialEnd = new Intl.DateTimeFormat("en-US", {
+        timeZone: "Africa/Cairo",
+        month: "short",
+        day: "numeric",
+      }).format(new Date(data.trialEndsAt))
+    } catch {
+      formattedTrialEnd = null
+    }
+  }
+
+  const renewsPrice =
+    selectedCurrency === "SAR"
+      ? "SAR 920"
+      : selectedCurrency === "USD"
+      ? "$249"
+      : "EGP 11,900"
+
+  const totalChargeAmount =
+    selectedCurrency === "SAR"
+      ? "SAR 1,220"
+      : selectedCurrency === "USD"
+      ? "$329"
+      : "EGP 15,700"
+
+  const renewsText = `Renews ${formattedRenewal} · ${renewsPrice} / mo`
+
+  return (
+    <div className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6 overflow-y-auto scrollbar-thin scrollbar-thumb-[var(--line2)] select-none">
+      {/* Header */}
+      <div className="space-y-1">
+        <h1 className="text-[20px] font-bold text-[var(--t1)] tracking-tight">
+          Billing
+        </h1>
+        <p className="text-[12.5px] text-[var(--t3)]">
+          One subscription for the agency. Pay by card or Vodafone Cash.
+        </p>
       </div>
+
+      {/* Top Grid: Current Plan & Payment Method (1fr / 1fr, gap-6) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <CurrentPlanCard
+          planName={planName}
+          status={status}
+          renewsText={renewsText}
+          trialEndsAt={formattedTrialEnd}
+          currency={selectedCurrency}
+          onCancelSubscription={() => mutate()}
+        />
+        <PaymentMethodCard
+          amount={totalChargeAmount}
+          currency={selectedCurrency}
+          currentPlanId={data?.plan?.id || "agency"}
+        />
+      </div>
+
+      {/* Plans Row (Full Width) */}
+      <PlansComparisonRow
+        currency={selectedCurrency}
+        currentPlanId="agency-growth"
+      />
+
+      {/* Recent Payments Table (Full Width) */}
+      <RecentPaymentsTable currency={selectedCurrency} />
     </div>
   )
 }

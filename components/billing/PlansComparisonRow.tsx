@@ -1,21 +1,48 @@
 "use client"
 
 import React, { useState } from "react"
-import { Check } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Pill } from "@/components/ui/Pill"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
-export function PlansComparisonRow() {
+export interface PlansComparisonRowProps {
+  currency?: "EGP" | "SAR" | "USD"
+  currentPlanId?: string
+  onSelectPlan?: (planId: string) => void
+}
+
+export function PlansComparisonRow({
+  currency = "EGP",
+  currentPlanId = "agency-growth",
+  onSelectPlan,
+}: PlansComparisonRowProps) {
   const [isAnnual, setIsAnnual] = useState(false)
+  const router = useRouter()
+
+  const formatPrice = (egp: number, sar: number, usd: number) => {
+    const discountedEgp = Math.round(egp * (10 / 12))
+    const discountedSar = Math.round(sar * (10 / 12))
+    const discountedUsd = Math.round(usd * (10 / 12))
+
+    if (currency === "SAR") {
+      return isAnnual ? `SAR ${discountedSar}` : `SAR ${sar}`
+    }
+    if (currency === "USD") {
+      return isAnnual ? `$${discountedUsd}` : `$${usd}`
+    }
+    return isAnnual
+      ? `EGP ${discountedEgp.toLocaleString()}`
+      : `EGP ${egp.toLocaleString()}`
+  }
 
   const plans = [
     {
       id: "creator",
+      slug: "creator",
       name: "Creator",
-      price: isAnnual ? "EGP 575" : "EGP 690",
-      isCurrent: false,
+      price: formatPrice(690, 55, 15),
+      isCurrent: currentPlanId === "creator",
       features: [
         "1 brand · all social channels",
         "Catalog + payment links",
@@ -24,9 +51,10 @@ export function PlansComparisonRow() {
     },
     {
       id: "creator-pro",
+      slug: "creator_plus",
       name: "Creator Pro",
-      price: isAnnual ? "EGP 1,240" : "EGP 1,490",
-      isCurrent: false,
+      price: formatPrice(1490, 115, 30),
+      isCurrent: currentPlanId === "creator-pro" || currentPlanId === "creator_plus",
       features: [
         "Adds WhatsApp + broadcasts",
         "3 seats · 3,000 AI replies",
@@ -35,9 +63,10 @@ export function PlansComparisonRow() {
     },
     {
       id: "agency-starter",
+      slug: "agency_starter",
       name: "Agency Starter",
-      price: isAnnual ? "EGP 4,900" : "EGP 5,900",
-      isCurrent: false,
+      price: formatPrice(5900, 460, 120),
+      isCurrent: currentPlanId === "agency-starter" || currentPlanId === "agency_starter",
       features: [
         "3 client workspaces",
         "Client portal + reports",
@@ -46,9 +75,10 @@ export function PlansComparisonRow() {
     },
     {
       id: "agency-growth",
+      slug: "agency",
       name: "Agency Growth",
-      price: isAnnual ? "EGP 9,900" : "EGP 11,900",
-      isCurrent: true,
+      price: formatPrice(11900, 920, 249),
+      isCurrent: currentPlanId === "agency-growth" || currentPlanId === "agency",
       features: [
         "10 workspaces · white-label",
         "8 seats · 12,000 AI replies",
@@ -57,15 +87,28 @@ export function PlansComparisonRow() {
     },
   ]
 
+  const handleCardClick = (plan: typeof plans[number]) => {
+    if (plan.isCurrent) return
+    if (onSelectPlan) {
+      onSelectPlan(plan.id)
+    } else {
+      router.push(`/checkout/${plan.slug}?cycle=${isAnnual ? "yearly" : "monthly"}`)
+    }
+  }
+
   return (
-    <div className="space-y-4 select-none">
+    <section id="plans-section" aria-labelledby="plans-heading" className="space-y-4 select-none">
       {/* Header & Annual Toggle */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h3 className="text-[14px] font-semibold text-[var(--t1)]">Plans</h3>
-          <p className="text-[11px] text-[var(--t3)]">
-            Prices are placeholders pending validation
-          </p>
+          <h2 id="plans-heading" className="text-[16px] font-semibold text-[var(--t1)]">
+            Plans
+          </h2>
+          {process.env.NODE_ENV !== "production" && (
+            <p className="text-[11.5px] text-[var(--t3)] font-mono">
+              Prices are placeholders pending validation
+            </p>
+          )}
         </div>
 
         {/* Monthly vs Annual Segment */}
@@ -97,70 +140,78 @@ export function PlansComparisonRow() {
         </div>
       </div>
 
-      {/* 4 Plan Cards Grid */}
+      {/* 4 Compact Plan Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {plans.map((p) => (
-          <div
-            key={p.id}
-            className={cn(
-              "rounded-xl border p-4.5 flex flex-col justify-between space-y-4 transition-colors",
-              p.isCurrent
-                ? "border-[var(--line2)] bg-[var(--s2)] shadow-xs"
-                : "border-[var(--line)] bg-[var(--s1)] hover:border-[var(--line2)]"
-            )}
-          >
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-[var(--t1)]">
-                  {p.name}
-                </span>
-                {p.isCurrent && (
-                  <Pill variant="gold" dot={false} className="text-[10px] h-4">
-                    Current
-                  </Pill>
+        {plans.map((p) => {
+          const isCurrent = p.isCurrent
+          return (
+            <div
+              key={p.id}
+              role={isCurrent ? "region" : "button"}
+              tabIndex={isCurrent ? undefined : 0}
+              aria-label={isCurrent ? `${p.name} plan (Current)` : `Select ${p.name} plan`}
+              onClick={() => handleCardClick(p)}
+              onKeyDown={(e) => {
+                if (!isCurrent && (e.key === "Enter" || e.key === " ")) {
+                  e.preventDefault()
+                  handleCardClick(p)
+                }
+              }}
+              className={cn(
+                "rounded-xl border p-4.5 flex flex-col justify-between space-y-4 transition-all text-left",
+                isCurrent
+                  ? "border-[var(--goldline)] bg-[var(--s2)] shadow-xs"
+                  : "border-[var(--line)] bg-[var(--s1)] hover:border-[var(--line2)] hover:bg-[var(--s2)]/40 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--gold)]"
+              )}
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-semibold text-[var(--t1)]">
+                    {p.name}
+                  </span>
+                  {isCurrent && (
+                    <Pill variant="gold" dot={false} className="text-[10px] h-4">
+                      Current
+                    </Pill>
+                  )}
+                </div>
+
+                <div>
+                  <span className="font-mono text-[20px] font-semibold text-[var(--t1)] tabular-nums">
+                    <bdi>{p.price}</bdi>
+                  </span>
+                  <span className="text-[11px] text-[var(--t3)] font-mono ml-1">
+                    /mo
+                  </span>
+                </div>
+
+                {/* Features list */}
+                <div className="space-y-1.5 text-[11.5px] text-[var(--t2)] pt-1">
+                  {p.features.map((feat, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <span className="text-[var(--t4)]">•</span>
+                      <span>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Status or Action */}
+              <div className="pt-2">
+                {isCurrent ? (
+                  <div className="h-[28px] rounded-[6px] border border-[var(--goldline)] bg-[var(--goldbg)] text-[var(--gold2)] flex items-center justify-center text-[11.5px] font-medium">
+                    Current plan
+                  </div>
+                ) : (
+                  <div className="h-[28px] rounded-[6px] border border-[var(--line)] bg-[var(--s2)] text-[var(--t2)] group-hover:text-[var(--t1)] flex items-center justify-center text-[11.5px] font-medium transition-colors">
+                    Upgrade to {p.name}
+                  </div>
                 )}
               </div>
-
-              <div>
-                <span className="font-mono text-[18px] font-bold text-[var(--t1)] tabular-nums">
-                  {p.price}
-                </span>
-                <span className="text-[11px] text-[var(--t3)] font-mono ml-1">
-                  /mo
-                </span>
-              </div>
-
-              {/* Features list */}
-              <div className="space-y-1.5 text-[11.5px] text-[var(--t2)] pt-1">
-                {p.features.map((feat, i) => (
-                  <div key={i} className="flex items-center gap-1.5">
-                    <span className="text-[var(--t4)]">•</span>
-                    <span>{feat}</span>
-                  </div>
-                ))}
-              </div>
             </div>
-
-            {/* CTA */}
-            <div className="pt-2">
-              {p.isCurrent ? (
-                <div className="h-[28px] rounded-[6px] border border-[var(--line)] bg-[var(--s3)] text-[var(--t2)] flex items-center justify-center text-[11.5px] font-medium">
-                  Current plan
-                </div>
-              ) : (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => toast.info(`Switching to ${p.name} plan`)}
-                  className="w-full h-[28px] text-[11.5px] font-medium"
-                >
-                  Choose {p.name}
-                </Button>
-              )}
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
-    </div>
+    </section>
   )
 }
