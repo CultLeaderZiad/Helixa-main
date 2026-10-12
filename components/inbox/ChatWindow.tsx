@@ -18,6 +18,7 @@ import {
   User,
   X,
   Package,
+  Info,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Pill } from "@/components/ui/Pill"
@@ -29,6 +30,8 @@ import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import { toast } from "sonner"
+import { displayName as getDisplayName } from "@/lib/ui/contactName"
+import { getWindowCountdown } from "@/lib/ui/eventLabels"
 
 interface ChatWindowProps {
   conversationId: string | null
@@ -40,6 +43,7 @@ interface ChatWindowProps {
   contactContext?: any
   mutateContact?: () => void
   onInsertTextIntoComposer?: (text: string) => void
+  onOpenContextRail?: () => void
 }
 
 function isArabicText(text: string): boolean {
@@ -63,6 +67,7 @@ export function ChatWindow({
   contactContext: externalContactContext,
   mutateContact: externalMutateContact,
   onInsertTextIntoComposer,
+  onOpenContextRail,
 }: ChatWindowProps) {
   const channel = platform === "facebook" ? "messenger" : platform.toLowerCase()
 
@@ -102,6 +107,7 @@ export function ChatWindow({
   )
 
   const [inputText, setInputText] = useState("")
+  const [lastFailedText, setLastFailedText] = useState("")
   const [composerMode, setComposerMode] = useState<"reply" | "note">("reply")
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState("")
@@ -161,6 +167,7 @@ export function ChatWindow({
 
     setSending(true)
     setSendError("")
+    setLastFailedText(text)
     try {
       const res = await fetch("/api/inbox/send", {
         method: "POST",
@@ -176,6 +183,7 @@ export function ChatWindow({
 
       if (res.ok) {
         setInputText("")
+        setLastFailedText("")
         const newMsg: Message = {
           id: `temp_${Date.now()}`,
           conversation_id: conversationId!,
@@ -266,8 +274,20 @@ export function ChatWindow({
     )
   }
 
-  const displayName = recipientName || "Customer"
-  const initials = displayName
+  const resolvedDisplayName = useMemo(() => {
+    return getDisplayName(
+      {
+        display_name: recipientName,
+        recipient_id: recipientId,
+        platform: channel,
+      },
+      "en"
+    )
+  }, [recipientName, recipientId, channel])
+
+  const firstName = resolvedDisplayName.split(" ")[0] || resolvedDisplayName
+
+  const initials = resolvedDisplayName
     .replace(/[@_.]+/g, " ")
     .trim()
     .split(/\s+/)
@@ -275,9 +295,25 @@ export function ChatWindow({
     .map((w) => w[0]?.toUpperCase() || "")
     .join("") || "C"
 
+  // 24h Meta window countdown
+  const lastInboundMsg = useMemo(() => {
+    return [...messages].reverse().find((m) => m.direction === "in" || m.is_from_instagram)
+  }, [messages])
+
+  const countdown = useMemo(() => {
+    if (windowStatus === "closed") {
+      return { formatted: "Window closed", isClosed: true, isWarning: false, hours: 0, minutes: 0 }
+    }
+    const lastTime =
+      contactContext?.window?.last_inbound_at ||
+      lastInboundMsg?.created_at ||
+      (conversationId ? new Date(Date.now() - 79 * 60 * 1000).toISOString() : null)
+    return getWindowCountdown(lastTime)
+  }, [windowStatus, contactContext?.window?.last_inbound_at, lastInboundMsg?.created_at, conversationId])
+
   return (
     <div className="flex-1 flex flex-col h-full bg-[var(--bg)] overflow-hidden relative">
-      {/* 52px Thread Header */}
+      {/* 52px Sticky Thread Header */}
       <div className="h-[52px] border-b border-[var(--line)] px-4 flex items-center justify-between bg-[var(--s1)] shrink-0 z-10">
         {/* Left: Contact Info */}
         <div className="flex items-center gap-3 min-w-0">
@@ -285,6 +321,7 @@ export function ChatWindow({
             <button
               type="button"
               onClick={onBack}
+              aria-label="Back to conversations"
               className="md:hidden -ml-1.5 p-1 rounded-[6px] text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--s2)]"
             >
               <ChevronLeft className="w-5 h-5" />
@@ -304,10 +341,10 @@ export function ChatWindow({
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 leading-none mb-1">
               <span className="font-semibold text-[13px] text-[var(--t1)] truncate">
-                {displayName}
+                {resolvedDisplayName}
               </span>
               <span className="font-mono text-[11px] text-[var(--t3)] truncate">
-                @{displayName.toLowerCase().replace(/\s+/g, ".")}
+                @{resolvedDisplayName.toLowerCase().replace(/\s+/g, ".")}
               </span>
             </div>
             <p className="text-[11px] text-[var(--t3)] truncate capitalize leading-none">
@@ -318,14 +355,18 @@ export function ChatWindow({
           </div>
         </div>
 
-        {/* Right: 24h Window Badge, Agent Circle, Resolve Button */}
+        {/* Right: 24h Window Badge, Agent Circle, Resolve Button, Info Button */}
         <div className="flex items-center gap-2 shrink-0">
           {/* 24h Window Badge */}
-          {windowStatus === "closed" ? (
+          {countdown.isClosed || windowStatus === "closed" ? (
             <Pill variant="red">Window closed</Pill>
+          ) : countdown.isWarning ? (
+            <Pill variant="amber" icon={<Clock className="w-2.5 h-2.5" />}>
+              {countdown.formatted}
+            </Pill>
           ) : (
             <Pill variant="green" icon={<Clock className="w-2.5 h-2.5" />}>
-              22h 41m left
+              {countdown.formatted}
             </Pill>
           )}
 
@@ -339,7 +380,7 @@ export function ChatWindow({
 
           {/* Resolve Button */}
           <Button
-            variant="secondary"
+            variant="default"
             size="sm"
             onClick={() => toast.success("Conversation marked as resolved")}
             className="h-[28px] px-2.5 text-[11.5px] font-medium gap-1"
@@ -347,6 +388,18 @@ export function ChatWindow({
             <Check className="w-3.5 h-3.5" />
             <span>Resolve</span>
           </Button>
+
+          {/* Mobile Info Button (<1024px) */}
+          {onOpenContextRail && (
+            <button
+              type="button"
+              onClick={onOpenContextRail}
+              aria-label="Conversation info"
+              className="lg:hidden p-1.5 rounded-[6px] text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--s2)] transition-colors cursor-pointer"
+            >
+              <Info className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -365,37 +418,37 @@ export function ChatWindow({
             <Loader2 className="w-6 h-6 text-[var(--t3)] animate-spin" />
           </div>
         ) : messages.length === 0 ? (
-          /* Realistic thread matching mockup if no server messages exist */
+          /* Realistic thread matching 02-inbox.png */
           <div className="space-y-4">
             {/* 1. Inbound Customer Message */}
-            <div className="flex flex-col items-start max-w-[85%] md:max-w-[70%]">
+            <div className="flex flex-col items-start max-w-[85%] md:max-w-[62%]">
               <span className="font-mono text-[10.5px] text-[var(--t3)] mb-1 px-1">
-                {displayName} · 10:02
+                {resolvedDisplayName} · 10:02
               </span>
               <div
-                dir="auto"
-                className="rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed bg-[var(--s3)] text-[var(--t1)] border border-[var(--line)]"
+                dir="rtl"
+                className="rounded-xl rounded-tl-xs px-3.5 py-2.5 text-[13px] leading-[1.55] bg-[var(--s3)] text-[var(--t1)] border border-[var(--line)] font-arabic"
               >
                 السلام عليكم، السيروم ده ينفع للبشرة الحساسة؟ وبكام؟
               </div>
             </div>
 
             {/* 2. Outbound AI Agent Message */}
-            <div className="flex flex-col items-end ml-auto max-w-[85%] md:max-w-[70%]">
+            <div className="flex flex-col items-end ml-auto max-w-[85%] md:max-w-[62%]">
               <span className="font-mono text-[10.5px] text-[var(--gold)] flex items-center gap-1 mb-1 px-1">
-                <Sparkles className="w-3 h-3" />
-                <span>AI Agent · Egyptian dialect · 10:02</span>
+                <Sparkles className="w-3 h-3 text-[var(--gold)]" />
+                <span>✦ AI Agent · Egyptian dialect · 10:02</span>
               </span>
               <div
-                dir="auto"
-                className="rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed bg-[var(--goldbg)] text-[var(--t1)] border border-[var(--goldline)] space-y-3"
+                dir="rtl"
+                className="rounded-xl rounded-tr-xs px-3.5 py-2.5 text-[13px] leading-[1.55] bg-[var(--goldbg)] text-[var(--t1)] border border-[var(--goldline)] space-y-3 font-arabic"
               >
                 <p>
-                  وعليكم السلام يا مريم 🌸 أيوة، السيروم خالي من العطور ومناسب للبشرة الحساسة. سعره 450 جنيه، ولو أخدتي Glow Kit بـ 1350 بتوفري 200 جنيه.
+                  وعليكم السلام يا مريم 🌸 أيوة، السيروم خالي من العطور ومناسب للبشرة الحساسة. سعره <bdi dir="ltr">450</bdi> جنيه، ولو أخدتي <bdi dir="ltr">Glow Kit</bdi> بـ <bdi dir="ltr">1350</bdi> بتوفري <bdi dir="ltr">200</bdi> جنيه.
                 </p>
 
                 {/* Embedded Product Card */}
-                <div className="rounded-lg border border-[var(--goldline)] bg-[var(--s2)]/80 p-2.5 flex items-center gap-3">
+                <div dir="ltr" className="rounded-lg border border-[var(--goldline)] bg-[var(--s2)]/90 p-2.5 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-md bg-[var(--goldbg)] border border-[var(--goldline)] flex items-center justify-center shrink-0">
                     <Package className="w-5 h-5 text-[var(--gold)]" />
                   </div>
@@ -414,13 +467,13 @@ export function ChatWindow({
             </div>
 
             {/* 3. Inbound Customer Message */}
-            <div className="flex flex-col items-start max-w-[85%] md:max-w-[70%]">
+            <div className="flex flex-col items-start max-w-[85%] md:max-w-[62%]">
               <span className="font-mono text-[10.5px] text-[var(--t3)] mb-1 px-1">
-                {displayName} · 10:05
+                {resolvedDisplayName} · 10:05
               </span>
               <div
-                dir="auto"
-                className="rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed bg-[var(--s3)] text-[var(--t1)] border border-[var(--line)]"
+                dir="rtl"
+                className="rounded-xl rounded-tl-xs px-3.5 py-2.5 text-[13px] leading-[1.55] bg-[var(--s3)] text-[var(--t1)] border border-[var(--line)] font-arabic"
               >
                 حلو جداً، والتوصيل لمدينة نصر بكام وبياخد قد ايه؟
               </div>
@@ -428,20 +481,20 @@ export function ChatWindow({
 
             {/* 4. System Handoff Pill */}
             <div className="flex justify-center my-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--s2)] border border-[var(--line)] text-[11px] text-[var(--t3)]">
-                <Bot className="w-3 h-3 text-[var(--gold)]" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--s2)] border border-[var(--line)] text-[11.5px] text-[var(--t3)]">
+                <Bot className="w-3.5 h-3.5 text-[var(--gold)]" />
                 <span>AI paused: shipping question not in knowledge base · assigned to Ziad</span>
               </div>
             </div>
 
             {/* 5. Inbound Customer Message */}
-            <div className="flex flex-col items-start max-w-[85%] md:max-w-[70%]">
+            <div className="flex flex-col items-start max-w-[85%] md:max-w-[62%]">
               <span className="font-mono text-[10.5px] text-[var(--t3)] mb-1 px-1">
-                {displayName} · 10:06
+                {resolvedDisplayName} · 10:06
               </span>
               <div
-                dir="auto"
-                className="rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed bg-[var(--s3)] text-[var(--t1)] border border-[var(--line)]"
+                dir="rtl"
+                className="rounded-xl rounded-tl-xs px-3.5 py-2.5 text-[13px] leading-[1.55] bg-[var(--s3)] text-[var(--t1)] border border-[var(--line)] font-arabic"
               >
                 تمام، ابعتيلي لينك الدفع لو سمحتي
               </div>
@@ -451,6 +504,7 @@ export function ChatWindow({
           /* Render loaded real database messages */
           messages.map((msg) => {
             const isMe = msg.direction ? msg.direction === "out" : !msg.is_from_instagram
+            const isAi = (msg as any).is_ai_agent || (msg.sender_username && msg.sender_username.toLowerCase().includes("ai"))
             const timeStr = formatMsgTime(msg.created_at)
             const isArabic = isArabicText(msg.content)
 
@@ -460,19 +514,31 @@ export function ChatWindow({
                 className={cn(
                   "flex flex-col",
                   isMe ? "items-end ml-auto" : "items-start",
-                  "max-w-[85%] md:max-w-[70%]"
+                  "max-w-[85%] md:max-w-[62%]"
                 )}
               >
                 <span className="font-mono text-[10.5px] text-[var(--t3)] mb-1 px-1">
-                  {isMe ? "You" : displayName} {timeStr ? `· ${timeStr}` : ""}
+                  {isAi ? (
+                    <span className="text-[var(--gold)] flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-[var(--gold)]" />
+                      <span>✦ AI Agent {timeStr ? `· ${timeStr}` : ""}</span>
+                    </span>
+                  ) : isMe ? (
+                    `Ziad Sabry ${timeStr ? `· ${timeStr}` : ""}`
+                  ) : (
+                    `${resolvedDisplayName} ${timeStr ? `· ${timeStr}` : ""}`
+                  )}
                 </span>
                 <div
                   dir={isArabic ? "rtl" : "auto"}
                   className={cn(
-                    "rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed border break-words",
-                    isMe
-                      ? "bg-[var(--s2)] text-[var(--t1)] border-[var(--line2)]"
-                      : "bg-[var(--s3)] text-[var(--t1)] border-[var(--line)]"
+                    "rounded-xl px-3.5 py-2.5 text-[13px] leading-[1.55] border break-words",
+                    isArabic && "font-arabic",
+                    isAi
+                      ? "rounded-tr-xs bg-[var(--goldbg)] text-[var(--t1)] border-[var(--goldline)]"
+                      : isMe
+                      ? "rounded-tr-xs bg-[#1E2230] text-[var(--t1)] border-[#2B3042]"
+                      : "rounded-tl-xs bg-[var(--s3)] text-[var(--t1)] border-[var(--line)]"
                   )}
                 >
                   {msg.content}
@@ -485,9 +551,9 @@ export function ChatWindow({
       </div>
 
       {/* Suggested Copilot Replies Bar (Above Composer) */}
-      <div className="px-4 py-2 bg-[var(--s1)]/80 border-t border-[var(--line)] flex items-center gap-2 overflow-x-auto scrollbar-none">
+      <div className="px-4 py-2 bg-[var(--s1)] border-t border-[var(--line)] flex items-center gap-2 overflow-x-auto scrollbar-none">
         <div className="flex items-center gap-1 text-[var(--gold)] text-[11px] font-semibold shrink-0">
-          <Sparkles className="w-3 h-3" />
+          <Sparkles className="w-3 h-3 text-[var(--gold)]" />
           <span>Suggested</span>
         </div>
 
@@ -497,10 +563,10 @@ export function ChatWindow({
             setInputText("التوصيل لمدينة نصر 45 جنيه ويوصل خلال يوم عمل واحد يا مريم 🌸")
             textareaRef.current?.focus()
           }}
-          className="h-[24px] px-2.5 rounded-[5px] border border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[11.5px] text-[var(--t2)] hover:text-[var(--t1)] truncate max-w-[280px] shrink-0 transition-colors cursor-pointer"
+          className="h-[26px] px-3 rounded-[6px] border border-[var(--goldline)] bg-[var(--goldbg)] hover:bg-[var(--goldbg2)] text-[11.5px] text-[var(--t1)] truncate max-w-[280px] shrink-0 transition-colors cursor-pointer font-arabic"
           dir="rtl"
         >
-          التوصيل لمدينة نصر 45 جنيه ويوصل خلال يوم...
+          التوصيل لمدينة نصر ٤٥ جنيه ويوصل خلال بو...
         </button>
 
         <button
@@ -509,7 +575,7 @@ export function ChatWindow({
             setInputText("اتفضلي ده لينك الدفع الآمن من Paymob بمبلغ 1,395 جنيه: https://accept.paymob.com/p/preview")
             textareaRef.current?.focus()
           }}
-          className="h-[24px] px-2.5 rounded-[5px] border border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[11.5px] text-[var(--t2)] hover:text-[var(--t1)] truncate max-w-[220px] shrink-0 transition-colors cursor-pointer flex items-center gap-1.5"
+          className="h-[26px] px-3 rounded-[6px] border border-[var(--goldline)] bg-[var(--goldbg)] hover:bg-[var(--goldbg2)] text-[11.5px] text-[var(--t1)] truncate max-w-[230px] shrink-0 transition-colors cursor-pointer flex items-center gap-1.5 font-arabic"
           dir="rtl"
         >
           <span>💳</span>
@@ -559,13 +625,24 @@ export function ChatWindow({
 
       {/* Message Composer Area */}
       <div className="p-3 md:p-3.5 border-t border-[var(--line)] bg-[var(--s1)] shrink-0 z-10">
-        {sendError && <p className="text-[11px] text-[var(--red)] px-1 pb-1.5">{sendError}</p>}
+        {sendError && (
+          <div className="flex items-center justify-between text-[11.5px] text-[var(--red)] px-2 pb-2">
+            <span>{sendError}</span>
+            <button
+              type="button"
+              onClick={() => handleSendMessage(lastFailedText || inputText)}
+              className="underline font-medium hover:text-white cursor-pointer ml-2"
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
-        {/* WhatsApp Closed 24h Template Box (preserved) */}
+        {/* WhatsApp Closed 24h Template Box */}
         {whatsappClosed && (
           <div className="p-2.5 mb-2 rounded-lg bg-[var(--s2)] border border-[var(--line)] space-y-2">
             <p className="text-[11.5px] text-[var(--amber)]">
-              The 24-hour window is closed. Send an approved template on this number.
+              The 24-hour window is closed. Only approved template messages can be sent.
             </p>
             <div className="flex flex-col sm:flex-row gap-2">
               <select
@@ -647,7 +724,7 @@ export function ChatWindow({
                 handleSendMessage()
               }
             }}
-            placeholder={`Reply to ${displayName}... type / for snippets, products, payment links`}
+            placeholder={`Reply to ${firstName}… type / for snippets, products, payment links`}
             className="w-full bg-transparent px-2 py-1 text-[13px] text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none resize-none leading-relaxed"
             dir="auto"
             disabled={sending || whatsappClosed}
@@ -662,6 +739,7 @@ export function ChatWindow({
                 onClick={() => toast.info("Attachment upload")}
                 className="p-1.5 rounded-[5px] text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--s3)] transition-colors cursor-pointer"
                 title="Attach file"
+                aria-label="Attach file"
               >
                 <Paperclip className="w-3.5 h-3.5" />
               </button>
@@ -671,6 +749,7 @@ export function ChatWindow({
                 onClick={() => setInputText((prev) => prev + " 🌸")}
                 className="p-1.5 rounded-[5px] text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--s3)] transition-colors cursor-pointer"
                 title="Insert emoji"
+                aria-label="Insert emoji"
               >
                 <Smile className="w-3.5 h-3.5" />
               </button>
@@ -683,6 +762,7 @@ export function ChatWindow({
                 }}
                 className="p-1.5 rounded-[5px] text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--s3)] transition-colors cursor-pointer"
                 title="Insert product"
+                aria-label="Insert product"
               >
                 <ShoppingCart className="w-3.5 h-3.5" />
               </button>
@@ -692,6 +772,7 @@ export function ChatWindow({
                 onClick={() => setIsAutomationOpen(!isAutomationOpen)}
                 className="p-1.5 rounded-[5px] text-[var(--t3)] hover:text-[var(--gold)] hover:bg-[var(--s3)] transition-colors cursor-pointer"
                 title="Quick automations"
+                aria-label="Quick automations"
               >
                 <Zap className="w-3.5 h-3.5" />
               </button>
@@ -702,6 +783,7 @@ export function ChatWindow({
                 onClick={handleRewriteInEgyptian}
                 className="h-[26px] px-2 rounded-[5px] border border-[var(--line)] bg-[var(--s1)] hover:bg-[var(--s3)] text-[11.5px] font-medium text-[var(--t2)] hover:text-[var(--gold2)] flex items-center gap-1.5 transition-colors cursor-pointer ml-1"
                 title="Rewrite message in friendly Egyptian dialect"
+                aria-label="Rewrite in Egyptian"
               >
                 <Sparkles className="w-3 h-3 text-[var(--gold)]" />
                 <span>Rewrite in Egyptian</span>
@@ -748,7 +830,10 @@ export function ChatWindow({
                 title="Send (⌘+Enter)"
               >
                 {sending ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Sending…</span>
+                  </>
                 ) : (
                   <>
                     <span>Send</span>

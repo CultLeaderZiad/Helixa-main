@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 
 export default function InboxPage() {
   const { userId, isLoading } = useInstagramSession()
@@ -17,6 +18,7 @@ export default function InboxPage() {
   const [selectedRecipientName, setSelectedRecipientName] = useState<string | null>(null)
   const [selectedRecipientId, setSelectedRecipientId] = useState<string | null>(null)
   const [selectedPlatform, setSelectedPlatform] = useState<string>("instagram")
+  const [isRailOpenMobile, setIsRailOpenMobile] = useState<boolean>(false)
 
   const handleSelect = (id: string, name: string, recipientId: string, platform: string) => {
     setSelectedConversationId(id)
@@ -80,10 +82,10 @@ export default function InboxPage() {
 
   return (
     <div className="h-[calc(100vh-52px)] flex bg-[var(--bg)] overflow-hidden w-full relative">
-      {/* Column 1: Conversations List (~320px) */}
+      {/* Column 1: Conversations List (300px) */}
       <div
         className={cn(
-          "w-full md:w-[320px] lg:w-[340px] shrink-0 absolute md:static inset-0 z-20 md:z-auto transition-transform duration-200 md:translate-x-0 h-full",
+          "w-full md:w-[300px] shrink-0 absolute md:static inset-0 z-20 md:z-auto transition-transform duration-200 md:translate-x-0 h-full",
           selectedConversationId ? "-translate-x-full md:translate-x-0" : "translate-x-0"
         )}
       >
@@ -94,10 +96,10 @@ export default function InboxPage() {
         />
       </div>
 
-      {/* Column 2: Chat Window / Thread (flex-1) */}
+      {/* Column 2: Chat Window / Thread (fluid) */}
       <div
         className={cn(
-          "flex-1 w-full absolute md:static inset-0 z-30 md:z-auto transition-transform duration-200 md:translate-x-0 h-full flex flex-col",
+          "flex-1 w-full absolute md:static inset-0 z-30 md:z-auto transition-transform duration-200 md:translate-x-0 h-full flex flex-col min-w-0",
           selectedConversationId ? "translate-x-0" : "translate-x-full md:translate-x-0"
         )}
       >
@@ -110,11 +112,12 @@ export default function InboxPage() {
           onBack={() => setSelectedConversationId(null)}
           contactContext={contactContext}
           mutateContact={mutateContact}
+          onOpenContextRail={() => setIsRailOpenMobile(true)}
         />
       </div>
 
-      {/* Column 3: Customer Copilot Rail (~320px, visible on lg screens when conversation is selected) */}
-      <div className="hidden lg:flex h-full shrink-0">
+      {/* Column 3: Customer Copilot Rail (300px, visible on lg screens) */}
+      <div className="hidden lg:flex w-[300px] h-full shrink-0">
         <CustomerCopilotRail
           recipientName={selectedRecipientName}
           recipientId={selectedRecipientId || undefined}
@@ -124,6 +127,23 @@ export default function InboxPage() {
           onToggleBot={handleToggleBot}
         />
       </div>
+
+      {/* Mobile/Tablet Context Rail Sheet (<1024px) */}
+      <Sheet open={isRailOpenMobile} onOpenChange={setIsRailOpenMobile}>
+        <SheetContent side="right" className="p-0 w-[300px] sm:w-[320px] bg-[var(--s1)] border-l border-[var(--line)]">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Conversation Context</SheetTitle>
+          </SheetHeader>
+          <CustomerCopilotRail
+            recipientName={selectedRecipientName}
+            recipientId={selectedRecipientId || undefined}
+            platform={selectedPlatform}
+            contactContext={contactContext}
+            botPaused={botPaused}
+            onToggleBot={handleToggleBot}
+          />
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
