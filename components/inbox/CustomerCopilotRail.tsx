@@ -32,11 +32,6 @@ export function CustomerCopilotRail({
   onInsertText,
 }: CustomerCopilotRailProps) {
   const contact = contactContext?.contact
-  const [tags, setTags] = useState<string[]>(
-    contact?.tags && contact.tags.length > 0
-      ? contact.tags
-      : ["serum", "sensitive-skin", "reel-lead"]
-  )
   const [isAddingTag, setIsAddingTag] = useState(false)
   const [newTagInput, setNewTagInput] = useState("")
   const [copilotTimedOut, setCopilotTimedOut] = useState(false)
@@ -102,11 +97,29 @@ export function CustomerCopilotRail({
     .map((w) => w[0]?.toUpperCase() || "")
     .join("") || "CU"
 
-  const locationText = contact?.custom_fields?.location || "Cairo, Egypt · Arabic (EG)"
-  const sourceText = contact?.source || "Reel comment \"price\""
+  const isAhmed =
+    displayName.toLowerCase().includes("ahmed") ||
+    recipientName?.toLowerCase().includes("ahmed") ||
+    platform?.toLowerCase() === "whatsapp"
+
+  const locationText =
+    contact?.custom_fields?.location ||
+    (isAhmed ? "Giza, Egypt · Sheikh Zayed" : "Cairo, Egypt · Arabic (EG)")
+
+  const sourceText =
+    contact?.source ||
+    (isAhmed ? "WhatsApp direct · reservation request" : 'Reel comment "price"')
+
+  const [tags, setTags] = useState<string[]>(
+    contact?.tags && contact.tags.length > 0
+      ? contact.tags
+      : isAhmed
+      ? ["whatsapp-lead", "sheikh-zayed", "reservation"]
+      : ["serum", "sensitive-skin", "reel-lead"]
+  )
 
   return (
-    <div className="w-[300px] h-full flex flex-col bg-[var(--s1)] border-l border-[var(--line)] overflow-y-auto select-none scrollbar-thin scrollbar-thumb-[var(--line2)] scrollbar-track-transparent shrink-0">
+    <div className="w-full h-full flex flex-col bg-[var(--s1)] overflow-y-auto select-none scrollbar-thin scrollbar-thumb-[var(--line2)] scrollbar-track-transparent">
       {/* Customer Header */}
       <div className="p-4 border-b border-[var(--line)] flex flex-col gap-3">
         <div className="flex items-center gap-3">

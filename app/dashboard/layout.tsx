@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { Sidebar } from "@/components/layout/sidebar"
 import { MobileNav } from "@/components/layout/mobile-nav"
 import { TopBar } from "@/components/layout/TopBar"
@@ -35,6 +35,7 @@ export default function DashboardLayout({
     } = useInstagramSession()
 
     const router = useRouter()
+    const pathname = usePathname()
 
     useEffect(() => {
         if (!isLoading) {
@@ -126,20 +127,27 @@ export default function DashboardLayout({
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col md:ps-[240px] min-w-0">
-                {/* Mobile Header */}
-                <header className="md:hidden h-[52px] border-b border-[var(--line)] bg-[var(--s1)] flex items-center justify-between px-4 sticky top-0 z-30">
-                    <div className="flex items-center gap-2.5">
-                        <MobileNav username={username || "Creator"} profilePic={profilePic} email={email} userRole={role} onLogout={logout} />
-                        <span className="font-semibold text-[14px] text-[var(--t1)]">Helixa</span>
-                    </div>
-                </header>
+                {/* Mobile Header (rendered on all pages except inbox which provides its own dedicated 56px sticky header) */}
+                {!pathname?.startsWith('/dashboard/inbox') && (
+                    <header className="md:hidden h-[52px] border-b border-[var(--line)] bg-[var(--s1)] flex items-center justify-between px-4 sticky top-0 z-30">
+                        <div className="flex items-center gap-2.5">
+                            <MobileNav username={username || "Creator"} profilePic={profilePic} email={email} userRole={role} onLogout={logout} />
+                            <span className="font-semibold text-[14px] text-[var(--t1)]">Helixa</span>
+                        </div>
+                    </header>
+                )}
 
                 {/* 52px Desktop Top Bar */}
                 <div className="hidden md:block">
                     <TopBar workspaceName={username || "Workspace"} />
                 </div>
 
-                <main id="main-content" className="flex-1 relative overflow-auto z-10">
+                <main
+                    id="main-content"
+                    className={`flex-1 relative z-10 ${
+                        pathname?.startsWith('/dashboard/inbox') ? 'overflow-hidden' : 'overflow-auto'
+                    }`}
+                >
                     {!trialExempt && <TrialBanner plan={plan || ""} trialEndsAt={trialEndsAt} />}
                     <UsageNotice />
                     {instagramReconnectRequired && (

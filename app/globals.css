@@ -311,6 +311,10 @@ html[dir="rtl"] .font-mono-ui {
 /* ─── Lightweight Motion Utilities ─── */
 /* Pure CSS transitions — zero JS, GPU-composited */
 
+.font-arabic {
+  font-family: var(--font-noto-arabic), var(--font-cairo), system-ui, -apple-system, sans-serif;
+}
+
 /* Fade in */
 @keyframes fadeIn {
   from { opacity: 0; }

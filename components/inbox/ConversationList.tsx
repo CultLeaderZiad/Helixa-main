@@ -14,6 +14,8 @@ import { Tag } from "@/components/ui/Tag"
 import { displayName } from "@/lib/ui/contactName"
 import { formatMessagePreview } from "@/lib/ui/eventLabels"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
+import { MobileNav } from "@/components/layout/mobile-nav"
+import { useInstagramSession } from "@/hooks/use-instagram-session"
 
 interface ConversationListProps {
   userId: string
@@ -53,6 +55,7 @@ function getInitials(name: string): string {
 export function ConversationList({ userId, selectedId, onSelect }: ConversationListProps) {
   const { language } = useLanguage()
   const isAr = language === "ar"
+  const { username, profilePic, email, role, logout } = useInstagramSession()
 
   const searchInputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -287,103 +290,114 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
 
   return (
     <div className="flex flex-col h-full border-e border-[var(--line)] bg-[var(--bg)] w-full md:w-[300px] shrink-0 select-none overflow-hidden">
-      {/* Header */}
-      <div className="p-3.5 border-b border-[var(--line)] flex flex-col gap-2.5 shrink-0 bg-[var(--bg)] z-10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h2 className="text-[14px] font-semibold text-[var(--t1)] tracking-tight">
-              {isAr ? "صندوق الوارد" : "Inbox"}
-            </h2>
+      {/* 56px Sticky Header */}
+      <div className="h-[56px] px-3 md:px-3.5 border-b border-[var(--line)] flex items-center justify-between shrink-0 bg-[var(--bg)] z-10 sticky top-0">
+        <div className="flex items-center gap-2 min-w-0">
+          {/* Mobile hamburger menu (opens MobileNav sidebar) */}
+          <div className="md:hidden">
+            <MobileNav
+              username={username || "Creator"}
+              profilePic={profilePic}
+              email={email}
+              userRole={role}
+              onLogout={logout}
+            />
           </div>
-
-          <div className="flex items-center gap-1.5">
-            {/* Filter icon button */}
-            <button
-              type="button"
-              aria-label="Filter"
-              className="size-[26px] rounded-[6px] border border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[var(--t2)] hover:text-[var(--t1)] flex items-center justify-center transition-colors cursor-pointer"
-            >
-              <SlidersHorizontal className="size-3.5 text-[var(--t3)]" />
-            </button>
-
-            {/* Channel Filter Dropdown */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setChannelMenuOpen(!channelMenuOpen)}
-                className="h-[26px] px-2 rounded-[6px] border border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[11.5px] font-medium text-[var(--t2)] hover:text-[var(--t1)] flex items-center gap-1.5 transition-colors cursor-pointer"
-                title="Filter by channel"
-              >
-                <span className="truncate max-w-[85px]">{activeChannelLabel}</span>
-                <ChevronDown className="w-3 h-3 text-[var(--t3)]" />
-              </button>
-
-              {channelMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-30"
-                    onClick={() => setChannelMenuOpen(false)}
-                  />
-                  <div className="absolute end-0 top-full mt-1 w-40 rounded-lg border border-[var(--line)] bg-[var(--s2)] shadow-xl p-1 z-40">
-                    {channelOptions.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => {
-                          setSelectedChannel(opt.value)
-                          setChannelMenuOpen(false)
-                        }}
-                        className={cn(
-                          "w-full text-start px-2 py-1.5 rounded-[5px] text-[12px] flex items-center justify-between transition-colors cursor-pointer",
-                          selectedChannel === opt.value
-                            ? "bg-[var(--s3)] text-[var(--t1)] font-medium"
-                            : "text-[var(--t2)] hover:bg-[var(--s3)] hover:text-[var(--t1)]"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          {opt.channel ? (
-                            <ChannelBadge channel={opt.channel} size="sm" className="w-4 h-4" />
-                          ) : (
-                            <SlidersHorizontal className="w-3 h-3 text-[var(--t3)]" />
-                          )}
-                          <span>{opt.label}</span>
-                        </div>
-                        {selectedChannel === opt.value && (
-                          <Check className="w-3 h-3 text-[var(--gold)]" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+          <h2 className="text-[16px] font-semibold text-[var(--t1)] tracking-tight truncate">
+            {isAr ? "صندوق الوارد" : "Inbox"}
+          </h2>
         </div>
 
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Filter icon button with 44px min touch target on mobile */}
+          <button
+            type="button"
+            aria-label={isAr ? "تصفية" : "Filter conversations"}
+            className="size-11 md:size-[28px] rounded-[6px] border border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[var(--t2)] hover:text-[var(--t1)] flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <SlidersHorizontal className="size-4 md:size-3.5 text-[var(--t3)]" />
+          </button>
+
+          {/* Channel Filter Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setChannelMenuOpen(!channelMenuOpen)}
+              className="h-11 md:h-[28px] px-2.5 rounded-[6px] border border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[12px] md:text-[11.5px] font-medium text-[var(--t2)] hover:text-[var(--t1)] flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Filter by channel"
+            >
+              <span className="truncate max-w-[85px]">{activeChannelLabel}</span>
+              <ChevronDown className="w-3.5 h-3.5 text-[var(--t3)]" />
+            </button>
+
+            {channelMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-30"
+                  onClick={() => setChannelMenuOpen(false)}
+                />
+                <div className="absolute end-0 top-full mt-1 w-44 rounded-lg border border-[var(--line)] bg-[var(--s2)] shadow-xl p-1 z-40">
+                  {channelOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        setSelectedChannel(opt.value)
+                        setChannelMenuOpen(false)
+                      }}
+                      className={cn(
+                        "w-full text-start px-2.5 py-2 md:py-1.5 rounded-[5px] text-[12px] flex items-center justify-between transition-colors cursor-pointer",
+                        selectedChannel === opt.value
+                          ? "bg-[var(--s3)] text-[var(--t1)] font-medium"
+                          : "text-[var(--t2)] hover:bg-[var(--s3)] hover:text-[var(--t1)]"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        {opt.channel ? (
+                          <ChannelBadge channel={opt.channel} size="sm" className="w-4 h-4" />
+                        ) : (
+                          <SlidersHorizontal className="w-3.5 h-3.5 text-[var(--t3)]" />
+                        )}
+                        <span>{opt.label}</span>
+                      </div>
+                      {selectedChannel === opt.value && (
+                        <Check className="w-3.5 h-3.5 text-[var(--gold)]" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Search and Tabs sub-header */}
+      <div className="p-3 border-b border-[var(--line)] flex flex-col gap-2.5 shrink-0 bg-[var(--bg)]">
         {/* Search input */}
         <div className="relative">
-          <Search className="absolute start-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--t3)] pointer-events-none" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 md:w-3.5 md:h-3.5 text-[var(--t3)] pointer-events-none" />
           <input
             ref={searchInputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-[30px] bg-[var(--s2)] border border-[var(--line)] rounded-[6px] ps-8 pe-7 text-[12px] text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none focus:border-[var(--line2)] focus:bg-[var(--s3)] transition-colors"
+            className="w-full h-10 md:h-[32px] bg-[var(--s2)] border border-[var(--line)] rounded-[8px] md:rounded-[6px] ps-9 pe-8 text-[13px] md:text-[12px] text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none focus:border-[var(--line2)] focus:bg-[var(--s3)] transition-colors"
             placeholder={isAr ? "بحث بالاسم، الرسالة، الوسم..." : "Search name, message, tag…"}
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              className="absolute end-2 top-1/2 -translate-y-1/2 text-[var(--t3)] hover:text-[var(--t1)] cursor-pointer"
+              className="absolute end-2.5 top-1/2 -translate-y-1/2 text-[var(--t3)] hover:text-[var(--t1)] cursor-pointer p-1"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4 md:w-3.5 md:h-3.5" />
             </button>
           )}
         </div>
 
-        {/* Text tabs with underline in --t1 */}
-        <div className="flex items-center gap-3 px-0.5 border-b border-[var(--line)] text-[12px] overflow-x-auto no-scrollbar pt-1">
+        {/* Horizontally scrollable segmented control tabs */}
+        <div className="flex items-center gap-1.5 p-1 bg-[var(--s2)] border border-[var(--line)] rounded-[8px] overflow-x-auto no-scrollbar text-[12px]">
           {[
             { id: "open", label: isAr ? "مفتوح" : "Open", count: counts.open },
             { id: "mine", label: isAr ? "خاص بي" : "Mine", count: counts.mine },
@@ -397,14 +411,19 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
                 type="button"
                 onClick={() => setActiveTab(tab.id as TabFilter)}
                 className={cn(
-                  "pb-2 font-medium transition-colors cursor-pointer border-b-2 -mb-px flex items-center gap-1 shrink-0",
+                  "px-3 py-1.5 md:py-1 rounded-[6px] font-medium transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[32px]",
                   isActive
-                    ? "border-[var(--t1)] text-[var(--t1)]"
-                    : "border-transparent text-[var(--t3)] hover:text-[var(--t2)]"
+                    ? "bg-[var(--s3)] text-[var(--t1)] shadow-xs"
+                    : "text-[var(--t3)] hover:text-[var(--t2)] hover:bg-[var(--s3)]/50"
                 )}
               >
                 <span>{tab.label}</span>
-                <span className="font-mono text-[10.5px] text-[var(--t3)]">{tab.count}</span>
+                <span className={cn(
+                  "font-mono text-[10.5px] px-1 rounded-full",
+                  isActive ? "bg-[var(--line2)] text-[var(--t1)]" : "text-[var(--t4)]"
+                )}>
+                  {tab.count}
+                </span>
               </button>
             )
           })}
@@ -484,7 +503,7 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
                   }
                 }}
                 className={cn(
-                  "p-3 flex items-start gap-3 transition-colors cursor-pointer relative group focus:outline-none focus-visible:bg-[var(--s3)]",
+                  "p-3 flex items-start gap-3 transition-colors cursor-pointer relative group focus:outline-none focus-visible:bg-[var(--s3)] min-h-[56px]",
                   isSelected
                     ? "bg-[var(--s2)] before:absolute before:inset-y-0 before:start-0 before:w-[2px] before:bg-[var(--gold)]"
                     : "hover:bg-[var(--s3)]"
