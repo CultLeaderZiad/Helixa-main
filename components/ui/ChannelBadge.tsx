@@ -48,8 +48,8 @@ const channelConfig: Record<string, { label: string; bg: string; text: string; i
   },
   webchat: {
     label: "Website chat",
-    bg: "bg-[var(--gold)]",
-    text: "text-black",
+    bg: "bg-[var(--s3)] border border-[var(--line2)]",
+    text: "text-[var(--t1)]",
     icon: MessageSquare,
   },
 }

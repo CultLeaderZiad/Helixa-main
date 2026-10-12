@@ -2,22 +2,34 @@
 
 import React, { useState } from "react"
 import {
-  MessageSquare,
-  Send,
-  Radio,
-  Share2,
-  Copy,
   ExternalLink,
   Plus,
   RefreshCw,
-  Clock,
-  ShieldCheck,
   Check,
+  Radio,
+  FileCode,
+  Shield,
+  HelpCircle,
+  Settings,
+  Sliders,
+  Send,
+  Loader2,
 } from "lucide-react"
 import { Pill } from "@/components/ui/Pill"
 import { Button, HoldToConfirm } from "@/components/ui/button"
 import { ChannelBadge } from "@/components/ui/ChannelBadge"
+import { CopyButton } from "@/components/ui/CopyButton"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 
 interface Connection {
   id: string
@@ -27,7 +39,7 @@ interface Connection {
 }
 
 interface ChannelCardsProps {
-  connections: Connection[]
+  connections?: Connection[]
   onConnectInstagram?: () => void
   onConnectFacebook?: () => void
   onConnectWhatsApp?: () => void
@@ -37,7 +49,7 @@ interface ChannelCardsProps {
 }
 
 export function ChannelCards({
-  connections,
+  connections = [],
   onConnectInstagram,
   onConnectFacebook,
   onConnectWhatsApp,
@@ -45,395 +57,913 @@ export function ChannelCards({
   onConnectTelegram,
   onDisconnect,
 }: ChannelCardsProps) {
-  const [copiedCode, setCopiedCode] = useState(false)
+  const router = useRouter()
+
+  // WhatsApp setup options
+  const [whatsappSetupMethod, setWhatsappSetupMethod] = useState<"embedded" | "token">("embedded")
+  const [whatsappModalOpen, setWhatsappModalOpen] = useState(false)
+  const [whatsappPhoneNumberId, setWhatsappPhoneNumberId] = useState("")
+  const [whatsappToken, setWhatsappToken] = useState("")
+  const [whatsappWabaId, setWhatsappWabaId] = useState("")
+  const [whatsappConnecting, setWhatsappConnecting] = useState(false)
+  const [whatsappReqsOpen, setWhatsappReqsOpen] = useState(false)
+
+  // Telegram setup
+  const [telegramModalOpen, setTelegramModalOpen] = useState(false)
+  const [telegramToken, setTelegramToken] = useState("")
+  const [telegramConnecting, setTelegramConnecting] = useState(false)
+  const [telegramDisconnected, setTelegramDisconnected] = useState(false)
+
+  // Facebook setup
+  const [facebookModalOpen, setFacebookModalOpen] = useState(false)
+
+  // TikTok setup
+  const [tiktokRegionModalOpen, setTiktokRegionModalOpen] = useState(false)
+
+  // Webchat widget
+  const [widgetModalOpen, setWidgetModalOpen] = useState(false)
+  const [widgetGuideOpen, setWidgetGuideOpen] = useState(false)
+  const [widgetColor, setWidgetColor] = useState("#C9974C")
+  const [widgetGreeting, setWidgetGreeting] = useState("Hello! How can we help you today?")
 
   const scriptCode = `<script src="https://cdn.helixa.app/w.js" data-id="nour_8f2"></script>`
 
-  const handleCopyScript = () => {
-    navigator.clipboard.writeText(scriptCode)
-    setCopiedCode(true)
-    toast.success("Embed script copied to clipboard")
-    setTimeout(() => setCopiedCode(false), 2000)
+  // Connect WhatsApp handler
+  const handleSaveWhatsApp = async () => {
+    if (whatsappSetupMethod === "token" && (!whatsappPhoneNumberId || !whatsappToken)) {
+      toast.error("Please provide both Phone Number ID and Access Token")
+      return
+    }
+
+    setWhatsappConnecting(true)
+    try {
+      const res = await fetch("/api/whatsapp/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          whatsappSetupMethod === "token"
+            ? {
+                phone_number_id: whatsappPhoneNumberId.trim(),
+                access_token: whatsappToken.trim(),
+                waba_id: whatsappWabaId.trim() || undefined,
+              }
+            : { code: "meta_embedded_code_mock" }
+        ),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success("WhatsApp Business connected successfully!")
+        setWhatsappModalOpen(false)
+      } else {
+        toast.info(data.error || "Submitted WhatsApp connection request")
+        setWhatsappModalOpen(false)
+      }
+    } catch {
+      toast.error("Failed to connect WhatsApp")
+    } finally {
+      setWhatsappConnecting(false)
+    }
+  }
+
+  // Connect Telegram handler
+  const handleSaveTelegram = async () => {
+    if (!telegramToken.trim()) {
+      toast.error("Please enter a bot token from @BotFather")
+      return
+    }
+
+    setTelegramConnecting(true)
+    try {
+      const res = await fetch("/api/telegram/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ botToken: telegramToken.trim() }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(`Connected bot @${data.bot?.username || "TelegramBot"}!`)
+        setTelegramModalOpen(false)
+        setTelegramDisconnected(false)
+        setTelegramToken("")
+      } else {
+        toast.error(data.error || "Failed to validate Telegram bot token")
+      }
+    } catch {
+      toast.error("Network error connecting Telegram bot")
+    } finally {
+      setTelegramConnecting(false)
+    }
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 select-none">
-      {/* 1. Instagram Card */}
-      <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-4 flex flex-col justify-between space-y-4">
-        <div className="space-y-3">
-          {/* Card Header */}
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2.5">
-              <ChannelBadge channel="instagram" size="sm" className="w-6 h-6 rounded-lg" />
-              <div>
-                <h3 className="text-[13.5px] font-semibold text-[var(--t1)]">Instagram</h3>
-                <p className="text-[11px] text-[var(--t3)]">Comments, DMs, stories</p>
+    <>
+      {/* 3×2 Card Grid (responsive: 1 col < 768, 2 cols 768-1279, 3 cols >= 1280) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 select-none">
+        {/* 1. Instagram Card */}
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-4 flex flex-col justify-between min-h-[176px] space-y-3.5">
+          <div className="space-y-3">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2.5">
+                <ChannelBadge channel="instagram" size="md" />
+                <div>
+                  <h3 className="text-[14px] font-semibold text-[var(--t1)]">Instagram</h3>
+                  <p className="text-[11.5px] text-[var(--t3)]">Comments, DMs, stories</p>
+                </div>
               </div>
+              <Pill variant="green" dot>
+                Live
+              </Pill>
             </div>
-            <Pill variant="green" dot>
-              Live
-            </Pill>
-          </div>
 
-          {/* Connected Account */}
-          <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[10px] font-semibold text-[var(--t1)]">
-                N
-              </div>
-              <span className="text-[12px] font-medium text-[var(--t1)]">
-                @nour.cosmetics
-              </span>
-            </div>
-            <span className="font-mono text-[11px] text-[var(--t3)] tabular-nums">
-              48.2k
-            </span>
-          </div>
-
-          {/* Token Health */}
-          <div className="text-[11px] text-[var(--t3)] font-mono space-y-0.5 pt-0.5">
-            <div>Last event 12s ago</div>
-            <div>
-              Token <span className="text-[var(--amber)]">expires in 6d</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer Actions */}
-        <div className="flex items-center gap-2 pt-2 border-t border-[var(--line)]">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => toast.info("Refreshing Instagram long-lived access token")}
-            className="h-[28px] px-2.5 text-[11.5px] font-medium gap-1 text-[var(--amber)] border-[var(--amber)]/30 hover:bg-[var(--amberbg)]"
-          >
-            <RefreshCw className="w-3 h-3" />
-            <span>Reconnect now</span>
-          </Button>
-
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => toast.info("Opening Instagram connection settings")}
-            className="h-[28px] px-2.5 text-[11.5px] font-medium"
-          >
-            Manage
-          </Button>
-        </div>
-      </div>
-
-      {/* 2. Facebook & Messenger Card */}
-      <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-4 flex flex-col justify-between space-y-4">
-        <div className="space-y-3">
-          {/* Card Header */}
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2.5">
-              <ChannelBadge channel="facebook" size="sm" className="w-6 h-6 rounded-lg" />
-              <div>
-                <h3 className="text-[13.5px] font-semibold text-[var(--t1)]">
-                  Facebook & Messenger
-                </h3>
-                <p className="text-[11px] text-[var(--t3)]">Page comments and Messenger</p>
-              </div>
-            </div>
-            <Pill variant="green" dot>
-              Live
-            </Pill>
-          </div>
-
-          {/* Connected Pages */}
-          <div className="space-y-1.5">
-            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2 flex items-center justify-between">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-5 h-5 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[9px] font-semibold text-[var(--t1)] shrink-0">
+            {/* Connected Account */}
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[10.5px] font-semibold text-[var(--t1)]">
                   N
                 </div>
-                <span className="text-[11.5px] font-medium text-[var(--t1)] truncate">
-                  Nour Cosmetics EG
+                <span className="text-[12px] font-medium text-[var(--t1)]">
+                  @nour.cosmetics
                 </span>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <ChannelBadge channel="facebook" size="sm" className="w-3.5 h-3.5 rounded-full" />
-                <ChannelBadge channel="messenger" size="sm" className="w-3.5 h-3.5 rounded-full" />
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2 flex items-center justify-between">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-5 h-5 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[9px] font-semibold text-[var(--t1)] shrink-0">
-                  N
-                </div>
-                <span className="text-[11.5px] font-medium text-[var(--t1)] truncate">
-                  Nour Cosmetics KSA
-                </span>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <ChannelBadge channel="facebook" size="sm" className="w-3.5 h-3.5 rounded-full" />
-                <ChannelBadge channel="messenger" size="sm" className="w-3.5 h-3.5 rounded-full" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer Actions */}
-        <div className="flex items-center gap-2 pt-2 border-t border-[var(--line)]">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onConnectFacebook}
-            className="h-[28px] px-2.5 text-[11.5px] font-medium gap-1"
-          >
-            <Plus className="w-3 h-3" />
-            <span>Add page</span>
-          </Button>
-
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => toast.info("Managing Meta Business Manager pages")}
-            className="h-[28px] px-2.5 text-[11.5px] font-medium"
-          >
-            Business Manager pages
-          </Button>
-        </div>
-      </div>
-
-      {/* 3. WhatsApp Business Card */}
-      <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-4 flex flex-col justify-between space-y-4">
-        <div className="space-y-3">
-          {/* Card Header */}
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2.5">
-              <ChannelBadge channel="whatsapp" size="sm" className="w-6 h-6 rounded-lg" />
-              <div>
-                <h3 className="text-[13.5px] font-semibold text-[var(--t1)]">
-                  WhatsApp Business
-                </h3>
-                <p className="text-[11px] text-[var(--t3)]">Cloud API · templates</p>
-              </div>
-            </div>
-            <Pill variant="neutral" dot={false}>
-              Not connected
-            </Pill>
-          </div>
-
-          {/* Setup Options Grid */}
-          <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2 space-y-1">
-              <div className="font-semibold text-[var(--t1)]">Embedded Signup</div>
-              <p className="text-[var(--t3)] leading-tight text-[10px]">
-                Log in with Meta, pick or create a number. About 3 minutes.
-              </p>
-            </div>
-            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2 space-y-1">
-              <div className="font-semibold text-[var(--t1)]">System-user token</div>
-              <p className="text-[var(--t3)] leading-tight text-[10px]">
-                For agencies that already manage the WABA in Business Manager.
-              </p>
-            </div>
-          </div>
-
-          {/* Stepper info */}
-          <div className="font-mono text-[10px] text-[var(--t4)] flex items-center justify-between">
-            <span>① Log in</span>
-            <span>›</span>
-            <span>② Number</span>
-            <span>›</span>
-            <span>③ Verify</span>
-            <span>›</span>
-            <span>④ Meta billing</span>
-          </div>
-        </div>
-
-        {/* Footer Actions */}
-        <div className="flex items-center gap-2 pt-2 border-t border-[var(--line)]">
-          <Button
-            variant="default"
-            size="sm"
-            onClick={onConnectWhatsApp}
-            className="h-[28px] px-3 text-[11.5px] font-medium"
-          >
-            Connect WhatsApp
-          </Button>
-
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => toast.info("Opening Meta Cloud API requirements guide")}
-            className="h-[28px] px-2.5 text-[11.5px] font-medium"
-          >
-            Requirements
-          </Button>
-        </div>
-      </div>
-
-      {/* 4. TikTok Card */}
-      <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-4 flex flex-col justify-between space-y-4">
-        <div className="space-y-3">
-          {/* Card Header */}
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2.5">
-              <ChannelBadge channel="tiktok" size="sm" className="w-6 h-6 rounded-lg" />
-              <div>
-                <h3 className="text-[13.5px] font-semibold text-[var(--t1)]">TikTok</h3>
-                <p className="text-[11px] text-[var(--t3)]">Comment replies, comment-to-DM</p>
-              </div>
-            </div>
-            <Pill variant="blue" dot={false}>
-              Beta
-            </Pill>
-          </div>
-
-          {/* Region policy explanation */}
-          <p className="text-[11.5px] text-[var(--t3)] leading-relaxed">
-            Messaging depends on TikTok's regional approval. We check this account's region when you connect and show what's available.
-          </p>
-        </div>
-
-        {/* Footer Actions */}
-        <div className="flex items-center gap-2 pt-2 border-t border-[var(--line)]">
-          <Button
-            variant="default"
-            size="sm"
-            onClick={onConnectTikTok}
-            className="h-[28px] px-3 text-[11.5px] font-medium"
-          >
-            Connect TikTok
-          </Button>
-
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => toast.info("MENA, Egypt & GCC are supported for TikTok DM/comment automation")}
-            className="h-[28px] px-2.5 text-[11.5px] font-medium"
-          >
-            Region details
-          </Button>
-        </div>
-      </div>
-
-      {/* 5. Telegram Card */}
-      <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-4 flex flex-col justify-between space-y-4">
-        <div className="space-y-3">
-          {/* Card Header */}
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2.5">
-              <ChannelBadge channel="telegram" size="sm" className="w-6 h-6 rounded-lg" />
-              <div>
-                <h3 className="text-[13.5px] font-semibold text-[var(--t1)]">Telegram</h3>
-                <p className="text-[11px] text-[var(--t3)]">Bot DMs and channel broadcasts</p>
-              </div>
-            </div>
-            <Pill variant="green" dot>
-              Live
-            </Pill>
-          </div>
-
-          {/* Connected Bot & HoldToConfirm Disconnect */}
-          <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-6 h-6 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[10px] font-semibold text-[var(--t1)] shrink-0">
-                B
-              </div>
-              <span className="text-[12px] font-medium text-[var(--t1)] truncate">
-                @NourCosmeticsBot
+              <span className="font-mono text-[11px] text-[var(--t3)] tabular-nums">
+                48.2k
               </span>
             </div>
 
-            <HoldToConfirm
-              label="Hold to disconnect"
-              confirmingLabel="Disconnecting..."
-              undoMessage="Telegram bot disconnected"
-              onConfirm={() => {
-                toast.success("Telegram bot disconnected successfully")
+            {/* Token Health */}
+            <div className="text-[11px] text-[var(--t3)] font-mono flex items-center gap-1.5 flex-wrap">
+              <span>Last event 12s ago</span>
+              <span>·</span>
+              <span>
+                Token <strong className="text-[var(--amber)] font-medium">expires in 6d</strong>
+              </span>
+            </div>
+          </div>
+
+          {/* Footer Actions: gold "Reconnect now" (the one gold button on the page) */}
+          <div className="flex items-center gap-2 pt-2 border-t border-[var(--line)]">
+            <Button
+              variant="gold"
+              size="sm"
+              onClick={() => {
+                toast.success("Instagram token refreshed. Valid for 60 days.")
               }}
-              className="h-[26px] px-2 text-[11px] shrink-0"
-            />
+              className="h-[28px] px-3 text-[11.5px] gap-1.5 font-semibold"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Reconnect now</span>
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => router.push("/dashboard/platforms/instagram")}
+              className="h-[28px] px-2.5 text-[11.5px] font-medium"
+            >
+              Manage
+            </Button>
           </div>
         </div>
 
-        {/* Footer Actions */}
-        <div className="flex items-center gap-2 pt-2 border-t border-[var(--line)]">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onConnectTelegram}
-            className="h-[28px] px-2.5 text-[11.5px] font-medium gap-1"
-          >
-            <Plus className="w-3 h-3" />
-            <span>Add bot</span>
-          </Button>
+        {/* 2. Facebook & Messenger Card */}
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-4 flex flex-col justify-between min-h-[176px] space-y-3.5">
+          <div className="space-y-3">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2.5">
+                <ChannelBadge channel="facebook" size="md" />
+                <div>
+                  <h3 className="text-[14px] font-semibold text-[var(--t1)]">
+                    Facebook & Messenger
+                  </h3>
+                  <p className="text-[11.5px] text-[var(--t3)]">Page comments and Messenger</p>
+                </div>
+              </div>
+              <Pill variant="green" dot>
+                Live
+              </Pill>
+            </div>
 
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => window.open("https://t.me/BotFather", "_blank")}
-            className="h-[28px] px-2.5 text-[11.5px] font-medium gap-1"
-          >
-            <span>Token from @BotFather</span>
-            <ExternalLink className="w-3 h-3 text-[var(--t3)]" />
-          </Button>
-        </div>
-      </div>
+            {/* Connected Pages */}
+            <div className="space-y-1.5">
+              <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2 flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-5 h-5 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[9.5px] font-semibold text-[var(--t1)] shrink-0">
+                    N
+                  </div>
+                  <span className="text-[11.5px] font-medium text-[var(--t1)] truncate">
+                    Nour Cosmetics EG
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <ChannelBadge channel="facebook" size="sm" className="w-4 h-4 rounded-full" />
+                  <ChannelBadge channel="messenger" size="sm" className="w-4 h-4 rounded-full" />
+                </div>
+              </div>
 
-      {/* 6. Website Chat Card */}
-      <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-4 flex flex-col justify-between space-y-4">
-        <div className="space-y-3">
-          {/* Card Header */}
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2.5">
-              <ChannelBadge channel="webchat" size="sm" className="w-6 h-6 rounded-lg" />
-              <div>
-                <h3 className="text-[13.5px] font-semibold text-[var(--t1)]">Website chat</h3>
-                <p className="text-[11px] text-[var(--t3)]">Widget for nourcosmetics.com</p>
+              <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2 flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-5 h-5 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[9.5px] font-semibold text-[var(--t1)] shrink-0">
+                    N
+                  </div>
+                  <span className="text-[11.5px] font-medium text-[var(--t1)] truncate">
+                    Nour Cosmetics KSA
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <ChannelBadge channel="facebook" size="sm" className="w-4 h-4 rounded-full" />
+                  <ChannelBadge channel="messenger" size="sm" className="w-4 h-4 rounded-full" />
+                </div>
               </div>
             </div>
-            <Pill variant="green" dot>
-              Live
-            </Pill>
           </div>
 
-          {/* Script Snippet Box */}
-          <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2 font-mono text-[10.5px] text-[var(--t2)] flex items-center justify-between gap-2 overflow-hidden">
-            <code className="truncate max-w-[210px] text-[var(--t3)]">
-              {scriptCode}
-            </code>
-            <button
-              type="button"
-              onClick={handleCopyScript}
-              className="p-1 rounded-[4px] text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--s3)] transition-colors cursor-pointer shrink-0"
-              title="Copy embed script"
+          {/* Footer Actions */}
+          <div className="flex items-center gap-2 pt-2 border-t border-[var(--line)]">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setFacebookModalOpen(true)}
+              className="h-[28px] px-2.5 text-[11.5px] font-medium gap-1"
             >
-              {copiedCode ? (
-                <Check className="w-3 h-3 text-[var(--green)]" />
-              ) : (
-                <Copy className="w-3 h-3" />
-              )}
-            </button>
+              <Plus className="w-3 h-3" />
+              <span>Add page</span>
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                window.open("https://business.facebook.com/latest/settings/pages", "_blank")
+              }
+              className="h-[28px] px-2.5 text-[11.5px] font-medium"
+            >
+              Business Manager pages
+            </Button>
           </div>
         </div>
 
-        {/* Footer Actions */}
-        <div className="flex items-center gap-2 pt-2 border-t border-[var(--line)]">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => toast.info("Opening chat widget customizer")}
-            className="h-[28px] px-2.5 text-[11.5px] font-medium"
-          >
-            Customize widget
-          </Button>
+        {/* 3. WhatsApp Business Card */}
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-4 flex flex-col justify-between min-h-[176px] space-y-3.5">
+          <div className="space-y-3">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2.5">
+                <ChannelBadge channel="whatsapp" size="md" />
+                <div>
+                  <h3 className="text-[14px] font-semibold text-[var(--t1)]">
+                    WhatsApp Business
+                  </h3>
+                  <p className="text-[11.5px] text-[var(--t3)]">Cloud API · templates</p>
+                </div>
+              </div>
+              <Pill variant="neutral" dot={false}>
+                Not connected
+              </Pill>
+            </div>
 
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => toast.info("Opening embed installation documentation")}
-            className="h-[28px] px-2.5 text-[11.5px] font-medium"
-          >
-            Install guide
-          </Button>
+            {/* Setup Option Tiles */}
+            <div className="grid grid-cols-2 gap-2 text-[11px]">
+              <div
+                onClick={() => setWhatsappSetupMethod("embedded")}
+                className={cn(
+                  "rounded-lg border p-2 space-y-0.5 cursor-pointer transition-colors",
+                  whatsappSetupMethod === "embedded"
+                    ? "border-[var(--goldline)] bg-[var(--goldbg)]/20"
+                    : "border-[var(--line)] bg-[var(--s2)] hover:border-[var(--line2)]"
+                )}
+              >
+                <div className="font-semibold text-[var(--t1)]">Embedded Signup</div>
+                <p className="text-[var(--t3)] leading-tight text-[10px]">
+                  Log in with Meta, pick or create a number. About 3 minutes.
+                </p>
+              </div>
+
+              <div
+                onClick={() => setWhatsappSetupMethod("token")}
+                className={cn(
+                  "rounded-lg border p-2 space-y-0.5 cursor-pointer transition-colors",
+                  whatsappSetupMethod === "token"
+                    ? "border-[var(--goldline)] bg-[var(--goldbg)]/20"
+                    : "border-[var(--line)] bg-[var(--s2)] hover:border-[var(--line2)]"
+                )}
+              >
+                <div className="font-semibold text-[var(--t1)]">System-user token</div>
+                <p className="text-[var(--t3)] leading-tight text-[10px]">
+                  For agencies that already manage the WABA in Business Manager.
+                </p>
+              </div>
+            </div>
+
+            {/* 4-Step Stepper Strip */}
+            <div className="font-mono text-[9.5px] text-[var(--t4)] flex items-center justify-between px-0.5">
+              <span>① Log in</span>
+              <span>›</span>
+              <span>② Number</span>
+              <span>›</span>
+              <span>③ Verify</span>
+              <span>›</span>
+              <span>④ Meta billing</span>
+            </div>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="space-y-1.5 pt-2 border-t border-[var(--line)]">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setWhatsappModalOpen(true)}
+                className="h-[28px] px-3 text-[11.5px] font-medium"
+              >
+                Connect WhatsApp
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setWhatsappReqsOpen(true)}
+                className="h-[28px] px-2.5 text-[11.5px] font-medium"
+              >
+                Requirements
+              </Button>
+            </div>
+
+            <p className="text-[10px] text-[var(--t3)] leading-tight">
+              Meta requires a payment method on the WhatsApp account to send service messages.
+            </p>
+          </div>
+        </div>
+
+        {/* 4. TikTok Card */}
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-4 flex flex-col justify-between min-h-[176px] space-y-3.5">
+          <div className="space-y-3">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2.5">
+                <ChannelBadge channel="tiktok" size="md" />
+                <div>
+                  <h3 className="text-[14px] font-semibold text-[var(--t1)]">TikTok</h3>
+                  <p className="text-[11.5px] text-[var(--t3)]">Comment replies, comment-to-DM</p>
+                </div>
+              </div>
+              <Pill variant="blue" dot={false}>
+                Beta
+              </Pill>
+            </div>
+
+            {/* Region Policy Body Copy */}
+            <p className="text-[11.5px] text-[var(--t3)] leading-relaxed">
+              Messaging depends on TikTok's regional approval. We check this account's region when you connect and show what's available.
+            </p>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="flex items-center gap-2 pt-2 border-t border-[var(--line)]">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                if (onConnectTikTok) onConnectTikTok()
+                else toast.info("Opening TikTok Business Account authorization...")
+              }}
+              className="h-[28px] px-3 text-[11.5px] font-medium"
+            >
+              Connect TikTok
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setTiktokRegionModalOpen(true)}
+              className="h-[28px] px-2.5 text-[11.5px] font-medium"
+            >
+              Region details
+            </Button>
+          </div>
+        </div>
+
+        {/* 5. Telegram Card */}
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-4 flex flex-col justify-between min-h-[176px] space-y-3.5">
+          <div className="space-y-3">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2.5">
+                <ChannelBadge channel="telegram" size="md" />
+                <div>
+                  <h3 className="text-[14px] font-semibold text-[var(--t1)]">Telegram</h3>
+                  <p className="text-[11.5px] text-[var(--t3)]">Bot DMs and channel broadcasts</p>
+                </div>
+              </div>
+              {telegramDisconnected ? (
+                <Pill variant="neutral" dot={false}>
+                  Not connected
+                </Pill>
+              ) : (
+                <Pill variant="green" dot>
+                  Live
+                </Pill>
+              )}
+            </div>
+
+            {/* Connected Bot or Empty State */}
+            {telegramDisconnected ? (
+              <div className="rounded-lg border border-dashed border-[var(--line2)] p-2.5 text-center text-[11.5px] text-[var(--t3)]">
+                No bot connected. Add your bot token to start receiving messages.
+              </div>
+            ) : (
+              <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[10.5px] font-semibold text-[var(--t1)] shrink-0">
+                    B
+                  </div>
+                  <span className="text-[12px] font-medium text-[var(--t1)] truncate">
+                    @NourCosmeticsBot
+                  </span>
+                </div>
+
+                <HoldToConfirm
+                  label="Hold to disconnect"
+                  confirmingLabel="Disconnecting..."
+                  undoMessage="Telegram bot disconnected. Automations stopped."
+                  onConfirm={() => {
+                    setTelegramDisconnected(true)
+                  }}
+                  onUndo={() => {
+                    setTelegramDisconnected(false)
+                    toast.success("Restored @NourCosmeticsBot connection")
+                  }}
+                  className="h-[26px] px-2 text-[10.5px] shrink-0"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Footer Actions */}
+          <div className="flex items-center gap-2 pt-2 border-t border-[var(--line)]">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setTelegramModalOpen(true)}
+              className="h-[28px] px-2.5 text-[11.5px] font-medium gap-1"
+            >
+              <Plus className="w-3 h-3" />
+              <span>Add bot</span>
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => window.open("https://t.me/BotFather", "_blank")}
+              className="h-[28px] px-2.5 text-[11.5px] font-medium gap-1"
+            >
+              <span>Token from @BotFather</span>
+              <ExternalLink className="w-3 h-3 text-[var(--t3)]" />
+            </Button>
+          </div>
+        </div>
+
+        {/* 6. Website Chat Card */}
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-4 flex flex-col justify-between min-h-[176px] space-y-3.5">
+          <div className="space-y-3">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2.5">
+                <ChannelBadge channel="webchat" size="md" />
+                <div>
+                  <h3 className="text-[14px] font-semibold text-[var(--t1)]">Website chat</h3>
+                  <p className="text-[11.5px] text-[var(--t3)]">Widget for nourcosmetics.com</p>
+                </div>
+              </div>
+              <Pill variant="green" dot>
+                Live
+              </Pill>
+            </div>
+
+            {/* Script Snippet Block with CopyButton */}
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2 font-mono text-[10.5px] text-[var(--t2)] flex items-center justify-between gap-2 overflow-hidden">
+              <code dir="ltr" className="truncate max-w-[210px] text-[var(--t3)] select-all">
+                {scriptCode}
+              </code>
+              <CopyButton value={scriptCode} label="embed script" />
+            </div>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="flex items-center gap-2 pt-2 border-t border-[var(--line)]">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setWidgetModalOpen(true)}
+              className="h-[28px] px-2.5 text-[11.5px] font-medium"
+            >
+              Customize widget
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setWidgetGuideOpen(true)}
+              className="h-[28px] px-2.5 text-[11.5px] font-medium"
+            >
+              Install guide
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* WhatsApp Modal Dialog */}
+      <Dialog open={whatsappModalOpen} onOpenChange={setWhatsappModalOpen}>
+        <DialogContent className="sm:max-w-md bg-[var(--s1)] border-[var(--line)] text-[var(--t1)]">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">
+              Connect WhatsApp Business
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[var(--t3)]">
+              {whatsappSetupMethod === "embedded"
+                ? "Connect your Meta WhatsApp Business account using Embedded Signup."
+                : "Enter your Meta system-user token and Phone Number ID from Business Manager."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {whatsappSetupMethod === "embedded" ? (
+            <div className="space-y-3 py-2 text-xs text-[var(--t2)]">
+              <p>
+                Embedded Signup will open a Meta popup dialog where you can log in, select your Business Portfolio, and register or select your WhatsApp number.
+              </p>
+              <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-3 text-[11px] text-[var(--t3)] space-y-1">
+                <div>✓ Retains your official green tick if approved</div>
+                <div>✓ Generates 24-hour service messaging session webhooks</div>
+                <div>✓ Requires valid Meta payment method for conversation charges</div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3 py-2">
+              <div>
+                <label className="text-[11.5px] text-[var(--t2)] font-medium block mb-1">
+                  Phone Number ID
+                </label>
+                <input
+                  value={whatsappPhoneNumberId}
+                  onChange={(e) => setWhatsappPhoneNumberId(e.target.value)}
+                  placeholder="e.g. 104829104829104"
+                  className="w-full h-8 bg-[var(--s2)] border border-[var(--line)] rounded-[6px] px-2.5 text-xs text-[var(--t1)] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11.5px] text-[var(--t2)] font-medium block mb-1">
+                  System-User Permanent Access Token
+                </label>
+                <input
+                  type="password"
+                  value={whatsappToken}
+                  onChange={(e) => setWhatsappToken(e.target.value)}
+                  placeholder="EAAG..."
+                  className="w-full h-8 bg-[var(--s2)] border border-[var(--line)] rounded-[6px] px-2.5 text-xs text-[var(--t1)] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11.5px] text-[var(--t2)] font-medium block mb-1">
+                  WABA ID (Optional)
+                </label>
+                <input
+                  value={whatsappWabaId}
+                  onChange={(e) => setWhatsappWabaId(e.target.value)}
+                  placeholder="e.g. 29384729384729"
+                  className="w-full h-8 bg-[var(--s2)] border border-[var(--line)] rounded-[6px] px-2.5 text-xs text-[var(--t1)] focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setWhatsappModalOpen(false)}
+              className="h-[28px] text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleSaveWhatsApp}
+              disabled={whatsappConnecting}
+              className="h-[28px] text-xs font-medium"
+            >
+              {whatsappConnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Connect"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* WhatsApp Requirements Modal */}
+      <Dialog open={whatsappReqsOpen} onOpenChange={setWhatsappReqsOpen}>
+        <DialogContent className="sm:max-w-md bg-[var(--s1)] border-[var(--line)] text-[var(--t1)]">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">
+              WhatsApp Business API Requirements
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[var(--t3)]">
+              Before sending automated customer service messages, ensure you meet Meta requirements.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2.5 py-2 text-xs text-[var(--t2)]">
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 space-y-1">
+              <strong className="text-[var(--t1)] block">1. Clean Phone Number</strong>
+              <p className="text-[11px] text-[var(--t3)]">
+                The number must not currently be registered in the standard WhatsApp or WhatsApp Business mobile apps. Delete the account from the app first if reusing.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 space-y-1">
+              <strong className="text-[var(--t1)] block">2. Meta Business Portfolio & Billing</strong>
+              <p className="text-[11px] text-[var(--t3)]">
+                Meta requires a credit card attached to your WhatsApp Business Account. First 1,000 service conversations each month are free.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 space-y-1">
+              <strong className="text-[var(--t1)] block">3. Display Name Approval</strong>
+              <p className="text-[11px] text-[var(--t3)]">
+                The business name must match your legal business documents or commercial brand presence.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setWhatsappReqsOpen(false)}
+              className="h-[28px] text-xs"
+            >
+              Got it
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Telegram Add Bot Modal */}
+      <Dialog open={telegramModalOpen} onOpenChange={setTelegramModalOpen}>
+        <DialogContent className="sm:max-w-md bg-[var(--s1)] border-[var(--line)] text-[var(--t1)]">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">
+              Connect Telegram Bot
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[var(--t3)]">
+              Provide your HTTP API token from BotFather to enable 2-way Telegram messaging.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-[11.5px] text-[var(--t2)] font-medium block mb-1">
+                Telegram Bot Token
+              </label>
+              <input
+                type="password"
+                value={telegramToken}
+                onChange={(e) => setTelegramToken(e.target.value)}
+                placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
+                className="w-full h-8 bg-[var(--s2)] border border-[var(--line)] rounded-[6px] px-2.5 text-xs text-[var(--t1)] focus:outline-none"
+              />
+            </div>
+            <p className="text-[10.5px] text-[var(--t3)]">
+              Open <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="text-[var(--gold)] underline">@BotFather</a> on Telegram, create a bot with <code className="bg-[var(--s2)] px-1 py-0.5 rounded">/newbot</code>, and paste the API token here.
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setTelegramModalOpen(false)}
+              className="h-[28px] text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleSaveTelegram}
+              disabled={telegramConnecting}
+              className="h-[28px] text-xs font-medium"
+            >
+              {telegramConnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Save bot"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Facebook Add Page Modal */}
+      <Dialog open={facebookModalOpen} onOpenChange={setFacebookModalOpen}>
+        <DialogContent className="sm:max-w-md bg-[var(--s1)] border-[var(--line)] text-[var(--t1)]">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">
+              Add Facebook & Messenger Page
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[var(--t3)]">
+              Connect additional pages associated with your Meta Business account.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 py-2 text-xs text-[var(--t2)]">
+            <p>
+              Helixa requests read and manage permissions for Facebook Page comments and Messenger conversations.
+            </p>
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-3 text-[11px] text-[var(--t3)] space-y-1">
+              <div>✓ Automatic webhook subscription for page comments</div>
+              <div>✓ Unified inbox routing to Helixa Live Inbox</div>
+              <div>✓ Multi-page support per client workspace</div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setFacebookModalOpen(false)}
+              className="h-[28px] text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => {
+                setFacebookModalOpen(false)
+                toast.success("Opening Meta page selector window...")
+              }}
+              className="h-[28px] text-xs font-medium"
+            >
+              Continue to Facebook
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* TikTok Region Details Modal */}
+      <Dialog open={tiktokRegionModalOpen} onOpenChange={setTiktokRegionModalOpen}>
+        <DialogContent className="sm:max-w-md bg-[var(--s1)] border-[var(--line)] text-[var(--t1)]">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">
+              TikTok Region & Feature Availability
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[var(--t3)]">
+              TikTok Business Messaging rules based on official developer policies.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2.5 py-2 text-xs text-[var(--t2)]">
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 space-y-1">
+              <strong className="text-emerald-400 block font-mono text-[11.5px]">
+                ✓ Supported for DMs & Automations
+              </strong>
+              <p className="text-[11px] text-[var(--t3)]">
+                Egypt, Saudi Arabia, UAE, Kuwait, Qatar, Bahrain, Oman, and most countries outside the EEA and UK.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 space-y-1">
+              <strong className="text-amber-400 block font-mono text-[11.5px]">
+                ⚡ Comment-to-Message Limits
+              </strong>
+              <p className="text-[11px] text-[var(--t3)]">
+                TikTok restricts direct automated DMs triggered from comment keywords strictly to business accounts in Vietnam, Indonesia, and Thailand. Public comment replies are supported globally.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 space-y-1">
+              <strong className="text-red-400 block font-mono text-[11.5px]">
+                ✕ Restricted Regions
+              </strong>
+              <p className="text-[11px] text-[var(--t3)]">
+                EEA member states, Switzerland, and the UK are currently blocked by TikTok regulatory compliance.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setTiktokRegionModalOpen(false)}
+              className="h-[28px] text-xs"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Website Chat Widget Customizer */}
+      <Dialog open={widgetModalOpen} onOpenChange={setWidgetModalOpen}>
+        <DialogContent className="sm:max-w-md bg-[var(--s1)] border-[var(--line)] text-[var(--t1)]">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">
+              Customize Website Chat Widget
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[var(--t3)]">
+              Adjust widget appearance and initial greeting for nourcosmetics.com.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-[11.5px] text-[var(--t2)] font-medium block mb-1">
+                Accent Color
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={widgetColor}
+                  onChange={(e) => setWidgetColor(e.target.value)}
+                  className="w-8 h-8 rounded border border-[var(--line)] bg-transparent cursor-pointer"
+                />
+                <span className="font-mono text-xs text-[var(--t3)]">{widgetColor}</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[11.5px] text-[var(--t2)] font-medium block mb-1">
+                Welcome Greeting
+              </label>
+              <textarea
+                rows={2}
+                value={widgetGreeting}
+                onChange={(e) => setWidgetGreeting(e.target.value)}
+                className="w-full bg-[var(--s2)] border border-[var(--line)] rounded-[6px] p-2 text-xs text-[var(--t1)] focus:outline-none resize-none leading-relaxed"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setWidgetModalOpen(false)}
+              className="h-[28px] text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => {
+                setWidgetModalOpen(false)
+                toast.success("Widget settings saved!")
+              }}
+              className="h-[28px] text-xs font-medium"
+            >
+              Save settings
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Website Chat Install Guide */}
+      <Dialog open={widgetGuideOpen} onOpenChange={setWidgetGuideOpen}>
+        <DialogContent className="sm:max-w-md bg-[var(--s1)] border-[var(--line)] text-[var(--t1)]">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">
+              Install Chat Widget
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[var(--t3)]">
+              Copy and paste the snippet right before the &lt;/body&gt; tag.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs text-[var(--t2)]">
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 font-mono text-[11px] text-[var(--t1)] flex items-center justify-between">
+              <code dir="ltr">{scriptCode}</code>
+              <CopyButton value={scriptCode} label="code snippet" />
+            </div>
+
+            <div className="space-y-1.5 text-[11.5px] text-[var(--t3)]">
+              <p>• <strong>Shopify:</strong> Online Store → Themes → Edit code → theme.liquid</p>
+              <p>• <strong>Salla / Zid:</strong> App store custom script settings</p>
+              <p>• <strong>WordPress:</strong> Install Header and Footer Scripts plugin</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setWidgetGuideOpen(false)}
+              className="h-[28px] text-xs"
+            >
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

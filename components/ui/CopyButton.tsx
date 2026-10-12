@@ -44,7 +44,7 @@ export function CopyButton({ value, label, className = "" }: CopyButtonProps) {
       className={`inline-flex items-center gap-1.5 p-1.5 rounded-md text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e5a93c] ${className}`}
     >
       {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-      {copied && <span className="text-[11px] text-emerald-400">Copied</span>}
+      {copied && <span aria-live="polite" className="text-[11px] text-emerald-400">Copied</span>}
     </button>
   )
 }

@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { Card } from "@/components/ui/card"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
 import TikTokDmSettings from "@/components/dashboard/TikTokDmSettings"
 import { toast } from "sonner"
@@ -114,20 +115,27 @@ export default function PlatformDashboardPage() {
 
   // Disconnect handler
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const handleDisconnect = async (connectionId: string) => {
-    if (!confirm("Are you sure you want to disconnect this account?")) return
+  const [pendingDisconnect, setPendingDisconnect] = useState<{ id: string; name: string } | null>(null)
+
+  const handleConfirmDisconnect = async () => {
+    if (!pendingDisconnect) return
+    const connectionId = pendingDisconnect.id
+    const targetName = pendingDisconnect.name
     setDeletingId(connectionId)
     try {
       const res = await fetch(`/api/user/connections?id=${connectionId}`, { method: "DELETE" })
       if (res.ok) {
+        toast.success(`Disconnected ${targetName}. Automations stopped.`)
         router.push("/dashboard/connected-platforms")
       } else {
         toast.error("Failed to disconnect")
       }
     } catch (err) {
       console.error("Disconnect failed:", err)
+      toast.error("Failed to disconnect")
     } finally {
       setDeletingId(null)
+      setPendingDisconnect(null)
     }
   }
 
@@ -297,7 +305,12 @@ export default function PlatformDashboardPage() {
                 </div>
               </div>
               <button
-                onClick={() => handleDisconnect(conn.id)}
+                onClick={() =>
+                  setPendingDisconnect({
+                    id: conn.id,
+                    name: conn.metadata?.username || conn.metadata?.name || conn.page_id || config.name,
+                  })
+                }
                 disabled={deletingId === conn.id}
                 className="flex items-center gap-2 px-3 py-1.5 text-red-400 hover:bg-red-500/10 rounded-lg text-xs transition-colors"
               >
@@ -458,6 +471,18 @@ export default function PlatformDashboardPage() {
           <p className="text-xs text-neutral-500">Manage connections</p>
         </Link>
       </div>
+
+      {/* Disconnect Confirmation Dialog */}
+      <ConfirmDialog
+        open={Boolean(pendingDisconnect)}
+        onOpenChange={(open) => !open && setPendingDisconnect(null)}
+        title={`Disconnect ${pendingDisconnect?.name || config.name}?`}
+        description={`Disconnect ${pendingDisconnect?.name || config.name}? Automations on this account will stop immediately and new DMs will not arrive.`}
+        confirmLabel="Disconnect account"
+        variant="destructive"
+        loading={Boolean(deletingId)}
+        onConfirm={handleConfirmDisconnect}
+      />
     </div>
   )
 }

@@ -125,7 +125,7 @@ function ChannelsPageContent() {
             ) : (
               <Copy className="w-3.5 h-3.5 text-[var(--t3)]" />
             )}
-            <span>Copy connect link</span>
+            <span aria-live="polite">{copiedLink ? "Copied" : "Copy connect link"}</span>
           </Button>
         </div>
 
