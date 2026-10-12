@@ -9,6 +9,7 @@ import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { Loader2 } from "lucide-react"
 import { TrialBanner } from "@/components/layout/TrialBanner"
 import { UsageNotice } from "@/components/layout/UsageNotice"
+import { CommandPalette } from "@/components/ui/CommandPalette"
 
 export default function DashboardLayout({
     children,
@@ -112,6 +113,9 @@ export default function DashboardLayout({
 
     return (
         <div className="flex min-h-screen bg-[var(--bg)] text-[var(--t1)]">
+            {/* ⌘K Command Palette (global) */}
+            <CommandPalette />
+
             {/* Desktop Sidebar (240px fixed) */}
             <div className="hidden md:flex md:w-[240px] md:flex-col md:fixed md:inset-y-0 md:start-0 z-40">
                 <Sidebar
