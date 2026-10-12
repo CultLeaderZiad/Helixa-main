@@ -2,11 +2,12 @@
 
 import React from "react"
 import { Check } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export const STEPS = [
-  { key: "trigger", label: "Trigger Source", sub: "When does it fire?" },
-  { key: "response", label: "Reply Payload", sub: "What do they get?" },
-  { key: "settings", label: "Final Settings", sub: "Speed & restrictions" },
+  { key: "trigger", label: "Trigger source", sub: "When does it fire?" },
+  { key: "response", label: "Reply payload", sub: "What do they get?" },
+  { key: "settings", label: "Final settings", sub: "Speed & restrictions" },
 ] as const
 
 interface TimelineStepperProps {
@@ -21,7 +22,7 @@ export function TimelineStepper({
   stepValid,
 }: TimelineStepperProps) {
   return (
-    <div className="relative bg-neutral-900/60 border border-white/5 rounded-2xl p-4 md:px-8">
+    <div className="relative bg-[var(--s1)] border border-[var(--line)] rounded-xl p-4 md:px-6">
       <div className="flex items-center justify-between gap-4 relative">
         {STEPS.map((s, i) => {
           const isActive = i === step
@@ -33,36 +34,39 @@ export function TimelineStepper({
                 onClick={() => {
                   if (i < step || stepValid[step]) setStep(i)
                 }}
-                className="flex items-center gap-3 group text-left focus:outline-none"
+                className="flex items-center gap-3 group text-left focus:outline-none cursor-pointer"
               >
                 <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                  className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold font-mono transition-colors",
                     isCompleted
-                      ? "bg-[#e5a93c] text-black shadow-[0_0_15px_rgba(229,169,60,0.3)]"
+                      ? "bg-[var(--gold)] text-black"
                       : isActive
-                      ? "bg-white text-black ring-4 ring-white/10"
-                      : "bg-neutral-800 text-neutral-500 border border-white/5"
-                  }`}
+                      ? "bg-[var(--s3)] text-[var(--t1)] border border-[var(--goldline)] text-[var(--gold)]"
+                      : "bg-[var(--s2)] text-[var(--t3)] border border-[var(--line)]"
+                  )}
                 >
-                  {isCompleted ? <Check className="w-4 h-4 stroke-[3]" /> : i + 1}
+                  {isCompleted ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : i + 1}
                 </div>
                 <div className="hidden md:block">
                   <p
-                    className={`text-xs font-bold tracking-tight uppercase ${
-                      isActive ? "text-white" : "text-neutral-400 group-hover:text-neutral-200"
-                    }`}
+                    className={cn(
+                      "text-xs font-medium tracking-tight",
+                      isActive ? "text-[var(--t1)]" : "text-[var(--t3)] group-hover:text-[var(--t2)]"
+                    )}
                   >
                     {s.label}
                   </p>
-                  <p className="text-[10px] text-neutral-500 font-mono-ui">{s.sub}</p>
+                  <p className="text-[10.5px] text-[var(--t4)] font-mono">{s.sub}</p>
                 </div>
               </button>
               {i < STEPS.length - 1 && (
-                <div className="flex-1 h-[2px] mx-2 relative bg-neutral-800 rounded-full overflow-hidden">
+                <div className="flex-1 h-[1px] mx-2 relative bg-[var(--line)] overflow-hidden">
                   <div
-                    className={`absolute inset-y-0 left-0 transition-all duration-500 bg-[#e5a93c] ${
+                    className={cn(
+                      "absolute inset-y-0 left-0 transition-all duration-300 bg-[var(--gold)]",
                       isCompleted ? "w-full" : "w-0"
-                    }`}
+                    )}
                   />
                 </div>
               )}

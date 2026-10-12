@@ -1,11 +1,11 @@
 "use client"
 
 import React from "react"
-import { Eye, ExternalLink, Sparkles, MessageSquare, Send, CheckCircle2, GitBranch, ArrowRight } from "lucide-react"
+import { Eye, ExternalLink, Sparkles, MessageSquare, Send, GitBranch } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Pill } from "@/components/ui/Pill"
 import { Tag } from "@/components/ui/Tag"
-import { ChannelBadge, type ChannelType } from "@/components/ui/ChannelBadge"
+import { ChannelBadge } from "@/components/ui/ChannelBadge"
 import Link from "next/link"
 import { toast } from "sonner"
 import type { Automation } from "@/lib/types"
@@ -32,34 +32,75 @@ export function AutomationFlowPreview({ automation, onTest }: AutomationFlowPrev
 
   const channel = (automation.platform || "instagram").toLowerCase()
   const isActive = automation.is_active
+  const isDraft = !isActive && automation.id === "demo-5"
 
   // Extract keywords from trigger_value or fallback
   const rawKeywords = automation.trigger_value || (automation as any).keywords || ""
   const keywords: string[] = rawKeywords
     ? rawKeywords.split(",").map((k: string) => k.trim()).filter(Boolean)
-    : ["price", "بكام", "link"]
+    : []
 
   const publicReplyText =
     automation.response_content?.public_replies?.[0] ||
     (automation as any).public_reply_content ||
-    "بعتنالك التفاصيل في الرسايل 💌"
+    null
 
   const dmText =
     automation.response_content?.message ||
-    "أهلاً! السيروم بـ ٤٥٠ جنيه، والـ Glow Kit بـ ١٣٥٠. تحبي أبعتلك لينك الطلب؟"
+    (automation.response_content as any)?.text ||
+    null
 
   const buttonText =
     automation.response_content?.card?.buttons?.[0]?.title ||
     automation.response_content?.quick_replies?.[0]?.title ||
     (automation.response_content as any)?.buttons?.[0]?.title ||
-    "أيوة ابعتي اللينك"
+    (automation.id === "demo-1" ? "أيوة ابعتي اللينك" : null)
+
+  // Determine computed stats (hide tiles without data)
+  const stats = (automation as any).stats || (
+    automation.id === "demo-1"
+      ? { runs: "1,126", leads: "160", sales: "EGP 21.6k" }
+      : automation.id === "demo-2"
+      ? { runs: "342", leads: "14", sales: null }
+      : automation.id === "demo-3"
+      ? { runs: "88", leads: "8", sales: null }
+      : automation.id === "demo-4"
+      ? { runs: "214", leads: null, sales: null }
+      : automation.id === "demo-6"
+      ? { runs: "57", leads: "4", sales: null }
+      : null
+  )
+
+  const hasStats = stats && (stats.runs || stats.leads || stats.sales)
+
+  // Trigger descriptions based on trigger_source
+  const triggerLabel =
+    automation.trigger_source === "comment"
+      ? (keywords.length > 0
+          ? 'Comment on Reel "Vitamin C in 30 sec" contains'
+          : "Any comment on selected posts")
+      : automation.trigger_source === "dm"
+      ? (keywords.length > 0 ? "Direct message contains keyword" : "New direct message received")
+      : automation.trigger_source === "story"
+      ? "Story mention or story reply"
+      : automation.trigger_source === "ice_breaker"
+      ? "User taps ice breaker question in chat"
+      : "Trigger condition"
+
+  const isSupportedType = ["comment", "dm", "story", "ice_breaker"].includes(
+    automation.trigger_source || "comment"
+  )
 
   return (
     <div className="h-full flex flex-col bg-[var(--s1)] border-l border-[var(--line)] overflow-y-auto select-none scrollbar-thin scrollbar-thumb-[var(--line2)] scrollbar-track-transparent">
       {/* Header */}
       <div className="p-4 border-b border-[var(--line)] flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          {isActive ? (
+          {isDraft ? (
+            <Pill variant="amber" dot={false}>
+              Draft
+            </Pill>
+          ) : isActive ? (
             <Pill variant="green" dot>
               Live
             </Pill>
@@ -79,7 +120,7 @@ export function AutomationFlowPreview({ automation, onTest }: AutomationFlowPrev
             size="sm"
             onClick={() => {
               if (onTest) onTest()
-              else toast.info("Simulating test trigger for this rule")
+              else toast.info(`Simulated test run for "${automation.name}"`)
             }}
             className="h-[28px] px-2.5 text-[11.5px] font-medium gap-1"
           >
@@ -100,135 +141,162 @@ export function AutomationFlowPreview({ automation, onTest }: AutomationFlowPrev
         </div>
       </div>
 
-      {/* Title & 3 KPIs */}
+      {/* Title & Stats */}
       <div className="p-4 border-b border-[var(--line)] space-y-3.5">
-        <h3 className="text-[15px] font-semibold text-[var(--t1)] tracking-tight">
-          {automation.name || "Reel comment to DM"}
+        <h3 className="text-[16px] font-semibold text-[var(--t1)] tracking-tight">
+          {automation.name || "Untitled automation"}
         </h3>
 
-        {/* 3 Metric Cards */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 text-center">
-            <div className="font-mono text-[14px] font-semibold text-[var(--t1)] tabular-nums">
-              1,126
-            </div>
-            <div className="text-[10.5px] text-[var(--t3)] font-mono mt-0.5">Runs</div>
-          </div>
+        {/* Dynamic Metric Cards (hides tiles without data) */}
+        {hasStats && (
+          <div className="grid grid-cols-3 gap-2">
+            {stats.runs && (
+              <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 text-center">
+                <div className="font-mono text-[14px] font-semibold text-[var(--t1)] tabular-nums">
+                  {stats.runs}
+                </div>
+                <div className="text-[10.5px] text-[var(--t3)] font-mono mt-0.5">Runs</div>
+              </div>
+            )}
 
-          <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 text-center">
-            <div className="font-mono text-[14px] font-semibold text-[var(--t1)] tabular-nums">
-              160
-            </div>
-            <div className="text-[10.5px] text-[var(--t3)] font-mono mt-0.5">Leads</div>
-          </div>
+            {stats.leads && (
+              <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 text-center">
+                <div className="font-mono text-[14px] font-semibold text-[var(--t1)] tabular-nums">
+                  {stats.leads}
+                </div>
+                <div className="text-[10.5px] text-[var(--t3)] font-mono mt-0.5">Leads</div>
+              </div>
+            )}
 
-          <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 text-center">
-            <div className="font-mono text-[14px] font-semibold text-[var(--t1)] tabular-nums">
-              EGP 21.6k
-            </div>
-            <div className="text-[10.5px] text-[var(--t3)] font-mono mt-0.5">Attributed sales</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Interactive Flow Visualizer */}
-      <div className="p-4 space-y-3 flex-1">
-        {/* Step 1: TRIGGER */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5 font-mono text-[10.5px] font-semibold text-[var(--gold)] uppercase tracking-wider">
-            <Sparkles className="w-3 h-3" />
-            <span>Trigger</span>
-          </div>
-
-          <div className="rounded-xl border border-[var(--line)] bg-[var(--s2)] p-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <ChannelBadge channel={channel} size="sm" className="w-4 h-4 rounded-full" />
-              <span className="text-[12px] text-[var(--t1)] font-medium">
-                Comment on Reel "Vitamin C in 30 sec" contains:
-              </span>
-            </div>
-
-            <div className="flex flex-wrap gap-1 pt-0.5">
-              {keywords.map((kw, i) => (
-                <Tag key={i}>{kw}</Tag>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Connector Line */}
-        <div className="flex justify-center">
-          <div className="w-px h-5 bg-[var(--line2)]" />
-        </div>
-
-        {/* Step 2: PUBLIC REPLY */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5 font-mono text-[10.5px] font-semibold text-[var(--t3)] uppercase tracking-wider">
-            <MessageSquare className="w-3 h-3" />
-            <span>Public Reply</span>
-          </div>
-
-          <div className="rounded-xl border border-[var(--line)] bg-[var(--s2)] p-3">
-            <p dir="auto" className="text-[12.5px] text-[var(--t1)] leading-relaxed">
-              {publicReplyText}
-            </p>
-          </div>
-        </div>
-
-        {/* Connector Line */}
-        <div className="flex justify-center">
-          <div className="w-px h-5 bg-[var(--line2)]" />
-        </div>
-
-        {/* Step 3: SEND DM */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5 font-mono text-[10.5px] font-semibold text-[var(--t3)] uppercase tracking-wider">
-            <Send className="w-3 h-3" />
-            <span>Send DM</span>
-          </div>
-
-          <div className="rounded-xl border border-[var(--line)] bg-[var(--s3)] p-3 space-y-2.5">
-            <p dir="auto" className="text-[12.5px] text-[var(--t1)] leading-relaxed">
-              {dmText}
-            </p>
-
-            {buttonText && (
-              <div className="rounded-lg border border-[var(--line2)] bg-[var(--s2)] py-1.5 px-3 text-center text-[12px] font-medium text-[var(--gold2)] hover:bg-[var(--s1)] transition-colors cursor-pointer" dir="auto">
-                {buttonText}
+            {stats.sales && (
+              <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 text-center">
+                <div className="font-mono text-[14px] font-semibold text-[var(--t1)] tabular-nums">
+                  {stats.sales}
+                </div>
+                <div className="text-[10.5px] text-[var(--t3)] font-mono mt-0.5">Attributed sales</div>
               </div>
             )}
           </div>
-        </div>
-
-        {/* Split Outcome Branches */}
-        <div className="pt-2">
-          <div className="text-[10px] font-mono text-[var(--t4)] text-center mb-2">
-            button tapped?
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            {/* YES Branch */}
-            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 space-y-1">
-              <span className="font-mono text-[10.5px] font-semibold text-[var(--green)]">
-                YES · 61%
-              </span>
-              <p className="text-[11.5px] text-[var(--t2)] leading-snug">
-                Send Paymob link, tag <Tag className="text-[10px]">checkout</Tag>
-              </p>
-            </div>
-
-            {/* NO Branch */}
-            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 space-y-1">
-              <span className="font-mono text-[10.5px] font-semibold text-[var(--t3)]">
-                NO REPLY 2H · 39%
-              </span>
-              <p className="text-[11.5px] text-[var(--t2)] leading-snug">
-                AI Agent follows up once
-              </p>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
+
+      {/* Flow visualizer */}
+      {!isSupportedType ? (
+        <div className="p-6 text-center text-xs text-[var(--t3)]">
+          Preview not available for this type yet
+        </div>
+      ) : (
+        <div className="p-4 space-y-3 flex-1">
+          {/* Step 1: Trigger */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-[var(--gold)]">
+              <Sparkles className="w-3 h-3 text-[var(--gold)]" />
+              <span>⚡ Trigger</span>
+            </div>
+
+            <div className="rounded-xl border border-[var(--goldline)] bg-[var(--goldbg)] p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <ChannelBadge channel={channel} size="sm" className="w-4 h-4 rounded-full" />
+                <span className="text-[12px] text-[var(--t1)] font-medium">
+                  {triggerLabel}
+                </span>
+              </div>
+
+              {keywords.length > 0 && (
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {keywords.map((kw, i) => (
+                    <Tag key={i} dir="auto">{kw}</Tag>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Step 2: Public Reply (only when present) */}
+          {publicReplyText && (
+            <>
+              <div className="flex justify-center">
+                <div className="w-px h-5 bg-[var(--line2)]" />
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5 font-mono text-[10.5px] font-semibold text-[var(--t3)]">
+                  <MessageSquare className="w-3 h-3" />
+                  <span>Public reply</span>
+                </div>
+
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--s2)] p-3">
+                  <p dir="auto" className="text-[12.5px] text-[var(--t1)] leading-relaxed">
+                    {publicReplyText}
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Step 3: Send DM (only when present) */}
+          {dmText && (
+            <>
+              <div className="flex justify-center">
+                <div className="w-px h-5 bg-[var(--line2)]" />
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5 font-mono text-[10.5px] font-semibold text-[var(--t3)]">
+                  <Send className="w-3 h-3" />
+                  <span>Send DM</span>
+                </div>
+
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--s3)] p-3 space-y-2.5">
+                  <p dir="auto" className="text-[12.5px] text-[var(--t1)] leading-relaxed">
+                    {dmText}
+                  </p>
+
+                  {buttonText && (
+                    <div
+                      className="rounded-lg border border-[var(--line2)] bg-[var(--s2)] py-1.5 px-3 text-center text-[12px] font-medium text-[var(--gold2)] hover:bg-[var(--s1)] transition-colors cursor-pointer"
+                      dir="auto"
+                    >
+                      {buttonText}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Split Outcome Branches (if button or demo-1) */}
+          {(buttonText || automation.id === "demo-1") && (
+            <div className="pt-2">
+              <div className="text-[10px] font-mono text-[var(--t4)] text-center mb-2">
+                button tapped?
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {/* YES Branch */}
+                <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 space-y-1">
+                  <span className="font-mono text-[10.5px] font-semibold text-[var(--green)]">
+                    YES · 61%
+                  </span>
+                  <p className="text-[11.5px] text-[var(--t2)] leading-snug">
+                    Send Paymob link, tag <Tag className="text-[10px]">checkout</Tag>
+                  </p>
+                </div>
+
+                {/* NO Branch */}
+                <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 space-y-1">
+                  <span className="font-mono text-[10.5px] font-semibold text-[var(--t3)]">
+                    NO REPLY 2H · 39%
+                  </span>
+                  <p className="text-[11.5px] text-[var(--t2)] leading-snug">
+                    <span className="text-[var(--gold)] font-medium">AI Agent</span> follows up once
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

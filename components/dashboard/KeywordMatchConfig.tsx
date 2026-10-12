@@ -3,6 +3,7 @@
 import React from "react"
 import { Loader2, Sparkles, MessageSquare } from "lucide-react"
 import { TagInput } from "@/components/ui/tag-input"
+import { cn } from "@/lib/utils"
 
 interface KeywordMatchConfigProps {
   triggerSource: "comment" | "dm" | "story"
@@ -21,7 +22,7 @@ interface KeywordMatchConfigProps {
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="font-mono-ui text-[9px] font-bold uppercase tracking-[0.18em] text-neutral-500 mb-2">
+    <p className="font-mono text-[10.5px] font-medium text-[var(--t3)] mb-1.5">
       {children}
     </p>
   )
@@ -44,24 +45,29 @@ function ToggleRow({
     <button
       type="button"
       onClick={onToggle}
-      className={`w-full p-4 rounded-2xl border text-left flex items-center gap-3.5 transition-all duration-200 bg-white/[0.01] ${
-        on ? "border-[#e5a93c]/40 bg-[#e5a93c]/[0.03]" : "border-white/10 hover:border-white/20"
-      }`}
+      className={cn(
+        "w-full p-3.5 rounded-xl border text-left flex items-center gap-3.5 transition-colors cursor-pointer",
+        on
+          ? "border-[var(--goldline)] bg-[var(--goldbg)]"
+          : "border-[var(--line)] bg-[var(--s1)] hover:bg-[var(--s2)]"
+      )}
     >
-      <span className={on ? "text-[#e5a93c]" : "text-neutral-500"}>{icon}</span>
+      <span className={on ? "text-[var(--gold)]" : "text-[var(--t3)]"}>{icon}</span>
       <span className="flex-1 min-w-0">
-        <span className="block text-sm font-semibold text-white">{title}</span>
-        <span className="block text-xs text-neutral-500 mt-0.5 leading-relaxed">{sub}</span>
+        <span className="block text-[13px] font-medium text-[var(--t1)]">{title}</span>
+        <span className="block text-[11px] text-[var(--t3)] mt-0.5 leading-relaxed">{sub}</span>
       </span>
       <span
-        className={`w-10 h-5.5 rounded-full relative transition-colors shrink-0 ${
-          on ? "bg-[#e5a93c]" : "bg-neutral-800"
-        }`}
+        className={cn(
+          "w-9 h-5 rounded-full relative transition-colors shrink-0",
+          on ? "bg-[var(--gold)]" : "bg-[var(--line2)]"
+        )}
       >
         <span
-          className={`absolute top-0.5 w-4.5 h-4.5 rounded-full bg-black shadow-md transition-all ${
-            on ? "left-[20px]" : "left-0.5"
-          }`}
+          className={cn(
+            "absolute top-0.5 w-4 h-4 rounded-full bg-black shadow-sm transition-all",
+            on ? "left-[18px]" : "left-0.5"
+          )}
         />
       </span>
     </button>
@@ -83,18 +89,18 @@ export function KeywordMatchConfig({
   needsKeywords,
 }: KeywordMatchConfigProps) {
   return (
-    <div className="space-y-4 pt-3 border-t border-white/5 animate-in fade-in slide-in-from-top-2 duration-300">
+    <div className="space-y-4 pt-3 border-t border-[var(--line)]">
       {triggerSource === "comment" ? (
         <div className="space-y-2">
           <FieldLabel>Keywords to match</FieldLabel>
-          <p className="text-[11px] text-neutral-500">
+          <p className="text-[11.5px] text-[var(--t3)]">
             What keyword triggers this DM?{" "}
-            <span className="text-[#e5a93c] font-semibold">Keep empty to reply to every comment.</span>
+            <span className="text-[var(--gold)] font-medium">Keep empty to reply to every comment.</span>
           </p>
           <TagInput
             value={triggers}
             onChange={setTriggers}
-            placeholder="type keyword, press Enter (e.g. guide)"
+            placeholder="Type keyword, press Enter (e.g. price)"
           />
           {triggers.length > 0 && (
             <div className="mt-2">
@@ -102,14 +108,14 @@ export function KeywordMatchConfig({
                 type="button"
                 onClick={handleGenerateKeywords}
                 disabled={generatingKeywords}
-                className="flex items-center gap-1.5 text-xs text-[#e5a93c] hover:text-[#e5a93c]/80 transition-colors bg-[#e5a93c]/10 px-3 py-1.5 rounded-full disabled:opacity-50"
+                className="flex items-center gap-1.5 text-xs text-[var(--gold2)] hover:text-white transition-colors bg-[var(--goldbg)] border border-[var(--goldline)] px-3 py-1.5 rounded-[6px] disabled:opacity-50 cursor-pointer"
               >
                 {generatingKeywords ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Sparkles className="w-3.5 h-3.5 text-[var(--gold)]" />
                 )}
-                Improve with AI
+                <span>Improve with AI</span>
               </button>
 
               {keywordSuggestions.length > 0 && (
@@ -117,21 +123,21 @@ export function KeywordMatchConfig({
                   {keywordSuggestions.map((s, i) => (
                     <div
                       key={i}
-                      className="flex flex-col gap-2 bg-white/5 p-3 rounded-xl border border-white/10"
+                      className="flex flex-col gap-2 bg-[var(--s2)] p-3 rounded-lg border border-[var(--line)]"
                     >
-                      <p className="text-xs text-neutral-300 font-mono-ui break-words">{s.text}</p>
+                      <p className="text-xs text-[var(--t2)] font-mono break-words">{s.text}</p>
                       <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={() => handleAcceptKeywords(s)}
-                          className="text-[10px] uppercase font-bold tracking-wider text-black bg-[#e5a93c] px-3 py-1.5 rounded-md hover:bg-[#e5a93c]/90"
+                          className="text-[11px] font-semibold text-black bg-[var(--gold)] px-3 py-1 rounded-[5px] hover:brightness-105 cursor-pointer"
                         >
                           Apply
                         </button>
                         <button
                           type="button"
                           onClick={() => setKeywordSuggestions([])}
-                          className="text-[10px] uppercase font-bold tracking-wider text-neutral-400 bg-white/5 px-3 py-1.5 rounded-md hover:text-white"
+                          className="text-[11px] font-medium text-[var(--t3)] bg-[var(--s3)] px-3 py-1 rounded-[5px] hover:text-[var(--t1)] cursor-pointer"
                         >
                           Dismiss
                         </button>
@@ -144,13 +150,13 @@ export function KeywordMatchConfig({
           )}
         </div>
       ) : needsKeywords ? (
-        <div className="space-y-2 bg-neutral-900/40 p-5 rounded-2xl border border-white/5">
+        <div className="space-y-2 bg-[var(--s1)] p-4 rounded-xl border border-[var(--line)]">
           <FieldLabel>
             {triggerSource === "story" && storyTriggerType === "reaction"
               ? "Only react on these emojis"
               : "Trigger keywords"}
           </FieldLabel>
-          <p className="text-[11px] text-neutral-500 mb-3">
+          <p className="text-[11.5px] text-[var(--t3)] mb-2">
             {triggerSource === "story" && storyTriggerType === "reaction"
               ? "Leave empty to trigger on any emoji reaction."
               : "Matches exact phrases or words (case-insensitive)."}
@@ -161,7 +167,7 @@ export function KeywordMatchConfig({
             placeholder={
               triggerSource === "story" && storyTriggerType === "reaction"
                 ? "e.g. ❤️, 🔥, 👍"
-                : "type keyword, press Enter (e.g. price)"
+                : "Type keyword, press Enter (e.g. price)"
             }
           />
           {triggers.length > 0 && (
@@ -170,14 +176,14 @@ export function KeywordMatchConfig({
                 type="button"
                 onClick={handleGenerateKeywords}
                 disabled={generatingKeywords}
-                className="flex items-center gap-1.5 text-xs text-[#e5a93c] hover:text-[#e5a93c]/80 transition-colors bg-[#e5a93c]/10 px-3 py-1.5 rounded-full disabled:opacity-50"
+                className="flex items-center gap-1.5 text-xs text-[var(--gold2)] hover:text-white transition-colors bg-[var(--goldbg)] border border-[var(--goldline)] px-3 py-1.5 rounded-[6px] disabled:opacity-50 cursor-pointer"
               >
                 {generatingKeywords ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Sparkles className="w-3.5 h-3.5 text-[var(--gold)]" />
                 )}
-                Improve with AI
+                <span>Improve with AI</span>
               </button>
 
               {keywordSuggestions.length > 0 && (
@@ -185,21 +191,21 @@ export function KeywordMatchConfig({
                   {keywordSuggestions.map((s, i) => (
                     <div
                       key={i}
-                      className="flex flex-col gap-2 bg-white/5 p-3 rounded-xl border border-white/10"
+                      className="flex flex-col gap-2 bg-[var(--s2)] p-3 rounded-lg border border-[var(--line)]"
                     >
-                      <p className="text-xs text-neutral-300 font-mono-ui break-words">{s.text}</p>
+                      <p className="text-xs text-[var(--t2)] font-mono break-words">{s.text}</p>
                       <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={() => handleAcceptKeywords(s)}
-                          className="text-[10px] uppercase font-bold tracking-wider text-black bg-[#e5a93c] px-3 py-1.5 rounded-md hover:bg-[#e5a93c]/90"
+                          className="text-[11px] font-semibold text-black bg-[var(--gold)] px-3 py-1 rounded-[5px] hover:brightness-105 cursor-pointer"
                         >
                           Apply
                         </button>
                         <button
                           type="button"
                           onClick={() => setKeywordSuggestions([])}
-                          className="text-[10px] uppercase font-bold tracking-wider text-neutral-400 bg-white/5 px-3 py-1.5 rounded-md hover:text-white"
+                          className="text-[11px] font-medium text-[var(--t3)] bg-[var(--s3)] px-3 py-1 rounded-[5px] hover:text-[var(--t1)] cursor-pointer"
                         >
                           Dismiss
                         </button>
@@ -215,7 +221,7 @@ export function KeywordMatchConfig({
 
       {triggerSource === "comment" && triggers.length > 0 && (
         <ToggleRow
-          icon={<MessageSquare className="w-5 h-5" />}
+          icon={<MessageSquare className="w-4 h-4" />}
           title="Check replies to comments"
           sub="Normally only primary post comments trigger replies"
           on={includeReplies}

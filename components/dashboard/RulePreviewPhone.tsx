@@ -102,32 +102,35 @@ export function RulePreviewPhone({
   return (
     <div className="hidden lg:block sticky top-6">
       <div className="flex items-center justify-between mb-3 px-1">
-        <span className="font-mono-ui text-[10px] uppercase tracking-[0.25em] text-neutral-500 font-bold">
-          Interactive Preview
+        <span className="font-mono text-[10.5px] text-[var(--t3)] font-medium">
+          Interactive preview
         </span>
-        <div className="flex items-center gap-1 bg-white/5 p-1 rounded-lg border border-white/10">
+        <div className="flex items-center gap-1 bg-[var(--s2)] p-0.5 rounded-md border border-[var(--line)]">
           <button
+            type="button"
             onClick={() => setPhoneScale("mini")}
-            className={`px-2 py-1 text-[9px] font-bold uppercase rounded transition-colors ${
-              phoneScale === "mini" ? "bg-white/20 text-white" : "text-neutral-500 hover:text-white"
+            className={`px-2 py-0.5 text-[9.5px] font-medium rounded transition-colors cursor-pointer ${
+              phoneScale === "mini" ? "bg-[var(--s3)] text-[var(--t1)]" : "text-[var(--t3)] hover:text-[var(--t1)]"
             }`}
           >
             Mini
           </button>
           <button
+            type="button"
             onClick={() => setPhoneScale("pro")}
-            className={`px-2 py-1 text-[9px] font-bold uppercase rounded transition-colors ${
-              phoneScale === "pro" ? "bg-white/20 text-white" : "text-neutral-500 hover:text-white"
+            className={`px-2 py-0.5 text-[9.5px] font-medium rounded transition-colors cursor-pointer ${
+              phoneScale === "pro" ? "bg-[var(--s3)] text-[var(--t1)]" : "text-[var(--t3)] hover:text-[var(--t1)]"
             }`}
           >
             Pro
           </button>
           <button
+            type="button"
             onClick={() => setPhoneScale("pro-max")}
-            className={`px-2 py-1 text-[9px] font-bold uppercase rounded transition-colors ${
+            className={`px-2 py-0.5 text-[9.5px] font-medium rounded transition-colors cursor-pointer ${
               phoneScale === "pro-max"
-                ? "bg-white/20 text-white"
-                : "text-neutral-500 hover:text-white"
+                ? "bg-[var(--s3)] text-[var(--t1)]"
+                : "text-[var(--t3)] hover:text-[var(--t1)]"
             }`}
           >
             Max
@@ -143,7 +146,7 @@ export function RulePreviewPhone({
             : phoneScale === "pro"
             ? "w-[320px] h-[580px]"
             : "w-[380px] h-[680px]"
-        } rounded-[3rem] border-8 border-[#1f1f1e] bg-black shadow-2xl relative flex flex-col overflow-hidden ring-1 ring-white/10 transition-all duration-500 hover:scale-[1.02] hover:-rotate-1 hover:shadow-[0_20px_50px_rgba(255,225,77,0.15)] group`}
+        } rounded-[3rem] border-8 border-[#1f1f1e] bg-black shadow-2xl relative flex flex-col overflow-hidden ring-1 ring-white/10 transition-all duration-300 hover:scale-[1.01] group`}
         style={{ transformStyle: "preserve-3d", perspective: "1000px" }}
       >
         {/* Status Bar Mockup */}

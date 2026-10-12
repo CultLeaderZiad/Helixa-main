@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, Suspense, useMemo } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { AutomationsTable } from "@/components/automations/AutomationsTable"
 import { AutomationFlowPreview } from "@/components/automations/AutomationFlowPreview"
@@ -11,9 +11,11 @@ import {
   type TemplateItem,
 } from "@/components/automations/AutomationTemplatesModal"
 import { CreateRuleForm } from "@/components/dashboard/CreateRuleForm"
+import { IceBreakersManager } from "@/components/dashboard/IceBreakersManager"
 import { Button } from "@/components/ui/button"
 import { ChannelBadge, type ChannelType } from "@/components/ui/ChannelBadge"
 import { ContentCardSkeleton } from "@/components/ui/DashboardSkeleton"
+import { EmptyState } from "@/components/ui/EmptyState"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
 import {
   Sparkles,
@@ -24,6 +26,7 @@ import {
   Layers,
   X,
   Loader2,
+  MessageSquare,
 } from "lucide-react"
 import type { Automation } from "@/lib/types"
 import { toast } from "sonner"
@@ -32,6 +35,7 @@ import { fetcher } from "@/lib/fetcher"
 import { cn } from "@/lib/utils"
 
 function AutomationsPageContent() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const { userId, isLoading: isSessionLoading } = useInstagramSession()
 
@@ -124,6 +128,17 @@ function AutomationsPageContent() {
         response_content: { message: "تفضل رابط الطلب المباشر: https://example.com" },
         created_at: new Date().toISOString(),
       },
+      {
+        id: "demo-7",
+        user_id: userId || "demo",
+        name: "Instagram direct ice breaker",
+        trigger_source: "ice_breaker",
+        keywords: "price, branches, catalog",
+        platform: "instagram",
+        is_active: true,
+        response_content: { message: "أهلاً بك! تفضل قائمة بالأسعار والخدمات المتاحة حالياً." },
+        created_at: new Date().toISOString(),
+      },
     ] as unknown as Automation[]
   }, [rawAutomations, userId])
 
@@ -135,6 +150,20 @@ function AutomationsPageContent() {
   const [templatesModalOpen, setTemplatesModalOpen] = useState(false)
   const [typeMenuOpen, setTypeMenuOpen] = useState(false)
 
+  // Sync state from URL query parameters
+  useEffect(() => {
+    const channelParam = searchParams?.get("channel")
+    if (channelParam) setSelectedChannel(channelParam)
+
+    const typeParam = searchParams?.get("type")
+    if (typeParam) setSelectedType(typeParam)
+
+    const intent = searchParams?.get("intent")
+    if (intent) {
+      setShowCreateForm(true)
+    }
+  }, [searchParams])
+
   // Ensure first rule is selected by default for preview
   useEffect(() => {
     if (!selectedRuleId && automations.length > 0) {
@@ -142,13 +171,24 @@ function AutomationsPageContent() {
     }
   }, [automations, selectedRuleId])
 
-  // Handle URL intent param
-  useEffect(() => {
-    const intent = searchParams?.get("intent")
-    if (intent) {
-      setShowCreateForm(true)
-    }
-  }, [searchParams])
+  // Sync filter changes back to the URL
+  const handleChannelFilter = (channel: string) => {
+    setSelectedChannel(channel)
+    const params = new URLSearchParams(searchParams?.toString() || "")
+    if (channel === "all") params.delete("channel")
+    else params.set("channel", channel)
+    const qs = params.toString()
+    router.replace(`/dashboard/automations${qs ? `?${qs}` : ""}`, { scroll: false })
+  }
+
+  const handleTypeFilter = (type: string) => {
+    setSelectedType(type)
+    const params = new URLSearchParams(searchParams?.toString() || "")
+    if (type === "all") params.delete("type")
+    else params.set("type", type)
+    const qs = params.toString()
+    router.replace(`/dashboard/automations${qs ? `?${qs}` : ""}`, { scroll: false })
+  }
 
   // Filter automations
   const filteredAutomations = useMemo(() => {
@@ -187,7 +227,7 @@ function AutomationsPageContent() {
 
   const handleToggleRule = async (rule: Automation, active: boolean) => {
     if (rule.id.startsWith("demo-")) {
-      toast.success(active ? "Automation enabled" : "Automation paused")
+      toast.success(active ? "Automation activated" : "Automation paused")
       return
     }
     const previous = rule.is_active
@@ -202,7 +242,7 @@ function AutomationsPageContent() {
         body: JSON.stringify({ id: rule.id, is_active: active }),
       })
       if (!res.ok) throw new Error("PATCH failed")
-      toast.success(active ? "Automation enabled" : "Automation paused")
+      toast.success(active ? "Automation activated" : "Automation paused")
       mutateAutomations()
     } catch {
       mutateAutomations(
@@ -228,9 +268,35 @@ function AutomationsPageContent() {
     setShowCreateForm(true)
   }
 
-  const handleSelectTemplate = (template: TemplateItem) => {
-    toast.info(`Loaded template: ${template.title}`)
+  const handleDuplicateRule = (rule: Automation) => {
+    const duplicated: Automation = {
+      ...rule,
+      id: `dup-${Date.now()}`,
+      name: `${rule.name} (Copy)`,
+      is_active: false,
+      created_at: new Date().toISOString(),
+    }
+    setEditRule(duplicated)
     setShowCreateForm(true)
+    toast.success(`Duplicated "${rule.name}" as draft`)
+  }
+
+  const handleSelectTemplate = (template: TemplateItem) => {
+    setEditRule({
+      id: `template-${Date.now()}`,
+      user_id: userId || "",
+      name: template.title,
+      trigger_source: template.triggerSource,
+      keywords: template.keywords,
+      platform: template.platform,
+      is_active: false,
+      response_content: {
+        message: template.defaultReply || template.description,
+      },
+      created_at: new Date().toISOString(),
+    } as unknown as Automation)
+    setShowCreateForm(true)
+    toast.info(`Loaded template: ${template.title}`)
   }
 
   if (isSessionLoading) {
@@ -286,7 +352,7 @@ function AutomationsPageContent() {
                   showCreateForm && "rotate-45"
                 )}
               />
-              <span>{showCreateForm ? "Close" : "New automation"}</span>
+              <span>{showCreateForm ? "Close" : "+ New automation"}</span>
             </Button>
           )}
         </div>
@@ -294,14 +360,14 @@ function AutomationsPageContent() {
 
       {/* Main 2-Pane Split View */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* Left Pane (Table + Templates + Migration Banner, flex-1) */}
-        <div className="flex-1 p-6 lg:p-8 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-[var(--line2)]">
+        {/* Left Pane (Table + Templates + Migration Banner, fluid padding 20/28) */}
+        <div className="flex-1 p-5 lg:p-7 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-[var(--line2)]">
           {/* Header */}
           <div className="space-y-1">
             <h1 className="text-[20px] font-bold text-[var(--t1)] tracking-tight">
               Automations
             </h1>
-            <p className="text-[12.5px] text-[var(--t3)]">
+            <p className="text-[12.5px] text-[var(--t2)]">
               Rules that reply, tag and route conversations across every channel.
             </p>
           </div>
@@ -311,7 +377,7 @@ function AutomationsPageContent() {
             <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-6 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-[var(--line)]">
                 <h3 className="text-sm font-semibold text-[var(--t1)]">
-                  {editRule ? "Edit Automation" : "Create New Automation"}
+                  {editRule ? "Edit automation" : "Create new automation"}
                 </h3>
                 <button
                   type="button"
@@ -319,14 +385,18 @@ function AutomationsPageContent() {
                     setShowCreateForm(false)
                     setEditRule(null)
                   }}
-                  className="p-1 rounded-[4px] text-[var(--t3)] hover:text-[var(--t1)]"
+                  className="p-1 rounded-[4px] text-[var(--t3)] hover:text-[var(--t1)] cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
               <CreateRuleForm
                 userId={userId}
-                triggerSource={editRule ? editRule.trigger_source : "comment"}
+                triggerSource={
+                  editRule && editRule.trigger_source !== "ice_breaker"
+                    ? editRule.trigger_source
+                    : "comment"
+                }
                 editRule={editRule}
                 initialIntent={searchParams?.get("intent") || undefined}
                 defaultPlatform="instagram"
@@ -346,7 +416,7 @@ function AutomationsPageContent() {
               {/* All */}
               <button
                 type="button"
-                onClick={() => setSelectedChannel("all")}
+                onClick={() => handleChannelFilter("all")}
                 className={cn(
                   "h-[28px] px-2.5 rounded-full text-[11.5px] font-medium transition-colors cursor-pointer flex items-center gap-1.5",
                   selectedChannel === "all"
@@ -361,7 +431,7 @@ function AutomationsPageContent() {
               {/* Instagram */}
               <button
                 type="button"
-                onClick={() => setSelectedChannel("instagram")}
+                onClick={() => handleChannelFilter("instagram")}
                 className={cn(
                   "h-[28px] px-2.5 rounded-full text-[11.5px] font-medium transition-colors cursor-pointer flex items-center gap-1.5",
                   selectedChannel === "instagram"
@@ -377,7 +447,7 @@ function AutomationsPageContent() {
               {/* Facebook */}
               <button
                 type="button"
-                onClick={() => setSelectedChannel("facebook")}
+                onClick={() => handleChannelFilter("facebook")}
                 className={cn(
                   "h-[28px] px-2.5 rounded-full text-[11.5px] font-medium transition-colors cursor-pointer flex items-center gap-1.5",
                   selectedChannel === "facebook"
@@ -393,7 +463,7 @@ function AutomationsPageContent() {
               {/* WhatsApp */}
               <button
                 type="button"
-                onClick={() => setSelectedChannel("whatsapp")}
+                onClick={() => handleChannelFilter("whatsapp")}
                 className={cn(
                   "h-[28px] px-2.5 rounded-full text-[11.5px] font-medium transition-colors cursor-pointer flex items-center gap-1.5",
                   selectedChannel === "whatsapp"
@@ -409,7 +479,7 @@ function AutomationsPageContent() {
               {/* TikTok */}
               <button
                 type="button"
-                onClick={() => setSelectedChannel("tiktok")}
+                onClick={() => handleChannelFilter("tiktok")}
                 className={cn(
                   "h-[28px] px-2.5 rounded-full text-[11.5px] font-medium transition-colors cursor-pointer flex items-center gap-1.5",
                   selectedChannel === "tiktok"
@@ -425,7 +495,7 @@ function AutomationsPageContent() {
               {/* Telegram */}
               <button
                 type="button"
-                onClick={() => setSelectedChannel("telegram")}
+                onClick={() => handleChannelFilter("telegram")}
                 className={cn(
                   "h-[28px] px-2.5 rounded-full text-[11.5px] font-medium transition-colors cursor-pointer flex items-center gap-1.5",
                   selectedChannel === "telegram"
@@ -446,7 +516,20 @@ function AutomationsPageContent() {
                 onClick={() => setTypeMenuOpen(!typeMenuOpen)}
                 className="h-[28px] px-2.5 rounded-[6px] border border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[11.5px] font-medium text-[var(--t2)] hover:text-[var(--t1)] flex items-center gap-1.5 transition-colors cursor-pointer"
               >
-                <span>Type: {selectedType === "all" ? "All" : selectedType}</span>
+                <span>
+                  Type:{" "}
+                  {selectedType === "all"
+                    ? "All"
+                    : selectedType === "comment"
+                    ? "Comment"
+                    : selectedType === "dm"
+                    ? "DM keyword"
+                    : selectedType === "story"
+                    ? "Story mention"
+                    : selectedType === "ice_breaker"
+                    ? "Ice breaker"
+                    : selectedType}
+                </span>
                 <ChevronDown className="w-3 h-3 text-[var(--t3)]" />
               </button>
 
@@ -456,22 +539,23 @@ function AutomationsPageContent() {
                     className="fixed inset-0 z-30"
                     onClick={() => setTypeMenuOpen(false)}
                   />
-                  <div className="absolute right-0 top-full mt-1 w-36 rounded-lg border border-[var(--line)] bg-[var(--s2)] shadow-xl p-1 z-40">
+                  <div className="absolute right-0 top-full mt-1 w-40 rounded-lg border border-[var(--line)] bg-[var(--s2)] shadow-xl p-1 z-40">
                     {[
                       { id: "all", label: "All types" },
-                      { id: "comment", label: "Comments" },
-                      { id: "dm", label: "DMs" },
-                      { id: "story", label: "Stories" },
+                      { id: "comment", label: "Comment" },
+                      { id: "dm", label: "DM keyword" },
+                      { id: "story", label: "Story mention" },
+                      { id: "ice_breaker", label: "Ice breaker" },
                     ].map((opt) => (
                       <button
                         key={opt.id}
                         type="button"
                         onClick={() => {
-                          setSelectedType(opt.id)
+                          handleTypeFilter(opt.id)
                           setTypeMenuOpen(false)
                         }}
                         className={cn(
-                          "w-full text-left px-2 py-1.5 rounded-[5px] text-[12px] transition-colors",
+                          "w-full text-left px-2 py-1.5 rounded-[5px] text-[12px] transition-colors cursor-pointer",
                           selectedType === opt.id
                             ? "bg-[var(--s3)] text-[var(--t1)] font-medium"
                             : "text-[var(--t2)] hover:bg-[var(--s3)] hover:text-[var(--t1)]"
@@ -486,12 +570,23 @@ function AutomationsPageContent() {
             </div>
           </div>
 
-          {/* Automations Table */}
+          {/* Automations Table or Empty State */}
           {isAutomationsLoading ? (
             <div className="grid gap-4 md:grid-cols-2">
               <ContentCardSkeleton />
               <ContentCardSkeleton />
             </div>
+          ) : automations.length === 0 ? (
+            <EmptyState
+              icon={Layers}
+              badge="Automations"
+              title="No automations yet"
+              description="Start with a comment-to-DM rule to engage your followers."
+              action={{
+                label: "New automation",
+                onClick: () => setShowCreateForm(true),
+              }}
+            />
           ) : (
             <AutomationsTable
               automations={filteredAutomations}
@@ -499,8 +594,16 @@ function AutomationsPageContent() {
               onSelect={(rule) => setSelectedRuleId(rule.id)}
               onToggle={handleToggleRule}
               onEdit={handleEditRule}
+              onDuplicate={handleDuplicateRule}
               onDelete={handleDeleteRule}
             />
+          )}
+
+          {/* Ice Breakers Editor (active when filtering by ice_breaker) */}
+          {selectedType === "ice_breaker" && (
+            <div className="pt-4 border-t border-[var(--line)]">
+              <IceBreakersManager />
+            </div>
           )}
 
           {/* Start from a template section */}
@@ -555,27 +658,43 @@ function AutomationsPageContent() {
               </div>
             </div>
 
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setShowCreateForm(true)
-                toast.info("Create a rule targeting a specific post link")
-              }}
-              className="h-[28px] px-3 text-[11.5px] font-medium shrink-0"
-            >
-              Track a post
-            </Button>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  handleTypeFilter("ice_breaker")
+                  toast.info("Viewing ice breaker automations")
+                }}
+                className="h-[28px] px-3 text-[11.5px] font-medium"
+              >
+                Ice breakers
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setShowCreateForm(true)
+                  toast.info("Create a rule targeting a specific post link")
+                }}
+                className="h-[28px] px-3 text-[11.5px] font-medium"
+              >
+                Track a post
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Right Pane (Flow Preview / Inspector, ~400px wide) */}
-        <div className="w-full lg:w-[400px] xl:w-[440px] shrink-0 h-full">
-          <AutomationFlowPreview
-            automation={selectedAutomation}
-            onTest={() => toast.success(`Simulated test run for "${selectedAutomation?.name}"`)}
-          />
-        </div>
+        {/* Right Pane (Flow Preview / Inspector, 420px wide, scrolls independently) */}
+        {automations.length > 0 && (
+          <div className="w-full lg:w-[420px] shrink-0 h-full">
+            <AutomationFlowPreview
+              automation={selectedAutomation}
+              onTest={() => toast.success(`Simulated test run for "${selectedAutomation?.name}"`)}
+            />
+          </div>
+        )}
       </div>
 
       {/* Templates Modal */}

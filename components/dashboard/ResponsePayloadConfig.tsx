@@ -7,12 +7,11 @@ import {
 } from "lucide-react"
 import { TagInput } from "@/components/ui/tag-input"
 import type { ProButton, QuickReplyOption } from "@/lib/types"
-
-/* ── Shared small helpers (duplicated from parent for portability) ── */
+import { cn } from "@/lib/utils"
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="font-mono-ui text-[9px] font-bold uppercase tracking-[0.18em] text-neutral-500 mb-2">
+    <p className="font-mono text-[10.5px] font-medium text-[var(--t3)] mb-1.5">
       {children}
     </p>
   )
@@ -32,12 +31,10 @@ function TextField({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full h-11 bg-white/[0.02] border border-white/10 rounded-xl px-4 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#e5a93c]/50 focus:bg-white/[0.04] transition-all"
+      className="w-full h-10 bg-[var(--s2)] border border-[var(--line)] rounded-lg px-3 text-xs text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none focus:border-[var(--line2)] transition-colors"
     />
   )
 }
-
-/* ── Types ── */
 
 interface ResponsePayloadConfigProps {
   triggerSource: "comment" | "dm" | "story"
@@ -78,8 +75,6 @@ interface ResponsePayloadConfigProps {
   setCopySuggestions: (s: { id?: string; text: string }[]) => void
   handleAcceptCopy: (s: { id?: string; text: string }) => void
 }
-
-/* ── Component ── */
 
 export function ResponsePayloadConfig({
   triggerSource,
@@ -125,20 +120,21 @@ export function ResponsePayloadConfig({
         <div className="space-y-2">
           <FieldLabel>Flow direction</FieldLabel>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            {([
+            {[
               { key: "both" as const, label: "Reply + DM" },
               { key: "public_only" as const, label: "Reply only" },
               { key: "dm_only" as const, label: "DM only" },
-            ]).map(({ key, label }) => (
+            ].map(({ key, label }) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => setReplyMode(key)}
-                className={`h-11 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all ${
+                className={cn(
+                  "h-9 rounded-[7px] border text-xs font-medium transition-colors cursor-pointer",
                   replyMode === key
-                    ? "border-[#e5a93c] bg-[#e5a93c]/10 text-[#e5a93c]"
-                    : "border-white/10 text-neutral-400 hover:text-white"
-                }`}
+                    ? "border-[var(--goldline)] bg-[var(--goldbg)] text-[var(--gold2)]"
+                    : "border-[var(--line)] bg-[var(--s2)] text-[var(--t3)] hover:text-[var(--t1)]"
+                )}
               >
                 {label}
               </button>
@@ -148,10 +144,10 @@ export function ResponsePayloadConfig({
       )}
 
       {triggerSource === "comment" && replyMode !== "dm_only" && (
-        <div className="space-y-2 bg-neutral-900/40 p-5 rounded-2xl border border-white/5">
+        <div className="space-y-2 bg-[var(--s1)] p-4 rounded-xl border border-[var(--line)]">
           <FieldLabel>Public comments rotation</FieldLabel>
-          <p className="text-[11px] text-neutral-500 mb-3">
-            Add multiple phrases. We rotate them dynamically to look human.
+          <p className="text-[11.5px] text-[var(--t3)] mb-2">
+            Add multiple phrases. We rotate them dynamically to look natural.
           </p>
           <TagInput
             value={publicReplies}
@@ -164,25 +160,26 @@ export function ResponsePayloadConfig({
       {replyMode !== "public_only" && (
         <div className="space-y-5 pt-2">
           <div className="space-y-2">
-            <FieldLabel>Direct Message Format</FieldLabel>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {([
-                { key: "text" as const, icon: <MessageCircle className="w-4.5 h-4.5" />, label: "Text Only" },
-                { key: "card" as const, icon: <Link2 className="w-4.5 h-4.5" />, label: "Card / Link" },
-                { key: "media" as const, icon: <ImageIcon className="w-4.5 h-4.5" />, label: "Rich Media" },
-              ]).map(({ key, icon, label }) => (
+            <FieldLabel>Direct message format</FieldLabel>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {[
+                { key: "text" as const, icon: <MessageCircle className="w-4 h-4" />, label: "Text only" },
+                { key: "card" as const, icon: <Link2 className="w-4 h-4" />, label: "Card / link" },
+                { key: "media" as const, icon: <ImageIcon className="w-4 h-4" />, label: "Rich media" },
+              ].map(({ key, icon, label }) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setType(key)}
-                  className={`p-3 rounded-xl border text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+                  className={cn(
+                    "p-2.5 rounded-[7px] border text-xs font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer",
                     type === key
-                      ? "border-[#e5a93c] bg-[#e5a93c]/10 text-[#e5a93c]"
-                      : "border-white/10 text-neutral-400 hover:text-white"
-                  }`}
+                      ? "border-[var(--goldline)] bg-[var(--goldbg)] text-[var(--gold2)]"
+                      : "border-[var(--line)] bg-[var(--s2)] text-[var(--t3)] hover:text-[var(--t1)]"
+                  )}
                 >
                   {icon}
-                  {label}
+                  <span>{label}</span>
                 </button>
               ))}
             </div>
@@ -191,13 +188,13 @@ export function ResponsePayloadConfig({
           {/* ── Text message ── */}
           {type === "text" && (
             <div className="space-y-2">
-              <FieldLabel>DM Message Text</FieldLabel>
+              <FieldLabel>DM message text</FieldLabel>
               <textarea
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
-                rows={5}
+                rows={4}
                 maxLength={1000}
-                className="w-full bg-white/[0.02] border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-neutral-600 resize-none focus:outline-none focus:border-[#e5a93c]/50 transition-colors"
+                className="w-full bg-[var(--s2)] border border-[var(--line)] rounded-xl px-3.5 py-3 text-xs text-[var(--t1)] placeholder:text-[var(--t4)] resize-none focus:outline-none focus:border-[var(--line2)] transition-colors"
                 placeholder="Type the message to send in DMs..."
               />
               <div className="flex items-center justify-between mt-1">
@@ -205,39 +202,43 @@ export function ResponsePayloadConfig({
                   type="button"
                   onClick={handleGenerateCopy}
                   disabled={generatingCopy || !messageText}
-                  className="flex items-center gap-1.5 text-[11px] text-purple-400 hover:text-purple-300 transition-colors bg-purple-500/10 px-3 py-1 rounded-full disabled:opacity-50"
+                  className="flex items-center gap-1.5 text-xs text-[var(--gold2)] hover:text-white transition-colors bg-[var(--goldbg)] border border-[var(--goldline)] px-3 py-1 rounded-[6px] disabled:opacity-50 cursor-pointer"
                 >
                   {generatingCopy ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Sparkles className="w-3.5 h-3.5 text-[var(--gold)]" />
                   )}
-                  Generate AI Alternatives
+                  <span>Generate AI alternatives</span>
                 </button>
-                <p className="font-mono-ui text-[10px] text-neutral-600 text-right">
+                <p className="font-mono text-[10.5px] text-[var(--t4)] text-right">
                   {messageText.length}/1000
                 </p>
               </div>
 
               {copySuggestions.length > 0 && (
                 <div className="mt-3 space-y-2">
-                  <div className="flex items-center justify-between text-xs text-neutral-400 px-1">
-                    <span>AI Suggestions</span>
-                    <button type="button" onClick={() => setCopySuggestions([])} className="hover:text-white">
+                  <div className="flex items-center justify-between text-xs text-[var(--t3)] px-1">
+                    <span>AI suggestions</span>
+                    <button
+                      type="button"
+                      onClick={() => setCopySuggestions([])}
+                      className="hover:text-[var(--t1)] cursor-pointer"
+                    >
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                   {copySuggestions.map((s, i) => (
                     <div
                       key={i}
-                      className="flex flex-col gap-2 bg-purple-900/10 p-3 rounded-xl border border-purple-500/20 hover:border-purple-500/40 transition-colors"
+                      className="flex flex-col gap-2 bg-[var(--s2)] p-3 rounded-lg border border-[var(--line)] transition-colors"
                     >
-                      <p className="text-xs text-neutral-200">{s.text}</p>
+                      <p className="text-xs text-[var(--t2)] leading-relaxed">{s.text}</p>
                       <div className="flex justify-end">
                         <button
                           type="button"
                           onClick={() => handleAcceptCopy(s)}
-                          className="text-[10px] uppercase font-bold tracking-wider text-white bg-purple-600 px-3 py-1.5 rounded-md hover:bg-purple-500"
+                          className="text-[11px] font-semibold text-black bg-[var(--gold)] px-3 py-1 rounded-[5px] hover:brightness-105 cursor-pointer"
                         >
                           Apply
                         </button>
@@ -254,17 +255,18 @@ export function ResponsePayloadConfig({
             <div className="space-y-4">
               <div className="space-y-3">
                 <FieldLabel>Card configuration</FieldLabel>
-                <div className="flex gap-2 bg-white/[0.02] p-1 rounded-xl w-max border border-white/10 mb-2">
+                <div className="flex gap-1.5 bg-[var(--s2)] p-1 rounded-lg w-max border border-[var(--line)] mb-2">
                   {(["modern", "classic", "minimal"] as const).map((style) => (
                     <button
                       key={style}
                       type="button"
                       onClick={() => setCardStyle(style)}
-                      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${
+                      className={cn(
+                        "px-2.5 py-1 rounded-[5px] text-[11px] font-medium transition-colors cursor-pointer",
                         cardStyle === style
-                          ? "bg-[#e5a93c] text-black"
-                          : "text-neutral-500 hover:text-white"
-                      }`}
+                          ? "bg-[var(--s3)] text-[var(--t1)]"
+                          : "text-[var(--t3)] hover:text-[var(--t1)]"
+                      )}
                     >
                       {style}
                     </button>
@@ -278,13 +280,13 @@ export function ResponsePayloadConfig({
                 />
               </div>
               <div className="space-y-2.5">
-                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                <div className="flex items-center justify-between border-b border-[var(--line)] pb-2">
                   <FieldLabel>Interactive buttons ({buttons.length}/3)</FieldLabel>
                   <button
                     type="button"
                     onClick={addButton}
                     disabled={buttons.length >= 3}
-                    className="font-mono-ui text-[11px] text-neutral-400 hover:text-white disabled:opacity-40 flex items-center gap-1 transition-colors"
+                    className="font-mono text-[11px] text-[var(--t3)] hover:text-[var(--t1)] disabled:opacity-40 flex items-center gap-1 transition-colors cursor-pointer"
                   >
                     <Plus className="w-3 h-3" /> Add button
                   </button>
@@ -292,21 +294,21 @@ export function ResponsePayloadConfig({
                 {buttons.map((btn) => (
                   <div
                     key={btn.id}
-                    className="flex flex-col sm:flex-row gap-2 items-start sm:items-center bg-white/[0.02] p-3 rounded-2xl border border-white/5"
+                    className="flex flex-col sm:flex-row gap-2 items-start sm:items-center bg-[var(--s1)] p-3 rounded-xl border border-[var(--line)]"
                   >
                     <input
                       value={btn.title}
                       onChange={(e) => updateButton(btn.id, "title", e.target.value)}
-                      className="h-8 text-xs w-full sm:flex-1 bg-black/20 sm:bg-transparent border border-white/10 sm:border-none rounded-md sm:rounded-none px-2 text-white placeholder:text-neutral-500 focus:outline-none"
+                      className="h-8 text-xs w-full sm:flex-1 bg-[var(--s2)] border border-[var(--line)] rounded-md px-2.5 text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none"
                       placeholder="Button label"
                     />
                     <select
                       value={btn.type}
                       onChange={(e) => updateButton(btn.id, "type", e.target.value)}
-                      className="h-8 text-[11px] w-full sm:w-auto bg-black border border-white/10 rounded-lg px-2 text-neutral-300 focus:outline-none"
+                      className="h-8 text-[11px] w-full sm:w-auto bg-[var(--s2)] border border-[var(--line)] rounded-md px-2 text-[var(--t2)] focus:outline-none"
                     >
-                      <option value="web_url">Open Link</option>
-                      <option value="postback">Trigger Flow</option>
+                      <option value="web_url">Open link</option>
+                      <option value="postback">Trigger flow</option>
                     </select>
                     <div className="flex gap-2 w-full sm:flex-1">
                       <input
@@ -314,15 +316,15 @@ export function ResponsePayloadConfig({
                         onChange={(e) =>
                           updateButton(btn.id, btn.type === "web_url" ? "url" : "payload", e.target.value)
                         }
-                        className="h-8 text-xs w-full bg-black/20 sm:bg-transparent border border-white/10 sm:border-none rounded-md sm:rounded-none px-2 text-white placeholder:text-neutral-500 focus:outline-none font-mono"
+                        className="h-8 text-xs w-full bg-[var(--s2)] border border-[var(--line)] rounded-md px-2.5 text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none font-mono"
                         placeholder={btn.type === "web_url" ? "https://link" : "flow_keyword"}
                       />
                       <button
                         type="button"
                         onClick={() => removeButton(btn.id)}
-                        className="text-neutral-500 hover:text-red-400 p-1.5 transition-colors shrink-0"
+                        className="text-[var(--t3)] hover:text-[var(--red)] p-1.5 transition-colors shrink-0 cursor-pointer"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -335,18 +337,19 @@ export function ResponsePayloadConfig({
           {type === "media" && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <FieldLabel>Select File Type</FieldLabel>
-                <div className="grid grid-cols-2 gap-2">
+                <FieldLabel>Select file type</FieldLabel>
+                <div className="grid grid-cols-3 gap-2">
                   {(["image", "video", "audio"] as const).map((m) => (
                     <button
                       key={m}
                       type="button"
                       onClick={() => setMediaType(m)}
-                      className={`h-10 rounded-xl border text-xs font-bold uppercase transition-all ${
+                      className={cn(
+                        "h-9 rounded-[7px] border text-xs font-medium transition-colors cursor-pointer",
                         mediaType === m
-                          ? "border-[#e5a93c] bg-[#e5a93c]/10 text-[#e5a93c]"
-                          : "border-white/10 text-neutral-400 hover:text-white"
-                      }`}
+                          ? "border-[var(--goldline)] bg-[var(--goldbg)] text-[var(--gold2)]"
+                          : "border-[var(--line)] bg-[var(--s2)] text-[var(--t3)] hover:text-[var(--t1)]"
+                      )}
                     >
                       {m === "image" ? "Photo" : m === "video" ? "Video" : "Audio"}
                     </button>
@@ -369,13 +372,13 @@ export function ResponsePayloadConfig({
           {/* ── Quick Reply Chips ── */}
           {type !== "card" && (
             <div className="space-y-3 pt-2">
-              <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                <FieldLabel>Quick Reply chips ({quickReplies.length}/4)</FieldLabel>
+              <div className="flex items-center justify-between border-b border-[var(--line)] pb-2">
+                <FieldLabel>Quick reply chips ({quickReplies.length}/4)</FieldLabel>
                 <button
                   type="button"
                   onClick={addQuickReply}
                   disabled={quickReplies.length >= 4}
-                  className="font-mono-ui text-[11px] text-neutral-400 hover:text-white disabled:opacity-40 flex items-center gap-1 transition-colors"
+                  className="font-mono text-[11px] text-[var(--t3)] hover:text-[var(--t1)] disabled:opacity-40 flex items-center gap-1 transition-colors cursor-pointer"
                 >
                   <Plus className="w-3 h-3" /> Add chip
                 </button>
@@ -388,15 +391,15 @@ export function ResponsePayloadConfig({
                         value={q.title}
                         onChange={(e) => updateQuickReply(q.id, e.target.value)}
                         maxLength={20}
-                        className="h-10 text-xs flex-1 bg-white/[0.02] border border-white/10 rounded-xl px-4 text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#e5a93c]/50"
-                        placeholder='e.g. "Send Details!"'
+                        className="h-9 text-xs flex-1 bg-[var(--s2)] border border-[var(--line)] rounded-lg px-3 text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none"
+                        placeholder='e.g. "Send details!"'
                       />
                       <button
                         type="button"
                         onClick={() => removeQuickReply(q.id)}
-                        className="text-neutral-500 hover:text-red-400 p-1.5 transition-colors"
+                        className="text-[var(--t3)] hover:text-[var(--red)] p-1.5 transition-colors cursor-pointer"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))}
@@ -406,29 +409,29 @@ export function ResponsePayloadConfig({
           )}
 
           {/* ── A/B Testing Variants ── */}
-          <div className="space-y-3 pt-2 border-t border-white/5 mt-6">
+          <div className="space-y-3 pt-2 border-t border-[var(--line)] mt-6">
             <div className="flex items-center justify-between pb-2">
-              <FieldLabel>A/B Test Variants (Optional)</FieldLabel>
+              <FieldLabel>A/B test variants (optional)</FieldLabel>
               <button
                 type="button"
                 onClick={() =>
                   setVariants([...variants, { id: "new_" + Date.now(), text: "", weight: 20 }])
                 }
-                className="font-mono-ui text-[11px] text-[#e5a93c] hover:text-[#e5a93c]/80 flex items-center gap-1 transition-colors"
+                className="font-mono text-[11px] text-[var(--gold)] hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
               >
-                <Plus className="w-3 h-3" /> Add Variant
+                <Plus className="w-3 h-3" /> Add variant
               </button>
             </div>
             {variants.length > 0 && (
               <div className="space-y-3">
-                <p className="text-[11px] text-neutral-500">
+                <p className="text-[11.5px] text-[var(--t3)]">
                   Default response receives{" "}
                   {100 - variants.reduce((sum, v) => sum + (v.weight || 0), 0)}% of traffic.
                 </p>
                 {variants.map((v) => (
                   <div
                     key={v.id}
-                    className="flex gap-2 items-start bg-neutral-900/40 p-3 rounded-xl border border-white/5"
+                    className="flex gap-2 items-start bg-[var(--s1)] p-3 rounded-xl border border-[var(--line)]"
                   >
                     <div className="flex-1 space-y-2">
                       <textarea
@@ -441,12 +444,12 @@ export function ResponsePayloadConfig({
                           )
                         }
                         rows={2}
-                        className="w-full bg-white/[0.02] border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-neutral-600 resize-none focus:outline-none focus:border-[#e5a93c]/50"
+                        className="w-full bg-[var(--s2)] border border-[var(--line)] rounded-lg px-3 py-2 text-xs text-[var(--t1)] placeholder:text-[var(--t4)] resize-none focus:outline-none"
                         placeholder="Alternative message text..."
                       />
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-neutral-500 font-mono-ui">
-                          Traffic Weight (%)
+                        <span className="text-[10.5px] text-[var(--t3)] font-mono">
+                          Traffic weight (%)
                         </span>
                         <input
                           type="number"
@@ -462,16 +465,16 @@ export function ResponsePayloadConfig({
                               )
                             )
                           }
-                          className="w-16 bg-white/[0.02] border border-white/10 rounded px-2 py-1 text-xs text-white"
+                          className="w-16 bg-[var(--s2)] border border-[var(--line)] rounded px-2 py-1 text-xs text-[var(--t1)]"
                         />
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setVariants(variants.filter((varnt) => varnt.id !== v.id))}
-                      className="text-neutral-500 hover:text-red-400 p-1 transition-colors mt-1"
+                      className="text-[var(--t3)] hover:text-[var(--red)] p-1 transition-colors mt-1 cursor-pointer"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ))}

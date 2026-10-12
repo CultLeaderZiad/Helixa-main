@@ -77,7 +77,7 @@ export interface MediaSelection {
 export interface Automation {
   id: string
   name: string
-  trigger_source: "comment" | "dm" | "story"
+  trigger_source: "comment" | "dm" | "story" | "ice_breaker"
   trigger_value: string
   trigger_type: "keyword" | "postback" | "reply_all" | "mention" | "reaction" | "reply"
   response_content: ResponseContent
@@ -87,5 +87,7 @@ export interface Automation {
   media_selection?: MediaSelection | null
   selected_reel_id?: string | null
   automation_variants?: AutomationVariant[]
-  platform?: "instagram" | "facebook" | "messenger"
+  platform?: "instagram" | "facebook" | "messenger" | "whatsapp" | "tiktok" | "telegram" | string
+  keywords?: string
+  public_reply_content?: string
 }

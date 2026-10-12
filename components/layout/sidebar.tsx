@@ -161,8 +161,7 @@ export function Sidebar({
           const isAiAgentActive =
             href === "/dashboard/ai-engine" &&
             (pathname.startsWith("/dashboard/ai-engine") ||
-              pathname.startsWith("/dashboard/agents") ||
-              pathname.startsWith("/dashboard/ice-breakers"))
+              pathname.startsWith("/dashboard/agents"))
 
           const active =
             isAiAgentActive ||

@@ -104,7 +104,15 @@ export function ReelPostPicker({
                     {reel.image_url || reel.thumbnail_url ? (
                       <img
                         src={reel.image_url || reel.thumbnail_url}
-                        alt=""
+                        alt={
+                          reel.caption
+                            ? reel.caption.slice(0, 100)
+                            : `${platformInfo.label} Reel from ${
+                                reel.timestamp
+                                  ? new Date(reel.timestamp).toLocaleDateString()
+                                  : "recent"
+                              }`
+                        }
                         className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity"
                       />
                     ) : (
@@ -217,7 +225,15 @@ export function ReelPostPicker({
             {selectedReel.image_url || selectedReel.thumbnail_url ? (
               <img
                 src={selectedReel.image_url || selectedReel.thumbnail_url}
-                alt=""
+                alt={
+                  selectedReel.caption
+                    ? selectedReel.caption.slice(0, 100)
+                    : `${platformInfo.label} Reel from ${
+                        selectedReel.timestamp
+                          ? new Date(selectedReel.timestamp).toLocaleDateString()
+                          : "recent"
+                      }`
+                }
                 className="w-16 h-16 rounded-lg object-cover border border-white/10 shrink-0 bg-neutral-900"
               />
             ) : null}

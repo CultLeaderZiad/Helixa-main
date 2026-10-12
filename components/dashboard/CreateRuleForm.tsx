@@ -912,31 +912,31 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
               </div>
 
               {/* Plain-text Summary Panel */}
-              <div className="rounded-2xl border border-[#e5a93c]/15 bg-[#e5a93c]/[0.03] p-5 space-y-2">
+              <div className="rounded-xl border border-[var(--goldline)] bg-[var(--goldbg)] p-4 space-y-2">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[#e5a93c]" />
-                  <span className="text-xs font-mono-ui uppercase tracking-widest text-[#e5a93c] font-bold">Rule Logic Summary</span>
+                  <Sparkles className="w-3.5 h-3.5 text-[var(--gold)]" />
+                  <span className="text-xs font-mono text-[var(--gold)] font-medium">Rule logic summary</span>
                 </div>
-                <p className="text-sm text-neutral-300 leading-relaxed">
-                  When <span className="text-white font-semibold underline decoration-[#e5a93c]/40 decoration-2">{summary.who}</span>,
+                <p className="text-xs text-[var(--t2)] leading-relaxed">
+                  When <span className="text-[var(--t1)] font-semibold underline decoration-[var(--goldline)] decoration-2">{summary.who}</span>,
                   {delaySeconds > 0 ? ` after a ${delaySeconds}s delay` : ""}
                   {typingIndicator ? ` (with typing indicator)` : ""}
                   {checkFollow ? ` if they follow you` : ""}
-                  , we will <span className="text-[#e5a93c] font-semibold">{summary.what}</span>.
+                  , we will <span className="text-[var(--gold2)] font-semibold">{summary.what}</span>.
                 </p>
               </div>
             </div>
           )}
 
           {/* ── Wizard Foot Navigation ── */}
-          <div className="flex items-center justify-between border-t border-white/5 pt-6">
+          <div className="flex items-center justify-between border-t border-[var(--line)] pt-5">
             {step > 0 ? (
               <button
                 type="button"
                 onClick={() => setStep(step - 1)}
-                className="flex items-center gap-2 h-11 px-5 rounded-full border border-white/10 text-neutral-400 hover:text-white hover:border-white/25 font-mono-ui text-xs font-bold transition-all"
+                className="flex items-center gap-1.5 h-9 px-4 rounded-[7px] border border-[var(--line)] bg-[var(--s2)] text-[var(--t2)] hover:text-[var(--t1)] hover:bg-[var(--s3)] text-xs font-medium transition-colors cursor-pointer"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3.5 h-3.5" />
                 Back
               </button>
             ) : <div />}
@@ -946,20 +946,20 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                 type="button"
                 onClick={() => { if (stepValid[step]) setStep(step + 1) }}
                 disabled={!stepValid[step]}
-                className="flex items-center gap-2 h-11 px-6 rounded-full bg-white text-black font-mono-ui text-xs font-bold hover:bg-[#e5a93c] hover:shadow-[0_0_20px_rgba(229,169,60,0.25)] active:scale-[0.98] transition-all disabled:opacity-30 disabled:cursor-not-allowed ml-auto"
+                className="flex items-center gap-1.5 h-9 px-5 rounded-[7px] bg-[var(--gold)] text-black text-xs font-semibold hover:brightness-105 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ml-auto cursor-pointer"
               >
-                {step === 0 ? "Continue to message" : "Review & activate"}
-                <ChevronRight className="w-4 h-4" />
+                <span>{step === 0 ? "Continue to message" : "Review & activate"}</span>
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleSubmit}
                 disabled={!canSave || saving}
-                className="flex items-center justify-center gap-2 h-11 px-8 rounded-full bg-[#e5a93c] text-black font-mono-ui text-sm font-bold hover:brightness-95 hover:shadow-[0_0_25px_rgba(229,169,60,0.35)] active:scale-[0.98] transition-all disabled:opacity-30 disabled:cursor-not-allowed ml-auto"
+                className="flex items-center justify-center gap-1.5 h-9 px-5 rounded-[7px] bg-[var(--gold)] text-black text-xs font-semibold hover:brightness-105 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ml-auto cursor-pointer"
               >
-                {saving ? <Loader2 className="w-4.5 h-4.5 animate-spin" /> : <Zap className="w-4 h-4 stroke-[2.5]" />}
-                {saving ? "Saving Changes..." : isEditing ? "Save Automation" : "Go Live"}
+                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                <span>{saving ? "Saving changes..." : isEditing ? "Save automation" : "Activate automation"}</span>
               </button>
             )}
           </div>
