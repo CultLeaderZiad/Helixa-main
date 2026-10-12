@@ -59,7 +59,7 @@ export default function PricingClient({ plans }: { plans: any[] }) {
   const translateFeature = (feature: string) => {
     if (!isAr) return feature
     const lower = feature.toLowerCase()
-    if (lower.includes("unlimited automations")) return t.unlimitedAutomations || "أتمتة غير محدودة"
+    if (lower.includes("unlimited automations") || lower.includes("high-volume automations")) return (t as any).enterpriseAutomations || "أتمتة مخصصة وعالية السعة"
     if (lower.includes("priority support")) return t.prioritySupport || "دعم ذو أولوية"
     if (lower.includes("multiple platforms")) return t.multiplePlatforms || "منصات متعددة"
     if (lower.includes("ai features")) return t.aiFeatures || "ميزات الذكاء الاصطناعي"
@@ -95,7 +95,7 @@ export default function PricingClient({ plans }: { plans: any[] }) {
     <div className="space-y-12 relative w-full">
       {/* Title & Subtitle with reactive localization */}
       <div className="text-center space-y-4 mb-10">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white font-serif-display">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white">
           {t.pricingTitle || "Simple, transparent pricing"}
         </h1>
         <p className="text-neutral-400 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed">
@@ -169,7 +169,7 @@ export default function PricingClient({ plans }: { plans: any[] }) {
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#e5a93c] text-black px-4 py-1.5 rounded-full text-[11px] font-mono-ui font-bold uppercase tracking-widest z-30 whitespace-nowrap shadow-xl">
                 {t.bestValue || "BEST VALUE"}
               </div>
-              <div className="p-8 flex flex-col h-full bg-[#101217]/95 border-2 border-[#e5a93c]/50 hover:border-[#e5a93c]/80 rounded-2xl relative shadow-[0_0_35px_rgba(229,169,60,0.12)] backdrop-blur-md transition-all duration-300">
+              <div className="p-8 flex flex-col h-full bg-[#101217]/95 border-2 border-[#e5a93c]/50 hover:border-[#e5a93c]/80 rounded-2xl relative backdrop-blur-md transition-all duration-300">
                 <div className="mb-8">
                   <div className="flex items-center gap-2 mb-2">
                     <Star className="w-5 h-5 text-[#e5a93c]" />

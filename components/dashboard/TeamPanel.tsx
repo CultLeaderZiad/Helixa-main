@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Users, Mail, Loader2, Trash2, Plus, AlertCircle, Shield } from "lucide-react"
 import { toast } from "sonner"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 export function TeamPanel() {
   const [members, setMembers] = useState<any[]>([])
@@ -12,6 +13,8 @@ export function TeamPanel() {
   const [limit, setLimit] = useState(0)
   const [userRole, setUserRole] = useState("admin")
   const [myEmail, setMyEmail] = useState<string | null>(null)
+  const [memberToRemove, setMemberToRemove] = useState<string | null>(null)
+  const [removing, setRemoving] = useState(false)
 
   const [inviteEmail, setInviteEmail] = useState("")
   const [inviteRole, setInviteRole] = useState("client-viewer")
@@ -98,18 +101,26 @@ export function TeamPanel() {
     }
   }
 
-  const handleRemove = async (id: string) => {
-    if (!confirm("Are you sure you want to remove this member?")) return
+  const handleRemove = (id: string) => {
+    setMemberToRemove(id)
+  }
+
+  const handleConfirmRemove = async () => {
+    if (!memberToRemove) return
+    setRemoving(true)
     try {
-      const res = await fetch(`/api/team?id=${id}`, { method: "DELETE" })
+      const res = await fetch(`/api/team?id=${memberToRemove}`, { method: "DELETE" })
       if (res.ok) {
         toast.success("Member removed")
+        setMemberToRemove(null)
         fetchTeam()
       } else {
         toast.error("Failed to remove member")
       }
     } catch (e) {
       toast.error("Error removing member")
+    } finally {
+      setRemoving(false)
     }
   }
 
@@ -177,7 +188,7 @@ export function TeamPanel() {
           <button
             type="submit"
             disabled={inviting || members.length >= limit}
-            className="bg-[#e5a93c] hover:bg-[#d4952b] disabled:opacity-50 text-black font-semibold px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(229,169,60,0.2)]"
+            className="bg-white hover:bg-neutral-200 disabled:opacity-50 text-black font-semibold px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2"
           >
             {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             Invite
@@ -233,6 +244,17 @@ export function TeamPanel() {
           ))
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!memberToRemove}
+        onOpenChange={(open) => !open && setMemberToRemove(null)}
+        title="Remove team member"
+        description="Are you sure you want to remove this team member? They will lose access to this workspace immediately."
+        confirmLabel="Remove member"
+        variant="destructive"
+        loading={removing}
+        onConfirm={handleConfirmRemove}
+      />
     </div>
   )
 }

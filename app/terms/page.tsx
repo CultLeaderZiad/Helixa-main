@@ -16,14 +16,14 @@ export default function TermsPage() {
             <FrontBackground />
             <Header activeHref="/terms" />
             <div className="max-w-3xl mx-auto px-4 py-24 sm:py-32 relative z-10">
-                <h1 className="text-4xl md:text-5xl font-serif-display mb-8 tracking-tight">Terms of Service</h1>
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-8 tracking-tight text-white">Terms of Service</h1>
                 <LastUpdated />
 
                 <div className="prose prose-invert max-w-none space-y-6 text-neutral-300 mt-10">
                     <p>
-                        These Terms of Service (&quot;Terms&quot;) govern your access to and use of Helixa (&quot;the Service&quot;), a
-                        messaging automation platform. By creating an account or using the Service, you agree to
-                        these Terms and to the privacy policy.
+                        These Terms of Service (&quot;Terms&quot;) govern your access to and use of Helixa (&quot;the Service&quot;),
+                        operated by Ziad Sabry, Cairo, Egypt (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;). By creating an account or using the Service, you agree to
+                        these Terms and to our <Link href="/privacy" className="text-[var(--gold,#D6AE5C)] hover:underline">Privacy Policy</Link>.
                     </p>
 
                     <section>
@@ -136,6 +136,17 @@ export default function TermsPage() {
                             We may update these Terms; the current version and its &quot;Last updated&quot; date always live on
                             this page. Material changes that affect paid subscriptions will be communicated by email or
                             in-app notice before they take effect.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 className="text-2xl font-bold text-white mb-4">12. Governing Law &amp; Operator Identity</h2>
+                        <p>
+                            Helixa is operated by Ziad Sabry, Cairo, Egypt. These Terms are governed by and construed in
+                            accordance with the laws of the Arab Republic of Egypt, without regard to conflict of law principles.
+                            Any legal dispute arising from or related to the Service shall be subject to the jurisdiction of the
+                            competent courts in Cairo, Egypt. For inquiries or notices, contact{" "}
+                            <a href="mailto:support@helixa.app" className="text-[var(--gold,#D6AE5C)] hover:underline">support@helixa.app</a>.
                         </p>
                     </section>
                 </div>

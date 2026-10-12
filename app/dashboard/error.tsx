@@ -29,7 +29,7 @@ export default function ErrorBoundary({
             </div>
             <Button 
                 onClick={reset}
-                className="mt-4 bg-[#e5a93c] text-black hover:bg-[#d4952b] font-semibold shadow-[0_0_15px_rgba(229,169,60,0.2)]"
+                className="mt-4 bg-white text-black hover:bg-neutral-200 font-semibold"
             >
                 Try again
             </Button>

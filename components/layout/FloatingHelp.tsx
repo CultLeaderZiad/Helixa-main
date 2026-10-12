@@ -65,7 +65,7 @@ export function FloatingHelp() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={open ? "Close help menu" : "Get help"}
-        className="flex items-center gap-2 p-3.5 rounded-full bg-[#e5a93c] text-black shadow-[0_0_20px_rgba(229,169,60,0.35)] hover:bg-[#d4952b] transition-all cursor-pointer"
+        className="flex items-center gap-2 p-3.5 rounded-full bg-[#e5a93c] text-black shadow-lg hover:bg-[#d4952b] transition-all cursor-pointer"
       >
         {open ? <X className="w-5 h-5" /> : <MessageCircleQuestion className="w-5 h-5" />}
       </button>

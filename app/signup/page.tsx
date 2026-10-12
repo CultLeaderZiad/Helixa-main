@@ -82,11 +82,11 @@ function SignupForm() {
           <div className="flex justify-center mb-1">
             <HelixaLogo size="md" />
           </div>
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e5a93c]/10 border border-[#e5a93c]/20 text-[#e5a93c] shadow-[0_0_20px_rgba(229,169,60,0.08)]">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e5a93c]/10 border border-[#e5a93c]/20 text-[#e5a93c]">
             <Mail className="h-6 w-6" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold tracking-tight text-white font-serif-display">
+            <h2 className="text-2xl font-bold tracking-tight text-white">
               Check your email
             </h2>
             <p className="text-sm text-zinc-400">
@@ -115,7 +115,7 @@ function SignupForm() {
           <div className="flex justify-center mb-3">
             <HelixaLogo size="md" />
           </div>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white font-serif-display">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
             Start your free trial
           </h2>
           <p className="mt-1.5 text-xs text-zinc-400">

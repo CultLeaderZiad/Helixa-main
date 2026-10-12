@@ -40,7 +40,7 @@ export default function DataDeletionClient() {
       <FrontBackground />
       <Header activeHref="/data-deletion" />
       <div className="max-w-3xl mx-auto px-4 py-24 sm:py-32 relative z-10 space-y-6 text-neutral-300">
-        <h1 className="text-4xl md:text-5xl font-serif-display text-white tracking-tight">Data deletion</h1>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight">Data deletion</h1>
         <p>Last updated: September 30, 2026</p>
         <p>
           Helixa stores the Instagram, Facebook, WhatsApp, and TikTok connection you authorize, plus the conversations and contacts that connection receives. You can disconnect a channel in the dashboard. Meta can also call our deletion callback when you remove Helixa from your Facebook settings.

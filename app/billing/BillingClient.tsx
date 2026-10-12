@@ -172,7 +172,7 @@ export default function BillingPage() {
           <button onClick={() => router.push("/dashboard")} className="font-mono text-xs text-neutral-500 hover:text-white mb-8 flex items-center gap-2 transition-colors">
             ← Back to Dashboard
           </button>
-          <h1 className="font-serif text-4xl md:text-5xl text-white mb-2">Billing & Plans</h1>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-2">Billing & Plans</h1>
           <p className="text-neutral-500 font-mono text-sm">@{user.username}</p>
         </div>
 
@@ -318,7 +318,7 @@ export default function BillingPage() {
                 </div>
 
                 {/* One-time */}
-                <div className="border-2 border-[#e5a93c]/50 hover:border-[#e5a93c]/80 rounded-2xl p-6 bg-[#111217]/95 shadow-[0_0_35px_rgba(229,169,60,0.12)] backdrop-blur-md h-full flex flex-col justify-between transition-all">
+                <div className="border-2 border-[#e5a93c]/50 hover:border-[#e5a93c]/80 rounded-2xl p-6 bg-[#111217]/95 backdrop-blur-md h-full flex flex-col justify-between transition-all">
                   <div>
                     <div className="flex items-center gap-3 mb-6">
                       <div className="p-2 rounded-lg border border-[#e5a93c]/20 bg-[#e5a93c]/10">
@@ -327,7 +327,7 @@ export default function BillingPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="font-mono text-lg font-bold text-white">Lifetime</h3>
-                          <span className="font-mono text-[10px] text-[#e5a93c] border border-[#e5a93c]/30 rounded-full px-2 py-0.5">BEST VALUE</span>
+                          <span className="font-mono text-[10px] text-[#e5a93c] border border-[#e5a93c]/30 rounded-full px-2 py-0.5">Best value</span>
                         </div>
                         <p className="font-mono text-xs text-neutral-500">Pay once, own forever</p>
                       </div>

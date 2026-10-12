@@ -225,7 +225,6 @@ html[dir="rtl"] a {
   font-family: var(--font-cairo), 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
 }
 
-html[dir="rtl"] .font-serif-display,
 html[dir="rtl"] .font-mono-ui {
   font-family: var(--font-cairo), 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
   letter-spacing: normal !important;

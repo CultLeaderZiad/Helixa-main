@@ -78,7 +78,7 @@ export default function LoginPage() {
           <div className="flex justify-center mb-3">
             <HelixaLogo size="md" />
           </div>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white font-serif-display">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
             Log in to your account
           </h2>
           <p className="mt-1.5 text-xs text-zinc-400">

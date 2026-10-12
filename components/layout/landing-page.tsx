@@ -73,7 +73,6 @@ export function LandingPage() {
           .hero-fade { animation: none !important; opacity: 1 !important; transform: none !important; }
           .feature-card { transition: none !important; }
           .feature-card:hover { transform: none !important; }
-          .cta-glow { animation: none !important; }
         }
         @keyframes fade-in-up {
           from { opacity: 0; transform: translateY(16px); }
@@ -81,17 +80,6 @@ export function LandingPage() {
         }
         .hero-fade {
           animation: fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-        @keyframes glow-pulse {
-          0%, 100% { box-shadow: 0 0 20px rgba(229,169,60,0.18), 0 0 40px rgba(229,169,60,0.08); }
-          50%      { box-shadow: 0 0 32px rgba(229,169,60,0.35),  0 0 70px rgba(229,169,60,0.15); }
-        }
-        .cta-glow {
-          animation: glow-pulse 3s ease-in-out infinite;
-        }
-        .cta-glow:hover {
-          animation: none;
-          box-shadow: 0 0 36px rgba(229,169,60,0.5), 0 4px 20px rgba(0,0,0,0.4);
         }
         .grain-overlay {
           position: fixed; inset: 0; z-index: 5; pointer-events: none; opacity: 0.035;
@@ -116,7 +104,7 @@ export function LandingPage() {
           </div>
 
           {/* Headline */}
-          <h1 className="font-serif-display text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight text-white leading-[1.08] max-w-4xl mx-auto">
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight text-white leading-[1.08] max-w-4xl mx-auto">
             {t.heroTitle || "Turn Comments & DMs Into Revenue"}{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#e5a93c] via-[#f7d382] to-[#c7881e]">
               {t.heroTitleGradient || "on Autopilot."}
@@ -125,14 +113,14 @@ export function LandingPage() {
 
           {/* Subtitle */}
           <p className="text-neutral-300 text-base sm:text-lg md:text-xl leading-relaxed max-w-2xl mx-auto mt-6">
-            {t.heroSubtitleLong || "The open-source, self-hosted social automation engine. Automatically reply to Instagram & Facebook comments, deliver instant lead magnets, and route conversations through intelligent AI funnels."}
+            {t.heroSubtitleLong || "Social automation engine for Instagram and Facebook. Automatically reply to comments, deliver lead magnets, and route conversations through conversational funnels."}
           </p>
 
           {/* CTAs */}
           <div className="flex flex-wrap items-center justify-center gap-4 mt-8">
             <button
               onClick={handleSignup}
-              className="cta-glow group flex items-center gap-2.5 bg-[#e5a93c] hover:bg-[#d4952b] text-black font-mono-ui text-sm font-extrabold px-8 py-4 rounded-full hover:scale-[1.03] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(229,169,60,0.3)]"
+              className="group flex items-center gap-2.5 bg-white hover:bg-neutral-200 text-black font-mono-ui text-sm font-bold px-8 py-4 rounded-full transition-all cursor-pointer"
             >
               <span>{t.heroCta || "Start Automating for Free"}</span>
               <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -294,7 +282,7 @@ export function LandingPage() {
             <span className="font-mono-ui text-xs uppercase tracking-[0.2em] text-[#e5a93c] font-semibold block mb-2">
               {isAr ? "القدرات والميزات" : "Capabilities"}
             </span>
-            <h2 className="font-serif-display text-4xl md:text-5xl text-white">
+            <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
               {t.featuresHeading || "Everything the paid tools do."}
             </h2>
           </div>
@@ -359,7 +347,7 @@ export function LandingPage() {
       <section id="updates" className="px-5 md:px-10 py-16 max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/[0.08]">
           <div>
-            <h2 className="font-serif-display text-3xl md:text-4xl text-white">
+            <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
               {isAr ? "آخر التحديثات" : "Latest Updates"}
             </h2>
             <p className="text-neutral-400 text-sm mt-1">
@@ -399,7 +387,7 @@ export function LandingPage() {
       <section className="px-5 md:px-10 py-16 max-w-4xl mx-auto">
         <div className="bg-[#0b0b10] border border-white/10 rounded-2xl p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
           <div>
-            <h3 className="font-serif-display text-2xl md:text-3xl font-bold text-white mb-2">
+            <h3 className="text-2xl md:text-3xl font-bold text-white mb-2 tracking-tight">
               {isAr ? "صُنعت للجميع ومفتوحة المصدر." : "Built in the open."}
             </h3>
             <p className="text-neutral-400 text-sm max-w-md leading-relaxed">

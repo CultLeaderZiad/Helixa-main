@@ -79,7 +79,7 @@ export function CustomerCopilotRail({
     }
   }
 
-  // Safe display name without leaking cnt_ or UUIDs
+  // Safe display name without leaking internal IDs or raw payloads
   const displayName = getDisplayName(
     {
       display_name: contact?.display_name || recipientName,

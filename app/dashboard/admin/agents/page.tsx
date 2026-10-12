@@ -124,7 +124,7 @@ export default function DashboardAdminAgentsPage() {
     <div className="p-8 animate-in fade-in duration-700 max-w-7xl mx-auto">
       <div className="mb-8 flex justify-between items-start sm:items-center">
         <div>
-          <h1 className="font-serif-display text-4xl text-white mb-2">Agents Catalog</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">Agents Catalog</h1>
           <p className="text-neutral-400 text-sm">
             Manage AI features available across the platform. Disabling an agent here instantly turns it off for everyone.
           </p>
@@ -149,7 +149,7 @@ export default function DashboardAdminAgentsPage() {
           <p className="text-sm text-neutral-400 mb-6">
             There are currently no AI agents registered in the database catalog. Run the database migration script <code>32-schema-agents-system.sql</code> to register default agent models.
           </p>
-          <Button onClick={fetchAgents} className="bg-[#e5a93c] hover:bg-[#d4952b] text-black font-semibold text-xs shadow-[0_0_15px_rgba(229,169,60,0.2)]">
+          <Button onClick={fetchAgents} className="bg-white hover:bg-neutral-200 text-black font-semibold text-xs">
             <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Check Again
           </Button>
         </div>
@@ -236,7 +236,7 @@ export default function DashboardAdminAgentsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveEdit} disabled={saving} className="bg-[#e5a93c] hover:bg-[#d4952b] text-black font-semibold shadow-[0_0_15px_rgba(229,169,60,0.2)]">
+            <Button onClick={handleSaveEdit} disabled={saving} className="bg-white hover:bg-neutral-200 text-black font-semibold">
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Save Changes
             </Button>

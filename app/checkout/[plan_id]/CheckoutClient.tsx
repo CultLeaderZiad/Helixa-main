@@ -330,7 +330,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
         onClick={handleCheckout}
         disabled={loading || !selectedMethod}
         aria-label={isStripe ? "Continue to secure Stripe payment" : "Submit Vodafone Cash payment for review"}
-        className="w-full flex items-center justify-center gap-2 bg-[#e5a93c] hover:bg-[#d4952b] text-black font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(229,169,60,0.25)] disabled:opacity-50 transition-all cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e5a93c]"
+        className="w-full flex items-center justify-center gap-2 bg-[#e5a93c] hover:bg-[#d4952b] text-black font-bold py-4 rounded-xl disabled:opacity-50 transition-all cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e5a93c]"
       >
         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isStripe ? "Continue to Payment" : "Submit Payment for Review")}
         {!loading && <ArrowRight className="w-5 h-5" />}

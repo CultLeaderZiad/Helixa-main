@@ -57,7 +57,7 @@ export default function ForgotPasswordPage() {
           <div className="flex justify-center mb-3">
             <HelixaLogo size="md" />
           </div>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white font-serif-display">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
             Reset your password
           </h2>
           <p className="mt-1.5 text-xs text-zinc-400">

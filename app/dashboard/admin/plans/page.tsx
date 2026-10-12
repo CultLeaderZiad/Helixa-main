@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 
 interface Plan {
@@ -231,14 +232,26 @@ export default function DashboardAdminPlansPage() {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this plan?")) return
+  const [planToDelete, setPlanToDelete] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDelete = (id: string) => {
+    setPlanToDelete(id)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!planToDelete) return
+    setDeleting(true)
     try {
-      const res = await fetch(`/api/admin/plans/${id}`, { method: "DELETE" })
+      const res = await fetch(`/api/admin/plans/${planToDelete}`, { method: "DELETE" })
       if (!res.ok) throw new Error("Failed to delete plan")
+      toast.success("Plan deleted")
+      setPlanToDelete(null)
       await fetchPlans()
     } catch (err: any) {
       toast.error(err.message)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -547,6 +560,17 @@ export default function DashboardAdminPlansPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!planToDelete}
+        onOpenChange={(open) => !open && setPlanToDelete(null)}
+        title="Delete plan"
+        description="Are you sure you want to delete this subscription plan? Users currently subscribed will not be affected until their billing period ends."
+        confirmLabel="Delete plan"
+        variant="destructive"
+        loading={deleting}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   )
 }

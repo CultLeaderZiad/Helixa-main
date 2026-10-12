@@ -1,69 +1,68 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { Cookie } from "lucide-react"
 
-const CONSENT_KEY = "helixa-cookie-consent"
+const CONSENT_KEY = "helixa-cookie-notice-dismissed"
 
 export function CookieBanner() {
+  const pathname = usePathname()
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
+    // Only show on public pages, never inside dashboard
+    if (pathname?.startsWith("/dashboard")) {
+      setVisible(false)
+      return
+    }
+
     try {
-      const stored = window.localStorage.getItem(CONSENT_KEY)
-      if (!stored) {
+      const dismissed = window.localStorage.getItem(CONSENT_KEY)
+      if (!dismissed) {
         const timer = setTimeout(() => setVisible(true), 1200)
         return () => clearTimeout(timer)
       }
     } catch {
       // localStorage unavailable — don't nag
     }
-  }, [])
+  }, [pathname])
 
-  const choose = (choice: "accepted" | "rejected") => {
+  const dismiss = () => {
     try {
-      window.localStorage.setItem(CONSENT_KEY, JSON.stringify({ choice, at: new Date().toISOString() }))
+      window.localStorage.setItem(CONSENT_KEY, "true")
     } catch {
       // ignore
     }
     setVisible(false)
   }
 
-  if (!visible) return null
+  if (!visible || pathname?.startsWith("/dashboard")) return null
 
   return (
     <div
       role="region"
-      aria-label="Cookie consent"
-      className="fixed bottom-4 start-4 end-4 sm:end-auto sm:max-w-md z-[60] rounded-2xl border border-white/10 bg-[#0c0d12]/95 backdrop-blur-xl shadow-2xl p-4 sm:p-5 motion-fade-in-up"
+      aria-label="Cookie notice"
+      className="fixed bottom-4 start-4 end-4 sm:end-auto sm:max-w-md z-[60] rounded-xl border border-[var(--line2,#2C2C33)] bg-[var(--s2,#151519)]/95 backdrop-blur-xl shadow-xl p-3 sm:p-4 motion-fade-in-up"
     >
-      <div className="flex items-start gap-3">
-        <Cookie className="w-5 h-5 text-[#e5a93c] shrink-0 mt-0.5" />
-        <div className="flex-1">
-          <h2 className="text-sm font-bold text-white mb-1">Cookies</h2>
-          <p className="text-xs text-neutral-400 leading-relaxed">
-            We only use essential cookies (to keep you signed in) plus one optional cookie that remembers your
-            language. No ads, no trackers. Details in our{" "}
-            <Link href="/cookies" className="text-[#e5a93c] hover:underline">Cookie Policy</Link>.
-          </p>
-          <div className="flex items-center gap-2 mt-3">
-            <button
-              type="button"
-              onClick={() => choose("accepted")}
-              className="px-4 py-1.5 rounded-lg bg-[#e5a93c] hover:bg-[#d4952b] text-black text-xs font-bold transition-colors cursor-pointer"
-            >
-              Accept
-            </button>
-            <button
-              type="button"
-              onClick={() => choose("rejected")}
-              className="px-4 py-1.5 rounded-lg border border-white/15 text-neutral-300 hover:bg-white/5 text-xs font-medium transition-colors cursor-pointer"
-            >
-              Reject optional
-            </button>
-          </div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 text-xs text-[var(--t2,#A3A3AD)]">
+          <Cookie className="w-4 h-4 text-[var(--t3,#7A7A85)] shrink-0" />
+          <span>
+            Essential cookies only.{" "}
+            <Link href="/cookies" className="text-[var(--t1,#EDEDEF)] underline hover:text-white">
+              Cookie Policy
+            </Link>
+          </span>
         </div>
+        <button
+          type="button"
+          onClick={dismiss}
+          className="px-3 py-1 rounded-md bg-white/10 hover:bg-white/15 text-white text-xs font-medium transition-colors cursor-pointer shrink-0"
+        >
+          Got it
+        </button>
       </div>
     </div>
   )

@@ -191,6 +191,11 @@ export function Footer() {
                   {isAr ? "ملفات تعريف الارتباط" : "Cookie Policy"}
                 </Link>
               </li>
+              <li>
+                <Link href="/accessibility" className="hover:text-white transition-colors">
+                  {isAr ? "إمكانية الوصول" : "Accessibility"}
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

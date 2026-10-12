@@ -94,7 +94,7 @@ export default function UpdatePasswordPage() {
           <div className="flex justify-center mb-1">
             <HelixaLogo size="md" />
           </div>
-          <h2 className="text-2xl font-bold text-white font-serif-display">Invalid or Expired Link</h2>
+          <h2 className="text-2xl font-bold text-white">Invalid or Expired Link</h2>
           <p className="text-zinc-400 text-xs mt-1">The password reset link has expired or is invalid. Please request a new one.</p>
           <button 
             onClick={() => router.push("/forgot-password")}
@@ -118,7 +118,7 @@ export default function UpdatePasswordPage() {
           <div className="flex justify-center mb-3">
             <HelixaLogo size="md" />
           </div>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white font-serif-display">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
             Update your password
           </h2>
           <p className="mt-1.5 text-xs text-zinc-400">

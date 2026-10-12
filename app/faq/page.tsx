@@ -10,11 +10,11 @@ import { useLanguage } from "@/lib/i18n/LanguageContext"
 const FAQ_ITEMS_EN = [
   {
     q: "What does Helix Auto DM do?",
-    a: "Helix Auto DM is an AI-powered automation engine for Instagram and Facebook. It allows you to automatically reply to DMs, comments, and story mentions using custom rules, keyword triggers, follow gates, or AI-generated responses (powered by Groq)."
+    a: "Helix Auto DM is an automation engine for Instagram and Facebook. It allows you to automatically reply to DMs, comments, and story mentions using custom rules, keyword triggers, follow gates, or brand-trained AI responses."
   },
   {
     q: "How does the trial work?",
-    a: "When you sign up, you automatically receive a free trial period. During this time, you have full access to all features to test the automations. Once the trial expires, automations will pause until you upgrade to a paid plan or host it yourself."
+    a: "When you sign up, you automatically receive a free trial period. During this time, you have full access to test the automations. Once the trial expires, automations will pause until you upgrade to a paid plan."
   },
   {
     q: "How does billing work?",
@@ -73,7 +73,7 @@ export default function FAQPage() {
               <span>{isAr ? "العودة للرئيسية" : "Back to Home"}</span>
             </Link>
 
-            <h1 className="text-4xl md:text-5xl font-serif-display font-bold tracking-tight text-white">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white">
               {isAr ? "الأسئلة الشائعة" : "Frequently Asked Questions"}
             </h1>
             <p className="text-neutral-400 text-base mt-2">

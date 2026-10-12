@@ -22,7 +22,7 @@ export default function CookiesPage() {
             <FrontBackground />
             <Header activeHref="/cookies" />
             <div className="max-w-3xl mx-auto px-4 py-24 sm:py-32 relative z-10">
-                <h1 className="text-4xl md:text-5xl font-serif-display mb-8 tracking-tight">Cookie &amp; Data Processing Policy</h1>
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-8 tracking-tight text-white">Cookie &amp; Data Processing Policy</h1>
                 <LastUpdated />
 
                 <div className="prose prose-invert max-w-none space-y-6 text-neutral-300 mt-10">
@@ -75,10 +75,10 @@ export default function CookiesPage() {
                     <section>
                         <h2 className="text-2xl font-bold text-white mb-4">3. Data Processing Summary</h2>
                         <ul className="list-disc pl-6 space-y-2 mt-2">
-                            <li><strong className="text-white">Legal bases (GDPR):</strong> contract performance (running your automations and billing), legitimate interest (service security, abuse prevention), and consent where required (optional preference storage).</li>
-                            <li><strong className="text-white">Processors:</strong> Supabase (hosting/database/auth), Stripe (payments), Vercel (hosting/analytics), Meta and Telegram (platform APIs), and your chosen AI provider. Details in the Privacy Policy.</li>
-                            <li><strong className="text-white">International transfers:</strong> our processors may process data outside your country; they provide contractual safeguards for such transfers.</li>
-                            <li><strong className="text-white">Your choices:</strong> you can clear or block cookies in your browser at any time; the only impact is being signed out and language resetting. To exercise data rights, contact us via the footer channels.</li>
+                            <li><strong className="text-white">Legal bases (GDPR &amp; Egypt/GCC PDPL):</strong> contract performance (running your automations and billing), legitimate interest (service security, abuse prevention), and compliance with legal accounting obligations.</li>
+                            <li><strong className="text-white">Sub-processors:</strong> Supabase (hosting/database/auth), Stripe, Paymob, and Tap (payment processing), Vercel (hosting/analytics), Sentry (error diagnostics), IPQualityScore (OAuth fraud protection), Meta, TikTok, and Telegram (platform APIs), and AI providers (Groq by default, or your configured BYOK keys). Complete details in the <Link href="/privacy" className="text-[var(--gold,#D6AE5C)] hover:underline">Privacy Policy</Link>.</li>
+                            <li><strong className="text-white">International transfers:</strong> our processors store and process data in secure cloud regions outside Egypt/GCC; they maintain contractual and technical safeguards for cross-border transfers.</li>
+                            <li><strong className="text-white">Your choices &amp; rights:</strong> you can clear or block cookies in your browser at any time. To exercise data subject rights (access, rectification, erasure), contact us at <a href="mailto:support@helixa.app" className="text-[var(--gold,#D6AE5C)] hover:underline">support@helixa.app</a>.</li>
                         </ul>
                     </section>
 

@@ -107,7 +107,7 @@ export default function CampaignsPage() {
         </div>
         <Button 
           onClick={() => router.push("/dashboard/admin/campaigns/create")}
-          className="bg-[#e5a93c] hover:bg-[#d4952b] text-black font-semibold shadow-[0_0_15px_rgba(229,169,60,0.2)]"
+          className="bg-white hover:bg-neutral-200 text-black font-semibold"
         >
           <Plus className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />
           {t.newCampaign}

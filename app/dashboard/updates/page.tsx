@@ -28,7 +28,7 @@ export default async function UpdatesPage() {
     return (
       <div className="flex flex-col items-center justify-center h-[80vh] p-4 text-center">
         <Sparkles className="w-12 h-12 text-neutral-600 mb-4" />
-        <h1 className="text-2xl font-serif-display text-white mb-2">No updates right now</h1>
+        <h1 className="text-2xl font-bold text-white mb-2">No updates right now</h1>
         <p className="text-neutral-500 max-w-md">
           Check back later for new features, bug fixes, and improvements to Helixa!
         </p>
@@ -39,8 +39,8 @@ export default async function UpdatesPage() {
   return (
     <div className="p-6 md:p-10 max-w-5xl mx-auto">
       <div className="mb-10 text-center">
-        <h1 className="text-3xl md:text-5xl font-serif-display text-white mb-4">What's New in Helixa</h1>
-        <p className="text-neutral-400">Latest features and AI updates</p>
+        <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">What's New in Helixa</h1>
+        <p className="text-neutral-400">Latest features and platform updates</p>
       </div>
 
       <div className="w-full flex items-center justify-center">
@@ -61,14 +61,14 @@ export default async function UpdatesPage() {
                   <div className="w-12 h-12 rounded-xl bg-[#e5a93c]/10 border border-[#e5a93c]/20 flex items-center justify-center text-[#e5a93c] mb-6">
                     <Sparkles className="w-6 h-6" />
                   </div>
-                  <h3 className="text-2xl font-serif-display text-white mb-4">Helixa v2.0 is Live!</h3>
+                  <h3 className="text-xl font-semibold text-white mb-3">Helixa Updates</h3>
                   <p className="text-neutral-300 leading-relaxed text-sm md:text-base">
                     The entire app has been leveled up to automate your Instagram workflows faster and more naturally. We've redesigned the dashboard, improved stability, and added powerful new ways to engage with your audience.
                   </p>
                 </div>
                 <div className="pt-6 border-t border-white/10 mt-6 flex justify-between items-center">
                   <span className="text-xs font-mono text-neutral-500">1 of 4</span>
-                  <span className="text-xs font-mono text-[#e5a93c]">v2.0 Release</span>
+                  <span className="text-xs font-mono text-[#e5a93c]">Release</span>
                 </div>
               </div>
 
@@ -78,9 +78,9 @@ export default async function UpdatesPage() {
                   <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mb-6">
                     <Brain className="w-6 h-6" />
                   </div>
-                  <h3 className="text-2xl font-serif-display text-white mb-4">Train Your AI Clone</h3>
+                  <h3 className="text-xl font-semibold text-white mb-3">Train Your AI Persona</h3>
                   <p className="text-neutral-300 leading-relaxed text-sm md:text-base">
-                    Feed the AI your own context—your niche, products, and tone of voice. When an unmatched DM comes in, the AI handles it exactly like a human would.
+                    Feed the AI your own context—your niche, products, and tone of voice. When an unmatched DM comes in, the AI handles it smoothly in your brand's voice.
                   </p>
                 </div>
                 <div className="pt-6 border-t border-white/10 mt-6 flex justify-between items-center">
@@ -95,7 +95,7 @@ export default async function UpdatesPage() {
                   <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-6">
                     <MessageCircle className="w-6 h-6" />
                   </div>
-                  <h3 className="text-2xl font-serif-display text-white mb-4">From Comment to Conversion</h3>
+                  <h3 className="text-xl font-semibold text-white mb-3">From Comment to Conversion</h3>
                   <p className="text-neutral-300 leading-relaxed text-sm md:text-base">
                     Set up smart keyword triggers on your posts and stories. Helixa instantly DMs users with rich media and quick-reply chips, guiding them through your sales funnel.
                   </p>
@@ -112,7 +112,7 @@ export default async function UpdatesPage() {
                   <div className="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-400 mb-6">
                     <Inbox className="w-6 h-6" />
                   </div>
-                  <h3 className="text-2xl font-serif-display text-white mb-4">The Live Inbox</h3>
+                  <h3 className="text-xl font-semibold text-white mb-3">The Live Inbox</h3>
                   <p className="text-neutral-300 leading-relaxed text-sm md:text-base">
                     Every conversation your AI is having is visible in one unified dashboard. Oversee chats in real-time, step in manually, and fire off saved quick replies.
                   </p>

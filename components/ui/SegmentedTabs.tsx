@@ -41,7 +41,7 @@ export function SegmentedTabs<T extends string = string>({
               size === "sm" ? "px-3 py-1.5 text-[10px]" : "px-4 py-2 text-xs"
             } ${
               isActive
-                ? "bg-[#e5a93c]/15 text-[#e5a93c] border border-[#e5a93c]/30 shadow-[0_0_20px_rgba(229,169,60,0.08)]"
+                ? "bg-[#e5a93c]/15 text-[#e5a93c] border border-[#e5a93c]/30"
                 : "text-zinc-400 hover:text-white border border-transparent hover:bg-white/[0.04]"
             }`}
           >

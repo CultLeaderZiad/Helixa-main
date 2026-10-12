@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { ArrowLeft, Loader2, Send, Activity, Users, Mail, AlertTriangle } from "lucide-react"
 import { toast } from "react-hot-toast"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 interface Campaign {
   id: string
@@ -170,9 +171,13 @@ export default function CampaignDetailsPage() {
     }
   }
 
-  const handleSendReal = async () => {
-    if (!confirm(t.confirmSend.replace('{{count}}', selectedCustomerIds.size.toString()))) return
+  const [confirmSendOpen, setConfirmSendOpen] = useState(false)
 
+  const handleSendReal = () => {
+    setConfirmSendOpen(true)
+  }
+
+  const handleConfirmSendReal = async () => {
     setSendingReal(true)
     try {
       const res = await fetch(`/api/admin/campaigns/${id}/send`, { 
@@ -184,6 +189,7 @@ export default function CampaignDetailsPage() {
       if (!res.ok) throw new Error(data.error || t.failSendCampaign)
       
       toast.success(t.campaignSentTo.replace('{{count}}', data.recipient_count.toString()))
+      setConfirmSendOpen(false)
       fetchData() // Refresh status
     } catch (error: any) {
       toast.error(error.message)
@@ -392,6 +398,17 @@ export default function CampaignDetailsPage() {
 
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmSendOpen}
+        onOpenChange={setConfirmSendOpen}
+        title={isRtl ? "إرسال الحملة" : "Send Campaign"}
+        description={t.confirmSend.replace('{{count}}', selectedCustomerIds.size.toString())}
+        confirmLabel={isRtl ? "إرسال الآن" : "Send Now"}
+        variant="default"
+        loading={sendingReal}
+        onConfirm={handleConfirmSendReal}
+      />
     </div>
   )
 }

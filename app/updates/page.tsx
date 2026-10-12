@@ -47,7 +47,7 @@ export default async function UpdatesPage() {
                 <Sparkles className="w-3 h-3" /> Official Changelog
               </span>
             </div>
-            <h1 className="font-serif-display text-4xl sm:text-5xl text-white font-bold tracking-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl text-white font-bold tracking-tight">
               Helix Auto DM Updates
             </h1>
             <p className="text-neutral-400 text-sm sm:text-base mt-2">
@@ -66,7 +66,7 @@ export default async function UpdatesPage() {
 
             <div className="prose prose-invert prose-yellow max-w-none font-mono text-sm leading-relaxed text-neutral-300">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {bannerState.content || "### Version 2.0.0 — Unified AI Engine & Post-Link Automation\n\n- **Post-Link Automation Targeting**: Paste any Facebook or Instagram post link directly to attach automation rules exclusively to that content.\n- **Graph API oEmbed Resolver**: Automatically parses and validates mobile share links (`facebook.com/share/p/...`) with verified preview cards.\n- **Strict Webhook Isolation**: Post-specific triggers fire strictly for their intended content with zero cross-post leakage.\n- **Comment Sentiment Classification**: Groq-powered AI background sentiment analysis with caching.\n- **Unified AI Engine Page**: Consolidated dashboard combining Recent Content, Analytics & Funnels, AI Agents, Ice Breakers, and Growth Insights."}
+                {bannerState.content || "### Recent Updates & Improvements\n\n- **Target specific posts**: Link automation rules directly to individual Instagram or Facebook posts and reels.\n- **Link validation**: Preview and verify mobile links instantly before publishing automation rules.\n- **Independent rule triggers**: Rules execute strictly on their selected posts without affecting other content.\n- **Smart sentiment detection**: Understand comment tone and automatically prioritize high-intent customer inquiries.\n- **Unified workflow view**: Manage recent content, automations, templates, and conversational funnels from one place."}
               </ReactMarkdown>
             </div>
           </div>

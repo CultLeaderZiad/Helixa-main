@@ -181,7 +181,7 @@ export default function PlatformDashboardPage() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="font-serif-display text-3xl text-white">{config.name}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-white">{config.name}</h1>
             <p className="text-neutral-400 text-sm">{config.description}</p>
           </div>
         </div>
@@ -210,7 +210,7 @@ export default function PlatformDashboardPage() {
               </svg>
             </div>
             <div>
-              <h1 className="font-serif-display text-3xl md:text-4xl text-white">{config.name} Dashboard</h1>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">{config.name} Dashboard</h1>
               <p className="text-neutral-400 text-sm">{config.description}</p>
             </div>
           </div>
@@ -218,7 +218,7 @@ export default function PlatformDashboardPage() {
         <div className="flex items-center gap-2">
           <Link
             href={`/dashboard/automations?platform=${platform}`}
-            className="flex items-center gap-2 px-4 py-2 bg-[#e5a93c] hover:bg-[#d4952b] text-black rounded-lg text-sm font-bold transition-all shadow-[0_0_15px_rgba(229,169,60,0.15)]"
+            className="flex items-center gap-2 px-4 py-2 bg-[#e5a93c] hover:bg-[#d4952b] text-black rounded-lg text-sm font-bold transition-all"
           >
             <Zap className="w-4 h-4" />
             New Rule
@@ -333,14 +333,14 @@ export default function PlatformDashboardPage() {
             <Zap className="w-4 h-4 text-[#e5a93c]" />
             <span className="text-xs text-neutral-500 uppercase tracking-wider">Automations</span>
           </div>
-          <p className="font-serif-display text-3xl text-white">{platformAutomations.length}</p>
+          <p className="text-2xl font-bold font-mono text-white">{platformAutomations.length}</p>
         </Card>
         <Card className="p-5 bg-[#0b0b0a] border-white/10">
           <div className="flex items-center gap-2 mb-3">
             <Activity className="w-4 h-4 text-green-400" />
             <span className="text-xs text-neutral-500 uppercase tracking-wider">Active</span>
           </div>
-          <p className="font-serif-display text-3xl text-white">
+          <p className="text-2xl font-bold font-mono text-white">
             {platformAutomations.filter((a) => a.is_active).length}
           </p>
         </Card>
@@ -349,7 +349,7 @@ export default function PlatformDashboardPage() {
             <MessageCircle className="w-4 h-4 text-blue-400" />
             <span className="text-xs text-neutral-500 uppercase tracking-wider">Messages</span>
           </div>
-          <p className="font-serif-display text-3xl text-white">
+          <p className="text-2xl font-bold font-mono text-white">
             {statsData?.metrics?.messagesSent || 0}
           </p>
         </Card>
@@ -358,7 +358,7 @@ export default function PlatformDashboardPage() {
             <Users className="w-4 h-4 text-purple-400" />
             <span className="text-xs text-neutral-500 uppercase tracking-wider">Audience</span>
           </div>
-          <p className="font-serif-display text-3xl text-white">
+          <p className="text-2xl font-bold font-mono text-white">
             {statsData?.metrics?.audienceReached || 0}
           </p>
         </Card>

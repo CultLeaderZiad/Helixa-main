@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import { toast } from "sonner"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 interface Stats {
   totalUsers: number
@@ -112,21 +113,33 @@ export default function AdminPage() {
     }
   }, [])
 
-  const deleteSubscriber = async (id: string) => {
-    if (!confirm("Are you sure you want to remove this subscriber?")) return
+  const [subscriberToDelete, setSubscriberToDelete] = useState<string | null>(null)
+  const [deletingSubscriber, setDeletingSubscriber] = useState(false)
+
+  const deleteSubscriber = (id: string) => {
+    setSubscriberToDelete(id)
+  }
+
+  const handleConfirmDeleteSubscriber = async () => {
+    if (!subscriberToDelete) return
+    setDeletingSubscriber(true)
     try {
       const res = await fetch("/api/admin/subscribers", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id })
+        body: JSON.stringify({ id: subscriberToDelete })
       })
       if (res.ok) {
+        toast.success("Subscriber removed")
+        setSubscriberToDelete(null)
         fetchSubscribers()
       } else {
         toast.error("Failed to delete subscriber")
       }
     } catch (err) {
       toast.error("Error deleting subscriber")
+    } finally {
+      setDeletingSubscriber(false)
     }
   }
 
@@ -509,7 +522,7 @@ export default function AdminPage() {
             onClick={() => setActiveTab(tab as any)}
             className={`relative px-4 py-2 rounded-xl font-mono text-[11px] uppercase tracking-wider transition-all whitespace-nowrap ${
               activeTab === tab
-                ? "bg-[#e5a93c]/15 text-[#e5a93c] border border-[#e5a93c]/25 shadow-[0_0_20px_rgba(229,169,60,0.12)]"
+                ? "bg-[#e5a93c]/15 text-[#e5a93c] border border-[#e5a93c]/25"
                 : "text-neutral-500 hover:text-white border border-transparent hover:bg-white/[0.04]"
             }`}
           >
@@ -1205,6 +1218,17 @@ export default function AdminPage() {
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!subscriberToDelete}
+        onOpenChange={(open) => !open && setSubscriberToDelete(null)}
+        title="Remove subscriber"
+        description="Are you sure you want to remove this subscriber from the mailing list?"
+        confirmLabel="Remove"
+        variant="destructive"
+        loading={deletingSubscriber}
+        onConfirm={handleConfirmDeleteSubscriber}
+      />
     </div>
   )
 }
