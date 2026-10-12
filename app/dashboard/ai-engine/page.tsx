@@ -1,24 +1,48 @@
 "use client"
 
-import { useState, Suspense } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { Sparkles, Bot, Plus, Loader2, Play, BookOpen, BarChart3, KeyRound } from "lucide-react"
+import { Plus, Loader2, Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AiAgentCards } from "@/components/ai-agent/AiAgentCards"
 import { ReelOrderFunnel } from "@/components/ai-agent/ReelOrderFunnel"
 import { KnowledgePanel } from "@/components/ai-agent/KnowledgePanel"
 import { ModelKeyPicker } from "@/components/ai-agent/ModelKeyPicker"
 import { UnansweredQuestions } from "@/components/ai-agent/UnansweredQuestions"
+import { AnalyticsDashboardView } from "@/components/dashboard/AnalyticsDashboardView"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
 type TabKey = "agents" | "knowledge" | "insights" | "models"
 
+function resolveTab(raw: string | null): TabKey {
+  if (raw === "knowledge") return "knowledge"
+  if (raw === "insights" || raw === "analytics") return "insights"
+  if (raw === "models" || raw === "model-keys" || raw === "model" || raw === "byok") return "models"
+  return "agents"
+}
+
 function AiAgentContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const initialTab = (searchParams?.get("tab") as TabKey) || "agents"
-  const [activeTab, setActiveTab] = useState<TabKey>(initialTab)
+  const rawTab = searchParams?.get("tab")
+  const [activeTab, setActiveTab] = useState<TabKey>(resolveTab(rawTab))
+
+  // Redirect legacy bookmarks: coach -> /dashboard, content / ice-breakers -> /dashboard/automations
+  useEffect(() => {
+    const tab = searchParams?.get("tab")
+    if (tab === "coach") {
+      router.replace("/dashboard")
+    } else if (tab === "content" || tab === "ice-breakers") {
+      router.replace("/dashboard/automations")
+    } else if (tab === "analytics") {
+      handleTabChange("insights")
+    } else if (tab === "model-keys" || tab === "model" || tab === "byok") {
+      handleTabChange("models")
+    } else if (tab && resolveTab(tab) !== activeTab) {
+      setActiveTab(resolveTab(tab))
+    }
+  }, [searchParams])
 
   const handleTabChange = (key: TabKey) => {
     setActiveTab(key)
@@ -72,7 +96,7 @@ function AiAgentContent() {
           </p>
         </div>
 
-        {/* 4 Tabs Navigation */}
+        {/* 4 Tabs Navigation: Agents · Knowledge · Insights · Model & keys */}
         <div className="flex items-center gap-1 border-b border-[var(--line)] pb-px">
           {[
             { id: "agents" as const, label: "Agents", count: "3" },
@@ -95,7 +119,9 @@ function AiAgentContent() {
               >
                 <span>{tab.label}</span>
                 {tab.count && (
-                  <span className="font-mono text-[10.5px] opacity-75">{tab.count}</span>
+                  <bdi className="font-mono text-[10.5px] opacity-75 tabular-nums">
+                    {tab.count}
+                  </bdi>
                 )}
               </button>
             )
@@ -105,22 +131,28 @@ function AiAgentContent() {
         {/* Tab 1: Agents View */}
         {activeTab === "agents" && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            {/* 2-Column Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Left Column (Agents + Funnel, 7 cols) */}
-              <div className="lg:col-span-7 space-y-6">
+            {/* 2-Column Grid ≈ 1.15fr / 1fr, gap 12 */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-3">
+              {/* Left Column (Agents list + Reel funnel) */}
+              <div className="space-y-3">
                 <AiAgentCards />
                 <ReelOrderFunnel onFullInsights={() => handleTabChange("insights")} />
               </div>
 
-              {/* Right Column (Knowledge + Model, 5 cols) */}
-              <div className="lg:col-span-5 space-y-6">
-                <KnowledgePanel onAddSource={() => handleTabChange("knowledge")} />
-                <ModelKeyPicker />
+              {/* Right Column (Knowledge + Model) */}
+              <div className="space-y-3">
+                <KnowledgePanel
+                  mode="summary"
+                  onAddSource={() => handleTabChange("knowledge")}
+                />
+                <ModelKeyPicker
+                  mode="summary"
+                  onManageKeys={() => handleTabChange("models")}
+                />
               </div>
             </div>
 
-            {/* Bottom Row: Unanswered Questions */}
+            {/* Bottom Row: Questions the agent couldn't answer */}
             <UnansweredQuestions />
           </div>
         )}
@@ -128,7 +160,7 @@ function AiAgentContent() {
         {/* Tab 2: Knowledge View */}
         {activeTab === "knowledge" && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            <KnowledgePanel />
+            <KnowledgePanel mode="full" />
             <UnansweredQuestions />
           </div>
         )}
@@ -137,22 +169,14 @@ function AiAgentContent() {
         {activeTab === "insights" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <ReelOrderFunnel />
-            <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-6 text-center space-y-2">
-              <BarChart3 className="w-8 h-8 text-[var(--t3)] mx-auto mb-2" />
-              <h3 className="text-sm font-semibold text-[var(--t1)]">
-                Dialect & Sentiment Breakdown
-              </h3>
-              <p className="text-xs text-[var(--t3)] max-w-sm mx-auto">
-                Egyptian (72%), Gulf (19%), MSA (9%). Resolution rate without human intervention is currently at 71.4%.
-              </p>
-            </div>
+            <AnalyticsDashboardView />
           </div>
         )}
 
         {/* Tab 4: Model & keys View */}
         {activeTab === "models" && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            <ModelKeyPicker />
+            <ModelKeyPicker mode="full" />
           </div>
         )}
       </div>

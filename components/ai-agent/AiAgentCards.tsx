@@ -1,19 +1,29 @@
 "use client"
 
 import React, { useState } from "react"
-import { Bot, ShoppingCart, Star, MessageSquare } from "lucide-react"
+import { Bot, ShoppingCart, Star, Plus } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Pill } from "@/components/ui/Pill"
 import { ChannelBadge, type ChannelType } from "@/components/ui/ChannelBadge"
+import { EmptyState } from "@/components/ui/EmptyState"
+import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 
-interface AgentItem {
+export interface AgentItem {
   id: string
   name: string
   icon: React.ComponentType<{ className?: string }>
   status: "live" | "paused"
   channels: ChannelType[]
-  dialects: string
+  dialects?: string
   scope: string
   isActive: boolean
   metrics: { label: string; value: string }[]
@@ -63,10 +73,18 @@ const initialAgents: AgentItem[] = [
   },
 ]
 
-export function AiAgentCards() {
+export function AiAgentCards({
+  onNewAgent,
+}: {
+  onNewAgent?: () => void
+}) {
   const [agents, setAgents] = useState<AgentItem[]>(initialAgents)
+  const [editingAgent, setEditingAgent] = useState<AgentItem | null>(null)
+  const [editName, setEditName] = useState("")
+  const [editScope, setEditScope] = useState("")
 
   const handleToggle = (id: string, checked: boolean) => {
+    const previous = agents.find((a) => a.id === id)?.isActive
     setAgents((prev) =>
       prev.map((a) =>
         a.id === id
@@ -81,6 +99,38 @@ export function AiAgentCards() {
     toast.success(checked ? "Agent activated" : "Agent paused")
   }
 
+  const handleOpenEdit = (agent: AgentItem) => {
+    setEditingAgent(agent)
+    setEditName(agent.name)
+    setEditScope(agent.scope)
+  }
+
+  const handleSaveEdit = () => {
+    if (!editingAgent) return
+    setAgents((prev) =>
+      prev.map((a) =>
+        a.id === editingAgent.id ? { ...a, name: editName, scope: editScope } : a
+      )
+    )
+    toast.success("Agent settings updated")
+    setEditingAgent(null)
+  }
+
+  if (agents.length === 0) {
+    return (
+      <EmptyState
+        icon={Bot}
+        badge="Agents"
+        title="No AI agent yet"
+        description="Create one to answer DMs from your knowledge."
+        action={{
+          label: "New agent",
+          onClick: onNewAgent || (() => toast.info("Creating new AI Agent...")),
+        }}
+      />
+    )
+  }
+
   return (
     <div className="space-y-3 select-none">
       {agents.map((agent) => {
@@ -88,7 +138,8 @@ export function AiAgentCards() {
         return (
           <div
             key={agent.id}
-            className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-4 space-y-3.5 hover:border-[var(--line2)] transition-colors"
+            onClick={() => handleOpenEdit(agent)}
+            className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-4 space-y-3.5 hover:border-[var(--line2)] hover:bg-[var(--s1)]/80 transition-colors cursor-pointer"
           >
             {/* Top row: Icon, Name, Status, Channels, Dialects, Toggle */}
             <div className="flex items-start justify-between gap-3">
@@ -133,8 +184,13 @@ export function AiAgentCards() {
                 </div>
               </div>
 
-              <div className="shrink-0 pt-1">
+              <div
+                className="shrink-0 pt-1"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <Switch
+                  role="switch"
+                  aria-label={agent.isActive ? `Pause ${agent.name}` : `Activate ${agent.name}`}
                   checked={agent.isActive}
                   onCheckedChange={(checked) => handleToggle(agent.id, checked)}
                 />
@@ -159,6 +215,64 @@ export function AiAgentCards() {
           </div>
         )
       })}
+
+      {/* Quick Agent Editor Dialog */}
+      <Dialog open={Boolean(editingAgent)} onOpenChange={(open) => !open && setEditingAgent(null)}>
+        <DialogContent className="sm:max-w-md bg-[var(--s1)] border-[var(--line)] text-[var(--t1)]">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">
+              Edit {editingAgent?.name}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[var(--t3)]">
+              Adjust agent identity and routing handoff rules.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-[11.5px] text-[var(--t2)] font-medium block mb-1">
+                Agent name
+              </label>
+              <input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="w-full h-8 bg-[var(--s2)] border border-[var(--line)] rounded-[6px] px-2.5 text-xs text-[var(--t1)] focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11.5px] text-[var(--t2)] font-medium block mb-1">
+                Handoff and scope instructions
+              </label>
+              <textarea
+                rows={3}
+                value={editScope}
+                onChange={(e) => setEditScope(e.target.value)}
+                className="w-full bg-[var(--s2)] border border-[var(--line)] rounded-[6px] p-2 text-xs text-[var(--t1)] focus:outline-none resize-none leading-relaxed"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setEditingAgent(null)}
+              className="h-[28px] text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleSaveEdit}
+              className="h-[28px] text-xs"
+            >
+              Save changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

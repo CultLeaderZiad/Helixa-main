@@ -277,12 +277,12 @@ export function LandingPage() {
           <span className="pr-6">
             {isAr
               ? "مسارات التعليق إلى الخاص ✦ استهداف روابط المنشورات ✦ مشغلات الكلمات المفتاحية ✦ تفاعلات القصص ✦ ردود الذكاء الاصطناعي ✦ صندوق وارد موحد ✦ رسائل الترحيب ✦ قفل المتابعة ✦ تحليل المشاعر ✦ "
-              : "COMMENT → DM FUNNELS ✦ POST LINK TARGETING ✦ KEYWORD TRIGGERS ✦ STORY REACTIONS ✦ GROQ AI AUTO-REPLY ✦ LIVE INBOX ✦ ICE BREAKERS ✦ FOLLOW GATE ✦ POST SENTIMENT ANALYSIS ✦ "}
+              : "COMMENT → DM FUNNELS ✦ POST LINK TARGETING ✦ KEYWORD TRIGGERS ✦ STORY REACTIONS ✦ AI AUTO-REPLY ✦ LIVE INBOX ✦ ICE BREAKERS ✦ FOLLOW GATE ✦ POST SENTIMENT ANALYSIS ✦ "}
           </span>
           <span className="pr-6">
             {isAr
               ? "مسارات التعليق إلى الخاص ✦ استهداف روابط المنشورات ✦ مشغلات الكلمات المفتاحية ✦ تفاعلات القصص ✦ ردود الذكاء الاصطناعي ✦ صندوق وارد موحد ✦ رسائل الترحيب ✦ قفل المتابعة ✦ تحليل المشاعر ✦ "
-              : "COMMENT → DM FUNNELS ✦ POST LINK TARGETING ✦ KEYWORD TRIGGERS ✦ STORY REACTIONS ✦ GROQ AI AUTO-REPLY ✦ LIVE INBOX ✦ ICE BREAKERS ✦ FOLLOW GATE ✦ POST SENTIMENT ANALYSIS ✦ "}
+              : "COMMENT → DM FUNNELS ✦ POST LINK TARGETING ✦ KEYWORD TRIGGERS ✦ STORY REACTIONS ✦ AI AUTO-REPLY ✦ LIVE INBOX ✦ ICE BREAKERS ✦ FOLLOW GATE ✦ POST SENTIMENT ANALYSIS ✦ "}
           </span>
         </div>
       </div>
@@ -321,7 +321,7 @@ export function LandingPage() {
           />
           <Feature
             icon={<Brain className="w-5 h-5" />}
-            title={isAr ? "محرك الذكاء الاصطناعي Groq" : "Groq AI Engine"}
+            title={isAr ? "محرك وكيل الذكاء الاصطناعي" : "AI Agent Engine"}
             desc={isAr ? "زود الذكاء الاصطناعي بمعلومات حسابك ونبرة صوتك ومنتجاتك، ليفهم مشاعر الجمهور ويجيب كإنسان حقيقي." : "Feed it your real account context — niche, products, tone — and let AI classify sentiment and answer questions like a human."}
           />
           <Feature

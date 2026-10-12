@@ -3,7 +3,6 @@
 import React, { useState } from "react"
 import { Pill } from "@/components/ui/Pill"
 import { Button } from "@/components/ui/button"
-import { Plus, Check, HelpCircle } from "lucide-react"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -43,7 +42,7 @@ export function UnansweredQuestions() {
 
   const handleSaveAnswer = () => {
     if (!answerInput.trim() || !selectedQuestion) return
-    toast.success(`Answer saved! Agent now knows: "${selectedQuestion.topic}"`)
+    toast.success(`Answer saved! Agent learned response for: "${selectedQuestion.topic}"`)
     setQuestions((prev) => prev.filter((q) => q.id !== selectedQuestion.id))
     setSelectedQuestion(null)
     setAnswerInput("")
@@ -92,9 +91,9 @@ export function UnansweredQuestions() {
               </div>
 
               <div className="flex items-center gap-3 shrink-0">
-                <span className="font-mono text-[11px] text-[var(--t3)] tabular-nums">
-                  {q.count}x
-                </span>
+                <bdi className="font-mono text-[11px] text-[var(--t3)] tabular-nums">
+                  {q.count}×
+                </bdi>
 
                 <Button
                   variant="secondary"
@@ -121,7 +120,7 @@ export function UnansweredQuestions() {
         <DialogContent className="sm:max-w-md bg-[var(--s1)] border-[var(--line)] text-[var(--t1)]">
           <DialogHeader>
             <DialogTitle className="text-sm font-semibold">
-              Teach Agent Answer
+              Teach agent answer
             </DialogTitle>
             <DialogDescription className="text-xs text-[var(--t3)]" dir="auto">
               Question: "{selectedQuestion?.arabicText}" ({selectedQuestion?.topic})
@@ -155,7 +154,7 @@ export function UnansweredQuestions() {
               disabled={!answerInput.trim()}
               className="h-[28px] text-xs"
             >
-              Save Answer
+              Save answer
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -9,6 +9,7 @@ import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import { EmptyState } from "@/components/ui/EmptyState"
+import { Button } from "@/components/ui/button"
 
 function timeAgo(isoString: string | null): string {
     if (!isoString) return "Never"
@@ -141,11 +142,11 @@ export function AnalyticsDashboardView() {
             <div className="py-12">
                 <EmptyState
                     icon={Activity}
-                    badge="Integrations Required"
-                    title="Connect Your Platforms"
-                    description="Connect at least one social channel (Instagram, Facebook, or Telegram) to view live analytics, engagement metrics, and Groq-powered AI insights."
+                    badge="Integrations required"
+                    title="Connect your platforms"
+                    description="Connect at least one social channel (Instagram, Facebook, or Telegram) to view live analytics, engagement metrics, and AI performance insights."
                     action={{
-                        label: "Connect Platforms",
+                        label: "Connect platforms",
                         href: "/dashboard/connected-platforms",
                     }}
                 />
@@ -154,224 +155,226 @@ export function AnalyticsDashboardView() {
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            <div className="grid gap-6">
+        <div className="space-y-6">
+            <div className="grid gap-5">
                 {/* AI Performance Insights */}
-                <div className="bg-[#0c0a13]/80 border border-purple-500/20 rounded-2xl p-6 relative overflow-hidden backdrop-blur-sm">
-                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-50" />
-                    <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2 text-purple-400">
-                                <Sparkles className="w-5 h-5" />
-                                <h3 className="font-bold uppercase tracking-wider text-sm font-mono-ui">AI Performance Insights</h3>
-                            </div>
-                            <button
-                                onClick={generateInsight}
-                                disabled={loading}
-                                className="text-[10px] font-bold uppercase tracking-wider bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 font-mono-ui"
-                            >
-                                {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                                {hasLoaded ? "Regenerate" : "Generate Insight"}
-                            </button>
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-[var(--gold)]">
+                            <Sparkles className="w-4 h-4" />
+                            <h3 className="text-sm font-semibold text-[var(--t1)]">AI performance insights</h3>
                         </div>
-                        
-                        {summary ? (
-                            <div className="text-sm text-neutral-300 leading-relaxed bg-black/40 p-5 rounded-xl border border-white/5 whitespace-pre-wrap font-sans">
-                                {summary}
-                            </div>
-                        ) : (
-                            <div className="text-sm text-neutral-500 flex items-center justify-center min-h-[90px] border border-dashed border-white/10 rounded-xl">
-                                Click generate to get AI-powered insights on your account performance.
-                            </div>
-                        )}
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={generateInsight}
+                            disabled={loading}
+                            className="h-[28px] text-xs font-medium gap-1.5"
+                        >
+                            {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                            <span>{hasLoaded ? "Regenerate" : "Generate insight"}</span>
+                        </Button>
                     </div>
+
+                    {summary ? (
+                        <div className="text-xs text-[var(--t2)] leading-relaxed bg-[var(--s2)] p-4 rounded-lg border border-[var(--line)] whitespace-pre-wrap">
+                            {summary}
+                        </div>
+                    ) : (
+                        <div className="text-xs text-[var(--t3)] flex items-center justify-center min-h-[70px] border border-dashed border-[var(--line2)] rounded-lg">
+                            Click generate to get AI-powered insights on your account performance.
+                        </div>
+                    )}
                 </div>
 
                 {/* Comment Themes */}
-                <div className="bg-[#0c0a13]/80 border border-[#e5a93c]/20 rounded-2xl p-6 relative overflow-hidden backdrop-blur-sm">
-                    <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/3 to-transparent" />
-                    <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <MessageCircle className="w-5 h-5 text-[#e5a93c]" />
-                                <h3 className="font-bold text-white text-sm uppercase tracking-wider font-mono-ui">What People Are Asking (Comments)</h3>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                {themesLastAnalyzed && (
-                                    <span className="text-[10px] text-neutral-500 font-mono-ui">
-                                        Updated {timeAgo(themesLastAnalyzed)}
-                                    </span>
-                                )}
-                                <button
-                                    onClick={handleRefreshThemes}
-                                    disabled={themesRefreshing}
-                                    className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-400 hover:text-white border border-white/10 hover:border-white/30 px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 font-mono-ui"
-                                >
-                                    <RefreshCw className={`w-3 h-3 ${themesRefreshing ? "animate-spin" : ""}`} />
-                                    Refresh
-                                </button>
-                            </div>
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-[var(--gold)]">
+                            <MessageCircle className="w-4 h-4" />
+                            <h3 className="text-sm font-semibold text-[var(--t1)]">What people are asking (comments)</h3>
                         </div>
-
-                        {themesLoading ? (
-                            <div className="flex items-center justify-center py-8">
-                                <Loader2 className="w-6 h-6 animate-spin text-neutral-500" />
-                            </div>
-                        ) : themes.length === 0 ? (
-                            <div className="text-center py-8 border border-dashed border-white/10 rounded-xl">
-                                <p className="text-sm text-neutral-500">Not enough comments analyzed yet to detect themes.</p>
-                                <p className="text-xs text-neutral-600 mt-1">Themes cluster automatically as people comment on your automated posts.</p>
-                            </div>
-                        ) : (
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                {themes.map((t: any) => (
-                                    <div key={t.id} className="bg-black/30 border border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-white/15 transition-all">
-                                        <div>
-                                            <div className="flex items-start justify-between gap-2 mb-1.5">
-                                                <h4 className="text-sm font-semibold text-white">{t.theme}</h4>
-                                                <span className="text-[10px] font-mono-ui bg-white/10 text-neutral-300 px-2 py-0.5 rounded-full shrink-0">
-                                                    {t.count} comments
-                                                </span>
-                                            </div>
-                                            {t.examples && (
-                                                <p className="text-xs text-neutral-400 italic mb-3 line-clamp-2">
-                                                    &ldquo;{t.examples.split(",")[0].replace(/^"|"$/g, "")}&rdquo;
-                                                </p>
-                                            )}
-                                            {t.keywords && (
-                                                <div className="flex flex-wrap gap-1 mb-3">
-                                                    {t.keywords.split(",").slice(0, 4).map((kw: string) => (
-                                                        <span key={kw} className="text-[9px] font-mono-ui bg-[#e5a93c]/10 text-[#e5a93c] px-1.5 py-0.5 rounded">
-                                                            #{kw.trim()}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <button
-                                            onClick={() => handleTurnThemeIntoAutomation(t)}
-                                            className="flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-wider bg-[#e5a93c]/10 hover:bg-[#e5a93c]/20 text-[#e5a93c] border border-[#e5a93c]/20 py-2 rounded-lg transition-all font-mono-ui"
-                                        >
-                                            <Zap className="w-3 h-3" />
-                                            Turn into Automation
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                        <div className="flex items-center gap-3">
+                            {themesLastAnalyzed && (
+                                <span className="text-[10.5px] text-[var(--t3)] font-mono">
+                                    Updated {timeAgo(themesLastAnalyzed)}
+                                </span>
+                            )}
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={handleRefreshThemes}
+                                disabled={themesRefreshing}
+                                className="h-[26px] px-2.5 text-[11px] gap-1"
+                            >
+                                <RefreshCw className={`w-3 h-3 ${themesRefreshing ? "animate-spin" : ""}`} />
+                                <span>Refresh</span>
+                            </Button>
+                        </div>
                     </div>
+
+                    {themesLoading ? (
+                        <div className="flex items-center justify-center py-6">
+                            <Loader2 className="w-5 h-5 animate-spin text-[var(--t3)]" />
+                        </div>
+                    ) : themes.length === 0 ? (
+                        <div className="text-center py-6 border border-dashed border-[var(--line2)] rounded-lg">
+                            <p className="text-xs text-[var(--t3)]">Not enough comments analyzed yet to detect themes.</p>
+                            <p className="text-[11px] text-[var(--t4)] mt-0.5">Themes cluster automatically as people comment on your automated posts.</p>
+                        </div>
+                    ) : (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            {themes.map((t: any) => (
+                                <div key={t.id} className="bg-[var(--s2)] border border-[var(--line)] rounded-lg p-3.5 flex flex-col justify-between hover:border-[var(--line2)] transition-colors">
+                                    <div>
+                                        <div className="flex items-start justify-between gap-2 mb-1">
+                                            <h4 className="text-[13px] font-semibold text-[var(--t1)]">{t.theme}</h4>
+                                            <span className="text-[10px] font-mono bg-[var(--s3)] text-[var(--t3)] border border-[var(--line)] px-2 py-0.5 rounded shrink-0">
+                                                {t.count} comments
+                                            </span>
+                                        </div>
+                                        {t.examples && (
+                                            <p className="text-[11.5px] text-[var(--t3)] italic mb-2 line-clamp-2">
+                                                &ldquo;{t.examples.split(",")[0].replace(/^"|"$/g, "")}&rdquo;
+                                            </p>
+                                        )}
+                                        {t.keywords && (
+                                            <div className="flex flex-wrap gap-1 mb-3">
+                                                {t.keywords.split(",").slice(0, 4).map((kw: string) => (
+                                                    <span key={kw} className="text-[10px] font-mono bg-[var(--goldbg)] text-[var(--gold2)] border border-[var(--goldline)] px-1.5 py-0.5 rounded">
+                                                        #{kw.trim()}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() => handleTurnThemeIntoAutomation(t)}
+                                        className="h-[28px] text-[11px] gap-1 font-medium w-full"
+                                    >
+                                        <Zap className="w-3 h-3 text-[var(--gold)]" />
+                                        <span>Turn into automation</span>
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* FAQ Suggestions */}
-                <div className="bg-[#0c0a13]/80 border border-blue-500/20 rounded-2xl p-6 relative overflow-hidden backdrop-blur-sm">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/3 to-transparent" />
-                    <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <Send className="w-5 h-5 text-blue-400" />
-                                <h3 className="font-bold text-white text-sm uppercase tracking-wider font-mono-ui">Frequent Questions Detected (Inbox)</h3>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                {faqsLastAnalyzed && (
-                                    <span className="text-[10px] text-neutral-500 font-mono-ui">
-                                        Updated {timeAgo(faqsLastAnalyzed)}
-                                    </span>
-                                )}
-                                <button
-                                    onClick={handleRefreshFaqs}
-                                    disabled={faqsRefreshing}
-                                    className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-400 hover:text-white border border-white/10 hover:border-white/30 px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 font-mono-ui"
-                                >
-                                    <RefreshCw className={`w-3 h-3 ${faqsRefreshing ? "animate-spin" : ""}`} />
-                                    Refresh
-                                </button>
-                            </div>
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-[var(--gold)]">
+                            <Send className="w-4 h-4" />
+                            <h3 className="text-sm font-semibold text-[var(--t1)]">Frequent questions detected (inbox)</h3>
                         </div>
-
-                        {faqsLoading ? (
-                            <div className="flex items-center justify-center py-8">
-                                <Loader2 className="w-6 h-6 animate-spin text-neutral-500" />
-                            </div>
-                        ) : faqs.length === 0 ? (
-                            <div className="text-center py-8 border border-dashed border-white/10 rounded-xl">
-                                <p className="text-sm text-neutral-500">No repeated questions detected yet in your inbox.</p>
-                                <p className="text-xs text-neutral-600 mt-1">When users ask similar questions in DMs, AI suggests instant auto-responses here.</p>
-                            </div>
-                        ) : (
-                            <div className="grid gap-3">
-                                {faqs.map((faq: any) => (
-                                    <div key={faq.id} className="bg-black/30 border border-white/5 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-white/15 transition-all">
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-2">
-                                                <h4 className="text-sm font-semibold text-white">{faq.question}</h4>
-                                                <span className="text-[10px] font-mono-ui bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full shrink-0">
-                                                    Asked {faq.count}x
-                                                </span>
-                                            </div>
-                                            <p className="text-xs text-neutral-400">
-                                                <span className="text-neutral-500 font-mono-ui">Suggested Reply: </span>
-                                                &ldquo;{faq.suggested_answer}&rdquo;
-                                            </p>
-                                        </div>
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            <button
-                                                onClick={() => handleTurnFaqIntoAutomation(faq)}
-                                                className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 px-3 py-2 rounded-lg transition-all font-mono-ui"
-                                            >
-                                                <Zap className="w-3 h-3" />
-                                                Create Auto-Reply
-                                            </button>
-                                            <button
-                                                onClick={() => handleDismissFaq(faq.id)}
-                                                disabled={dismissingFaqId === faq.id}
-                                                className="text-neutral-600 hover:text-neutral-400 p-2 rounded-lg hover:bg-white/5 transition-colors"
-                                                title="Dismiss suggestion"
-                                            >
-                                                <X className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                        <div className="flex items-center gap-3">
+                            {faqsLastAnalyzed && (
+                                <span className="text-[10.5px] text-[var(--t3)] font-mono">
+                                    Updated {timeAgo(faqsLastAnalyzed)}
+                                </span>
+                            )}
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={handleRefreshFaqs}
+                                disabled={faqsRefreshing}
+                                className="h-[26px] px-2.5 text-[11px] gap-1"
+                            >
+                                <RefreshCw className={`w-3 h-3 ${faqsRefreshing ? "animate-spin" : ""}`} />
+                                <span>Refresh</span>
+                            </Button>
+                        </div>
                     </div>
+
+                    {faqsLoading ? (
+                        <div className="flex items-center justify-center py-6">
+                            <Loader2 className="w-5 h-5 animate-spin text-[var(--t3)]" />
+                        </div>
+                    ) : faqs.length === 0 ? (
+                        <div className="text-center py-6 border border-dashed border-[var(--line2)] rounded-lg">
+                            <p className="text-xs text-[var(--t3)]">No repeated questions detected yet in your inbox.</p>
+                            <p className="text-[11px] text-[var(--t4)] mt-0.5">When users ask similar questions in DMs, AI suggests instant auto-responses here.</p>
+                        </div>
+                    ) : (
+                        <div className="grid gap-3">
+                            {faqs.map((faq: any) => (
+                                <div key={faq.id} className="bg-[var(--s2)] border border-[var(--line)] rounded-lg p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-[var(--line2)] transition-colors">
+                                    <div className="space-y-1 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <h4 className="text-[13px] font-semibold text-[var(--t1)]">{faq.question}</h4>
+                                            <span className="text-[10px] font-mono bg-[var(--s3)] text-[var(--t3)] border border-[var(--line)] px-2 py-0.5 rounded shrink-0">
+                                                Asked {faq.count}x
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-[var(--t3)]">
+                                            <span className="text-[var(--t4)] font-mono">Suggested reply: </span>
+                                            &ldquo;{faq.suggested_answer}&rdquo;
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={() => handleTurnFaqIntoAutomation(faq)}
+                                            className="h-[28px] text-[11px] gap-1 font-medium"
+                                        >
+                                            <Zap className="w-3 h-3 text-[var(--gold)]" />
+                                            <span>Create auto-reply</span>
+                                        </Button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDismissFaq(faq.id)}
+                                            disabled={dismissingFaqId === faq.id}
+                                            className="text-[var(--t3)] hover:text-[var(--t1)] p-1 rounded hover:bg-[var(--s3)] transition-colors cursor-pointer"
+                                            title="Dismiss suggestion"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
-                {/* Conversion Funnel (Prompt 38 real data) */}
-                <div className="bg-[#0c0a13]/80 border border-white/[0.08] rounded-2xl p-6 relative overflow-hidden backdrop-blur-sm">
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-2">
-                            <Filter className="w-5 h-5 text-[#e5a93c]" />
-                            <h3 className="font-bold text-white text-sm uppercase tracking-wider font-mono-ui">Conversion Funnel (Real Data)</h3>
+                {/* Conversion Funnel (Real Data) */}
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-[var(--gold)]">
+                            <Filter className="w-4 h-4" />
+                            <h3 className="text-sm font-semibold text-[var(--t1)]">Conversion funnel (real data)</h3>
                         </div>
                     </div>
 
                     {funnelLoading ? (
-                        <div className="flex items-center justify-center py-8">
-                            <Loader2 className="w-6 h-6 animate-spin text-neutral-500" />
+                        <div className="flex items-center justify-center py-6">
+                            <Loader2 className="w-5 h-5 animate-spin text-[var(--t3)]" />
                         </div>
                     ) : funnelData?.funnel ? (
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             {[
-                                { key: "triggered", label: "Automations triggered", color: "bg-blue-500" },
-                                { key: "sent", label: "Messages sent", color: "bg-indigo-500" },
-                                { key: "replied", label: "Messages received", color: "bg-purple-500" },
-                                { key: "link_clicked", label: "Link clicks", color: "bg-emerald-500" },
-                                { key: "leads", label: "Leads captured", color: "bg-[#e5a93c]" },
+                                { key: "triggered", label: "Automations triggered", opacity: "opacity-40" },
+                                { key: "sent", label: "Messages sent", opacity: "opacity-55" },
+                                { key: "replied", label: "Messages received", opacity: "opacity-70" },
+                                { key: "link_clicked", label: "Link clicks", opacity: "opacity-85" },
+                                { key: "leads", label: "Leads captured", opacity: "opacity-100" },
                             ].map((stage) => {
                                 const count = funnelData.funnel[stage.key] || 0
                                 const maxCount = Math.max(funnelData.funnel.triggered || 1, 1)
                                 const percent = Math.min(100, Math.round((count / maxCount) * 100))
 
                                 return (
-                                    <div key={stage.key} className="space-y-1.5">
-                                        <div className="flex justify-between text-xs font-mono-ui">
-                                            <span className="text-neutral-400">{stage.label}</span>
-                                            <span className="font-bold text-white">{count}</span>
+                                    <div key={stage.key} className="space-y-1">
+                                        <div className="flex justify-between text-[11.5px]">
+                                            <span className="text-[var(--t3)] font-medium">{stage.label}</span>
+                                            <span className="font-mono text-[var(--t1)] font-semibold">{count}</span>
                                         </div>
-                                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                                        <div className="h-2 w-full bg-[var(--s2)] rounded-full overflow-hidden">
                                             <div
-                                                className={`h-full ${stage.color} rounded-full transition-all duration-500`}
+                                                className={`h-full bg-[var(--gold)] ${stage.opacity} rounded-full transition-all duration-500`}
                                                 style={{ width: `${percent}%` }}
                                             />
                                         </div>
@@ -380,13 +383,13 @@ export function AnalyticsDashboardView() {
                             })}
                         </div>
                     ) : (
-                        <p className="text-sm text-neutral-500">No funnel data available yet.</p>
+                        <p className="text-xs text-[var(--t3)]">No funnel data available yet.</p>
                     )}
                     {Array.isArray(funnelData?.series) && funnelData.series.some((day: { sent: number; inbound: number; linkClicks: number }) => day.sent || day.inbound || day.linkClicks) && (
-                        <div className="mt-6 space-y-2">
-                            <p className="text-[11px] uppercase tracking-wider text-neutral-500 font-mono-ui">Last 14 days</p>
+                        <div className="mt-4 pt-3 border-t border-[var(--line)] space-y-1.5">
+                            <p className="text-[10.5px] uppercase tracking-wider text-[var(--t3)] font-mono">Last 14 days</p>
                             {funnelData.series.filter((day: { sent: number; inbound: number; linkClicks: number }) => day.sent || day.inbound || day.linkClicks).map((day: { date: string; sent: number; inbound: number; linkClicks: number }) => (
-                                <div key={day.date} className="flex items-center justify-between text-xs font-mono-ui text-neutral-400">
+                                <div key={day.date} className="flex items-center justify-between text-xs font-mono text-[var(--t3)]">
                                     <span>{day.date}</span>
                                     <span>{day.sent} sent · {day.inbound} received · {day.linkClicks} clicks</span>
                                 </div>
