@@ -3,11 +3,12 @@
 import * as React from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { Bell, Plus, FileText } from "lucide-react"
+import { Bell, Plus, FileText, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SegmentedControl } from "@/components/ui/SegmentedControl"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import { cn } from "@/lib/utils"
+import { brand } from "@/lib/brand"
 
 interface TopBarProps {
   workspaceName?: string
@@ -31,6 +32,20 @@ const routeTitleMap: Record<string, string> = {
   "/dashboard/admin/plans": "Plans",
 }
 
+const settingsSectionMap: Record<string, string> = {
+  "": "Team & white-label",
+  "team": "Team & white-label",
+  "profile": "Profile",
+  "notifications": "Notifications",
+  "security": "Security",
+  "white-label": "White-label",
+  "client-portal": "Client portal",
+  "workspaces": "Client workspaces",
+  "api-keys": "API keys",
+  "webhooks": "Webhooks",
+  "audit-log": "Audit log",
+}
+
 export function TopBar({
   workspaceName = "Mirage Digital",
   actions,
@@ -40,6 +55,13 @@ export function TopBar({
   const { t } = useLanguage()
   const [range, setRange] = React.useState("7d")
   const [currency, setCurrency] = React.useState<"EGP" | "SAR" | "USD">("EGP")
+
+  const isSettings = pathname.startsWith("/dashboard/settings")
+  let settingsSection = ""
+  if (isSettings) {
+    const rawSection = pathname.replace("/dashboard/settings", "").replace(/^\//, "")
+    settingsSection = settingsSectionMap[rawSection] || "Team & white-label"
+  }
 
   // Match the page title
   const pageTitle =
@@ -54,21 +76,44 @@ export function TopBar({
         className
       )}
     >
-      {/* Breadcrumb: Client / Page */}
+      {/* Breadcrumb: Client / Page [/ Section] */}
       <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-[12.5px] min-w-0">
         <span className="text-[var(--t2)] font-normal truncate max-w-[140px] sm:max-w-[200px]">
           {workspaceName}
         </span>
         <span className="text-[var(--t3)]">/</span>
-        <span className="text-[var(--t1)] font-semibold truncate">
-          {pageTitle}
-        </span>
+        {isSettings ? (
+          <>
+            <Link
+              href="/dashboard/settings/team"
+              className="text-[var(--t2)] hover:text-[var(--t1)] transition-colors"
+            >
+              Settings
+            </Link>
+            <span className="text-[var(--t3)]">/</span>
+            <span className="text-[var(--t1)] font-semibold truncate">
+              {settingsSection}
+            </span>
+          </>
+        ) : (
+          <span className="text-[var(--t1)] font-semibold truncate">
+            {pageTitle}
+          </span>
+        )}
       </nav>
 
       {/* Page Actions on inline-end */}
       <div className="flex items-center gap-2.5 shrink-0">
         {actions ? (
           actions
+        ) : isSettings ? (
+          <a
+            href={`mailto:${brand.supportEmail}`}
+            className="flex items-center gap-1.5 text-[12px] font-medium text-[var(--t2)] hover:text-[var(--t1)] px-2.5 py-1.5 rounded-[6px] hover:bg-[var(--s2)] transition-colors cursor-pointer"
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-[var(--t3)]" />
+            <span>Contact support</span>
+          </a>
         ) : pathname === "/dashboard/billing" ? (
           <div className="flex items-center gap-3">
             {/* Currency Segmented Control */}

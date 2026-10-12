@@ -47,3 +47,4 @@ test-db.ts
 
 .vercel
 .env*
+.freebuff/
