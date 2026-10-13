@@ -6,6 +6,7 @@ import { unauthorizedCronResponse } from "@/lib/cron-auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { nextReportAt, renderReportPdf, reportIsDue, shareToken, type ReportKpis } from "@/lib/agency/reports"
 import { sendEmail } from "@/lib/email-provider"
+import { BRAND } from "@/lib/brand"
 
 export async function GET(request: NextRequest) {
   const denied = unauthorizedCronResponse(request)
@@ -27,12 +28,12 @@ export async function GET(request: NextRequest) {
       kpis,
       share_token: token,
     })
-    const origin = process.env.NEXT_PUBLIC_APP_URL || "https://helixa.local"
+    const origin = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
     const link = `${origin}/share/report/${token}`
-    const pdf = report.format === "pdf" ? await renderReportPdf({ appName: "Helixa", clientName: report.recipient_email, periodLabel: period, kpis }) : null
+    const pdf = report.format === "pdf" ? await renderReportPdf({ appName: BRAND.name, clientName: report.recipient_email, periodLabel: period, kpis }) : null
     const mailed = await sendEmail({
       to: report.recipient_email,
-      subject: `Your Helixa report · ${period}`,
+      subject: `Your ${BRAND.name} report · ${period}`,
       html: `<p>Your latest numbers are ready.</p><p><a href="${link}">Open the report</a></p>${pdf ? `<p>PDF: <a href="${link}?format=pdf">Download</a></p>` : ""}`,
     })
     await supabase.from("client_reports").update({

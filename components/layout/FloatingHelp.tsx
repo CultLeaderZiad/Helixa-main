@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { MessageCircleQuestion, X, Send, Mail } from "lucide-react"
+import { BRAND } from "@/lib/brand"
 
 /**
  * Floating "Get Help" affordance for the dashboard.
@@ -34,22 +35,26 @@ export function FloatingHelp() {
             Stuck on something? We usually reply within a few hours.
           </p>
           <div className="space-y-2">
-            <a
-              href="https://t.me/cultleaderziad"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2.5 w-full p-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-neutral-200 hover:bg-white/10 hover:border-[#2AABEE]/40 transition-colors"
-            >
-              <Send className="w-4 h-4 text-[#2AABEE]" />
-              Telegram support
-            </a>
-            <a
-              href="mailto:support@helixa.app"
-              className="flex items-center gap-2.5 w-full p-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-neutral-200 hover:bg-white/10 hover:border-[#e5a93c]/40 transition-colors"
-            >
-              <Mail className="w-4 h-4 text-[#e5a93c]" />
-              Email us
-            </a>
+            {BRAND.socials.telegram && (
+              <a
+                href={BRAND.socials.telegram}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2.5 w-full p-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-neutral-200 hover:bg-white/10 hover:border-[#2AABEE]/40 transition-colors"
+              >
+                <Send className="w-4 h-4 text-[#2AABEE]" />
+                Telegram support
+              </a>
+            )}
+            {BRAND.emails.support && (
+              <a
+                href={`mailto:${BRAND.emails.support}`}
+                className="flex items-center gap-2.5 w-full p-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-neutral-200 hover:bg-white/10 hover:border-[#e5a93c]/40 transition-colors"
+              >
+                <Mail className="w-4 h-4 text-[#e5a93c]" />
+                Email us
+              </a>
+            )}
             <Link
               href="/faq"
               className="flex items-center gap-2.5 w-full p-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-neutral-200 hover:bg-white/10 transition-colors"

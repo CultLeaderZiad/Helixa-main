@@ -7,6 +7,8 @@
  * Workspaces, channels, contacts, and seats are current counts.
  */
 
+import { BRAND } from "@/lib/brand"
+
 export type PlanAudience = "creator" | "agency"
 export type MeterKey = "workspaces" | "channels" | "contacts" | "aiReplies" | "broadcasts" | "seats"
 export type FeatureKey = "whiteLabel" | "apiAccess"
@@ -44,7 +46,7 @@ export const PLAN_CATALOG: PlanDefinition[] = [
     id: "creator_free",
     name: "Creator Free",
     audience: "creator",
-    description: "One channel and a small contact list, so a creator can try Helixa.",
+    description: `One channel and a small contact list, so a creator can try ${BRAND.name}.`,
     monthlyUsd: 0,
     yearlyUsd: 0,
     trialDays: 0,

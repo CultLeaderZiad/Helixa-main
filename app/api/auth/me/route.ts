@@ -24,51 +24,93 @@ export async function GET(request: NextRequest) {
   let defaultProfilePic = "/agency-avatar.png";
   if (userRole === "admin") {
     defaultProfilePic = "/admin-avatar.png";
-  }    let hasValidPayment = false;
+  }
+
+    let hasValidPayment = false;
     let isTrialExpired = false;
     let isPastDeadline = false;
 
-    const currentPlan = igUser?.plan ?? account.plan;
-    const trialEnds = igUser?.trial_ends_at ?? account.trial_ends_at;
+    let effectivePlan = igUser?.plan ?? account.plan;
+    let effectiveTrialEnds = igUser?.trial_ends_at ?? account.trial_ends_at;
 
-    if (trialEnds) {
-        const trialDate = new Date(trialEnds);
-        const now = new Date();
-        if (trialDate < now) {
-            isTrialExpired = true;
-            // 24 hour deadline after expiration
-            if (now.getTime() - trialDate.getTime() > 24 * 60 * 60 * 1000) {
-                isPastDeadline = true;
-            }
+    if (effectiveTrialEnds) {
+      const trialDate = new Date(effectiveTrialEnds);
+      const now = new Date();
+      if (trialDate < now) {
+        isTrialExpired = true;
+        // 24 hour deadline after expiration
+        if (now.getTime() - trialDate.getTime() > 24 * 60 * 60 * 1000) {
+          isPastDeadline = true;
         }
+      }
     }
 
     // Admin bypass
-    if (userRole === "admin" || account.email === "cultleaderzoz.dev@gmail.com") {
-        hasValidPayment = true;
-        isTrialExpired = false;
-        isPastDeadline = false;
-    } else if (currentPlan && currentPlan !== "trial" && igUser) {
-        const supabase = await getSupabaseBypassClient();
-        // Check both payment sources in parallel instead of sequentially
+    if (userRole === "admin") {
+      hasValidPayment = true;
+      isTrialExpired = false;
+      isPastDeadline = false;
+    } else {
+      const supabase = await getSupabaseBypassClient();
+
+      // Check billing_accounts (entitlement source of truth)
+      const { data: billingAccount } = await supabase
+        .from("billing_accounts")
+        .select("plan_id, status, trial_ends_at, current_period_end")
+        .eq("account_id", account.id)
+        .maybeSingle();
+
+      if (billingAccount) {
+        effectivePlan = billingAccount.plan_id || effectivePlan;
+        if (billingAccount.trial_ends_at) {
+          effectiveTrialEnds = billingAccount.trial_ends_at;
+        }
+
+        if (billingAccount.status === "active") {
+          hasValidPayment = true;
+          isTrialExpired = false;
+          isPastDeadline = false;
+        } else if (billingAccount.status === "trialing") {
+          if (effectiveTrialEnds) {
+            const trialDate = new Date(effectiveTrialEnds);
+            const now = new Date();
+            if (trialDate < now) {
+              isTrialExpired = true;
+              if (now.getTime() - trialDate.getTime() > 24 * 60 * 60 * 1000) {
+                isPastDeadline = true;
+              }
+            } else {
+              isTrialExpired = false;
+              isPastDeadline = false;
+            }
+          }
+        } else if (billingAccount.status === "expired" || billingAccount.status === "canceled") {
+          isTrialExpired = true;
+          isPastDeadline = true;
+        }
+      }
+
+      // Fallback to legacy payment sources if not already confirmed active
+      if (!hasValidPayment && effectivePlan && effectivePlan !== "trial" && igUser) {
         const [paymentResult, subResult] = await Promise.all([
-            supabase
-                .from("payment_submissions")
-                .select("id")
-                .eq("user_id", igUser.id)
-                .eq("status", "approved")
-                .limit(1)
-                .maybeSingle(),
-            supabase
-                .from("subscriptions")
-                .select("id")
-                .eq("user_id", igUser.id)
-                .eq("status", "active")
-                .limit(1)
-                .maybeSingle()
+          supabase
+            .from("payment_submissions")
+            .select("id")
+            .eq("user_id", igUser.id)
+            .eq("status", "approved")
+            .limit(1)
+            .maybeSingle(),
+          supabase
+            .from("subscriptions")
+            .select("id")
+            .eq("user_id", igUser.id)
+            .eq("status", "active")
+            .limit(1)
+            .maybeSingle()
         ]);
 
         hasValidPayment = !!(paymentResult.data || subResult.data);
+      }
     }
 
     return NextResponse.json({
@@ -81,8 +123,8 @@ export async function GET(request: NextRequest) {
       username: (account as any).full_name || igUser?.username || account.email?.split("@")[0] || "User",
       profilePic: (account as any).profile_picture_url || defaultProfilePic,
       created_at: account.created_at,
-      plan: igUser?.plan ?? account.plan,
-      trial_ends_at: igUser?.trial_ends_at ?? account.trial_ends_at,
+      plan: effectivePlan,
+      trial_ends_at: effectiveTrialEnds,
       trial_exempt: account.trial_exempt,
       permission_level: account.permission_level,
       is_team_member: account.is_team_member,

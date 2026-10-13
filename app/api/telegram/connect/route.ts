@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Set the webhook
-    const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || "https://helixa-main-ecru.vercel.app"
+    const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || ""
     let validatedAppUrl = rawAppUrl.trim().replace(/^['"]+|['"]+$/g, '').replace(/\/+$/, '')
     
     // Deep fix: skip webhook if testing on localhost since Telegram blocks HTTP webhooks
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     }
     
     const { data: existingTg } = await supabase.from("platform_connections")
-      .select("id").eq("user_id", userId).eq("platform", "telegram").eq("page_id", pageId).maybeSingle()
+      .select("id").eq("platform", "telegram").eq("page_id", pageId).maybeSingle()
       
     const saveConnection = (row: Record<string, unknown>) =>
       existingTg

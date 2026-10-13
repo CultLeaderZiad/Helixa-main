@@ -1,5 +1,6 @@
 import { sendEmail } from "./email-provider"
 import { getSupabaseBypassClient } from "./supabase-server"
+import { BRAND } from "./brand"
 
 /**
  * Transactional payment receipt/confirmation emails.
@@ -14,14 +15,14 @@ function shell(title: string, bodyHtml: string): string {
   <div style="background:${BRAND_BG};padding:32px 16px;font-family:Arial,Helvetica,sans-serif;">
     <div style="max-width:520px;margin:0 auto;background:#0e0f13;border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;">
       <div style="padding:24px 28px;border-bottom:1px solid rgba(255,255,255,0.06);">
-        <span style="color:${BRAND_GOLD};font-weight:bold;font-size:18px;letter-spacing:2px;">HELIXA</span>
+        <img src="${BRAND.appUrl}${BRAND.logo.wordmarkDark}" alt="${BRAND.name}" width="120" style="display:block;border:0;" />
       </div>
       <div style="padding:28px;color:#e5e5e5;font-size:14px;line-height:1.6;">
         <h2 style="color:#ffffff;margin:0 0 16px;font-size:20px;">${title}</h2>
         ${bodyHtml}
       </div>
       <div style="padding:16px 28px;border-top:1px solid rgba(255,255,255,0.06);color:#8a8a8a;font-size:11px;">
-        This is a transactional payment notice from Helixa. Questions? Reply to this email or reach us via the support channels on helixa.app.
+        This is a transactional payment notice from ${BRAND.name}. Questions? Reply to this email or reach us via ${BRAND.emails.support || BRAND.appUrl}.
       </div>
     </div>
   </div>`
@@ -65,19 +66,19 @@ export async function sendPaymentReceipt(opts: PaymentReceipt): Promise<boolean>
   ].join("")
 
   const html = shell(
-    opts.isRenewal ? "Your Helixa subscription renewed" : "Payment confirmed — thank you!",
+    opts.isRenewal ? `Your ${BRAND.name} subscription renewed` : "Payment confirmed — thank you!",
     `
     <p>Your payment was received successfully. ${opts.isRenewal ? "Your subscription has been renewed." : "Your plan is now active and your automations are running."}</p>
     ${receiptTable(rows, `${currency === "USD" ? "$" : currency + " "}${opts.amount}`)}
-    <p style="color:#9ca3af;font-size:12px;">Keep this email as your receipt. You can review your plan anytime under <strong style="color:#fff;">Billing &amp; Subscription</strong> in your dashboard. Cancellation and refund terms: <a href="https://helixa.app/refund" style="color:${BRAND_GOLD};">helixa.app/refund</a>.</p>
+    <p style="color:#9ca3af;font-size:12px;">Keep this email as your receipt. You can review your plan anytime under <strong style="color:#fff;">Billing &amp; Subscription</strong> in your dashboard. Cancellation and refund terms: <a href="${BRAND.appUrl}/refund" style="color:${BRAND_GOLD};">${BRAND.short} refund policy</a>.</p>
     `
   )
 
   const result = await sendEmail({
     to: opts.to,
     subject: opts.isRenewal
-      ? `Helixa receipt — subscription renewed ($${opts.amount})`
-      : `Helixa receipt — payment confirmed ($${opts.amount})`,
+      ? `${BRAND.name} receipt — subscription renewed ($${opts.amount})`
+      : `${BRAND.name} receipt — payment confirmed ($${opts.amount})`,
     html,
   })
   if (!result.success) {
@@ -106,12 +107,12 @@ export async function sendManualPaymentApproved(opts: {
       ].join(""),
       `$${opts.amount}`
     )}
-    <p style="color:#9ca3af;font-size:12px;">Note: manual payments do not auto-renew — we'll remind you before your period ends. Cancellation and refund terms: <a href="https://helixa.app/refund" style="color:${BRAND_GOLD};">helixa.app/refund</a>.</p>
+    <p style="color:#9ca3af;font-size:12px;">Note: manual payments do not auto-renew — we'll remind you before your period ends. Cancellation and refund terms: <a href="${BRAND.appUrl}/refund" style="color:${BRAND_GOLD};">${BRAND.short} refund policy</a>.</p>
     `
   )
   const result = await sendEmail({
     to: opts.to,
-    subject: `Helixa — payment approved, plan activated ($${opts.amount})`,
+    subject: `${BRAND.name} — payment approved, plan activated ($${opts.amount})`,
     html,
   })
   if (!result.success) {
@@ -143,7 +144,7 @@ export async function sendManualPaymentRejected(opts: {
   )
   const result = await sendEmail({
     to: opts.to,
-    subject: `Helixa — action needed: payment reference could not be verified`,
+    subject: `${BRAND.name} — action needed: payment reference could not be verified`,
     html,
   })
   if (!result.success) {

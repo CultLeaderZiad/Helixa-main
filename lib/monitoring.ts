@@ -26,7 +26,7 @@ function newEventId(): string {
 }
 
 export function buildSentryEnvelope(event: MonitorEvent, eventId = newEventId()): string {
-  const header = JSON.stringify({ event_id: eventId, sent_at: new Date().toISOString(), sdk: { name: "helixa.monitoring", version: "1" } })
+  const header = JSON.stringify({ event_id: eventId, sent_at: new Date().toISOString(), sdk: { name: "cyreax.monitoring", version: "1" } })
   const item = JSON.stringify({ type: "event", length: 0 })
   const payload = JSON.stringify({
     event_id: eventId,
@@ -53,7 +53,7 @@ export function sentryStoreUrl(dsn: string): string | null {
 
 export async function captureException(error: unknown, extra?: Record<string, string>, fetchImpl: typeof fetch = fetch): Promise<void> {
   const event = errorEvent(error, extra)
-  console.error("[helixa]", event.message, extra || "")
+  console.error("[cyreax]", event.message, extra || "")
   const dsn = sentryDsn()
   const target = dsn ? sentryStoreUrl(dsn) : null
   if (!target) return
@@ -65,7 +65,7 @@ export async function captureException(error: unknown, extra?: Record<string, st
       body,
     })
   } catch (sendError) {
-    console.error("[helixa] Sentry envelope failed", sendError instanceof Error ? sendError.message : sendError)
+    console.error("[cyreax] Sentry envelope failed", sendError instanceof Error ? sendError.message : sendError)
   }
 }
 

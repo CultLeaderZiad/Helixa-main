@@ -3,6 +3,8 @@
 import { PillNav } from "./PillNav"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 
+import { BRAND } from "@/lib/brand"
+
 export interface HeaderProps {
   activeHref?: string
   className?: string
@@ -23,9 +25,9 @@ export function Header({ activeHref = "/", className = "" }: HeaderProps) {
     <header className={`sticky top-3 sm:top-4 z-50 w-full flex justify-center px-3 sm:px-4 pointer-events-none ${className}`}>
       <div className="pointer-events-auto">
         <PillNav
-          logo="/helix-logo.svg"
-          logoText="HLX"
-          logoAlt="Helix Auto DM"
+          logo={BRAND.logo.mark}
+          logoText="CYREAX"
+          logoAlt={BRAND.name}
           items={items}
           activeHref={activeHref}
         />

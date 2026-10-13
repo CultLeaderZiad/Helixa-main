@@ -10,6 +10,8 @@ import { Loader2 } from "lucide-react"
 import { TrialBanner } from "@/components/layout/TrialBanner"
 import { UsageNotice } from "@/components/layout/UsageNotice"
 import { CommandPalette } from "@/components/ui/CommandPalette"
+import { BrandLogo } from "@/components/ui/BrandLogo"
+import { BRAND } from "@/lib/brand"
 
 export default function DashboardLayout({
     children,
@@ -136,7 +138,8 @@ export default function DashboardLayout({
                     <header className="md:hidden h-[52px] border-b border-[var(--line)] bg-[var(--s1)] flex items-center justify-between px-4 sticky top-0 z-30">
                         <div className="flex items-center gap-2.5">
                             <MobileNav username={username || "Creator"} profilePic={profilePic} email={email} userRole={role} onLogout={logout} />
-                            <span className="font-semibold text-[14px] text-[var(--t1)]">Helixa</span>
+                            <BrandLogo variant="mark" size="sm" />
+                            <span className="font-semibold text-[14px] text-[var(--t1)]">{BRAND.name}</span>
                         </div>
                     </header>
                 )}

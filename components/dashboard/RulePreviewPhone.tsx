@@ -241,7 +241,7 @@ export function RulePreviewPhone({
                   U
                 </div>
                 <div className="bg-[#262626] text-white rounded-2xl rounded-bl-sm px-4 py-2.5 text-[14px] max-w-[75%] leading-snug">
-                  John Doe
+                  Customer Name
                 </div>
               </div>
             </>

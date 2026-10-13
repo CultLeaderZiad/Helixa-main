@@ -3,10 +3,16 @@ export function widgetScript(): string {
   return `(function () {
   var script = document.currentScript;
   if (!script) return;
-  var key = script.getAttribute("data-helixa-key");
+  var key = script.getAttribute("data-cyreax-key") || script.getAttribute("data-helixa-key");
   if (!key) return;
   var origin = new URL(script.src, window.location.href).origin;
-  var storageKey = "helixa_visitor_" + key;
+  var storageKey = "cyreax_visitor_" + key;
+  try {
+    if (!localStorage.getItem(storageKey)) {
+      var oldVal = localStorage.getItem("helixa_visitor_" + key);
+      if (oldVal) { localStorage.setItem(storageKey, oldVal); }
+    }
+  } catch(e) {}
   var html = document.documentElement;
   var dirAttr = script.getAttribute("data-dir");
   var rtl = dirAttr === "rtl" || html.getAttribute("dir") === "rtl" || /^(ar|fa|he|ur)/i.test(html.getAttribute("lang") || "");

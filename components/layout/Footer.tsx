@@ -2,16 +2,15 @@
 
 import Link from "next/link"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
-
-const GITHUB_URL = "https://github.com/CultLeaderZiad"
-const LINKEDIN_URL = "https://www.linkedin.com/in/ziad-sabry-cl/"
-const TELEGRAM_URL = "https://t.me/cultleaderziad"
-const CONTACT_EMAIL = "support@helixa.app"
+import { BRAND } from "@/lib/brand"
+import { BrandLogo } from "@/components/ui/BrandLogo"
 
 export function Footer() {
   const { t, language } = useLanguage()
 
   const isAr = language === "ar"
+  const supportEmail = BRAND.emails.support
+  const socials = BRAND.socials
 
   return (
     <footer className="relative bg-[#050508] border-t border-white/[0.08] overflow-hidden text-neutral-400 font-sans">
@@ -19,13 +18,13 @@ export function Footer() {
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
       <div className="absolute top-0 inset-x-0 h-6 pointer-events-none opacity-20 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent" />
 
-      {/* Massive Background Watermark Typography: "HELIX" */}
+      {/* Massive Background Watermark Typography: "CYREAX DM" */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden">
         <span
-          className="font-sans font-black text-[clamp(9rem,26vw,24rem)] tracking-[-0.04em] text-white/[0.11] leading-none uppercase select-none pointer-events-none"
+          className="font-sans font-black text-[clamp(9rem,24vw,22rem)] tracking-[-0.04em] text-white/[0.08] leading-none uppercase select-none pointer-events-none"
           style={{ willChange: "transform" }}
         >
-          HELIX  DM
+          CYREAX DM
         </span>
       </div>
 
@@ -34,52 +33,55 @@ export function Footer() {
           {/* Brand Col */}
           <div className="md:col-span-4 lg:col-span-5 space-y-4">
             <Link href="/" className="inline-flex items-center gap-2.5 group">
-              <span className="w-8 h-8 rounded-lg bg-[#0e0e14] border border-white/10 flex items-center justify-center text-[#e5a93c] group-hover:border-[#e5a93c]/40 transition-colors">
-                <span className="font-mono-ui font-black text-sm">H</span>
-              </span>
-              <span className="text-xl sm:text-2xl font-bold tracking-tight text-white group-hover:text-[#e5a93c] transition-colors">
-                {isAr ? "هيليكسا أوتو دي إم" : "Helix Auto DM"}
-              </span>
+              <BrandLogo variant="wordmark" size="md" />
             </Link>
             <p className="text-sm text-neutral-400 leading-relaxed max-w-sm">
               {isAr
-                ? "منصة الأتمتة الاجتماعية الشاملة. إدارة علاقات العملاء، والردود الآلية، ومحركات الذكاء الاصطناعي — صُممت لصناع المحتوى والشركات الحديثة."
-                : "The all-in-one social automation platform. CRM, auto-DMs, and AI growth engines — built for serious creators, agencies, and modern brands."}
+                ? "منصة الأتمتة الاجتماعية الشاملة للرسائل المباشرة. إدارة علاقات العملاء، والردود الآلية، ومحركات الذكاء الاصطناعي — صُممت للشركات الحديثة وصناع المحتوى."
+                : "The all-in-one DM automation platform. CRM, auto-DMs, and AI growth engines — built for modern brands, creators, and agencies."}
             </p>
-            <div className="pt-2 flex items-center gap-4 text-xs font-mono-ui">
-              <a
-                href={GITHUB_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-neutral-400 hover:text-white transition-colors flex items-center gap-1.5"
-              >
-                <span>GitHub</span>
-              </a>
-              <span className="text-white/15">•</span>
-              <a
-                href={LINKEDIN_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-neutral-400 hover:text-[#0A66C2] transition-colors flex items-center gap-1.5"
-              >
-                <span>LinkedIn</span>
-              </a>
-              <span className="text-white/15">•</span>
-              <a
-                href={TELEGRAM_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-neutral-400 hover:text-[#2AABEE] transition-colors flex items-center gap-1.5"
-              >
-                <span>Telegram Support</span>
-              </a>
-            </div>
-            <p className="text-xs text-neutral-500 leading-relaxed">
-              {isAr ? "للتواصل:" : "Contact:"}{" "}
-              <a href={`mailto:${CONTACT_EMAIL}`} className="text-neutral-400 hover:text-white transition-colors">
-                {CONTACT_EMAIL}
-              </a>
-            </p>
+            {Object.keys(socials).length > 0 && (
+              <div className="pt-2 flex items-center gap-4 text-xs font-mono-ui">
+                {socials.github && (
+                  <a
+                    href={socials.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-neutral-400 hover:text-white transition-colors flex items-center gap-1.5"
+                  >
+                    <span>GitHub</span>
+                  </a>
+                )}
+                {socials.linkedin && (
+                  <a
+                    href={socials.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-neutral-400 hover:text-[#0A66C2] transition-colors flex items-center gap-1.5"
+                  >
+                    <span>LinkedIn</span>
+                  </a>
+                )}
+                {socials.telegram && (
+                  <a
+                    href={socials.telegram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-neutral-400 hover:text-[#2AABEE] transition-colors flex items-center gap-1.5"
+                  >
+                    <span>Telegram</span>
+                  </a>
+                )}
+              </div>
+            )}
+            {supportEmail && (
+              <p className="text-xs text-neutral-500 leading-relaxed">
+                {isAr ? "للتواصل:" : "Contact:"}{" "}
+                <a href={`mailto:${supportEmail}`} className="text-neutral-400 hover:text-white transition-colors">
+                  {supportEmail}
+                </a>
+              </p>
+            )}
           </div>
 
           {/* Product Col */}
@@ -142,21 +144,13 @@ export function Footer() {
                   {t.faq || "FAQ"}
                 </Link>
               </li>
-              <li>
-                <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
-                  {isAr ? "مستودع GitHub" : "GitHub Repository"}
-                </a>
-              </li>
-              <li>
-                <a href={LINKEDIN_URL} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
-                  {isAr ? "حساب المؤسس LinkedIn" : "Founder LinkedIn"}
-                </a>
-              </li>
-              <li>
-                <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="hover:text-[#2AABEE] transition-colors">
-                  {isAr ? "مجتمع تيليجرام" : "Telegram Community"}
-                </a>
-              </li>
+              {socials.github && (
+                <li>
+                  <a href={socials.github} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                    {isAr ? "مستودع GitHub" : "GitHub Repository"}
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
 
@@ -200,12 +194,10 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Bottom Bar matching Screenshot 3 & 4 */}
+        {/* Bottom Bar */}
         <div className="border-t border-white/[0.08] mt-12 pt-8 flex flex-col xl:flex-row items-center justify-between gap-6 text-xs font-mono-ui text-neutral-500">
           <div>
-            {isAr ? "© 2026 هيليكسا أوتو دي إم." : "© 2026 Helix Auto DM."} {t.rightsReserved ? t.rightsReserved.toUpperCase() : "ALL RIGHTS RESERVED."}
-            {/* TODO(business): add registered legal entity name + address here once confirmed —
-                required by some consumer-protection rules (imprint). Do not invent. */}
+            © 2026 {BRAND.name}. {t.rightsReserved ? t.rightsReserved.toUpperCase() : "ALL RIGHTS RESERVED."}
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-y-2 gap-x-4">
@@ -227,34 +219,43 @@ export function Footer() {
               </Link>
             </div>
 
-            <span className="text-white/20">|</span>
-
-            <div className="flex items-center gap-3">
-              <a
-                href={GITHUB_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-neutral-300 transition-colors"
-              >
-                GitHub
-              </a>
-              <a
-                href={LINKEDIN_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-neutral-300 transition-colors"
-              >
-                LinkedIn
-              </a>
-              <a
-                href={TELEGRAM_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-[#2AABEE] transition-colors"
-              >
-                {t.telegramSupport || "Telegram support"}
-              </a>
-            </div>
+            {Object.keys(socials).length > 0 && (
+              <>
+                <span className="text-white/20">|</span>
+                <div className="flex items-center gap-3">
+                  {socials.github && (
+                    <a
+                      href={socials.github}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-neutral-300 transition-colors"
+                    >
+                      GitHub
+                    </a>
+                  )}
+                  {socials.linkedin && (
+                    <a
+                      href={socials.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-neutral-300 transition-colors"
+                    >
+                      LinkedIn
+                    </a>
+                  )}
+                  {socials.telegram && (
+                    <a
+                      href={socials.telegram}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-[#2AABEE] transition-colors"
+                    >
+                      {t.telegramSupport || "Telegram support"}
+                    </a>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="inline-flex items-center gap-2">

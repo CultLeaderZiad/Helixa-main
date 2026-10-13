@@ -4,16 +4,17 @@ import { FrontBackground } from "@/components/layout/FrontBackground"
 import LastUpdated from "@/components/legal/LastUpdated"
 import Link from "next/link"
 import BackToTop from "@/components/ui/BackToTop"
+import { BRAND } from "@/lib/brand"
 
 export const metadata = {
-    title: "Cookie & Data Processing Policy | Helixa",
-    description: "The cookies Helixa uses and how your data is processed.",
+    title: `Cookie & Data Processing Policy | ${BRAND.name}`,
+    description: `The cookies ${BRAND.name} uses and how your data is processed.`,
 }
 
 const COOKIE_TABLE = [
     { name: "sb-* auth tokens", purpose: "Keeps you signed in to your dashboard (strictly necessary — the app cannot function without it).", duration: "Session / up to 30 days (refresh token)", consent: "Not required" },
-    { name: "helixa-lang", purpose: "Remembers whether you prefer the English or Arabic interface.", duration: "12 months", consent: "Not required" },
-    { name: "helixa-cookie-consent", purpose: "Stores your cookie-banner choice so we stop asking you.", duration: "12 months", consent: "Your choice" },
+    { name: "cyreax-language", purpose: "Remembers whether you prefer the English or Arabic interface.", duration: "12 months", consent: "Not required" },
+    { name: "cyreax-cookie-notice-dismissed", purpose: "Stores your cookie-banner choice so we stop asking you.", duration: "12 months", consent: "Your choice" },
 ]
 
 export default function CookiesPage() {
@@ -27,14 +28,14 @@ export default function CookiesPage() {
 
                 <div className="prose prose-invert max-w-none space-y-6 text-neutral-300 mt-10">
                     <p>
-                        This policy explains the cookies Helixa uses and how they relate to the data processing
+                        This policy explains the cookies {BRAND.name} uses and how they relate to the data processing
                         described in our <Link href="/privacy" className="text-[#e5a93c] hover:underline">Privacy Policy</Link>.
                     </p>
 
                     <section>
                         <h2 className="text-2xl font-bold text-white mb-4">1. Our Cookie Approach</h2>
                         <p>
-                            Helixa keeps cookies to the minimum required to run the Service. We do{" "}
+                            {BRAND.name} keeps cookies to the minimum required to run the Service. We do{" "}
                             <strong className="text-white">not</strong> use advertising cookies, cross-site trackers,
                             or third-party marketing pixels. The first time you visit, a small banner lets you accept
                             or reject the optional preference cookie — and either choice works: the site is fully
@@ -78,7 +79,7 @@ export default function CookiesPage() {
                             <li><strong className="text-white">Legal bases (GDPR &amp; Egypt/GCC PDPL):</strong> contract performance (running your automations and billing), legitimate interest (service security, abuse prevention), and compliance with legal accounting obligations.</li>
                             <li><strong className="text-white">Sub-processors:</strong> Supabase (hosting/database/auth), Stripe, Paymob, and Tap (payment processing), Vercel (hosting/analytics), Sentry (error diagnostics), IPQualityScore (OAuth fraud protection), Meta, TikTok, and Telegram (platform APIs), and AI providers (Groq by default, or your configured BYOK keys). Complete details in the <Link href="/privacy" className="text-[var(--gold,#D6AE5C)] hover:underline">Privacy Policy</Link>.</li>
                             <li><strong className="text-white">International transfers:</strong> our processors store and process data in secure cloud regions outside Egypt/GCC; they maintain contractual and technical safeguards for cross-border transfers.</li>
-                            <li><strong className="text-white">Your choices &amp; rights:</strong> you can clear or block cookies in your browser at any time. To exercise data subject rights (access, rectification, erasure), contact us at <a href="mailto:support@helixa.app" className="text-[var(--gold,#D6AE5C)] hover:underline">support@helixa.app</a>.</li>
+                            <li><strong className="text-white">Your choices &amp; rights:</strong> you can clear or block cookies in your browser at any time. To exercise data subject rights (access, rectification, erasure), contact us at {BRAND.emails.support ? <a href={`mailto:${BRAND.emails.support}`} className="text-[var(--gold,#D6AE5C)] hover:underline">{BRAND.emails.support}</a> : <span>support</span>}.</li>
                         </ul>
                     </section>
 

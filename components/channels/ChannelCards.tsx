@@ -18,6 +18,7 @@ import {
 import { Pill } from "@/components/ui/Pill"
 import { Button, HoldToConfirm } from "@/components/ui/button"
 import { ChannelBadge } from "@/components/ui/ChannelBadge"
+import { BRAND } from "@/lib/brand"
 import { CopyButton } from "@/components/ui/CopyButton"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
@@ -86,7 +87,7 @@ export function ChannelCards({
   const [widgetColor, setWidgetColor] = useState("#C9974C")
   const [widgetGreeting, setWidgetGreeting] = useState("Hello! How can we help you today?")
 
-  const scriptCode = `<script src="https://cdn.helixa.app/w.js" data-id="nour_8f2"></script>`
+  const scriptCode = `<script src="https://cdn.cyreax.com/w.js" data-id="nour_8f2"></script>`
 
   // Connect WhatsApp handler
   const handleSaveWhatsApp = async () => {
@@ -775,11 +776,11 @@ export function ChannelCards({
 
           <div className="space-y-2 py-2 text-xs text-[var(--t2)]">
             <p>
-              Helixa requests read and manage permissions for Facebook Page comments and Messenger conversations.
+              {BRAND.name} requests read and manage permissions for Facebook Page comments and Messenger conversations.
             </p>
             <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-3 text-[11px] text-[var(--t3)] space-y-1">
               <div>✓ Automatic webhook subscription for page comments</div>
-              <div>✓ Unified inbox routing to Helixa Live Inbox</div>
+              <div>✓ Unified inbox routing to {BRAND.name} Live Inbox</div>
               <div>✓ Multi-page support per client workspace</div>
             </div>
           </div>

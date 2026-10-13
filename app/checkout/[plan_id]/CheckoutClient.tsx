@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Loader2, ArrowRight, Clock, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import CopyButton from "@/components/ui/CopyButton"
-import { brand } from "@/lib/brand"
+import { brand, BRAND } from "@/lib/brand"
 
 export default function CheckoutClient({ plan, methods, user, cycle }: { plan: any, methods: any[], user: any, cycle?: string }) {
   const [selectedMethod, setSelectedMethod] = useState<string | null>(
@@ -155,7 +155,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
               type="text"
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
-              placeholder="e.g. John Doe"
+              placeholder="Your full name"
               className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-neutral-500 outline-none focus:border-[#e5a93c]/50"
               required
             />
@@ -203,25 +203,31 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
             <div className="mt-4 p-5 border border-white/10 rounded-xl bg-[#03010A] animate-in fade-in slide-in-from-top-2">
               <h4 className="text-[#e5a93c] font-bold mb-2">Contact Support</h4>
               <p className="text-sm text-neutral-400 mb-4">
-                We're here to help! Please reach out to our lead developer directly for any questions before you finalize your plan.
+                We're here to help! Please reach out to our team directly for any questions before you finalize your plan.
               </p>
               <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-3 text-neutral-300">
-                  <span className="text-neutral-500 w-20">Developer:</span>
-                  <span className="font-medium text-white">Ziad (CultLeaderZoz)</span>
-                </div>
-                <div className="flex items-center gap-3 text-neutral-300">
-                  <span className="text-neutral-500 w-20">Email:</span>
-                  <a href={`mailto:${brand.billingEmail}`} className="font-medium text-blue-400 hover:underline">
-                    {brand.billingEmail}
+                  <span className="text-neutral-500 w-20">Support:</span>
+                  <a href={`mailto:${brand.supportEmail}`} className="font-medium text-blue-400 hover:underline">
+                    {brand.supportEmail}
                   </a>
                 </div>
-                <div className="flex items-center gap-3 text-neutral-300">
-                  <span className="text-neutral-500 w-20">LinkedIn:</span>
-                  <a href="https://www.linkedin.com/in/ziadelzallat/" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-400 hover:underline">
-                    View Profile
-                  </a>
-                </div>
+                {brand.billingEmail && (
+                  <div className="flex items-center gap-3 text-neutral-300">
+                    <span className="text-neutral-500 w-20">Billing:</span>
+                    <a href={`mailto:${brand.billingEmail}`} className="font-medium text-blue-400 hover:underline">
+                      {brand.billingEmail}
+                    </a>
+                  </div>
+                )}
+                {BRAND.socials.telegram && (
+                  <div className="flex items-center gap-3 text-neutral-300">
+                    <span className="text-neutral-500 w-20">Telegram:</span>
+                    <a href={BRAND.socials.telegram} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-400 hover:underline">
+                      Contact on Telegram
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           )}

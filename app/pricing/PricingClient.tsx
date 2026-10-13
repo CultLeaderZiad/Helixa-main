@@ -274,7 +274,7 @@ export default function PricingClient({ plans }: { plans: any[] }) {
                   value={form.full_name}
                   onChange={e => setForm({...form, full_name: e.target.value})}
                   className="bg-white/5 border-white/10" 
-                  placeholder={isAr ? "الاسم الكامل" : "John Doe"} 
+                  placeholder={isAr ? "الاسم الكامل" : "Full Name"} 
                 />
               </div>
               <div className="space-y-2">

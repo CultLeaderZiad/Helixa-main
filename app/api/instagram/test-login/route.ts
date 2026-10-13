@@ -9,9 +9,9 @@ import { getSupabaseBypassClient } from "@/lib/supabase-server"
  */
 export async function POST(request: NextRequest) {
   try {
-    // Only allow in development
-    if (process.env.NODE_ENV === "production") {
-      return NextResponse.json({ error: "Not available in production" }, { status: 403 })
+    // Strictly disallow outside local development with explicit opt-in
+    if (process.env.NODE_ENV !== "development" || process.env.ENABLE_DEV_TEST_LOGIN !== "true") {
+      return NextResponse.json({ error: "Not available in this environment" }, { status: 403 })
     }
 
     const TEST_USER_ID = "9999999999"

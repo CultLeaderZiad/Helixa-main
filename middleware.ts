@@ -5,7 +5,10 @@ import { isPlatformHost, normalizeHost } from "@/lib/agency/tenant"
 export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers)
   const agencyId = await agencyForHost(request.headers.get("x-forwarded-host") || request.headers.get("host"))
-  if (agencyId) requestHeaders.set("x-helixa-agency", agencyId)
+  if (agencyId) {
+    requestHeaders.set("x-cyreax-agency", agencyId)
+    requestHeaders.set("x-helixa-agency", agencyId)
+  }
   let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } })
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -35,7 +38,10 @@ export async function middleware(request: NextRequest) {
   // do not remove it even though the return value isn't used directly.
   await supabase.auth.getUser()
 
-  if (agencyId) supabaseResponse.cookies.set("helixa_agency", agencyId, { path: "/", sameSite: "lax" })
+  if (agencyId) {
+    supabaseResponse.cookies.set("cyreax_agency", agencyId, { path: "/", sameSite: "lax" })
+    supabaseResponse.cookies.set("helixa_agency", agencyId, { path: "/", sameSite: "lax" })
+  }
   return supabaseResponse
 }
 

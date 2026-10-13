@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { unauthorizedCronResponse } from "@/lib/cron-auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { generateCompletion, isAgentEnabled } from "@/lib/llm-provider"
+import { BRAND } from "@/lib/brand"
 
 /**
  * GET /api/cron/weekly-coach-digest
@@ -114,7 +115,7 @@ export async function GET(request: NextRequest) {
             messages: [
               {
                 role: "system",
-                content: `You are Helixa's Weekly Coach. Write a short, encouraging performance digest for a creator based ONLY on their real numbers below.
+                content: `You are ${BRAND.name}'s Weekly Coach. Write a short, encouraging performance digest for a creator based ONLY on their real numbers below.
 Rules:
 - 120 words max, plain text with 3-4 bullet points.
 - Reference the actual numbers. Never invent metrics.

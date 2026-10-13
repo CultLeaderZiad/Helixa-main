@@ -3,6 +3,7 @@ import path from "path"
 import fontkit from "@pdf-lib/fontkit"
 import { PDFDocument, rgb } from "pdf-lib"
 import { lineIsRtl, shapeForPdf } from "@/lib/pdf/arabic"
+import { BRAND } from "@/lib/brand"
 
 export interface ReportKpis {
   conversations: number
@@ -59,7 +60,7 @@ function loadArabicFont(): Uint8Array {
 function reportLines(input: { appName: string; clientName: string; periodLabel: string; kpis: ReportKpis }, arabic: boolean): string[] {
   if (arabic) {
     return [
-      input.appName || "Helixa",
+      input.appName || BRAND.name,
       `العميل: ${input.clientName}`,
       input.periodLabel,
       `المحادثات: ${input.kpis.conversations}`,
@@ -71,7 +72,7 @@ function reportLines(input: { appName: string; clientName: string; periodLabel: 
     ]
   }
   return [
-    input.appName || "Helixa",
+    input.appName || BRAND.name,
     `Client: ${input.clientName}`,
     input.periodLabel,
     `Conversations: ${input.kpis.conversations}`,
@@ -96,7 +97,7 @@ export async function renderReportPdf(input: {
   const arabic = /[\u0600-\u06FF]/.test(`${input.appName} ${input.clientName} ${input.periodLabel}`)
   const pdf = await PDFDocument.create()
   pdf.registerFontkit(fontkit)
-  pdf.setTitle(`${input.appName || "Helixa"} report`)
+  pdf.setTitle(`${input.appName || BRAND.name} report`)
   const font = await pdf.embedFont(loadArabicFont(), { subset: true })
   const page = pdf.addPage([612, 792])
   const lines = reportLines(input, arabic)

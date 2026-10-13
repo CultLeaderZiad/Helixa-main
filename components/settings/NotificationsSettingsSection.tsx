@@ -27,7 +27,7 @@ export function NotificationsSettingsSection() {
           Notifications
         </h1>
         <p className="text-[12.5px] text-[var(--t2)]">
-          Manage how and when Helixa alerts you about messages, leads, and usage.
+          Manage how and when the platform alerts you about messages, leads, and usage.
         </p>
       </div>
 

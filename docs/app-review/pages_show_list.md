@@ -1,7 +1,7 @@
 # pages_show_list
 
 ## Use case
-List the Facebook Pages the logged-in person manages so they can pick which Page Helixa should connect. Helixa stores the chosen Page id. It does not change Page roles or create Pages.
+List the Facebook Pages the logged-in person manages so they can pick which Page Cyreax DM should connect. Cyreax DM stores the chosen Page id. It does not change Page roles or create Pages.
 
 ## Screencast
 1. Open Connected Platforms and start Facebook connect.

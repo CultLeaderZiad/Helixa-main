@@ -189,7 +189,7 @@ export async function resolveWorkspaceProfile(supabase: any, workspaceId: string
 }
 
 /**
- * One profile row per Helixa account. Reuses an existing row instead of
+ * One profile row per Cyreax DM account. Reuses an existing row instead of
  * inserting a second one when Instagram is not connected yet.
  */
 export async function ensureTenantProfile(

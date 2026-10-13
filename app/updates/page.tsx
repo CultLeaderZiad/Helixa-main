@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { Sparkles, Calendar, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { BRAND } from "@/lib/brand"
 
 export const dynamic = "force-dynamic"
 
@@ -48,7 +49,7 @@ export default async function UpdatesPage() {
               </span>
             </div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl text-white font-bold tracking-tight">
-              Helix Auto DM Updates
+              {BRAND.name} Updates
             </h1>
             <p className="text-neutral-400 text-sm sm:text-base mt-2">
               New features, platform upgrades, API performance enhancements, and bug fixes.

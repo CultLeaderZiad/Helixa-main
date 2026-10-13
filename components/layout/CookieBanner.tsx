@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { Cookie } from "lucide-react"
 
-const CONSENT_KEY = "helixa-cookie-notice-dismissed"
+const CONSENT_KEY = "cyreax-cookie-notice-dismissed"
 
 export function CookieBanner() {
   const pathname = usePathname()

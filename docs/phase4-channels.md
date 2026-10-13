@@ -139,7 +139,7 @@ fail connect.
 Each workspace copies:
 
 ```html
-<script src="{NEXT_PUBLIC_APP_URL}/widget.js" data-helixa-key="wk_..." async></script>
+<script src="{NEXT_PUBLIC_APP_URL}/widget.js" data-cyreax-key="wk_..." async></script>
 ```
 
 `data-dir="rtl"` forces RTL. Otherwise the bubble follows `dir` or an `ar`/`fa`/`he`/`ur` lang on the page, and a locale of `ar` from the widget settings.

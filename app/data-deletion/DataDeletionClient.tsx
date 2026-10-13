@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 import { FrontBackground } from "@/components/layout/FrontBackground"
+import { BRAND } from "@/lib/brand"
 
 export default function DataDeletionClient() {
   const params = useSearchParams()
@@ -43,16 +44,16 @@ export default function DataDeletionClient() {
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight">Data deletion</h1>
         <p>Last updated: September 30, 2026</p>
         <p>
-          Helixa stores the Instagram, Facebook, WhatsApp, and TikTok connection you authorize, plus the conversations and contacts that connection receives. You can disconnect a channel in the dashboard. Meta can also call our deletion callback when you remove Helixa from your Facebook settings.
+          {BRAND.name} stores the Instagram, Facebook, WhatsApp, and TikTok connection you authorize, plus the conversations and contacts that connection receives. You can disconnect a channel in the dashboard. Meta can also call our deletion callback when you remove {BRAND.name} from your Facebook settings.
         </p>
         <section className="space-y-2">
-          <h2 className="text-2xl font-bold text-white">Remove Helixa from Meta</h2>
+          <h2 className="text-2xl font-bold text-white">Remove {BRAND.name} from Meta</h2>
           <ol className="list-decimal pl-6 space-y-2">
             <li>Open Facebook Settings, then Apps and websites.</li>
-            <li>Select Helixa and choose Remove.</li>
+            <li>Select {BRAND.name} and choose Remove.</li>
             <li>Meta sends a signed request to <code className="text-white">/api/meta/data-deletion</code>.</li>
             <li>We revoke the stored tokens, delete conversations and contacts for that Meta user, and return a confirmation code.</li>
-            <li>Your Helixa login email stays so you can still open the account and export billing records.</li>
+            <li>Your {BRAND.name} login email stays so you can still open the account and export billing records.</li>
           </ol>
         </section>
         <section className="space-y-2">
@@ -69,7 +70,7 @@ export default function DataDeletionClient() {
           {status && <p className="text-sm text-white">Status: {status}</p>}
         </section>
         <p>
-          To delete a Helixa account that was never connected to Meta, email the address on your billing receipt and include the account email. We delete the workspace data after we confirm you own it.
+          To delete a {BRAND.name} account that was never connected to Meta, email the address on your billing receipt and include the account email. We delete the workspace data after we confirm you own it.
         </p>
       </div>
       <Footer />

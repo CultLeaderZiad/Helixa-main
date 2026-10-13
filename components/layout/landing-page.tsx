@@ -7,20 +7,16 @@ import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 import { FrontBackground } from "@/components/layout/FrontBackground"
 import {
-  MessageCircle, Sparkles, ArrowUpRight, Github, Star,
+  MessageCircle, Sparkles, ArrowUpRight,
   Send, AtSign, Brain, Inbox, Lock, Terminal,
-  Loader2, Linkedin, CheckCircle2, Zap, ShieldCheck
+  Loader2, CheckCircle2, Zap, ShieldCheck
 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import Link from "next/link"
-
-const TELEGRAM_URL = "https://t.me/cultleaderziad"
-const GITHUB_URL = "https://github.com/CultLeaderZiad"
-const LINKEDIN_URL = "https://www.linkedin.com/in/ziad-sabry-cl/"
+import { BRAND } from "@/lib/brand"
 
 export function LandingPage() {
-  const [stars, setStars] = useState<number | null>(null)
   const router = useRouter()
   const { t, language } = useLanguage()
   const isAr = language === "ar"
@@ -37,13 +33,6 @@ export function LandingPage() {
       })
       .catch(err => console.error("Failed to load updates", err))
       .finally(() => setIsLoadingUpdates(false))
-  }, [])
-
-  useEffect(() => {
-    fetch("https://api.github.com/repos/CultLeaderZiad/Helixa-main")
-      .then(r => r.json())
-      .then(d => { if (typeof d.stargazers_count === "number") setStars(d.stargazers_count) })
-      .catch(() => {})
   }, [])
 
   const handleSignup = () => {
@@ -97,9 +86,9 @@ export function LandingPage() {
           {/* Eyebrow Badge */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10 mb-6 font-mono-ui text-xs text-neutral-300 shadow-xl backdrop-blur-md">
             <span className="w-2 h-2 rounded-full bg-[#e5a93c] animate-pulse" />
-            <span className="font-semibold text-white">{t.heroBadge1 || "Helix Auto DM 2.0"}</span>
+            <span className="font-semibold text-white">{t.heroBadge1 || `${BRAND.name}`}</span>
             <span className="text-neutral-500">•</span>
-            <span>{t.heroBadge2 || "Built on the official Meta Graph API"}</span>
+            <span>{t.heroBadge2 || "Built on official provider APIs"}</span>
             <ArrowUpRight className="w-3.5 h-3.5 text-[#e5a93c]" />
           </div>
 
@@ -113,7 +102,7 @@ export function LandingPage() {
 
           {/* Subtitle */}
           <p className="text-neutral-300 text-base sm:text-lg md:text-xl leading-relaxed max-w-2xl mx-auto mt-6">
-            {t.heroSubtitleLong || "Social automation engine for Instagram and Facebook. Automatically reply to comments, deliver lead magnets, and route conversations through conversational funnels."}
+            {t.heroSubtitleLong || "DM automation engine for Instagram, Facebook, and messaging channels. Automatically reply to comments, deliver lead magnets, and route conversations through conversational funnels."}
           </p>
 
           {/* CTAs */}
@@ -133,20 +122,16 @@ export function LandingPage() {
               <span>{t.viewPricing || "View Pricing"}</span>
             </Link>
 
-            <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-2 font-mono-ui text-sm text-neutral-300 border border-white/10 bg-black/40 hover:border-white/30 px-6 py-4 rounded-full transition-colors"
-            >
-              <Star className="w-4 h-4 text-[#e5a93c]" />
-              <span>{t.star || "Star"}</span>
-              {typeof stars === "number" && (
-                <span className="px-1.5 py-0.5 rounded-full bg-white/10 text-[11px] font-bold text-white">
-                  {stars}
-                </span>
-              )}
-            </a>
+            {BRAND.socials.github && (
+              <a
+                href={BRAND.socials.github}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-2 font-mono-ui text-sm text-neutral-300 border border-white/10 bg-black/40 hover:border-white/30 px-6 py-4 rounded-full transition-colors"
+              >
+                <span>GitHub</span>
+              </a>
+            )}
           </div>
 
           {/* Trust points */}
@@ -157,7 +142,7 @@ export function LandingPage() {
             </span>
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-[#e5a93c]" />
-              {t.officialMetaApi || "Official Meta Graph API"}
+              {t.officialMetaApi || "Official Platform APIs"}
             </span>
             <span className="flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5 text-blue-400" />
@@ -165,7 +150,7 @@ export function LandingPage() {
             </span>
           </div>
 
-          {/* Interactive Automation Preview Card */}
+          {/* Interactive Automation Preview Card (Explicitly labeled as Example) */}
           <div id="how" className="mt-14 max-w-4xl mx-auto rounded-2xl border border-white/10 bg-gradient-to-b from-[#0e0e14]/90 to-[#06060a]/90 p-4 sm:p-6 shadow-2xl backdrop-blur-xl text-left relative overflow-hidden scroll-mt-24">
             <div className="flex items-center justify-between pb-4 border-b border-white/[0.08] mb-4">
               <div className="flex items-center gap-2">
@@ -173,6 +158,9 @@ export function LandingPage() {
                 <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
                 <span className="w-3 h-3 rounded-full bg-emerald-500/80" />
                 <span className="font-mono-ui text-xs text-neutral-500 ml-2">live-funnel-simulator.ts</span>
+                <span className="text-[10px] uppercase font-mono-ui px-2 py-0.5 rounded bg-white/10 text-neutral-300 border border-white/10">
+                  Example
+                </span>
               </div>
               <span className="inline-flex items-center gap-1.5 text-[11px] font-mono-ui text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Active Trigger
@@ -183,22 +171,22 @@ export function LandingPage() {
               {/* Step 1: User Comment */}
               <div className="space-y-3 bg-white/[0.02] border border-white/[0.06] rounded-xl p-4">
                 <span className="font-mono-ui text-[10px] uppercase tracking-wider text-neutral-500 block">
-                  {t.step1Title || "1. Public Instagram / Facebook Post"}
+                  {t.step1Title || "1. Public Post"}
                 </span>
                 <div className="bg-[#121218] border border-white/10 rounded-lg p-3 space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-white">@alex_creator</span>
+                    <span className="font-bold text-white">@creator_account</span>
                     <span className="text-[10px] font-mono-ui text-neutral-500">2m ago</span>
                   </div>
                   <p className="text-xs text-neutral-300">
-                    {t.creatorComment || 'Just dropped our 2026 Social Automation Blueprint! Comment PLAYBOOK and I’ll DM you the free file.'}
+                    {t.creatorComment || 'Comment PLAYBOOK to receive our complete automation workflow guide directly in your DMs.'}
                   </p>
                 </div>
 
                 {/* Inbound Comment */}
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 space-y-1">
                   <div className="flex items-center justify-between text-xs text-blue-400 font-semibold">
-                    <span>@sarah_marketer</span>
+                    <span>@example_lead</span>
                     <span className="text-[10px] font-mono-ui">{t.triggerMatched || "Trigger Matched"}</span>
                   </div>
                   <p className="text-xs text-white font-medium">{t.commentUser || '"PLAYBOOK please!"'}</p>
@@ -207,11 +195,11 @@ export function LandingPage() {
                 {/* Instant Public Reply */}
                 <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 text-xs space-y-1">
                   <div className="flex items-center justify-between text-emerald-400 font-semibold">
-                    <span>{t.publicReplyLabel || "Helix Auto DM (Public Reply)"}</span>
+                    <span>{BRAND.name} (Public Reply)</span>
                     <span className="text-[10px] font-mono-ui">⚡ 0.2s</span>
                   </div>
                   <p className="text-neutral-200">
-                    {t.publicReplyContent || '"Sent straight to your DMs, Sarah! Check your requests 🚀"'}
+                    {t.publicReplyContent || '"Sent to your DMs! Check your requests 🚀"'}
                   </p>
                 </div>
               </div>
@@ -226,23 +214,20 @@ export function LandingPage() {
                   <div className="bg-[#121218] border border-[#e5a93c]/30 rounded-xl p-4 space-y-3 shadow-lg">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-[#e5a93c] text-black flex items-center justify-center font-bold text-[10px]">
-                        H
+                        C
                       </div>
-                      <span className="text-xs font-bold text-white">Helix Auto DM</span>
+                      <span className="text-xs font-bold text-white">{BRAND.name}</span>
                       <span className="text-[9px] font-mono-ui text-[#e5a93c] border border-[#e5a93c]/30 px-1 rounded">{t.verifiedBot || "Automated"}</span>
                     </div>
 
                     <p className="text-xs text-neutral-200 leading-relaxed">
-                      {t.privateDmIntro || "Hey Sarah! Here is your download link for the 2026 Social Automation Blueprint:"}
+                      {t.privateDmIntro || "Here is your requested download link for the blueprint:"}
                     </p>
 
                     <div className="space-y-2 pt-1">
-                      <div className="w-full py-2 px-3 rounded-lg bg-[#e5a93c] hover:bg-[#d4952b] text-black font-bold text-xs text-center flex items-center justify-center gap-1.5 shadow-md">
-                        <span>{t.downloadBlueprint || "Download 2026 Blueprint (.PDF)"}</span>
+                      <div className="w-full py-2 px-3 rounded-lg bg-[#e5a93c] hover:bg-[#d4952b] text-black font-bold text-xs text-center flex items-center justify-center gap-1.5 shadow-md cursor-pointer">
+                        <span>{t.downloadBlueprint || "Download Resource (.PDF)"}</span>
                         <ArrowUpRight className="w-3.5 h-3.5" />
-                      </div>
-                      <div className="w-full py-1.5 px-3 rounded-lg bg-white/10 hover:bg-white/15 text-white font-medium text-xs text-center">
-                        {t.scheduleStrategyCall || "Schedule a Free Strategy Call"}
                       </div>
                     </div>
                   </div>
@@ -283,11 +268,11 @@ export function LandingPage() {
               {isAr ? "القدرات والميزات" : "Capabilities"}
             </span>
             <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
-              {t.featuresHeading || "Everything the paid tools do."}
+              {t.featuresHeading || "Everything modern teams need."}
             </h2>
           </div>
           <span className="font-mono-ui text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full w-fit">
-            {isAr ? "باقة الاستضافة الذاتية 0$/شهر" : "$0/mo self-hosted tier"}
+            {isAr ? "البداية مجاناً" : "Free trial available"}
           </span>
         </div>
 
@@ -310,12 +295,12 @@ export function LandingPage() {
           <Feature
             icon={<Brain className="w-5 h-5" />}
             title={isAr ? "محرك وكيل الذكاء الاصطناعي" : "AI Agent Engine"}
-            desc={isAr ? "زود الذكاء الاصطناعي بمعلومات حسابك ونبرة صوتك ومنتجاتك، ليفهم مشاعر الجمهور ويجيب كإنسان حقيقي." : "Feed it your real account context — niche, products, tone — and let AI classify sentiment and answer questions like a human."}
+            desc={isAr ? "زود الذكاء الاصطناعي بمعلومات حسابك ونبرة صوتك ومنتجاتك، ليفهم مشاعر الجمهور ويجيب كإنسان حقيقي." : "Feed it your real account context — niche, products, tone — and let AI classify sentiment and answer questions naturally."}
           />
           <Feature
             icon={<Inbox className="w-5 h-5" />}
             title={isAr ? "صندوق وارد حي موحد" : "Unified Live Inbox"}
-            desc={isAr ? "جميع المحادثات عبر انستغرام وفيسبوك في لوحة تحكم واحدة فائقة السرعة مع إمكانية التدخل اليدوي." : "Every conversation across Instagram and Facebook Messenger in one clean dashboard. Jump in manually anytime."}
+            desc={isAr ? "جميع المحادثات عبر القنوات المتصلة في لوحة تحكم واحدة فائقة السرعة مع إمكانية التدخل اليدوي." : "Every conversation across connected channels in one clean dashboard. Jump in manually anytime."}
           />
           <Feature
             icon={<Lock className="w-5 h-5" />}
@@ -324,20 +309,20 @@ export function LandingPage() {
           />
           <Feature
             icon={<Sparkles className="w-5 h-5" />}
-            title={isAr ? "إرسال يحاكي السلوك البشري" : "Human-Like Sending"}
-            desc={isAr ? "مؤشرات الكتابة وفترات التأخير العشوائية تضمن وصول ردودك بشكل طبيعي وموثوق، مما يحمي أمان حسابك." : "Typing indicators and randomized delay jitter ensure your replies land naturally, protecting account health."}
+            title={isAr ? "إرسال يحاكي السلوك الطبيعي" : "Natural Rate-Controlled Sending"}
+            desc={isAr ? "مؤشرات الكتابة وفترات التأخير تضمن وصول ردودك بشكل طبيعي وموثوق، مما يحمي أمان حسابك." : "Typing indicators and randomized delay jitter ensure replies land reliably, protecting account health."}
           />
           <Feature
             icon={<Terminal className="w-5 h-5" />}
-            title={isAr ? "مستضاف ذاتياً ومجاني البداية" : "Self-Hosted & Free-Tier"}
-            desc={isAr ? "مبني على Next.js و Supabase. انشر مجاناً، وامتلك كودك وبياناتك وتوكناتك بالكامل." : "Next.js + Supabase. Deploy on free tiers. Own every line of code, own your data, and own your API tokens."}
+            title={isAr ? "بنية سحابية آمنة" : "Secure Cloud Infrastructure"}
+            desc={isAr ? "مبني على Next.js وقواعد بيانات Supabase المعزولة لضمان أمان وسرية بيانات وحسابات المشتركين." : "Next.js + isolated Supabase tenant architecture to safeguard your credentials and conversations."}
           />
           <div className="bg-[#0c0c12] p-8 flex flex-col items-center justify-center text-center space-y-2 border-b border-r border-white/[0.05]">
             <span className="text-xs font-mono-ui text-[#e5a93c] font-bold uppercase tracking-wider">
-              ✦ {isAr ? "منصة هيليكسا أوتو دي إم" : "Helix Auto DM Platform"}
+              ✦ {isAr ? `منصة ${BRAND.name}` : `${BRAND.name} Platform`}
             </span>
             <p className="text-xs text-neutral-400 max-w-xs">
-              {isAr ? "صُممت لصناع المحتوى المحترفين ووكالات التسويق ومطوري التطبيقات." : "Built for high volume creators, marketing agencies, and software developers."}
+              {isAr ? "صُممت للشركات الحديثة وصناع المحتوى والوكالات الرقمية." : "Built for high volume creators, modern brands, and marketing agencies."}
             </p>
           </div>
         </div>
@@ -351,7 +336,7 @@ export function LandingPage() {
               {isAr ? "آخر التحديثات" : "Latest Updates"}
             </h2>
             <p className="text-neutral-400 text-sm mt-1">
-              {isAr ? "شاهد ما قمنا بتطويره وإطلاقه خلف الكواليس" : "See what we’ve been shipping behind the scenes"}
+              {isAr ? "سجل التحسينات والتحديثات المستمرة" : "Platform updates and product announcements"}
             </p>
           </div>
           <Link
@@ -383,47 +368,55 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════ OPEN SOURCE & COMMUNITY ═══════════════════════════════════════════ */}
-      <section className="px-5 md:px-10 py-16 max-w-4xl mx-auto">
-        <div className="bg-[#0b0b10] border border-white/10 rounded-2xl p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
-          <div>
-            <h3 className="text-2xl md:text-3xl font-bold text-white mb-2 tracking-tight">
-              {isAr ? "صُنعت للجميع ومفتوحة المصدر." : "Built in the open."}
-            </h3>
-            <p className="text-neutral-400 text-sm max-w-md leading-relaxed">
-              {isAr
-                ? "النجوم والدعم والمختبرون يحافظون على ازدهار المنصة. لأي استفسارات أو ملاحظات أو ميزات جديدة — مجتمع تيليجرام متاح دائماً."
-                : "Stars, sponsors, and testers keep this platform thriving. Questions, feedback, or feature requests — our Telegram community is open."}
-            </p>
+      {/* ═══════════════════════════════════════════ COMMUNITY / SOCIALS ═══════════════════════════════════════════ */}
+      {Object.keys(BRAND.socials).length > 0 && (
+        <section className="px-5 md:px-10 py-16 max-w-4xl mx-auto">
+          <div className="bg-[#0b0b10] border border-white/10 rounded-2xl p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
+            <div>
+              <h3 className="text-2xl md:text-3xl font-bold text-white mb-2 tracking-tight">
+                {isAr ? "تواصل مع مجتمعنا" : "Connect with Us"}
+              </h3>
+              <p className="text-neutral-400 text-sm max-w-md leading-relaxed">
+                {isAr
+                  ? "تابع آخر أخبار وتحديثات المنصة وشاركنا اقتراحاتك."
+                  : "Stay up to date with product updates, announcements, and support channels."}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              {BRAND.socials.telegram && (
+                <a
+                  href={BRAND.socials.telegram}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 bg-[#2AABEE] text-white font-mono-ui text-xs font-bold px-5 py-3 rounded-full hover:brightness-110 transition-all shadow-md"
+                >
+                  <Send className="w-3.5 h-3.5" /> Telegram
+                </a>
+              )}
+              {BRAND.socials.github && (
+                <a
+                  href={BRAND.socials.github}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 border border-white/15 text-neutral-200 font-mono-ui text-xs font-bold px-5 py-3 rounded-full hover:border-white/40 transition-colors"
+                >
+                  GitHub
+                </a>
+              )}
+              {BRAND.socials.linkedin && (
+                <a
+                  href={BRAND.socials.linkedin}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 border border-white/15 text-neutral-200 font-mono-ui text-xs font-bold px-5 py-3 rounded-full hover:border-white/40 transition-colors"
+                >
+                  LinkedIn
+                </a>
+              )}
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <a
-              href={TELEGRAM_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-2 bg-[#2AABEE] text-white font-mono-ui text-xs font-bold px-5 py-3 rounded-full hover:brightness-110 transition-all shadow-md"
-            >
-              <Send className="w-3.5 h-3.5" /> {isAr ? "انضم إلى تيليجرام" : "Join Telegram"}
-            </a>
-            <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-2 border border-white/15 text-neutral-200 font-mono-ui text-xs font-bold px-5 py-3 rounded-full hover:border-white/40 transition-colors"
-            >
-              <Star className="w-3.5 h-3.5 text-[#e5a93c]" /> {isAr ? "نجمة على GitHub" : "Star on GitHub"}
-            </a>
-            <a
-              href={LINKEDIN_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-2 border border-white/15 text-neutral-200 font-mono-ui text-xs font-bold px-5 py-3 rounded-full hover:border-white/40 transition-colors"
-            >
-              <Linkedin className="w-3.5 h-3.5 text-[#0A66C2]" /> LinkedIn
-            </a>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ═════════════════════════════════════════ FOOTER ═══════════════════════════════════════════ */}
       </main>

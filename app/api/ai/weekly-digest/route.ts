@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireSessionUser } from "@/lib/auth"
 import { generateCompletion, isAgentEnabled } from "@/lib/llm-provider"
+import { BRAND } from "@/lib/brand"
 
 /**
  * GET /api/ai/weekly-digest
@@ -66,7 +67,7 @@ export async function GET(request: NextRequest) {
         messages: [
           {
             role: "system",
-            content: `You are Helixa's Weekly Coach. Write a short performance digest (120 words max, 3-4 bullets) using ONLY the real numbers provided, and end with one recommended action.`,
+            content: `You are ${BRAND.name}'s Weekly Coach. Write a short performance digest (120 words max, 3-4 bullets) using ONLY the real numbers provided, and end with one recommended action.`,
           },
           {
             role: "user",

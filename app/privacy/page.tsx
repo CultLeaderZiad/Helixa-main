@@ -3,10 +3,11 @@ import { Footer } from "@/components/layout/Footer"
 import { FrontBackground } from "@/components/layout/FrontBackground"
 import LastUpdated from "@/components/legal/LastUpdated"
 import BackToTop from "@/components/ui/BackToTop"
+import { BRAND } from "@/lib/brand"
 
 export const metadata = {
-    title: "Privacy Policy | Helixa",
-    description: "How Helixa collects, uses, stores, and protects your data.",
+    title: `Privacy Policy | ${BRAND.name}`,
+    description: `How ${BRAND.name} collects, uses, stores, and protects your data.`,
 }
 
 export default function PrivacyPage() {
@@ -20,11 +21,13 @@ export default function PrivacyPage() {
 
                 <div className="prose prose-invert max-w-none space-y-6 text-neutral-300 mt-10">
                     <p>
-                        This Privacy Policy describes how Helixa is operated and handles information when you use
-                        helixa.app and the Helixa automation dashboard (the "Service"). Helixa is operated by Ziad Sabry,
-                        Cairo, Egypt ("we", "us", "our"). If you have questions, contact us via{" "}
-                        <a href="mailto:support@helixa.app" className="text-[var(--gold,#D6AE5C)] hover:underline">support@helixa.app</a> or
-                        via our Telegram support channel.
+                        This Privacy Policy describes how {BRAND.name} is operated and handles information when you use
+                        the Service. If you have questions, contact us via{" "}
+                        {BRAND.emails.support ? (
+                            <a href={`mailto:${BRAND.emails.support}`} className="text-[var(--gold,#D6AE5C)] hover:underline">{BRAND.emails.support}</a>
+                        ) : (
+                            <span>our support channel</span>
+                        )}.
                     </p>
 
                     <section>
@@ -34,27 +37,24 @@ export default function PrivacyPage() {
                             <li><strong className="text-white">Workspace data you type in:</strong> automation rules, flows, broadcasts, product catalog, and knowledge-base text.</li>
                             <li><strong className="text-white">Connected platform data:</strong> when you connect Instagram, Facebook, WhatsApp, or TikTok, we store the account or page identifiers and the access tokens those platforms issue. Tokens are encrypted at rest. We also store the automation rules you create and the message content those platforms send to our webhooks — including comments, direct messages, and story interactions — so they can appear in your inbox and trigger your automations.</li>
                             <li><strong className="text-white">Contacts:</strong> display name, handle, phone, or email when a person sends that information in a message.</li>
-                            <li><strong className="text-white">Telegram bot data:</strong> if you connect a Telegram bot, we store the bot token you provide and the messages your bot receives and sends through Helixa.</li>
-                            <li><strong className="text-white">AI keys (BYOK):</strong> if you connect your own AI provider keys ("Bring Your Own Key" — e.g. Gemini, OpenAI, Anthropic, OpenRouter), those API keys are stored so Helixa can make AI calls on your behalf. They are never displayed back in full in the dashboard.</li>
-                            <li><strong className="text-white">Payment information:</strong> card payments are processed by Stripe, Paymob, or Tap. We never store your full card details on our servers. Those providers share customer identifiers, subscription status, and receipts with us. For manual Vodafone Cash payments, we store the transaction reference number, the amount, your name and phone number, and any note you submit, so we can verify and approve your payment.</li>
+                            <li><strong className="text-white">Telegram bot data:</strong> if you connect a Telegram bot, we store the bot token you provide and the messages your bot receives and sends through {BRAND.short}.</li>
+                            <li><strong className="text-white">AI keys (BYOK):</strong> if you connect your own AI provider keys ("Bring Your Own Key" — e.g. Gemini, OpenAI, Anthropic, OpenRouter), those API keys are stored so {BRAND.short} can make AI calls on your behalf. They are never displayed back in full in the dashboard.</li>
+                            <li><strong className="text-white">Payment information:</strong> card payments are processed by Stripe, Paymob, or Tap. We never store your full card details on our servers. Those providers share customer identifiers, subscription status, and receipts with us. For manual local cash transfers, we store the transaction reference number, the amount, your name and phone number, and any note you submit, so we can verify and approve your payment.</li>
                             <li><strong className="text-white">Usage data:</strong> basic service telemetry (for example page performance metrics, webhook delivery ids, and error reports) needed to operate and improve the Service.</li>
                         </ul>
                     </section>
 
                     <section>
-                        <h2 className="text-2xl font-bold text-white mb-4">2. How We Use Your Information</h2>
+                        <h2 className="text-2xl font-bold text-white mb-4">2. How We Use Information</h2>
+                        <p>We use the collected information solely to:</p>
                         <ul className="list-disc pl-6 space-y-2 mt-2">
-                            <li>Provide, maintain, and improve the automation Service.</li>
-                            <li>Send the replies, comment responses, and broadcasts you configure, only according to the rules you set.</li>
-                            <li>Show your inbox, contacts, and reports inside the workspace.</li>
-                            <li>Call your configured AI provider (platform keys or your own BYOK keys) to generate replies when your rules request it. Message content sent to AI providers is limited to what is needed to generate the reply.</li>
-                            <li>Process transactions, verify manual payments, issue receipts, and manage your subscription. If you are an agency, create the client invoices you request.</li>
-                            <li>Detect failed tokens and ask you to reconnect.</li>
-                            <li>Send you service notices (payment confirmations, subscription changes, security alerts).</li>
+                            <li>Run your automation rules, post-trigger replies, story responses, and outbound DMs.</li>
+                            <li>Render your inbox conversations, contacts list, and performance analytics.</li>
+                            <li>Process your subscription and verify manual payment submissions.</li>
+                            <li>Send essential transactional notices (receipts, token-expiration warnings, security alerts).</li>
                         </ul>
-                        <p className="mt-4">
-                            We do not sell your personal information or contact lists, and we do not use your
-                            connected-platform message content to train a public model. We do not publish posts or videos.
+                        <p className="mt-3">
+                            We do not sell personal data, and we do not use your private customer conversations to train public or foundation AI models.
                         </p>
                     </section>
 
@@ -62,8 +62,8 @@ export default function PrivacyPage() {
                         <h2 className="text-2xl font-bold text-white mb-4">3. Meta, WhatsApp, and TikTok</h2>
                         <p>
                             Instagram, Facebook, WhatsApp, and TikTok are separate controllers for the data they hold.
-                            Helixa receives only what their APIs deliver after you grant the permissions listed in the
-                            app review. Disconnecting a channel, or removing Helixa in Facebook settings, stops new
+                            {BRAND.name} receives only what their APIs deliver after you grant the permissions listed in the
+                            app review. Disconnecting a channel, or removing the connection in platform settings, stops new
                             deliveries. The data-deletion instructions and confirmation page are at{" "}
                             <a href="/data-deletion" className="text-[#e5a93c] hover:underline">/data-deletion</a>.
                             Meta&apos;s signed deletion callback is{" "}
@@ -82,7 +82,7 @@ export default function PrivacyPage() {
                         <div className="mt-4 p-4 rounded-xl border border-white/10 bg-white/[0.02]">
                             <h3 className="text-sm font-semibold text-white mb-1">Customer-Facing Web Chat Widget (widget.js)</h3>
                             <p className="text-xs text-neutral-400 leading-relaxed">
-                                When agencies or creators embed Helixa&apos;s live chat widget on external websites, the widget transmits visitor chat prompts, temporary session tokens, and contact identifiers (email, phone, or name) voluntarily entered by the visitor. The widget contains no advertising trackers or third-party cookies. Operators can adapt this notice for their own client-facing privacy pages.
+                                When agencies or creators embed the live chat widget on external websites, the widget transmits visitor chat prompts, temporary session tokens, and contact identifiers voluntarily entered by the visitor. The widget contains no advertising trackers or third-party cookies. Operators can adapt this notice for their own client-facing privacy pages.
                             </p>
                         </div>
                     </section>
@@ -106,10 +106,10 @@ export default function PrivacyPage() {
                     <section>
                         <h2 className="text-2xl font-bold text-white mb-4">6. Regional Data Protection Laws (Egypt &amp; GCC)</h2>
                         <p>
-                            Helixa recognizes and adheres to applicable regional data protection frameworks:
+                            {BRAND.name} recognizes and adheres to applicable regional data protection frameworks:
                         </p>
                         <ul className="list-disc pl-6 space-y-2 mt-2">
-                            <li><strong className="text-white">Egypt (Law No. 151 of 2020):</strong> We process personal data in accordance with the Egyptian Personal Data Protection Law. For agencies utilizing Helixa to manage client messages, Helixa acts as a <strong className="text-white">Data Processor</strong>, while the agency acts as the <strong className="text-white">Data Controller</strong>.</li>
+                            <li><strong className="text-white">Egypt (Law No. 151 of 2020):</strong> We process personal data in accordance with the Egyptian Personal Data Protection Law. For agencies utilizing {BRAND.name} to manage client messages, {BRAND.name} acts as a <strong className="text-white">Data Processor</strong>, while the agency acts as the <strong className="text-white">Data Controller</strong>.</li>
                             <li><strong className="text-white">Saudi Arabia (PDPL):</strong> Compliance with the Saudi Personal Data Protection Law (Royal Decree M/19). Operators may access, rectify, or request deletion of personal records.</li>
                             <li><strong className="text-white">United Arab Emirates (Federal Decree-Law No. 45 of 2021):</strong> Adherence to the UAE PDPL principles regarding lawful processing, confidentiality, and cross-border transfers.</li>
                             <li><strong className="text-white">Cross-Border Data Hosting:</strong> Primary data stores are hosted in secure EU/US regions by Supabase and Vercel. By using the Service, operators acknowledge and consent to international data transfer subject to standard security safeguards.</li>
@@ -140,7 +140,11 @@ export default function PrivacyPage() {
                         <p>
                             You have the right to access, rectify, export, or erase your personal data under GDPR and Egypt/GCC PDPL.
                             To exercise these rights, submit your request to{" "}
-                            <a href="mailto:support@helixa.app" className="text-[var(--gold,#D6AE5C)] hover:underline">support@helixa.app</a>.
+                            {BRAND.emails.support ? (
+                                <a href={`mailto:${BRAND.emails.support}`} className="text-[var(--gold,#D6AE5C)] hover:underline">{BRAND.emails.support}</a>
+                            ) : (
+                                <span>our support team</span>
+                            )}.
                         </p>
                     </section>
 

@@ -26,10 +26,10 @@ import {
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import useSWR from "swr"
-import { HelixaLogo } from "@/components/ui/HelixaLogo"
+import { BrandLogo } from "@/components/ui/BrandLogo"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import { WorkspaceSwitcher } from "@/components/layout/WorkspaceSwitcher"
-import { BRAND_CONFIG } from "@/lib/brand"
+import { BRAND } from "@/lib/brand"
 
 interface SidebarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "role"> {
   username?: string
@@ -38,6 +38,7 @@ interface SidebarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "role"
   userRole?: string | null
   plan?: string | null
   className?: string
+  collapsed?: boolean
   onLogout?: () => void
   onNavigate?: () => void
 }
@@ -49,6 +50,7 @@ export function Sidebar({
   email,
   userRole,
   plan,
+  collapsed = false,
   onLogout,
   onNavigate,
   ...props
@@ -124,7 +126,7 @@ export function Sidebar({
     >
       {/* Brand Header */}
       <div className="px-4 pt-4 pb-3 flex items-center justify-between">
-        <HelixaLogo size="sm" href="/dashboard" />
+        <BrandLogo variant={collapsed ? "mark" : "wordmark"} size="sm" href="/dashboard" />
         {plan && (
           <span className="text-[10.5px] font-medium px-1.5 py-0.5 rounded-[4px] bg-[var(--s2)] border border-[var(--line2)] text-[var(--t2)] capitalize">
             {plan.toLowerCase()}
@@ -329,14 +331,16 @@ export function Sidebar({
           {/* User Popover Menu */}
           {userMenuOpen && (
             <div className="absolute start-0 end-0 bottom-full mb-1.5 z-50 rounded-[8px] bg-[var(--s1)] border border-[var(--line2)] shadow-2xl p-1 space-y-0.5">
-              <a
-                href={`mailto:${BRAND_CONFIG.supportEmail}`}
-                className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-[4px] text-[12px] text-[var(--t2)] hover:text-[var(--t1)] hover:bg-[var(--s2)] transition-colors"
-                onClick={() => setUserMenuOpen(false)}
-              >
-                <HelpCircle className="size-3.5 text-[var(--t3)]" />
-                <span>Help & support</span>
-              </a>
+              {BRAND.emails.support && (
+                <a
+                  href={`mailto:${BRAND.emails.support}`}
+                  className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-[4px] text-[12px] text-[var(--t2)] hover:text-[var(--t1)] hover:bg-[var(--s2)] transition-colors"
+                  onClick={() => setUserMenuOpen(false)}
+                >
+                  <HelpCircle className="size-3.5 text-[var(--t3)]" />
+                  <span>Help & support</span>
+                </a>
+              )}
 
               <button
                 type="button"

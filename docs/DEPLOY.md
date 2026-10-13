@@ -1,6 +1,6 @@
-# Deploy Helixa from zero
+# Deploy Cyreax DM from zero
 
-Helixa is a Next.js app on Vercel with a Supabase Postgres database. Nothing in this repository applies SQL for you. Run the files below in the Supabase SQL editor, in order, against a backup.
+Cyreax DM is a Next.js app on Vercel with a Supabase Postgres database. Nothing in this repository applies SQL for you. Run the files below in the Supabase SQL editor, in order, against a backup.
 
 This PR sits on top of the unmerged stack:
 
@@ -73,7 +73,7 @@ AI providers, all optional except Groq for the default agent:
 
 `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, plus optional model overrides `GROQ_MODEL`, `GEMINI_MODEL`, `ANTHROPIC_MODEL`, `OPENROUTER_MODEL`, `OPENAI_MODEL`. `OPENAI_API_KEY` also switches knowledge-base embeddings to `text-embedding-3-small`. Re-save the knowledge base if you add or remove it.
 
-Helixa's own subscription:
+Cyreax DM's own subscription:
 
 | Variable | Used for |
 | --- | --- |
@@ -163,7 +163,7 @@ In the Meta app, set:
 - Data deletion callback: `{APP_URL}/api/meta/data-deletion`
 - Deauthorize callback: `{APP_URL}/api/meta/deauthorize`
 
-The callback verifies `signed_request` with HMAC-SHA256 and the app secret. A valid deletion request returns `{ url, confirmation_code }`. The URL is `{APP_URL}/data-deletion?code=hx_…`. Deauthorize clears tokens to `revoked_meta` and sets `reconnect_required`. Deletion also deletes that connection's contacts and conversations. The Helixa login stays.
+The callback verifies `signed_request` with HMAC-SHA256 and the app secret. A valid deletion request returns `{ url, confirmation_code }`. The URL is `{APP_URL}/data-deletion?code=hx_…`. Deauthorize clears tokens to `revoked_meta` and sets `reconnect_required`. Deletion also deletes that connection's contacts and conversations. The Cyreax DM login stays.
 
 Requested permissions and the screencast script for each one are in `docs/app-review/`.
 
@@ -193,7 +193,7 @@ An upgrade does not change the plan until the provider reports a successful paym
 
 - `GET /api/health` returns 200 with `status: "degraded"` when Supabase env is missing, and 503 when the Supabase auth health check fails.
 - Set `SENTRY_DSN` to POST envelopes. Unset, errors are only logged.
-- `pnpm seed` loads a demo workspace named Helixa Demo Clinic, an agency named Noir Agency, two contacts, and a client price of 4900 minor units SAR per month on Tap. It refuses to run without `SEED_ACCOUNT_EMAIL`. Do not run it in CI.
+- `pnpm seed` loads a demo workspace named Cyreax DM Demo Clinic, an agency named Noir Agency, two contacts, and a client price of 4900 minor units SAR per month on Tap. It refuses to run without `SEED_ACCOUNT_EMAIL`. Do not run it in CI.
 
 ## 9. Arabic reports
 

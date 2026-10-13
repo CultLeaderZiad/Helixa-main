@@ -1,4 +1,4 @@
-# Helixa Design System (dark, restrained gold): DESIGN.md
+# Cyreax DM Design System (dark, restrained gold): DESIGN.md
 
 Purpose: A single canonical reference for humans and coding agents (Cursor, Freebuff, Antigravity). Every screen must adhere to this file and the CSS tokens in `app/globals.css`.
 
@@ -7,7 +7,7 @@ Purpose: A single canonical reference for humans and coding agents (Cursor, Free
 ## 1. Principles
 
 1. **Operator first.** Dense, scannable, and keyboard-friendly. Show real data; show an empty state only when there is truly nothing.
-2. **Gold means Helixa intelligence or "you are here".** Use it strictly for the AI mark, the active nav rail, the selected row, the current plan badge, and the brand mark. Never use it for every CTA.
+2. **Gold means Cyreax DM intelligence or "you are here".** Use it strictly for the AI mark, the active nav rail, the selected row, the current plan badge, and the brand mark. Never use it for every CTA.
 3. **Client context is always visible.** Agency › Client workspace › page hierarchy.
 4. **Arabic is a first-class language, not a translation.** Native RTL message bubbles, Arabic font stack (`Noto Sans Arabic` / `IBM Plex Sans Arabic`), `<bdi>` isolation for mixed text (prices, SKUs, numbers), and dialect labels (`EGY`, `SAU`, `LEV`, `MSA`).
 5. **Calm copy (Principles §6).** Calm, specific, no hype, zero exclamation marks, and specific nouns.
@@ -44,7 +44,7 @@ Purpose: A single canonical reference for humans and coding agents (Cursor, Free
 Instagram (gradient), Facebook (`#1877F2`), WhatsApp (`#25D366`), TikTok (`#000000`), Telegram (`#27A7E7`) appear **strictly** inside the 18px / 32px channel badge. Never use channel colors as button fills or background sweeps.
 
 ### Logo
-The Helixa helix mark renders in flat `--gold` (`#D6AE5C`) with no purple gradient or neon glow inside the product. Keep glow effects for public marketing landers only.
+The Cyreax logo renders in flat placement in app chrome: no extra glow, drop-shadow, gradient, or animation on top of the asset. The wordmark reads "CYREAX". Render "DM" as plain text next to it (`BRAND.name` = "Cyreax DM").
 
 ---
 

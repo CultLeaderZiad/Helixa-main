@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { workspaceSession, isMissingTable } from "@/lib/flows/session"
 import { settingsFromRow } from "@/lib/ai-agent/service"
 import { DEFAULT_AGENT_SETTINGS } from "@/lib/ai-agent/guardrails"
+import { BRAND } from "@/lib/brand"
 
 export async function GET(request: NextRequest) {
   const session = await workspaceSession(request)
@@ -25,7 +26,7 @@ export async function PUT(request: NextRequest) {
     user_id: session.userId,
     workspace_id: session.workspaceId,
     enabled: body.enabled !== false,
-    persona_name: String(body.personaName || "Helixa").slice(0, 80),
+    persona_name: String(body.personaName || BRAND.name).slice(0, 80),
     persona: String(body.persona || "").slice(0, 2000),
     tone,
     handoff_below: Math.min(0.95, Math.max(0.05, Number(body.handoffBelow ?? 0.45))),

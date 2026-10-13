@@ -50,7 +50,7 @@ async function seed() {
     const { data: newAccount, error: accErr } = await supabase
       .from("accounts")
       .insert({
-        email: "demo@helixa.app",
+        email: "demo@cyreax.com",
         full_name: "Demo Account",
         role: "admin",
         plan: "monthly",
@@ -65,7 +65,7 @@ async function seed() {
       .from("users")
       .insert({
         id: 10001,
-        username: "helixa_demo",
+        username: "cyreax_demo",
         account_id: newAccount?.id,
         business_account_id: "fb_page_demo_101",
         page_id: "fb_page_demo_101",
@@ -91,7 +91,7 @@ async function seed() {
       page_id: "fb_page_demo_101",
       external_account_id: "fb_page_demo_101",
       access_token: "mock_fb_page_token",
-      metadata: { name: "Helixa Demo Facebook Page", category: "Software" },
+      metadata: { name: "Cyreax Demo Facebook Page", category: "Software" },
     },
     {
       user_id: userId,
@@ -99,7 +99,7 @@ async function seed() {
       page_id: "fb_page_demo_101",
       external_account_id: "fb_page_demo_101",
       access_token: "mock_fb_page_token",
-      metadata: { name: "Helixa Messenger Bot", category: "Support" },
+      metadata: { name: "Cyreax Messenger Bot", category: "Support" },
     },
     {
       user_id: userId,
@@ -107,7 +107,7 @@ async function seed() {
       page_id: "123456789",
       external_account_id: "123456789",
       access_token: "mock_telegram_bot_token",
-      metadata: { username: "helixa_demo_bot", title: "Helixa Telegram Assistant" },
+      metadata: { username: "cyreax_demo_bot", title: "Cyreax Telegram Assistant" },
     },
   ]
 
@@ -139,7 +139,7 @@ async function seed() {
       trigger_value: "vip,link,access,promo",
       is_active: true,
       response_content: {
-        message: "Hey there! Thanks for your comment. Here is your exclusive VIP access link: https://helixa.app/vip 🔥",
+        message: "Hey there! Thanks for your comment. Here is your exclusive VIP access link: https://cyreax.com/vip 🔥",
         reply_mode: "both",
         public_replies: ["Check your DMs! 📥", "Sent you the VIP link! ✨", "Check inbox! 🔥"],
         delay_seconds: 1,
@@ -157,10 +157,10 @@ async function seed() {
       response_content: {
         message: "Here are our current pricing tiers:",
         card: {
-          title: "Helixa Pro Suite",
+          title: "Cyreax Pro Suite",
           subtitle: "Automate DMs, Comments, and Leads on Autopilot for $9.99/mo",
           buttons: [
-            { type: "web_url", title: "View Plans", url: "https://helixa.app/pricing" },
+            { type: "web_url", title: "View Plans", url: "https://cyreax.com/pricing" },
             { type: "postback", title: "Start Free Trial", payload: "START_TRIAL" },
           ],
         },
@@ -194,7 +194,7 @@ async function seed() {
       trigger_value: "start,hello,hi,hey",
       is_active: true,
       response_content: {
-        message: "Welcome to Helixa Support! How can we assist you today?",
+        message: "Welcome to Cyreax DM Support! How can we assist you today?",
         quick_replies: [
           { title: "Pricing & Plans", payload: "QR_PRICING" },
           { title: "Features", payload: "QR_FEATURES" },
@@ -214,12 +214,12 @@ async function seed() {
       trigger_value: "/start,start,menu",
       is_active: true,
       response_content: {
-        message: "🚀 Welcome to Helixa Telegram Assistant!\n\nSelect an option below to get started immediately:",
+        message: "🚀 Welcome to Cyreax Telegram Assistant!\n\nSelect an option below to get started immediately:",
         card: {
-          title: "Helixa AI Automation",
+          title: "Cyreax DM Automation",
           subtitle: "Connect your social channels & convert leads 24/7",
           buttons: [
-            { type: "web_url", title: "Visit Dashboard", url: "https://helixa.app/dashboard" },
+            { type: "web_url", title: "Visit Dashboard", url: "https://cyreax.com/dashboard" },
             { type: "postback", title: "Support Docs", payload: "DOCS" },
           ],
         },
@@ -236,7 +236,7 @@ async function seed() {
       trigger_value: "download,pdf,cheat sheet,resource",
       is_active: true,
       response_content: {
-        message: "Here is the free 2026 Growth Playbook PDF: https://helixa.app/downloads/growth-playbook.pdf 📈",
+        message: "Here is the free 2026 Growth Playbook PDF: https://cyreax.com/downloads/growth-playbook.pdf 📈",
         delay_seconds: 1,
         typing_indicator: true,
       },
@@ -320,7 +320,7 @@ async function seed() {
   const sampleCampaigns = [
     {
       name: "August Feature Drop & Roadmap",
-      subject: "Exciting new AI Automations inside Helixa",
+      subject: "Exciting new AI Automations inside Cyreax DM",
       preview_text: "Discover multi-platform automation on Facebook & Telegram",
       template: "minimal",
       status: "completed",
@@ -330,7 +330,7 @@ async function seed() {
       subheading: "Connect Facebook Pages and Telegram Bots in seconds.",
       body_text: "We're excited to roll out complete automation support for Facebook and Telegram alongside Instagram. Now you can capture leads, reply to comments, and guide customers across every channel.",
       cta_text: "Explore New Features",
-      cta_url: "https://helixa.app/dashboard",
+      cta_url: "https://cyreax.com/dashboard",
       sent_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     },
     {
@@ -342,10 +342,10 @@ async function seed() {
       audience_filter: "trial",
       recipient_count: 0,
       heading: "Supercharge Your Social Growth",
-      subheading: "Upgrade to Helixa Pro today.",
+      subheading: "Upgrade to Cyreax Pro today.",
       body_text: "Your free trial gives you a taste of autopilot engagement. Upgrade now to unlock unlimited keyword triggers, A/B testing variants, and full analytics.",
       cta_text: "Claim 20% Discount",
-      cta_url: "https://helixa.app/pricing",
+      cta_url: "https://cyreax.com/pricing",
     },
   ]
 

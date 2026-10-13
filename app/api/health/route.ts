@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic"
 
 import { NextResponse } from "next/server"
 import { captureException } from "@/lib/monitoring"
+import { BRAND } from "@/lib/brand"
 
 export async function GET() {
   const time = new Date().toISOString()
@@ -10,7 +11,7 @@ export async function GET() {
   if (!supabaseUrl || !serviceKey) {
     return NextResponse.json({
       ok: true,
-      service: "helixa",
+      service: BRAND.slug,
       status: "degraded",
       time,
       checks: { supabase: "unconfigured" },
@@ -23,13 +24,13 @@ export async function GET() {
     })
     const supabase = response.ok ? "ok" : "down"
     return NextResponse.json(
-      { ok: response.ok, service: "helixa", status: response.ok ? "ok" : "degraded", time, checks: { supabase } },
+      { ok: response.ok, service: BRAND.slug, status: response.ok ? "ok" : "degraded", time, checks: { supabase } },
       { status: response.ok ? 200 : 503 },
     )
   } catch (error) {
     await captureException(error, { route: "health" })
     return NextResponse.json(
-      { ok: false, service: "helixa", status: "degraded", time, checks: { supabase: "down" } },
+      { ok: false, service: BRAND.slug, status: "degraded", time, checks: { supabase: "down" } },
       { status: 503 },
     )
   }

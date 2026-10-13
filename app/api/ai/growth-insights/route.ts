@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireSessionUser } from "@/lib/auth"
 import { generateGroqCompletion } from "@/lib/groq-client"
+import { BRAND } from "@/lib/brand"
 
 export async function GET(request: NextRequest) {
   try {
@@ -114,7 +115,7 @@ ACCOUNT REAL PERFORMANCE DATA (NO EXTERNAL/FABRICATED DATA):
     const messages: any[] = [
       {
         role: "system",
-        content: `You are Helixa's Growth Intelligence Advisor.
+        content: `You are ${BRAND.name}'s Growth Intelligence Advisor.
 You reason exclusively over the account's OWN REAL DATA provided below.
 CRITICAL RULES:
 1. Do NOT hallucinate or reference external trend research from Reddit, LinkedIn, X, or other platforms. That is strictly forbidden.

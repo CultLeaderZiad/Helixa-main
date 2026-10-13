@@ -14,7 +14,7 @@ export interface AgentSettings {
 
 export const DEFAULT_AGENT_SETTINGS: AgentSettings = {
   enabled: true,
-  personaName: "Helixa",
+  personaName: "Cyreax",
   persona: "You help customers of this business.",
   tone: "friendly",
   handoffBelow: 0.45,

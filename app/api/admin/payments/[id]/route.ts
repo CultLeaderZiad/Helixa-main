@@ -10,6 +10,7 @@ import { requireAdmin } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { activatePlan } from "@/lib/billing/activation"
 import { sendManualPaymentApproved, sendManualPaymentRejected, getEmailForUserId } from "@/lib/receipt-emails"
+import { BRAND } from "@/lib/brand"
 
 export async function PATCH(
   request: NextRequest,
@@ -119,7 +120,7 @@ export async function PATCH(
     try {
       const toEmail = await getEmailForUserId(payment.user_id)
       if (toEmail) {
-        let planName = "Helixa Plan"
+        let planName = `${BRAND.name} Plan`
         if (payment.plan_id) {
           const { data: planRow } = await supabase
             .from("plans")

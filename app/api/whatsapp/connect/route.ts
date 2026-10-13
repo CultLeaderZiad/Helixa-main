@@ -156,7 +156,6 @@ async function upsertNumber(
   const { data: existing } = await supabase
     .from("platform_connections")
     .select("id")
-    .eq("user_id", input.userId)
     .eq("platform", "whatsapp")
     .eq("page_id", input.number.phoneNumberId)
     .maybeSingle()

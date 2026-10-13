@@ -1,5 +1,6 @@
 import { getSupabaseBypassClient } from "./supabase-server";
 import nodemailer from "nodemailer";
+import { BRAND } from "./brand";
 
 export interface SendEmailOptions {
   to: string;
@@ -43,7 +44,7 @@ export async function sendEmail({
       return { success: false, error: "Incomplete SMTP configuration." };
     }
 
-    const finalFromName = fromName || defaultFromName || "Helixa";
+    const finalFromName = fromName || defaultFromName || BRAND.name;
     const finalFromEmail = fromEmail || defaultFromEmail || user;
     const finalReplyTo = replyTo || finalFromEmail;
 
@@ -67,7 +68,7 @@ export async function sendEmail({
         "List-Unsubscribe": `<mailto:${finalFromEmail}?subject=unsubscribe>`,
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
         "Precedence": "bulk",
-        "X-Mailer": "Helixa-Mailer/1.0",
+        "X-Mailer": `${BRAND.slug}-mailer/1.0`,
       },
     });
 

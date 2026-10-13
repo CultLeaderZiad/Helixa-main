@@ -1,4 +1,4 @@
-# ⚡ Helixa v2.0 — Release Notes
+# ⚡ Cyreax DM v2.0 — Release Notes
 
 ## v2.0 — Current
 
@@ -28,4 +28,4 @@ This project started as a fork of the open-source **InstaAuto** project ([ayuuxh
 
 ---
 
-Helixa is built on the original InstaAuto v1.0.0 base (setup tutorial heritage acknowledged). See [LICENSE](LICENSE) for the MIT license notice of the original project.
+Cyreax DM is built on the original InstaAuto v1.0.0 base (setup tutorial heritage acknowledged). See [LICENSE](LICENSE) for the MIT license notice of the original project.

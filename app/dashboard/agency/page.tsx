@@ -3,6 +3,7 @@
 import { useState } from "react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
+import { BRAND } from "@/lib/brand"
 
 export default function AgencyPage() {
   const agency = useSWR("/api/agency", fetcher)
@@ -121,7 +122,7 @@ export default function AgencyPage() {
           <input className={field} value={accent} onChange={(event) => setAccent(event.target.value)} />
         </div>
         <input className={field} placeholder="clients.example.com" value={domain} onChange={(event) => setDomain(event.target.value)} />
-        <p className="text-xs text-neutral-500">Add the domain in Vercel, then point DNS at it. Helixa matches the Host header to this agency. Steps are in docs/phase6-differentiators.md.</p>
+        <p className="text-xs text-neutral-500">Add the domain in Vercel, then point DNS at it. {BRAND.name} matches the Host header to this agency. Steps are in docs/phase6-differentiators.md.</p>
         <button type="button" className={button} onClick={save}>Save branding</button>
         <a href="/portal" className="block text-sm text-neutral-300 underline">Open the client portal</a>
       </section>

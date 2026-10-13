@@ -47,7 +47,7 @@ export async function getSessionUser(request?: NextRequest) {
         email: user.email,
       })
       // Self-healing fallback: Create the account row manually if the DB trigger failed
-      const fallbackEmail = user.email || `no-email-${user.id}@helixa.app`
+      const fallbackEmail = user.email || `no-email-${user.id}@invalid`
       const { data: newAccount, error: insertError } = await adminSupabase.from('accounts').insert({
         id: user.id,
         email: fallbackEmail,
@@ -109,19 +109,19 @@ export interface WorkspaceSession {
 
 function requestedWorkspaceId(request?: NextRequest): string | null {
   if (!request) return null
-  const header = request.headers.get("x-helixa-workspace")?.trim()
+  const header = request.headers.get("x-cyreax-workspace")?.trim() || request.headers.get("x-helixa-workspace")?.trim()
   if (header) return header
   return null
 }
 
 function cookieWorkspaceId(request?: NextRequest): string | null {
-  return request?.cookies.get(WORKSPACE_COOKIE)?.value?.trim() || null
+  return request?.cookies.get(WORKSPACE_COOKIE)?.value?.trim() || request?.cookies.get("helixa_workspace")?.value?.trim() || null
 }
 
 /**
  * Resolves the signed-in account and the workspace they are acting in.
  *
- * Order: `x-helixa-workspace` header, then the `helixa_workspace` cookie,
+ * Order: `x-cyreax-workspace` header, then the `cyreax_workspace` cookie,
  * then `accounts.active_workspace_id`, then a workspace they own. An owned
  * workspace is preferred over an invited one, so a person in more than one
  * agency is not pinned to the oldest seat. A header that names a workspace

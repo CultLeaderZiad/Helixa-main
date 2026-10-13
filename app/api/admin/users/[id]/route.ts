@@ -2,11 +2,13 @@ export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { activatePlan, startTrialPlan, deactivatePlan } from "@/lib/billing/activation"
 
 /**
  * PATCH /api/admin/users/[id]
  * Admin-only: updates role, plan, is_flagged, flagged_reason for an account.
- * Mirrors plan changes to users + subscriptions; logs to admin_audit_log (int64).
+ * Entitlement changes route through billing_accounts and mirror to users + subscriptions.
+ * Logs to admin_audit_log (int64).
  */
 export async function PATCH(
   request: NextRequest,
@@ -48,6 +50,22 @@ export async function PATCH(
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
+    // Prevent self-demotion and demoting the last remaining admin
+    if (updates.role !== undefined) {
+      if (adminAccount.id === targetAccountId && updates.role !== targetAccount.role) {
+        return NextResponse.json({ error: "Admins cannot modify their own role" }, { status: 400 })
+      }
+      if (targetAccount.role === "admin" && updates.role !== "admin") {
+        const { count } = await supabase
+          .from("accounts")
+          .select("id", { count: "exact", head: true })
+          .eq("role", "admin")
+        if ((count ?? 0) <= 1) {
+          return NextResponse.json({ error: "Cannot demote the last remaining admin" }, { status: 400 })
+        }
+      }
+    }
+
     // Apply the update to accounts (source of truth)
     const { error: updateError } = await supabase
       .from("accounts")
@@ -64,6 +82,35 @@ export async function PATCH(
       .eq("account_id", targetAccountId)
       .maybeSingle()
     targetUserId = targetUser?.id ?? null
+
+    // Synchronize entitlement via shared billing module (billing_accounts source of truth)
+    if (updates.plan !== undefined) {
+      try {
+        if (updates.plan === "expired" || updates.plan === "canceled") {
+          await deactivatePlan({ accountId: targetAccountId, source: "admin" }, supabase)
+        } else if (updates.plan === "trial") {
+          await startTrialPlan({
+            accountId: targetAccountId,
+            planId: "creator",
+            trialEndsAt: updates.trial_ends_at || targetAccount.trial_ends_at || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+          }, supabase)
+        } else {
+          await activatePlan({
+            accountId: targetAccountId,
+            planId: updates.plan,
+            interval: "month",
+            source: "admin"
+          }, supabase)
+        }
+      } catch (billingErr: any) {
+        console.warn("[admin/users/[id]] billing_accounts sync failed:", billingErr?.message)
+      }
+    } else if (updates.trial_ends_at !== undefined) {
+      await supabase
+        .from("billing_accounts")
+        .update({ trial_ends_at: updates.trial_ends_at, updated_at: new Date().toISOString() })
+        .eq("account_id", targetAccountId)
+    }
 
     // Mirror plan and trial_ends_at to users + subscriptions
     if ((updates.plan !== undefined || updates.trial_ends_at !== undefined) && targetUserId !== null) {

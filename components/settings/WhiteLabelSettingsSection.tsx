@@ -29,7 +29,7 @@ export function WhiteLabelSettingsSection() {
           White-label
         </h1>
         <p className="text-[12.5px] text-[var(--t2)]">
-          Your clients see your brand on the portal, reports and emails. Helixa stays invisible.
+          Your clients see your brand on the portal, reports and emails. The platform stays invisible.
         </p>
       </div>
 
@@ -183,7 +183,7 @@ export function WhiteLabelSettingsSection() {
                     />
                   </button>
                   <span className="text-[12px] text-[var(--t1)]">
-                    Hide Helixa branding
+                    Hide platform branding
                   </span>
                 </label>
 

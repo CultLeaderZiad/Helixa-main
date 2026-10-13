@@ -3,7 +3,23 @@ import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
-const WEBHOOK_VERIFY_TOKEN = process.env.FACEBOOK_WEBHOOK_VERIFY_TOKEN
+function isAuthorizedVerifyToken(candidate: string | null): boolean {
+  if (!candidate) return false
+  const validTokens = [
+    process.env.FACEBOOK_WEBHOOK_VERIFY_TOKEN,
+    process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN,
+    process.env.META_VERIFY_TOKEN,
+    process.env.META_WEBHOOK_VERIFY_TOKEN,
+    process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
+    process.env.WEBHOOK_VERIFY_TOKEN,
+  ].filter(Boolean) as string[]
+
+  if (validTokens.length === 0) return false
+
+  return validTokens.some(
+    (expected) => expected === candidate || expected.toLowerCase() === candidate.toLowerCase()
+  )
+}
 
 // Meta signs every webhook POST with HMAC-SHA256 of the raw body. Depending on app setup the
 // signing key is the Facebook app secret or the parent Meta app secret, so accept either.
@@ -29,10 +45,16 @@ export async function GET(request: NextRequest) {
   const token = searchParams.get("hub.verify_token")
   const challenge = searchParams.get("hub.challenge")
 
-  if (mode === "subscribe" && WEBHOOK_VERIFY_TOKEN && token === WEBHOOK_VERIFY_TOKEN && challenge) {
-    return new NextResponse(challenge, { status: 200 })
+  if (mode === "subscribe" && challenge && isAuthorizedVerifyToken(token)) {
+    return new Response(challenge, {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    })
   }
-  return NextResponse.json({ error: "Invalid token" }, { status: 403 })
+  return new NextResponse(JSON.stringify({ error: "Invalid token" }), {
+    status: 403,
+    headers: { "Content-Type": "application/json" },
+  })
 }
 
 export async function POST(request: NextRequest) {

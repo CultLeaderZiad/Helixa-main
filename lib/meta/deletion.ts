@@ -51,7 +51,7 @@ async function matchingConnections(supabase: any, externalUserId: string): Promi
 
 /**
  * Deauthorize stops using the token. Data deletion also removes conversations,
- * messages (cascade), and contacts for that Meta user. The Helixa login stays.
+ * messages (cascade), and contacts for that Meta user. The Cyreax DM login stays.
  */
 export async function applyMetaCallback(supabase: any, externalUserId: string, mode: "deauthorize" | "delete"): Promise<{ profiles: number; connections: number }> {
   const profiles = await matchingProfiles(supabase, externalUserId)

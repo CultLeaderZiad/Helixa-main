@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseBypassClient } from "@/lib/supabase-server";
 import { sendEmail } from "@/lib/email-provider";
+import { BRAND } from "@/lib/brand";
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     // Send welcome email with personalization
     const greeting = normalizedName ? `Hey ${normalizedName},` : "Hey there,";
-    const subject = "Welcome to Helixa Automation!";
+    const subject = `Welcome to ${BRAND.name}!`;
     const html = `
       <!DOCTYPE html>
       <html lang="en">
@@ -44,8 +45,8 @@ export async function POST(request: NextRequest) {
             <!-- Header -->
             <tr>
               <td style="padding:40px 20px 20px;text-align:center;">
-                <a href="https://helixa.app" style="text-decoration:none;">
-                  <h1 style="margin:0;font-family:sans-serif;font-size:28px;color:#ffffff;font-weight:800;letter-spacing:-1px;">HELIXA<span style="color:#e5a93c;">.</span></h1>
+                <a href="${BRAND.appUrl}" style="text-decoration:none;">
+                  <img src="${BRAND.appUrl}${BRAND.logo.wordmarkDark}" alt="${BRAND.name}" width="140" style="display:inline-block;border:0;outline:none;" />
                 </a>
               </td>
             </tr>
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
                   </tr>
                   <tr>
                     <td style="font-size:16px;line-height:26px;color:#a1a1aa;padding-bottom:24px;">
-                      Thank you for joining the Helixa community. You'll receive weekly updates on product news, new features, and tips to level up your Instagram automation workflows.
+                      Thank you for joining the ${BRAND.name} community. You'll receive updates on product news, new features, and tips to level up your automation workflows.
                     </td>
                   </tr>
                   <tr>
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
                       <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                         <tr>
                           <td style="border-radius:8px;background:#e5a93c;text-align:center;">
-                            <a href="https://helixa.app/dashboard" style="background:#e5a93c;border:1px solid #e5a93c;font-size:15px;text-decoration:none;padding:14px 28px;color:#000000;display:block;border-radius:8px;font-weight:700;">Start Building Now</a>
+                            <a href="${BRAND.appUrl}/dashboard" style="background:#e5a93c;border:1px solid #e5a93c;font-size:15px;text-decoration:none;padding:14px 28px;color:#000000;display:block;border-radius:8px;font-weight:700;">Start Building Now</a>
                           </td>
                         </tr>
                       </table>
@@ -85,11 +86,11 @@ export async function POST(request: NextRequest) {
             <!-- Footer -->
             <tr>
               <td style="padding:40px 20px;font-size:13px;line-height:20px;color:#71717a;text-align:center;">
-                <p style="margin:0 0 10px 0;">© ${new Date().getFullYear()} Helixa. All rights reserved.</p>
+                <p style="margin:0 0 10px 0;">© ${new Date().getFullYear()} ${BRAND.name}. All rights reserved.</p>
                 <p style="margin:0;">
-                  <a href="https://helixa.app" style="color:#71717a;text-decoration:underline;">Helixa.app</a>
+                  <a href="${BRAND.appUrl}" style="color:#71717a;text-decoration:underline;">${BRAND.short}</a>
                   &nbsp;•&nbsp;
-                  <a href="https://helixa.app/unsubscribe" style="color:#71717a;text-decoration:underline;">Unsubscribe</a>
+                  <a href="${BRAND.appUrl}/unsubscribe" style="color:#71717a;text-decoration:underline;">Unsubscribe</a>
                 </p>
               </td>
             </tr>

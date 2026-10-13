@@ -12,8 +12,8 @@ export function ProfileSettingsSection() {
   const { language, setLanguage } = useLanguage()
   const { data: meData, mutate } = useSWR("/api/auth/me", fetcher)
 
-  const [name, setName] = useState("Ziad Sabry")
-  const [email, setEmail] = useState("ziad@mirage.agency")
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
   const [timezone, setTimezone] = useState("Africa/Cairo")
   const [saving, setSaving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)

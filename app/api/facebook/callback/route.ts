@@ -185,7 +185,7 @@ export async function GET(request: NextRequest) {
             metadata: sharedMeta,
           }
           const { data: existing } = await supabase.from("platform_connections")
-            .select("id").eq("user_id", userProfile.id).eq("platform", platform).eq("page_id", pageId).maybeSingle()
+            .select("id").eq("platform", platform).eq("page_id", pageId).maybeSingle()
           const res = existing
             ? await supabase.from("platform_connections").update(row).eq("id", existing.id)
             : await supabase.from("platform_connections").insert(row)

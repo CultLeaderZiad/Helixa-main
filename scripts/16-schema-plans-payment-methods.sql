@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS public.payment_methods (
   provider TEXT NOT NULL CHECK (provider IN ('stripe', 'vodafone_cash', 'manual')),
   name TEXT NOT NULL,
   is_active BOOLEAN NOT NULL DEFAULT true,
-  config JSONB NOT NULL DEFAULT '{}', -- e.g. {"phone_number": "+20 01037312994", "instructions": "..."}
+  config JSONB NOT NULL DEFAULT '{}', -- e.g. {"phone_number": "+20 010XXXXXXXX", "instructions": "..."}
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -40,4 +40,4 @@ VALUES
 INSERT INTO public.payment_methods (provider, name, is_active, config)
 VALUES
   ('stripe', 'Credit / Debit Card', true, '{}'),
-  ('vodafone_cash', 'Vodafone Cash', true, '{"phone_number": "+20 01037312994", "instructions": "Send exact amount to this number and submit the transaction receipt details below."}');
+  ('vodafone_cash', 'Vodafone Cash', true, '{"phone_number": "+20 010XXXXXXXX", "instructions": "Send exact amount to this number and submit the transaction receipt details below."}');

@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto"
 import { minorUnits } from "@/lib/money"
 import type { FetchLike } from "@/lib/channels/types"
+import { BRAND } from "@/lib/brand"
 
 export type PaymentProviderId = "paymob" | "stripe" | "tap"
 
@@ -198,7 +199,7 @@ export async function createStripeSubscriptionLink(
   body.set("line_items[0][price_data][currency]", input.currency.toLowerCase())
   body.set("line_items[0][price_data][unit_amount]", String(input.amountCents))
   body.set("line_items[0][price_data][recurring][interval]", input.interval)
-  body.set("line_items[0][price_data][product_data][name]", input.description.slice(0, 120) || "Helixa")
+  body.set("line_items[0][price_data][product_data][name]", input.description.slice(0, 120) || BRAND.name)
   for (const [key, value] of Object.entries(input.metadata || {})) {
     if (value) body.set(`metadata[${key}]`, value)
     if (value) body.set(`subscription_data[metadata][${key}]`, value)
@@ -288,13 +289,13 @@ export async function createTapLink(input: PaymentLinkRequest, config: TapConfig
       customer_initiated: true,
       threeDSecure: true,
       save_card: false,
-      description: input.description.slice(0, 120) || "Helixa",
+      description: input.description.slice(0, 120) || BRAND.name,
       metadata: { orderId: input.orderId },
       reference: { transaction: input.orderId, order: input.orderId },
       receipt: { email: false, sms: false },
       customer: {
         first_name: name[0] || "Customer",
-        last_name: name.slice(1).join(" ") || "Helixa",
+        last_name: name.slice(1).join(" ") || BRAND.name,
         email: input.customer?.email || "customer@example.com",
         phone: input.customer?.phone ? { country_code: "966", number: input.customer.phone.replace(/\D/g, "").slice(-12) } : undefined,
       },

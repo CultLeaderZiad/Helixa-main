@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
         const session = event.data.object as Stripe.Checkout.Session
         const userId = session.metadata?.userId
         const accountId = session.metadata?.accountId
-        const helixaPlan = session.metadata?.helixaPlan
-        const storedPlan = helixaPlan || session.metadata?.planType
+        const planSlug = session.metadata?.cyreaxPlan || session.metadata?.helixaPlan
+        const storedPlan = planSlug || session.metadata?.planType
 
         if ((!userId && !accountId) || !storedPlan) {
           console.error("[stripe/webhook] Missing metadata on session:", session.id)

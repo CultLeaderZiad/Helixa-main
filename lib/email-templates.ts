@@ -1,3 +1,5 @@
+import { BRAND } from "./brand";
+
 export interface EmailTemplateData {
   template: 'product_update' | 'new_feature' | 'announcement' | 'trial_expiring' | 'promotion' | 'recap' | 'custom';
   subject: string;
@@ -18,9 +20,9 @@ export function generateEmailHtml(data: EmailTemplateData): string {
   const textColor = "#d4d4d4";
   const linkColor = "#e5a93c";
   
-  const logoUrl = "https://helixa.app/logo.png"; // Placeholder logo
-  const websiteUrl = "https://helixa.app";
-  const appName = "Helixa";
+  const logoUrl = `${BRAND.appUrl}${BRAND.logo.wordmarkDark}`;
+  const websiteUrl = BRAND.appUrl;
+  const appName = BRAND.name;
 
   // Personalization replacement helper
   const personalize = (text: string) => {
@@ -153,9 +155,7 @@ export function generateEmailHtml(data: EmailTemplateData): string {
       <tr>
         <td style="padding: 40px 20px 20px 20px; text-align: center;">
           <a href="${websiteUrl}" target="_blank" style="text-decoration: none;">
-            <h1 style="margin:0; font-family: sans-serif; font-size: 28px; line-height: 28px; color: #ffffff; font-weight: 800; letter-spacing: -1px;">
-              HELIXA<span style="color: ${brandColor};">.</span>
-            </h1>
+            <img src="${logoUrl}" alt="${appName}" width="140" style="display:inline-block; border:0; outline:none; text-decoration:none;" />
           </a>
         </td>
       </tr>
@@ -243,12 +243,12 @@ export function generateEmailHtml(data: EmailTemplateData): string {
             © ${new Date().getFullYear()} ${appName}. All rights reserved.
           </p>
           <p style="margin: 0 0 6px 0;">
-            <a href="${websiteUrl}" style="color: #71717a; text-decoration: underline;">Helixa.app</a>
+            <a href="${websiteUrl}" style="color: #71717a; text-decoration: underline;">${BRAND.short}</a>
             &nbsp;•&nbsp;
-            <a href="mailto:unsubscribe@helixa.app?subject=unsubscribe" style="color: #71717a; text-decoration: underline;">Unsubscribe</a>
+            <a href="mailto:${BRAND.emails.support || `unsubscribe@${BRAND.slug}.com`}?subject=unsubscribe" style="color: #71717a; text-decoration: underline;">Unsubscribe</a>
           </p>
           <p style="margin: 0; font-size: 11px; color: #52525b;">
-            ${appName}, Instagram Automation Platform.
+            ${appName}, DM Automation Platform.
           </p>
         </td>
       </tr>

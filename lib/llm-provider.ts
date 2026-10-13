@@ -1,8 +1,9 @@
 import { GroqMessage, GroqCompletionRequest, checkAILimit, logAIUsage, GroqAPIError, GroqRateLimitError } from "./groq-client"
 import { getSupabaseBypassClient } from "./supabase-server"
 import { historyRole } from "./analytics-metrics"
+import { BRAND } from "./brand"
 
-// Check for required env vars for Helixa managed models
+// Check for required env vars for Cyreax DM managed models
 const GROQ_API_KEY = process.env.GROQ_API_KEY
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY
@@ -177,7 +178,7 @@ export async function generateCompletion(
     }
     return responseText
   } else {
-    // Helixa Managed Keys
+    // Cyreax DM Managed Keys
     if (provider === "groq") apiKey = GROQ_API_KEY
     if (provider === "gemini") apiKey = GEMINI_API_KEY
     if (provider === "openrouter") apiKey = OPENROUTER_API_KEY
@@ -334,8 +335,8 @@ async function callOpenRouterAPI(options: GroqCompletionRequest, apiKey: string)
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": "https://helixa.ai",
-      "X-Title": "Helixa"
+      "HTTP-Referer": BRAND.appUrl,
+      "X-Title": BRAND.name,
     },
     body: JSON.stringify({
       model: options.model || DEFAULT_OPENROUTER_MODEL, // OpenRouter model

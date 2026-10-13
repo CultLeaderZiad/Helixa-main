@@ -6,7 +6,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import BackToHome from "@/components/ui/back-to-home"
 import { FrontBackground } from "@/components/layout/FrontBackground"
 import { PasswordInput } from "@/components/ui/password-input"
-import HelixaLogo from "@/components/ui/HelixaLogo"
+import { BrandLogo } from "@/components/ui/BrandLogo"
 import Link from "next/link"
 
 export default function UpdatePasswordPage() {
@@ -92,7 +92,7 @@ export default function UpdatePasswordPage() {
         <BackToHome />
         <div className="w-full max-w-md space-y-6 bg-[#03010A]/80 backdrop-blur-md p-8 rounded-2xl border border-white/10 relative z-10 text-center shadow-2xl">
           <div className="flex justify-center mb-1">
-            <HelixaLogo size="md" />
+            <BrandLogo variant="wordmark" size="md" />
           </div>
           <h2 className="text-2xl font-bold text-white">Invalid or Expired Link</h2>
           <p className="text-zinc-400 text-xs mt-1">The password reset link has expired or is invalid. Please request a new one.</p>
@@ -116,7 +116,7 @@ export default function UpdatePasswordPage() {
       <div className="w-full max-w-md space-y-6 bg-[#03010A]/80 backdrop-blur-md p-8 rounded-2xl border border-white/10 relative z-10 shadow-2xl">
         <div className="text-center">
           <div className="flex justify-center mb-3">
-            <HelixaLogo size="md" />
+            <BrandLogo variant="wordmark" size="md" />
           </div>
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
             Update your password

@@ -1,3 +1,5 @@
+import { BRAND } from "@/lib/brand"
+
 export interface AgencyBrand {
   id: string
   name: string
@@ -34,7 +36,7 @@ export function isPlatformHost(host: string, appUrl?: string | null): boolean {
 
 /**
  * Host-based tenant lookup. The platform's own host never selects an agency,
- * so the main Helixa domain keeps working beside a client's custom domain.
+ * so the main Cyreax DM domain keeps working beside a client's custom domain.
  */
 export function resolveAgencyByHost(host: string | null | undefined, agencies: AgencyBrand[], appUrl?: string | null): AgencyBrand | null {
   const normalized = normalizeHost(host)
@@ -51,7 +53,7 @@ export function sanitizeBrand(input: {
   customDomain?: string | null
 }): { ok: true; value: Omit<AgencyBrand, "id"> } | { ok: false; error: string } {
   const name = String(input.name || "").trim().slice(0, 80)
-  const appName = String(input.appName || name || "Helixa").trim().slice(0, 40)
+  const appName = String(input.appName || name || BRAND.name).trim().slice(0, 40)
   if (!name) return { ok: false, error: "Agency name is required" }
   const primary = String(input.primaryColor || "#5b4dff")
   const accent = String(input.accentColor || "#e5a93c")
@@ -60,12 +62,12 @@ export function sanitizeBrand(input: {
   if (logo && !/^https:\/\//i.test(logo)) return { ok: false, error: "Logo must be an https URL" }
   const domain = normalizeHost(input.customDomain || "")
   if (domain && (domain.includes(" ") || !domain.includes("."))) return { ok: false, error: "Custom domain must be a hostname" }
-  if (domain && isPlatformHost(domain)) return { ok: false, error: "That host is reserved for Helixa" }
+  if (domain && isPlatformHost(domain)) return { ok: false, error: `That host is reserved for ${BRAND.name}` }
   return {
     ok: true,
     value: {
       name,
-      appName: appName || "Helixa",
+      appName: appName || BRAND.name,
       logoUrl: logo || null,
       primaryColor: primary,
       accentColor: accent,

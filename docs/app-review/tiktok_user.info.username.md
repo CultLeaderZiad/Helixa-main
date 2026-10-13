@@ -5,5 +5,5 @@ Show the TikTok username on the connected-account card and in the inbox so a tea
 
 ## Screencast
 1. Complete TikTok Login.
-2. Show the username on the Helixa connected-platforms card matching the TikTok profile.
+2. Show the username on the Cyreax DM connected-platforms card matching the TikTok profile.
 3. Open a DM thread, if one exists, and show the same account name in the channel label.

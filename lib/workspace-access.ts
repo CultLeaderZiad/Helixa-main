@@ -8,7 +8,7 @@ export const WORKSPACE_ROLES = ["client-viewer", "member", "admin", "owner"] as 
 
 export type WorkspaceRole = (typeof WORKSPACE_ROLES)[number]
 
-export const WORKSPACE_COOKIE = "helixa_workspace"
+export const WORKSPACE_COOKIE = "cyreax_workspace"
 
 const RANK: Record<WorkspaceRole, number> = {
   "client-viewer": 0,

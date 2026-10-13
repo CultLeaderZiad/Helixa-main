@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react"
 import { useParams } from "next/navigation"
+import { BRAND } from "@/lib/brand"
 
 export default function BioPage() {
   const params = useParams<{ slug: string }>()
@@ -29,7 +30,7 @@ export default function BioPage() {
   return (
     <main className="min-h-screen bg-[#f6f4ef] text-slate-900 flex items-center justify-center p-6">
       <form onSubmit={submit} className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 space-y-4">
-        <div className="text-xs uppercase tracking-[0.2em] text-[#b8860b]">Helixa</div>
+        <div className="text-xs uppercase tracking-[0.2em] text-[#b8860b]">{BRAND.name}</div>
         <h1 className="text-3xl font-semibold">Get the details</h1>
         <p className="text-sm text-slate-500">Leave an email or a phone number. We add you as a contact and can start a flow.</p>
         <input className="w-full h-11 px-3 rounded-xl border border-slate-200" placeholder="Name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />

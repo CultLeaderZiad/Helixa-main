@@ -19,11 +19,11 @@ to a live database.
 
 ## Custom domain on Vercel
 
-1. Save the hostname on the Agency screen. It is stored lowercased and must not be the Helixa app host.
+1. Save the hostname on the Agency screen. It is stored lowercased and must not be the Cyreax DM app host.
 2. In the Vercel project, open Settings → Domains and add that hostname.
 3. At the client's DNS, add the record Vercel shows (usually a CNAME to `cname.vercel-dns.com`, or the A record Vercel gives for an apex).
 4. Wait until Vercel marks the domain valid and the certificate is issued.
-5. Requests to that host are resolved in middleware: the `Host` header is matched to `agencies.custom_domain`, and `x-helixa-agency` is set. The platform's own `NEXT_PUBLIC_APP_URL` host is never treated as a tenant.
+5. Requests to that host are resolved in middleware: the `Host` header is matched to `agencies.custom_domain`, and `x-cyreax-agency` is set. The platform's own `NEXT_PUBLIC_APP_URL` host is never treated as a tenant.
 6. Redeploy after `NEXT_PUBLIC_APP_URL` changes so the platform host stays excluded.
 
 ## What is unverified

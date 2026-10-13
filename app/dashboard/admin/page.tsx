@@ -9,6 +9,7 @@ import {
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { BRAND } from "@/lib/brand"
 
 interface Stats {
   totalUsers: number
@@ -906,7 +907,7 @@ export default function AdminPage() {
               <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider w-24">Message</label>
               <input
                 className="flex-1 border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
-                placeholder="e.g. Helixa v2.0 is now live!"
+                placeholder={`e.g. ${BRAND.name} v2.0 is now live!`}
                 value={bannerState.message}
                 onChange={e => setBannerState(s => ({ ...s, message: e.target.value }))}
               />
@@ -1124,7 +1125,7 @@ export default function AdminPage() {
                 <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider block mb-1">Default From Name</label>
                 <input
                   className="w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
-                  placeholder="Helixa"
+                  placeholder={BRAND.name}
                   value={smtpSettings.fromName}
                   onChange={e => setSmtpSettings(s => ({ ...s, fromName: e.target.value }))}
                 />
@@ -1133,7 +1134,7 @@ export default function AdminPage() {
                 <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider block mb-1">Default From Email</label>
                 <input
                   className="w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
-                  placeholder="hello@helixa.app"
+                  placeholder={BRAND.emails.support}
                   value={smtpSettings.fromEmail}
                   onChange={e => setSmtpSettings(s => ({ ...s, fromEmail: e.target.value }))}
                 />

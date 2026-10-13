@@ -151,7 +151,6 @@ export async function GET(request: NextRequest) {
   const { data: existing } = await supabase
     .from("platform_connections")
     .select("id")
-    .eq("user_id", profileRow.id)
     .eq("platform", "tiktok")
     .eq("page_id", token.openId)
     .maybeSingle()

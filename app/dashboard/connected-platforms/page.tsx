@@ -2,6 +2,7 @@
 
 import { useState, Suspense } from "react"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
+import { BRAND } from "@/lib/brand"
 import {
   RefreshCw,
   ShieldCheck,
@@ -38,7 +39,8 @@ function ChannelsPageContent() {
   }
 
   const handleCopyClientLink = () => {
-    navigator.clipboard.writeText("https://helixa.app/portal/connect?token=cl_89f02a8b")
+    const origin = typeof window !== "undefined" ? window.location.origin : BRAND.appUrl
+    navigator.clipboard.writeText(`${origin}/portal/connect?token=cl_89f02a8b`)
     setCopiedLink(true)
     toast.success("Client onboarding connect link copied (valid for 72h)")
     setTimeout(() => setCopiedLink(false), 2000)
@@ -79,7 +81,7 @@ function ChannelsPageContent() {
               Channels
             </h1>
             <p className="text-[12.5px] text-[var(--t3)]">
-              Connect each channel once per client. Helixa watches tokens and webhooks so DMs never go missing.
+              Connect each channel once per client. {BRAND.name} watches tokens and webhooks so DMs never go missing.
             </p>
           </div>
 

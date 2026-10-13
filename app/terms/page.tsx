@@ -4,10 +4,11 @@ import { FrontBackground } from "@/components/layout/FrontBackground"
 import LastUpdated from "@/components/legal/LastUpdated"
 import BackToTop from "@/components/ui/BackToTop"
 import Link from "next/link"
+import { BRAND } from "@/lib/brand"
 
 export const metadata = {
-    title: "Terms of Service | Helixa",
-    description: "The terms governing your use of the Helixa automation platform.",
+    title: `Terms of Service | ${BRAND.name}`,
+    description: `The terms governing your use of the ${BRAND.name} automation platform.`,
 }
 
 export default function TermsPage() {
@@ -21,15 +22,15 @@ export default function TermsPage() {
 
                 <div className="prose prose-invert max-w-none space-y-6 text-neutral-300 mt-10">
                     <p>
-                        These Terms of Service (&quot;Terms&quot;) govern your access to and use of Helixa (&quot;the Service&quot;),
-                        operated by Ziad Sabry, Cairo, Egypt (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;). By creating an account or using the Service, you agree to
+                        These Terms of Service (&quot;Terms&quot;) govern your access to and use of {BRAND.name} (&quot;the Service&quot;),
+                        (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;). By creating an account or using the Service, you agree to
                         these Terms and to our <Link href="/privacy" className="text-[var(--gold,#D6AE5C)] hover:underline">Privacy Policy</Link>.
                     </p>
 
                     <section>
                         <h2 className="text-2xl font-bold text-white mb-4">1. The Service</h2>
                         <p>
-                            Helixa lets a creator or an agency connect messaging channels and reply to people who
+                            {BRAND.name} lets a creator or an agency connect messaging channels and reply to people who
                             message them. It automates replies to comments, direct messages, and story interactions on
                             the platforms you connect (Instagram, Facebook/Messenger, WhatsApp, Telegram, and TikTok),
                             using keyword rules, follow-gates, and optional AI-generated responses. You direct what the
@@ -50,31 +51,26 @@ export default function TermsPage() {
                     </section>
 
                     <section>
-                        <h2 className="text-2xl font-bold text-white mb-4">3. Subscriptions, Billing &amp; Renewal</h2>
-                        <ul className="list-disc pl-6 space-y-2 mt-2">
-                            <li><strong className="text-white">Trial.</strong> A paid plan trial lasts 14 days and can be used once. No card is required to start it. When the trial ends, the account continues on Creator Free.</li>
-                            <li><strong className="text-white">Paid plans.</strong> Paid plans are billed in advance, monthly or yearly, through Stripe, Paymob, Tap, or a Vodafone Cash transfer that an administrator confirms. An upgrade starts after the payment succeeds. A downgrade applies at the end of the current period. You can cancel a Stripe subscription from your Billing page; cancellation stops future charges and the plan remains active until the end of the paid period.</li>
-                            <li><strong className="text-white">Failed renewal.</strong> A failed renewal stays in a 7-day grace period and then pauses automations until the invoice is paid.</li>
-                            <li><strong className="text-white">Lifetime plan.</strong> Where a one-time lifetime plan is offered, it is a one-time payment for the plan features described at checkout.</li>
-                            <li><strong className="text-white">Prices.</strong> Prices are shown before you pay. We may change prices for future billing periods with prior notice; your current period price will not change mid-cycle.</li>
-                        </ul>
-                    </section>
-
-                    <section>
-                        <h2 className="text-2xl font-bold text-white mb-4">4. Payment Methods</h2>
-                        <ul className="list-disc pl-6 space-y-2 mt-2">
-                            <li><strong className="text-white">Stripe, Paymob, and Tap.</strong> Card payments are processed by the provider you select at checkout. We never receive or store your full card number. A receipt is issued for every successful Stripe charge.</li>
-                            <li><strong className="text-white">Vodafone Cash (manual).</strong> For users in Egypt, you may transfer the exact plan amount to the number shown at checkout and submit the transaction reference. A manual payment is activated only after our team verifies it — typically within 24–48 hours. If the reference you submit cannot be matched to a received transfer (wrong amount, wrong number, duplicate, or invalid reference), we will contact you via the phone number you provided and, if it cannot be resolved, reject the submission and refund the transferred amount to the sending wallet. Manual Vodafone Cash purchases are one-time purchases; they do not auto-renew — you must resubmit a payment each cycle.</li>
-                        </ul>
-                    </section>
-
-                    <section>
-                        <h2 className="text-2xl font-bold text-white mb-4">5. Agency resale</h2>
+                        <h2 className="text-2xl font-bold text-white mb-4">3. Plans and Subscriptions</h2>
                         <p>
-                            An agency plan can set a price for a client workspace and send that client a checkout link
-                            through the same payment providers. You are the seller of that client invoice. Helixa&apos;s own
-                            subscription is a separate charge. You are responsible for the tax, refunds, and claims on
-                            the prices you set.
+                            We offer self-serve plans (Creator, Creator Pro, Agency Starter, Agency Growth) and bespoke Enterprise tiers.
+                            Subscription terms, renewal cycles, and pricing tiers are detailed on our Pricing page.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 className="text-2xl font-bold text-white mb-4">4. Payment Terms</h2>
+                        <p>
+                            Payments are processed via Stripe, Paymob, or Tap, or via verified local cash transfer methods.
+                            All payments are billed in the stated currency. You agree to maintain valid billing details.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 className="text-2xl font-bold text-white mb-4">5. Reseller and Client Workspaces</h2>
+                        <p>
+                            Agency plans allow managing client workspaces. You are responsible for configuring access
+                            and securing your client credentials.
                         </p>
                     </section>
 
@@ -93,7 +89,7 @@ export default function TermsPage() {
                         <ul className="list-disc pl-6 space-y-2 mt-2">
                             <li>Send spam, unsolicited bulk messages, or deceptive content.</li>
                             <li>Violate the Meta Platform Terms, Instagram, Facebook, WhatsApp, or TikTok rules, or Telegram&apos;s terms.</li>
-                            <li>Present Helixa as a Meta or TikTok product.</li>
+                            <li>Present {BRAND.name} as a Meta or TikTok product.</li>
                             <li>Infringe intellectual-property or privacy rights of others.</li>
                             <li>Attempt to access other users&apos; data, tokens, or keys, or probe or abuse the platform&apos;s infrastructure.</li>
                             <li>Use the API to exceed the limits of your plan.</li>
@@ -142,11 +138,15 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-2xl font-bold text-white mb-4">12. Governing Law &amp; Operator Identity</h2>
                         <p>
-                            Helixa is operated by Ziad Sabry, Cairo, Egypt. These Terms are governed by and construed in
+                            These Terms are governed by and construed in
                             accordance with the laws of the Arab Republic of Egypt, without regard to conflict of law principles.
                             Any legal dispute arising from or related to the Service shall be subject to the jurisdiction of the
                             competent courts in Cairo, Egypt. For inquiries or notices, contact{" "}
-                            <a href="mailto:support@helixa.app" className="text-[var(--gold,#D6AE5C)] hover:underline">support@helixa.app</a>.
+                            {BRAND.emails.support ? (
+                                <a href={`mailto:${BRAND.emails.support}`} className="text-[var(--gold,#D6AE5C)] hover:underline">{BRAND.emails.support}</a>
+                            ) : (
+                                <span>our support team</span>
+                            )}.
                         </p>
                     </section>
                 </div>

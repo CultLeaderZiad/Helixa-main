@@ -1,6 +1,6 @@
-# Helixa Anti-Vibecode Standard: anti-vibecode.md
+# Cyreax DM Anti-Vibecode Standard: anti-vibecode.md
 
-Purpose: Enforcement checklist for frontend quality, performance, and credibility across the Helixa codebase. This document details banned anti-patterns and required production practices.
+Purpose: Enforcement checklist for frontend quality, performance, and credibility across the Cyreax DM codebase. This document details banned anti-patterns and required production practices.
 
 ---
 

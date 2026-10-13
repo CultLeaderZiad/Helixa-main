@@ -77,7 +77,7 @@ export function consumeWebchatRate(
 
 export function widgetSnippet(origin: string, publicKey: string): string {
   const base = origin.replace(/\/$/, "")
-  return `<script src="${base}/widget.js" data-helixa-key="${publicKey}" async></script>`
+  return `<script src="${base}/widget.js" data-cyreax-key="${publicKey}" async></script>`
 }
 
 export function clientIp(headers: Headers): string {

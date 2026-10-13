@@ -7,7 +7,7 @@ import { createBrowserClient } from "@supabase/ssr"
 import { Suspense } from "react"
 import BackToHome from "@/components/ui/back-to-home"
 import { Mail } from "lucide-react"
-import HelixaLogo from "@/components/ui/HelixaLogo"
+import { BrandLogo } from "@/components/ui/BrandLogo"
 import { FrontBackground } from "@/components/layout/FrontBackground"
 import { PasswordInput } from "@/components/ui/password-input"
 
@@ -80,7 +80,7 @@ function SignupForm() {
         <FrontBackground />
         <div className="w-full max-w-md space-y-6 bg-[#03010A]/80 backdrop-blur-md p-8 rounded-2xl border border-white/10 text-center relative z-10 shadow-2xl">
           <div className="flex justify-center mb-1">
-            <HelixaLogo size="md" />
+            <BrandLogo variant="wordmark" size="md" />
           </div>
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e5a93c]/10 border border-[#e5a93c]/20 text-[#e5a93c]">
             <Mail className="h-6 w-6" />
@@ -113,7 +113,7 @@ function SignupForm() {
       <div className="w-full max-w-md space-y-6 bg-[#03010A]/80 backdrop-blur-md p-8 rounded-2xl border border-white/10 relative z-10 shadow-2xl">
         <div className="text-center">
           <div className="flex justify-center mb-3">
-            <HelixaLogo size="md" />
+            <BrandLogo variant="wordmark" size="md" />
           </div>
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
             Start your free trial

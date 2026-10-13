@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
+import { BRAND } from "@/lib/brand"
 import "./PillNav.css"
 
 export type PillNavItem = {
@@ -24,9 +25,9 @@ export interface PillNavProps {
 }
 
 export function PillNav({
-  logo = "/helix-logo.svg",
-  logoText = "HLX",
-  logoAlt = "Helix Auto DM Logo",
+  logo = BRAND.logo.mark,
+  logoText = "CYREAX",
+  logoAlt = `${BRAND.name} Logo`,
   items,
   activeHref,
   className = "",

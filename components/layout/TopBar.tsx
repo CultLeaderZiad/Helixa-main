@@ -125,7 +125,7 @@ export function TopBar({
                   onClick={() => {
                     setCurrency(curr)
                     window.dispatchEvent(
-                      new CustomEvent("helixa:currency-change", { detail: curr })
+                      new CustomEvent("cyreax:currency-change", { detail: curr })
                     )
                   }}
                   className={cn(
@@ -144,7 +144,7 @@ export function TopBar({
               variant="secondary"
               size="sm"
               onClick={() => {
-                window.dispatchEvent(new CustomEvent("helixa:open-invoices"))
+                window.dispatchEvent(new CustomEvent("cyreax:open-invoices"))
               }}
               className="h-[30px] px-3 text-[12px] font-medium gap-1.5"
             >

@@ -1,7 +1,7 @@
 import { chromium } from '@playwright/test';
 import * as fs from 'fs';
 
-const BASE_URL = 'https://helixa-main-ecru.vercel.app';
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';
 const ADMIN_PASS = process.env.ADMIN_PASS || '';
 const TEST_USER_EMAIL = process.env.TEST_USER_EMAIL || '';

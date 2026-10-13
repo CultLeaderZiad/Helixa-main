@@ -106,7 +106,7 @@ export async function csvResponse(request: NextRequest) {
   return new NextResponse(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": "attachment; filename=helixa-contacts.csv",
+      "Content-Disposition": "attachment; filename=cyreax-contacts.csv",
     },
   })
 }

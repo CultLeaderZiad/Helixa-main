@@ -3,10 +3,11 @@ import { Footer } from "@/components/layout/Footer"
 import { FrontBackground } from "@/components/layout/FrontBackground"
 import LastUpdated from "@/components/legal/LastUpdated"
 import BackToTop from "@/components/ui/BackToTop"
+import { BRAND } from "@/lib/brand"
 
 export const metadata = {
-  title: "Accessibility Statement | Helixa",
-  description: "Helixa's commitment to web accessibility and conformity to WCAG 2.2 AA standards.",
+  title: `Accessibility Statement | ${BRAND.name}`,
+  description: `${BRAND.name}'s commitment to web accessibility and conformity to WCAG 2.2 AA standards.`,
 }
 
 export default function AccessibilityPage() {
@@ -20,35 +21,32 @@ export default function AccessibilityPage() {
         </h1>
         <LastUpdated />
 
-        <div className="prose prose-invert max-w-none space-y-6 text-neutral-300 mt-10 text-sm leading-relaxed">
+        <div className="prose prose-invert max-w-none space-y-6 text-neutral-300 mt-10">
           <p>
-            Helixa is committed to digital accessibility for all operators, including people with disabilities. We continually improve the user experience for everyone and apply the relevant accessibility standards across both our public website and SaaS workspace.
+            {BRAND.name} is dedicated to ensuring digital accessibility for all users, including those with disabilities. We continually enhance user experience for everyone and apply relevant accessibility standards.
           </p>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">1. Conformance Status</h2>
+            <h2 className="text-xl font-bold text-white mb-3">1. Conformance Standard</h2>
             <p>
-              The Web Content Accessibility Guidelines (WCAG) defines requirements for designers and developers to improve accessibility for people with disabilities. It defines three levels of conformance: Level A, Level AA, and Level AAA.
-            </p>
-            <p className="mt-2">
-              Helixa targets <strong className="text-white">WCAG 2.2 Level AA</strong> conformance. The application enforces semantic HTML landmarks, minimum color contrast ratios (≥4.5:1 for body copy and ≥3:1 for graphical UI components), full keyboard navigability with visible focus indicators, screen reader labeling, and reduced-motion preferences.
+              The Web Content Accessibility Guidelines (WCAG) define requirements for designers and developers to improve accessibility for individuals with disabilities. {BRAND.name} aims to conform with <strong>WCAG 2.2 Level AA</strong> standards across all customer and agency dashboard interfaces.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-white mb-3">2. Known Limitations & Ongoing Work</h2>
-            <p>
-              While we strive to ensure comprehensive accessibility across the entire surface of Helixa, we are actively addressing a few known areas:
-            </p>
+            <h2 className="text-xl font-bold text-white mb-3">2. Accessibility Features</h2>
             <ul className="list-disc pl-6 space-y-2 mt-2">
               <li>
-                <strong className="text-white">Visual Flow Builder:</strong> Drag-and-drop workflow canvas nodes currently provide limited linear keyboard navigation. We are developing an accessible list-based alternative mode.
+                <strong className="text-white">Keyboard Navigation:</strong> All interactive elements, including flow builders, drawer menus, modal dialogs, and conversational composers, are navigable using standard keyboard inputs.
               </li>
               <li>
-                <strong className="text-white">Complex Data Visualizations:</strong> Certain comparative charts rendered in RTL (Right-to-Left) Arabic mode are accompanied by raw numeric tables, but screen reader narration of time-series graphs is undergoing optimization.
+                <strong className="text-white">Screen Reader Compatibility:</strong> Proper semantic elements, ARIA attributes, and clear labelling are implemented across components.
               </li>
               <li>
-                <strong className="text-white">Third-Party Platform Media:</strong> User-generated thumbnail previews imported directly from Meta/Instagram rely on captions provided by the original creator for alt text.
+                <strong className="text-white">Color Contrast:</strong> Text, badges, and button indicators adhere strictly to WCAG AA minimum contrast ratio (4.5:1 for standard text, 3:1 for large text and UI components).
+              </li>
+              <li>
+                <strong className="text-white">Reduced Motion Support:</strong> The interface honors the <code>prefers-reduced-motion</code> browser setting by disabling decorative micro-animations.
               </li>
             </ul>
           </section>
@@ -56,14 +54,18 @@ export default function AccessibilityPage() {
           <section>
             <h2 className="text-xl font-bold text-white mb-3">3. Feedback & Contact Information</h2>
             <p>
-              We welcome your feedback on the accessibility of Helixa. If you encounter accessibility barriers, or need accommodation while using our tools, please contact our team:
+              We welcome your feedback on the accessibility of {BRAND.name}. If you encounter accessibility barriers, or need accommodation while using our tools, please contact our team:
             </p>
             <ul className="list-disc pl-6 space-y-1 mt-2">
               <li>
                 <strong className="text-white">Email:</strong>{" "}
-                <a href="mailto:support@helixa.app" className="text-[var(--gold,#D6AE5C)] hover:underline">
-                  support@helixa.app
-                </a>
+                {BRAND.emails.support ? (
+                  <a href={`mailto:${BRAND.emails.support}`} className="text-[var(--gold,#D6AE5C)] hover:underline">
+                    {BRAND.emails.support}
+                  </a>
+                ) : (
+                  <span>support</span>
+                )}
               </li>
               <li>
                 <strong className="text-white">Response Time:</strong> We aim to acknowledge accessibility inquiries within 2 business days.
@@ -74,7 +76,6 @@ export default function AccessibilityPage() {
 
         <BackToTop />
       </div>
-
       <Footer />
     </main>
   )

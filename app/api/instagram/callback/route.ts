@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     // 1. Env Vars
     const clientId = instagramAppId()
     const clientSecret = process.env.INSTAGRAM_APP_SECRET
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.headers.get("origin") || "https://helixa-main-ecru.vercel.app"
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.headers.get("origin") || ""
     const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI || `${appUrl}/api/instagram/callback`
 
     if (!clientId || !clientSecret || !redirectUri) {

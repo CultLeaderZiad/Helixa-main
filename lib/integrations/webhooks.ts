@@ -11,10 +11,13 @@ export function signWebhook(secret: string, timestamp: number, body: string): st
 
 export function webhookHeaders(secret: string, body: string, nowMs: number): Record<string, string> {
   const timestamp = Math.floor(nowMs / 1000)
+  const sig = signWebhook(secret, timestamp, body)
   return {
     "Content-Type": "application/json",
+    "X-Cyreax-Timestamp": String(timestamp),
+    "X-Cyreax-Signature": sig,
     "X-Helixa-Timestamp": String(timestamp),
-    "X-Helixa-Signature": signWebhook(secret, timestamp, body),
+    "X-Helixa-Signature": sig,
   }
 }
 

@@ -20,7 +20,17 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
 
   useEffect(() => {
     setMounted(true);
-    const saved = localStorage.getItem("helixa-language") as Language;
+    let saved = localStorage.getItem("cyreax-language") as Language;
+    if (!saved) {
+      const old = localStorage.getItem("helixa-language") as Language;
+      if (old === "ar" || old === "en") {
+        saved = old;
+        try {
+          localStorage.setItem("cyreax-language", old);
+          localStorage.removeItem("helixa-language");
+        } catch {}
+      }
+    }
     if (saved === "ar" || saved === "en") {
       setLanguageState(saved);
       document.documentElement.dir = saved === "ar" ? "rtl" : "ltr";
@@ -31,7 +41,8 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     try {
-      localStorage.setItem("helixa-language", lang);
+      localStorage.setItem("cyreax-language", lang);
+      localStorage.removeItem("helixa-language");
     } catch {}
     if (typeof document !== "undefined") {
       document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";

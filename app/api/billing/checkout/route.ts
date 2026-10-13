@@ -9,6 +9,7 @@ import { planPriceCents, resolvePlan } from "@/lib/billing/plans"
 import { resolveInterval } from "@/lib/billing/activation"
 import { createPaymobLink, createStripeSubscriptionLink, createTapLink } from "@/lib/commerce/payments"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { BRAND } from "@/lib/brand"
 
 export async function POST(request: NextRequest) {
   const session = await requireSessionUser(request)
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
       : "stripe"
   const amountCents = planPriceCents(plan.id, interval)
   const origin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
-  const description = `Helixa ${plan.name} (${interval})`
+  const description = `${BRAND.name} ${plan.name} (${interval})`
 
   if (provider === "vodafone_cash") {
     return NextResponse.json({
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
       const integrationId = process.env.PAYMOB_INTEGRATION_ID
       const iframeId = process.env.PAYMOB_IFRAME_ID
       if (!apiKey || !integrationId || !iframeId) {
-        return NextResponse.json({ error: "Paymob is not configured for Helixa billing." }, { status: 503 })
+        return NextResponse.json({ error: `Paymob is not configured for ${BRAND.name} billing.` }, { status: 503 })
       }
       const link = await createPaymobLink(requestBody, { apiKey, integrationId, iframeId })
       return NextResponse.json({ url: link.url, provider, reference: link.reference, planId: plan.id })
@@ -76,6 +77,7 @@ export async function POST(request: NextRequest) {
           userId: session.igUser?.id ? String(session.igUser.id) : "",
           accountId: session.user.id,
           planType: interval === "year" ? "year" : "month",
+          cyreaxPlan: plan.id,
           helixaPlan: plan.id,
           interval,
           email: session.user.email || "",

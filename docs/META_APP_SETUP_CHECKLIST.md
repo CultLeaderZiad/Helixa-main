@@ -1,6 +1,6 @@
 # Meta App Dashboard Setup Checklist (Facebook + Instagram)
 
-This is the step-by-step config checklist for the Meta app behind Helixa's
+This is the step-by-step config checklist for the Meta app behind Cyreax DM's
 Facebook/Instagram integrations. Everything below is derived from what the
 code *actually* does — scopes, callback URLs, webhook fields, and env vars.
 
@@ -72,7 +72,7 @@ App Dashboard → **Add Product**:
 
 The old names (`business_basic`, `business_manage_messages`,
 `business_manage_comments`, `business_content_publish`) were deprecated on
-2025-01-27. Content publishing is not requested because Helixa does not
+2025-01-27. Content publishing is not requested because Cyreax DM does not
 publish media. Add the three new permissions on the Meta app (App Review →
 Permissions) or Instagram login will fail for accounts outside an app role.
 

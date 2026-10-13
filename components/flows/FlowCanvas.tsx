@@ -208,7 +208,7 @@ export default function FlowCanvas({
         <div className="flex-1 relative"
           onDragOver={(event) => event.preventDefault()}
           onDrop={(event) => {
-            const type = event.dataTransfer.getData("application/helixa-node") as FlowNodeType
+            const type = event.dataTransfer.getData("application/cyreax-node") as FlowNodeType
             if (type) addNode(type)
           }}
         >
@@ -240,7 +240,7 @@ export default function FlowCanvas({
               <button
                 key={item.type}
                 draggable
-                onDragStart={(event) => event.dataTransfer.setData("application/helixa-node", item.type)}
+                onDragStart={(event) => event.dataTransfer.setData("application/cyreax-node", item.type)}
                 onClick={() => addNode(item.type)}
                 className="px-2.5 py-1.5 rounded-xl text-[11px] text-slate-600 hover:bg-slate-50"
               >

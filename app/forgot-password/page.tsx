@@ -5,7 +5,7 @@ import Link from "next/link"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
 import BackToHome from "@/components/ui/back-to-home"
 import { FrontBackground } from "@/components/layout/FrontBackground"
-import HelixaLogo from "@/components/ui/HelixaLogo"
+import { BrandLogo } from "@/components/ui/BrandLogo"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
@@ -55,7 +55,7 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md space-y-6 bg-[#03010A]/80 backdrop-blur-md p-8 rounded-2xl border border-white/10 relative z-10 shadow-2xl">
         <div className="text-center">
           <div className="flex justify-center mb-3">
-            <HelixaLogo size="md" />
+            <BrandLogo variant="wordmark" size="md" />
           </div>
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
             Reset your password

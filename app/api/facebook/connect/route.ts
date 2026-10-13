@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     }
     
     const { data: existingFb } = await supabase.from("platform_connections")
-      .select("id").eq("user_id", userId).eq("platform", "facebook").eq("page_id", page_id).maybeSingle()
+      .select("id").eq("platform", "facebook").eq("page_id", page_id).maybeSingle()
       
     let fbResult;
     if (existingFb) {
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
     }
     
     const { data: existingMsg } = await supabase.from("platform_connections")
-      .select("id").eq("user_id", userId).eq("platform", "messenger").eq("page_id", page_id).maybeSingle()
+      .select("id").eq("platform", "messenger").eq("page_id", page_id).maybeSingle()
       
     let msgResult;
     if (existingMsg) {

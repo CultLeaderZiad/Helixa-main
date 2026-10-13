@@ -1,7 +1,7 @@
 # user.info.basic
 
 ## Use case
-Confirm the TikTok account that completed the authorize URL is a real user Helixa can attach to the workspace. This is the identity check beside the business-account id. Helixa does not read the person's private social graph.
+Confirm the TikTok account that completed the authorize URL is a real user Cyreax DM can attach to the workspace. This is the identity check beside the business-account id. Cyreax DM does not read the person's private social graph.
 
 ## Screencast
 1. Leave `TIKTOK_MESSAGING_ENABLED` off and show that TikTok connect is unavailable. Then, on an approved app, set the flag and open Connected Platforms.

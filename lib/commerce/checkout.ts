@@ -57,8 +57,8 @@ export async function placeOrder(input: {
       currency: draft.currency,
       description: draft.items.map((item) => item.name).join(", ").slice(0, 120) || "Order",
       orderId,
-      successUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://helixa.local"}/dashboard/catalog?paid=${orderId}`,
-      cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://helixa.local"}/dashboard/catalog?cancelled=${orderId}`,
+      successUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/catalog?paid=${orderId}`,
+      cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/catalog?cancelled=${orderId}`,
     }, input.fetchImpl)
     if (link) {
       paymentLink = link.url

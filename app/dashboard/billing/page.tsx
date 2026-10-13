@@ -65,12 +65,12 @@ function BillingPageContent() {
       toast.info("Opening Invoices and payment receipts")
     }
 
-    window.addEventListener("helixa:currency-change", handleCurrencyChange as EventListener)
-    window.addEventListener("helixa:open-invoices", handleInvoicesOpen)
+    window.addEventListener("cyreax:currency-change", handleCurrencyChange as EventListener)
+    window.addEventListener("cyreax:open-invoices", handleInvoicesOpen)
 
     return () => {
-      window.removeEventListener("helixa:currency-change", handleCurrencyChange as EventListener)
-      window.removeEventListener("helixa:open-invoices", handleInvoicesOpen)
+      window.removeEventListener("cyreax:currency-change", handleCurrencyChange as EventListener)
+      window.removeEventListener("cyreax:open-invoices", handleInvoicesOpen)
     }
   }, [])
 

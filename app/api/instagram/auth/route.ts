@@ -14,7 +14,7 @@ import {
  * Redirects the user to Meta's Instagram OAuth dialog ("Instagram API with
  * Instagram Login"). A random `state` is stored in an httpOnly cookie and
  * checked on the callback so a forged redirect cannot attach someone else's
- * Instagram account to the logged-in Helixa user.
+ * Instagram account to the logged-in Cyreax DM user.
  */
 export async function GET(request: NextRequest) {
   const session = await loadWorkspaceContext(request)

@@ -35,9 +35,9 @@ interface TeamMember {
 const initialMembers: TeamMember[] = [
   {
     id: "1",
-    name: "Ziad Sabry",
-    email: "ziad@mirage.agency",
-    avatarInitials: "ZS",
+    name: "Tariq Mansour",
+    email: "tariq@mirage.agency",
+    avatarInitials: "TM",
     avatarBg: "bg-[#E9C77E]",
     avatarTextColor: "text-black",
     role: "owner",
@@ -189,7 +189,7 @@ export function TeamSettingsSection() {
           Team &amp; white-label
         </h1>
         <p className="text-[12.5px] text-[var(--t2)]">
-          Who can work on which clients, and how Helixa looks to your clients.
+          Who can work on which clients, and how the platform appears to your clients.
         </p>
       </div>
 
@@ -382,7 +382,7 @@ export function TeamSettingsSection() {
               White-label
             </h3>
             <p className="text-[11.5px] text-[var(--t3)] leading-relaxed">
-              Your clients see your brand on the portal, reports and emails. Helixa stays invisible.
+              Your clients see your brand on the portal, reports and emails. The platform stays invisible.
             </p>
           </div>
 
@@ -510,7 +510,7 @@ export function TeamSettingsSection() {
 
               {/* Toggles */}
               <div className="flex flex-wrap items-center gap-6 pt-1">
-                {/* Toggle 1: Hide Helixa branding */}
+                {/* Toggle 1: Hide platform branding */}
                 <label className="flex items-center gap-2 cursor-pointer select-none">
                   <button
                     type="button"
@@ -530,7 +530,7 @@ export function TeamSettingsSection() {
                     />
                   </button>
                   <span className="text-[12px] text-[var(--t1)]">
-                    Hide Helixa branding
+                    Hide platform branding
                   </span>
                 </label>
 

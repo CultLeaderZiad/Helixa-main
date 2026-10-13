@@ -21,12 +21,16 @@ const _geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono
 const _notoSansArabic = Noto_Sans_Arabic({ subsets: ["arabic"], variable: "--font-noto-arabic", display: "swap" })
 const _cairo = Cairo({ subsets: ["arabic", "latin"], variable: "--font-cairo", display: "swap" })
 
+import { BRAND } from "@/lib/brand"
+
 export const metadata: Metadata = {
-  title: "Helixa - Automate your Dm's",
-  description: "AI solutions for comments, DMs, and social conversations.",
+  title: `${BRAND.name} - ${BRAND.tagline}`,
+  description: "DM automation for every channel. AI solutions for comments, DMs, and social conversations.",
   icons: {
-    icon: "/icon.svg",
+    icon: "/brand/icon-32.png",
+    apple: "/brand/icon-180.png",
   },
+  manifest: "/manifest.json",
   other: {
     "theme-color": "#09090B",
   },

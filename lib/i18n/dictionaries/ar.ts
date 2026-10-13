@@ -269,7 +269,7 @@ export const ar = {
   viewPlans: "عرض الخطط",
   keyConnected: "المفتاح متصل",
   connectApiKey: "ربط مفتاح API",
-  managedByHelixa: "تتم إدارته بواسطة Helixa",
+  managedByBrand: "تتم إدارته بواسطة {brand}",
   off: "متوقف",
   connectApiKeyTitle: "ربط مفتاح API",
   byokDesc: "يتطلب هذا الوكيل مفتاح API خاص بك للتشغيل. يتم تشفير مفتاحك قبل تخزينه. لا يمكننا رؤية مفتاحك.",

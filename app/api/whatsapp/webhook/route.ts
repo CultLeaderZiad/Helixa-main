@@ -6,7 +6,24 @@ import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 export { processWhatsAppWebhookBody } from "@/lib/channels/ingress"
 
-const WEBHOOK_VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN
+function isAuthorizedVerifyToken(candidate: string | null): boolean {
+  if (!candidate) return false
+  const validTokens = [
+    process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
+    process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN,
+    process.env.FACEBOOK_WEBHOOK_VERIFY_TOKEN,
+    process.env.META_VERIFY_TOKEN,
+    process.env.META_WEBHOOK_VERIFY_TOKEN,
+    process.env.WEBHOOK_VERIFY_TOKEN,
+  ].filter(Boolean) as string[]
+
+  if (validTokens.length === 0) return false
+
+  return validTokens.some(
+    (expected) => expected === candidate || expected.toLowerCase() === candidate.toLowerCase()
+  )
+}
+
 const APP_SECRET = process.env.META_APP_SECRET || process.env.INSTAGRAM_APP_SECRET
 
 function isValidSignature(rawBody: string, signatureHeader: string | null): boolean {
@@ -25,10 +42,16 @@ export async function GET(request: NextRequest) {
   const token = searchParams.get("hub.verify_token")
   const challenge = searchParams.get("hub.challenge")
 
-  if (mode === "subscribe" && WEBHOOK_VERIFY_TOKEN && token === WEBHOOK_VERIFY_TOKEN && challenge) {
-    return new NextResponse(challenge, { status: 200 })
+  if (mode === "subscribe" && challenge && isAuthorizedVerifyToken(token)) {
+    return new Response(challenge, {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    })
   }
-  return NextResponse.json({ error: "Invalid token" }, { status: 403 })
+  return new NextResponse(JSON.stringify({ error: "Invalid token" }), {
+    status: 403,
+    headers: { "Content-Type": "application/json" },
+  })
 }
 
 export async function POST(request: NextRequest) {

@@ -1,6 +1,6 @@
 # App review
 
-Helixa requests only the permissions below. Each file has the product use case and a screencast script. Do not request Instagram content publishing or TikTok `video.publish`.
+Cyreax DM requests only the permissions below. Each file has the product use case and a screencast script. Do not request Instagram content publishing or TikTok `video.publish`.
 
 ## Instagram Login
 

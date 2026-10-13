@@ -7,6 +7,7 @@ import { Pill } from "@/components/ui/Pill"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { BRAND } from "@/lib/brand"
 import {
   Dialog,
   DialogContent,
@@ -85,7 +86,7 @@ export function ModelKeyPicker({
     setIsByokActive(false)
     setMaskedKey("")
     setIsConfirmRemoveOpen(false)
-    toast.success("Custom API key removed. Reverted to Helixa default inference.")
+    toast.success(`Custom API key removed. Reverted to ${BRAND.name} default inference.`)
   }
 
   // Summary Mode (Agents tab card)
@@ -104,7 +105,7 @@ export function ModelKeyPicker({
               </Pill>
             ) : (
               <Pill variant="neutral" dot={false}>
-                Helixa default
+                {BRAND.name} default
               </Pill>
             )}
           </div>
@@ -249,7 +250,7 @@ export function ModelKeyPicker({
               <span>Provider & API Key Configuration</span>
             </h3>
             <p className="text-xs text-[var(--t3)] mt-0.5">
-              Securely configure your custom LLM provider credentials or use Helixa default routing.
+              Securely configure your custom LLM provider credentials or use {BRAND.name} default routing.
             </p>
           </div>
 
@@ -259,7 +260,7 @@ export function ModelKeyPicker({
             </Pill>
           ) : (
             <Pill variant="neutral" dot={false}>
-              Helixa default
+              {BRAND.name} default
             </Pill>
           )}
         </div>
@@ -308,7 +309,7 @@ export function ModelKeyPicker({
           <div className="rounded-lg border border-dashed border-[var(--line2)] p-6 text-center space-y-2">
             <ShieldCheck className="w-6 h-6 text-[var(--gold)] mx-auto" />
             <p className="text-xs font-medium text-[var(--t1)]">
-              Using Helixa managed inference infrastructure
+              Using {BRAND.name} managed inference infrastructure
             </p>
             <p className="text-[11.5px] text-[var(--t3)] max-w-md mx-auto">
               Your agents run seamlessly on high-throughput managed clusters. Add your own provider key anytime to route requests directly.
@@ -448,7 +449,7 @@ export function ModelKeyPicker({
         open={isConfirmRemoveOpen}
         onOpenChange={setIsConfirmRemoveOpen}
         title="Remove Custom API Key"
-        description="Are you sure you want to remove your custom key? The workspace will revert to Helixa default managed inference."
+        description={`Are you sure you want to remove your custom key? The workspace will revert to ${BRAND.name} default managed inference.`}
         confirmLabel="Remove key"
         variant="destructive"
         onConfirm={handleRemoveKey}

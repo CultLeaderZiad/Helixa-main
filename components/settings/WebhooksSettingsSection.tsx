@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
 export function WebhooksSettingsSection() {
-  const [webhookUrl, setWebhookUrl] = useState("https://api.mirage.agency/webhooks/helixa")
+  const [webhookUrl, setWebhookUrl] = useState("")
   const [testing, setTesting] = useState(false)
   const [events, setEvents] = useState({
     leadCaptured: true,

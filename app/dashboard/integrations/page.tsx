@@ -7,7 +7,7 @@ import { fetcher } from "@/lib/fetcher"
 export default function IntegrationsPage() {
   const hooks = useSWR("/api/integrations/webhooks", fetcher)
   const keys = useSWR("/api/integrations/keys", fetcher)
-  const [url, setUrl] = useState("https://example.com/helixa")
+  const [url, setUrl] = useState("")
   const [secret, setSecret] = useState("")
   const [token, setToken] = useState("")
   const [sheet, setSheet] = useState("")

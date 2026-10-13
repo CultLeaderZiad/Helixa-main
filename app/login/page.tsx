@@ -9,7 +9,8 @@ import BackToHome from "@/components/ui/back-to-home"
 
 import { FrontBackground } from "@/components/layout/FrontBackground"
 import { PasswordInput } from "@/components/ui/password-input"
-import HelixaLogo from "@/components/ui/HelixaLogo"
+import { BrandLogo } from "@/components/ui/BrandLogo"
+import { BRAND } from "@/lib/brand"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -76,13 +77,13 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-6 bg-[#03010A]/80 backdrop-blur-md p-8 rounded-2xl border border-white/10 relative z-10 shadow-2xl">
         <div className="text-center">
           <div className="flex justify-center mb-3">
-            <HelixaLogo size="md" />
+            <BrandLogo variant="wordmark" size="md" />
           </div>
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
             Log in to your account
           </h2>
           <p className="mt-1.5 text-xs text-zinc-400">
-            Welcome back to Helixa automation suite.
+            Welcome back to {BRAND.name} automation suite.
           </p>
         </div>
         <form className="mt-6 space-y-5" onSubmit={handleEmailLogin}>

@@ -3,6 +3,7 @@
 import { use } from "react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
+import { BRAND } from "@/lib/brand"
 
 export default function ShareReportPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params)
@@ -12,7 +13,7 @@ export default function ShareReportPage({ params }: { params: Promise<{ token: s
   if (!kpis) return <main className="min-h-screen bg-white text-slate-900 p-10">This report is not available.</main>
   return (
     <main className="min-h-screen bg-white text-slate-900 p-8 md:p-12" dir="auto">
-      <p className="text-xs uppercase tracking-widest text-slate-400">Helixa</p>
+      <p className="text-xs uppercase tracking-widest text-slate-400">{BRAND.name}</p>
       <h1 className="text-3xl font-semibold mt-2">Client report</h1>
       <p className="text-slate-500 mt-1">{report.data.period}</p>
       <dl className="mt-8 grid sm:grid-cols-2 gap-4 max-w-2xl">

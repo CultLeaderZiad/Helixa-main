@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { sendEmail } from "@/lib/email-provider"
 import { generateEmailHtml, type EmailTemplateData } from "@/lib/email-templates"
+import { BRAND } from "@/lib/brand"
 
 export async function POST(request: NextRequest) {
   const adminCheck = await requireAdmin(request)
@@ -29,8 +30,8 @@ export async function POST(request: NextRequest) {
 
     const templateData: EmailTemplateData = {
       template: "custom",
-      subject: "Message from Helixa",
-      heading: "A message from the Helixa team",
+      subject: `Message from ${BRAND.name}`,
+      heading: `A message from the ${BRAND.name} team`,
       bodyText: message,
       customerName: user.username || undefined,
     }
