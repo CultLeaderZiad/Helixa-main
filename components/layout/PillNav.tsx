@@ -26,7 +26,7 @@ export interface PillNavProps {
 
 export function PillNav({
   logo = BRAND.logo.mark,
-  logoText = "CYREAX DM",
+  logoText = "Auto DM",
   logoAlt = `${BRAND.name} Logo`,
   items,
   activeHref,
@@ -135,8 +135,8 @@ export function PillNav({
           id="pillLogo"
           onClick={(e) => handleLinkClick(e, "/")}
         >
-          {logo && <img src={logo} alt={logoAlt} className="pill-logo-icon" />}
           <span className="pill-logo-text">{logoText}</span>
+          {logo && <img src={logo} alt={logoAlt} className="pill-logo-icon" />}
         </Link>
 
         {/* Center: Desktop Navigation Items Track */}

@@ -26,8 +26,8 @@ export function Header({ activeHref = "/", className = "" }: HeaderProps) {
       <div className="pointer-events-auto">
         <PillNav
           logo={BRAND.logo.mark}
-          logoText="CYREAX DM"
-          logoAlt={BRAND.name}
+          logoText="Auto DM"
+          logoAlt="Auto DM"
           items={items}
           activeHref={activeHref}
         />

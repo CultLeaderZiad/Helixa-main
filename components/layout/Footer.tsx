@@ -18,14 +18,26 @@ export function Footer() {
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
       <div className="absolute top-0 inset-x-0 h-6 pointer-events-none opacity-20 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent" />
 
-      {/* Massive Background Watermark Typography: "CYREAX DM" */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden">
-        <span
-          className="font-sans font-black text-[clamp(9rem,24vw,22rem)] tracking-[-0.04em] text-white/[0.08] leading-none uppercase select-none pointer-events-none"
-          style={{ willChange: "transform" }}
+      {/* Massive Background Watermark Typography: "CYREAX DM" (Responsive Single-Line SVG) */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden px-4 sm:px-8">
+        <svg
+          viewBox="0 0 1300 170"
+          className="w-full max-w-7xl h-auto max-h-[85%] select-none pointer-events-none opacity-[0.055] transition-opacity duration-700"
+          style={{ willChange: "transform, opacity" }}
+          aria-hidden="true"
         >
-          CYREAX DM
-        </span>
+          <text
+            x="50%"
+            y="52%"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="currentColor"
+            className="font-black fill-white text-[150px] tracking-[-0.035em] uppercase select-none"
+            style={{ fontFamily: "inherit" }}
+          >
+            CYREAX DM
+          </text>
+        </svg>
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-16 pb-12">
