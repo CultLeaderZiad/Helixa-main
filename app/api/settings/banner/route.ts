@@ -15,7 +15,12 @@ export async function GET() {
       return NextResponse.json({ isActive: false, message: "", link: "" })
     }
 
-    return NextResponse.json(data.value, {
+    const bannerVal = data.value || {}
+    if (typeof bannerVal.message === "string") {
+      bannerVal.message = bannerVal.message.replace(/Helixa/gi, "CYREAX DM")
+    }
+
+    return NextResponse.json(bannerVal, {
       headers: {
         "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
       },

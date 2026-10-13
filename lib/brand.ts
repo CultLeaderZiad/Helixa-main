@@ -10,15 +10,20 @@ function env(key: string): string | undefined {
   return val && val.trim() ? val.trim() : undefined
 }
 
-function requiredEnv(key: string): string {
+function resolveAppUrl(): string {
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return window.location.origin
+  }
   if (typeof process !== "undefined" && process.env) {
-    const val = process.env[key]
-    if (val && val.trim()) return val.trim()
-    if (process.env.NODE_ENV === "production") {
-      throw new Error(`[BRAND] Missing required environment variable: ${key}`)
+    const val =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+      process.env.VERCEL_URL
+    if (val && val.trim()) {
+      return val.startsWith("http") ? val.trim() : `https://${val.trim()}`
     }
   }
-  return "http://localhost:3000"
+  return "https://cyreax-dm.vercel.app"
 }
 
 export const BRAND = {
@@ -32,7 +37,7 @@ export const BRAND = {
     mark: "/brand/cyreax-mark-transparent.png",
     source: "/brand/cyreax-logo.png",
   },
-  appUrl: requiredEnv("NEXT_PUBLIC_APP_URL"),
+  appUrl: resolveAppUrl(),
   emails: {
     support: env("NEXT_PUBLIC_SUPPORT_EMAIL"),
     billing: env("NEXT_PUBLIC_BILLING_EMAIL"),
