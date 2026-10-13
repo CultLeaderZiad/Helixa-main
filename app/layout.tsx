@@ -24,8 +24,24 @@ const _cairo = Cairo({ subsets: ["arabic", "latin"], variable: "--font-cairo", d
 import { BRAND } from "@/lib/brand"
 
 export const metadata: Metadata = {
-  title: `${BRAND.name} - ${BRAND.tagline}`,
-  description: "DM automation for every channel. AI solutions for comments, DMs, and social conversations.",
+  applicationName: BRAND.name,
+  title: {
+    default: `${BRAND.name} - ${BRAND.tagline}`,
+    template: `%s | ${BRAND.name}`,
+  },
+  description: `${BRAND.name} — Automate your DMs across Instagram, Messenger, WhatsApp, and Telegram with AI-powered conversation intelligence.`,
+  openGraph: {
+    title: `${BRAND.name} - ${BRAND.tagline}`,
+    description: "Automate your DMs across Instagram, Messenger, WhatsApp, and Telegram with AI-powered conversation intelligence.",
+    siteName: BRAND.name,
+    images: [{ url: "/brand/cyreax-logo.png", width: 1200, height: 630, alt: BRAND.name }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${BRAND.name} - ${BRAND.tagline}`,
+    description: "Automate your DMs across Instagram, Messenger, WhatsApp, and Telegram with AI-powered conversation intelligence.",
+    images: ["/brand/cyreax-logo.png"],
+  },
   icons: {
     icon: [
       { url: "/brand/icon-32.png", sizes: "32x32", type: "image/png" },

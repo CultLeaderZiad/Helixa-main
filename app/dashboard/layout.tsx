@@ -41,6 +41,12 @@ export default function DashboardLayout({
     const pathname = usePathname()
 
     useEffect(() => {
+        if (typeof document !== "undefined") {
+            document.title = `${BRAND.name} - ${BRAND.tagline}`
+        }
+    }, [])
+
+    useEffect(() => {
         if (!isLoading) {
             if (!accountId) {
                 router.replace('/login')
