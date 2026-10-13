@@ -3,7 +3,13 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { forbidBelow, requireSessionUser } from "@/lib/auth"
 import { instagramNeedsReconnect } from "@/lib/instagram-token"
-import { isPlaceholderToken } from "@/lib/token-crypto"
+import { isPlaceholderToken, openAccessToken } from "@/lib/token-crypto"
+import { metadataWithoutRegistrationPin } from "@/lib/whatsapp/embedded-signup"
+import {
+  releaseWhatsAppConnection,
+  shouldUnsubscribeWaba,
+  wabaIdFromConnection,
+} from "@/lib/whatsapp/connect"
 
 export async function GET(request: NextRequest) {
   const result = await requireSessionUser(request)
@@ -77,7 +83,7 @@ export async function GET(request: NextRequest) {
       id: c.id,
       platform: c.platform,
       page_id: c.page_id,
-      metadata: c.metadata || { name: c.page_id },
+      metadata: metadataWithoutRegistrationPin(c.metadata) || { name: c.page_id },
       created_at: c.connected_at,
     })
   }
@@ -98,24 +104,25 @@ export async function DELETE(request: NextRequest) {
 
   try {
     // Accept the connection id from EITHER the query string (?id=...) or the
-    // JSON body ({ connectionId }). The connected-platforms page and the
-    // platform detail page historically used different calling conventions,
-    // which caused every disconnect to fail with "Missing connectionId".
-    const queryId = request.nextUrl.searchParams.get("id")
-    const queryPlatform = request.nextUrl.searchParams.get("platform")
-
-    let body: { connectionId?: string; platform?: string } = {}
-    try {
-      body = await request.json()
-    } catch {
-      // No JSON body is fine when query params are used
-    }
-
-    const connectionId = body.connectionId || queryId
-    const platform = body.platform || queryPlatform
+    // legacy body ({ id, platform }). Some clients pass both.
+    const url = new URL(request.url)
+    let connectionId = url.searchParams.get("id") || ""
+    let platform = url.searchParams.get("platform") || ""
 
     if (!connectionId) {
-      return NextResponse.json({ error: "Missing connection id" }, { status: 400 })
+      try {
+        const body = await request.json()
+        if (body && typeof body === "object") {
+          connectionId = body.id || ""
+          platform = body.platform || platform
+        }
+      } catch {
+        // Body is optional if ?id= was supplied; ignore parse errors.
+      }
+    }
+
+    if (!connectionId) {
+      return NextResponse.json({ error: "Connection ID is required" }, { status: 400 })
     }
 
     const supabase = await getSupabaseBypassClient()
@@ -136,12 +143,16 @@ export async function DELETE(request: NextRequest) {
     // disconnect attempt with "Failed to disconnect".
     const { data: row, error: rowError } = await supabase
       .from("platform_connections")
-      .select("id, user_id")
+      .select("id, user_id, platform, page_id, external_account_id, access_token, metadata")
       .eq("id", connectionId)
       .maybeSingle()
 
     if (rowError || !row || !ownedUserIds.has(String(row.user_id))) {
       return NextResponse.json({ error: "Connection not found or does not belong to your account" }, { status: 404 })
+    }
+
+    if (row.platform === "whatsapp") {
+      await releaseStoredWhatsApp(supabase, row)
     }
 
     const { error: deleteError } = await supabase
@@ -158,5 +169,41 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.error("DELETE Error:", error)
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
+  }
+}
+
+async function releaseStoredWhatsApp(supabase: any, row: any) {
+  try {
+    const token = openAccessToken(row.access_token)
+    if (!token || isPlaceholderToken(token)) {
+      console.error("[whatsapp] disconnect skipped Graph cleanup because the stored token could not be read")
+      return
+    }
+    const wabaId = wabaIdFromConnection(row)
+    let unsubscribe = false
+    if (wabaId) {
+      const { data: siblings, error: siblingError } = await supabase
+        .from("platform_connections")
+        .select("id, page_id, external_account_id, metadata")
+        .eq("platform", "whatsapp")
+        .eq("user_id", row.user_id)
+        .neq("id", row.id)
+      if (siblingError) {
+        console.error("[whatsapp] could not check sibling numbers; leaving the WABA subscribed:", siblingError)
+      } else {
+        unsubscribe = shouldUnsubscribeWaba(
+          (siblings || []).map((sibling: any) => wabaIdFromConnection(sibling)),
+          wabaId,
+        )
+      }
+    }
+    await releaseWhatsAppConnection({
+      accessToken: token,
+      phoneNumberId: row.page_id ? String(row.page_id) : null,
+      wabaId,
+      unsubscribe,
+    })
+  } catch (error) {
+    console.error("[whatsapp] disconnect cleanup failed:", error)
   }
 }
