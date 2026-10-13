@@ -22,10 +22,10 @@ function requiredEnv(key: string): string {
 }
 
 export const BRAND = {
-  name: "Cyreax DM",
-  short: "Cyreax",
+  name: "CYREAX DM",
+  short: "CYREAX",
   slug: "cyreax-dm",
-  tagline: "DM automation for every channel",
+  tagline: "Automate your DM's",
   logo: {
     wordmark: "/brand/cyreax-wordmark-transparent.png",
     wordmarkDark: "/brand/cyreax-wordmark-dark.png",

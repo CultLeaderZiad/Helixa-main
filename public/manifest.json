@@ -1,7 +1,7 @@
 {
-  "name": "Cyreax DM",
-  "short_name": "Cyreax",
-  "description": "DM automation for every channel",
+  "name": "CYREAX DM",
+  "short_name": "CYREAX DM",
+  "description": "Automate your DM's",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#09090B",

@@ -27,7 +27,12 @@ export const metadata: Metadata = {
   title: `${BRAND.name} - ${BRAND.tagline}`,
   description: "DM automation for every channel. AI solutions for comments, DMs, and social conversations.",
   icons: {
-    icon: "/brand/icon-32.png",
+    icon: [
+      { url: "/brand/icon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/brand/cyreax-logo.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/brand/icon-32.png",
     apple: "/brand/icon-180.png",
   },
   manifest: "/manifest.json",

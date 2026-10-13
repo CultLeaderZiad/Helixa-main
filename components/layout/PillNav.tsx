@@ -26,7 +26,7 @@ export interface PillNavProps {
 
 export function PillNav({
   logo = BRAND.logo.mark,
-  logoText = "CYREAX",
+  logoText = "CYREAX DM",
   logoAlt = `${BRAND.name} Logo`,
   items,
   activeHref,
@@ -131,7 +131,7 @@ export function PillNav({
         <Link
           href="/"
           className="pill-logo"
-          aria-label="Helix Auto DM Home"
+          aria-label={`${BRAND.name} Home`}
           id="pillLogo"
           onClick={(e) => handleLinkClick(e, "/")}
         >
