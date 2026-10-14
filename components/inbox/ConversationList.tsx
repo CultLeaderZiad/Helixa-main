@@ -16,6 +16,7 @@ import { formatMessagePreview } from "@/lib/ui/eventLabels"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import { MobileNav } from "@/components/layout/mobile-nav"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
+import { ConversationContextMenu } from "@/components/nav"
 
 interface ConversationListProps {
   userId: string
@@ -389,12 +390,11 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
             const assignedTo = (conv as any).assigned_to === userId ? "Assigned to you" : (conv as any).assigned_to_name
 
             return (
-              <div
+              <ConversationContextMenu
                 key={conv.id}
-                role="button"
-                tabIndex={0}
-                aria-selected={isSelected}
-                onClick={() =>
+                conversationId={conv.id}
+                contactName={contactName}
+                onReply={() =>
                   onSelect(
                     conv.id,
                     contactName,
@@ -402,9 +402,12 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
                     conv.platform || "instagram"
                   )
                 }
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault()
+              >
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-selected={isSelected}
+                  onClick={() =>
                     onSelect(
                       conv.id,
                       contactName,
@@ -412,77 +415,88 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
                       conv.platform || "instagram"
                     )
                   }
-                }}
-                className={cn(
-                  "p-3 flex items-start gap-3 transition-colors cursor-pointer relative group focus:outline-none focus-visible:bg-[var(--s3)] min-h-[56px]",
-                  isSelected
-                    ? "bg-[var(--s2)] before:absolute before:inset-y-0 before:start-0 before:w-[2px] before:bg-[var(--gold)]"
-                    : "hover:bg-[var(--s3)]"
-                )}
-              >
-                {/* 36px Avatar with 14px ChannelBadge */}
-                <div className="relative shrink-0">
-                  <div className="size-9 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[11px] font-semibold text-[var(--t2)] group-hover:text-[var(--t1)] transition-colors">
-                    {initials}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      onSelect(
+                        conv.id,
+                        contactName,
+                        conv.recipient_id ? conv.recipient_id.toString() : conv.id,
+                        conv.platform || "instagram"
+                      )
+                    }
+                  }}
+                  className={cn(
+                    "p-3 flex items-start gap-3 transition-colors cursor-pointer relative group focus:outline-none focus-visible:bg-[var(--s3)] min-h-[56px]",
+                    isSelected
+                      ? "bg-[var(--s2)] before:absolute before:inset-y-0 before:start-0 before:w-[2px] before:bg-[var(--gold)]"
+                      : "hover:bg-[var(--s3)]"
+                  )}
+                >
+                  {/* 36px Avatar with 14px ChannelBadge */}
+                  <div className="relative shrink-0">
+                    <div className="size-9 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[11px] font-semibold text-[var(--t2)] group-hover:text-[var(--t1)] transition-colors">
+                      {initials}
+                    </div>
+                    <div className="absolute -bottom-0.5 -end-0.5">
+                      <ChannelBadge channel={platform} size="sm" className="size-3.5 rounded-full border border-[var(--bg)]" />
+                    </div>
                   </div>
-                  <div className="absolute -bottom-0.5 -end-0.5">
-                    <ChannelBadge channel={platform} size="sm" className="size-3.5 rounded-full border border-[var(--bg)]" />
-                  </div>
-                </div>
 
-                {/* Info Container */}
-                <div className="flex-1 min-w-0">
-                  {/* Top Line: Name & Time */}
-                  <div className="flex items-center justify-between gap-1 mb-0.5">
-                    <span className="flex items-center gap-1.5 truncate">
-                      <span
-                        className={cn(
-                          "text-[13px] font-semibold truncate transition-colors",
-                          isSelected ? "text-[var(--t1)]" : "text-[var(--t1)] group-hover:text-white"
+                  {/* Info Container */}
+                  <div className="flex-1 min-w-0">
+                    {/* Top Line: Name & Time */}
+                    <div className="flex items-center justify-between gap-1 mb-0.5">
+                      <span className="flex items-center gap-1.5 truncate">
+                        <span
+                          className={cn(
+                            "text-[13px] font-semibold truncate transition-colors",
+                            isSelected ? "text-[var(--t1)]" : "text-[var(--t1)] group-hover:text-white"
+                          )}
+                        >
+                          {contactName}
+                        </span>
+                        {hasUnread && (
+                          <span className="size-2 rounded-full bg-[var(--blue)] shrink-0 inline-block" />
                         )}
-                      >
-                        {contactName}
                       </span>
-                      {hasUnread && (
-                        <span className="size-2 rounded-full bg-[var(--blue)] shrink-0 inline-block" />
+                      <span className="font-mono text-[10.5px] text-[var(--t3)] shrink-0">
+                        {timeStr}
+                      </span>
+                    </div>
+
+                    {/* Middle Line: Message Preview */}
+                    <p
+                      dir="auto"
+                      className="text-[12px] text-[var(--t3)] line-clamp-1 leading-snug mb-1.5"
+                    >
+                      {previewText}
+                    </p>
+
+                    {/* Bottom Line: Real Meta Pills */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {isAiHandling && (
+                        <Pill variant="green" icon={<Sparkles className="w-2.5 h-2.5" />}>
+                          AI active
+                        </Pill>
                       )}
-                    </span>
-                    <span className="font-mono text-[10.5px] text-[var(--t3)] shrink-0">
-                      {timeStr}
-                    </span>
-                  </div>
-
-                  {/* Middle Line: Message Preview */}
-                  <p
-                    dir="auto"
-                    className="text-[12px] text-[var(--t3)] line-clamp-1 leading-snug mb-1.5"
-                  >
-                    {previewText}
-                  </p>
-
-                  {/* Bottom Line: Real Meta Pills */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {isAiHandling && (
-                      <Pill variant="green" icon={<Sparkles className="w-2.5 h-2.5" />}>
-                        AI active
-                      </Pill>
-                    )}
-                    {isBotPaused && (
-                      <Pill variant="amber">
-                        AI paused
-                      </Pill>
-                    )}
-                    {assignedTo && (
-                      <span className="text-[10.5px] px-1.5 py-0.5 rounded-[4px] bg-[var(--s3)] border border-[var(--line2)] text-[var(--t2)] font-mono">
-                        {assignedTo}
-                      </span>
-                    )}
-                    {tags.map((t: string) => (
-                      <Tag key={t}>{t}</Tag>
-                    ))}
+                      {isBotPaused && (
+                        <Pill variant="amber">
+                          AI paused
+                        </Pill>
+                      )}
+                      {assignedTo && (
+                        <span className="text-[10.5px] px-1.5 py-0.5 rounded-[4px] bg-[var(--s3)] border border-[var(--line2)] text-[var(--t2)] font-mono">
+                          {assignedTo}
+                        </span>
+                      )}
+                      {tags.map((t: string) => (
+                        <Tag key={t}>{t}</Tag>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              </ConversationContextMenu>
             )
 
           })

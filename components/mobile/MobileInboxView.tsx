@@ -5,6 +5,7 @@ import { Search, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ChannelBadge, type ChannelType } from "@/components/ui/ChannelBadge"
 import { displayName as getDisplayName } from "@/lib/ui/contactName"
+import { ConversationContextMenu } from "@/components/nav"
 
 export interface ConversationSummary {
   id: string
@@ -212,63 +213,76 @@ export function MobileInboxView({
             const channel = (conv.platform || conv.contact?.channel || "instagram") as ChannelType
 
             return (
-              <div
+              <ConversationContextMenu
                 key={conv.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => onSelectConversation(conv.id, name, conv.recipient_id || conv.recipient_username || "", conv.platform || "instagram")}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault()
-                    onSelectConversation(conv.id, name, conv.recipient_id || conv.recipient_username || "", conv.platform || "instagram")
-                  }
-                }}
-                className={cn(
-                  "min-h-[72px] h-[72px] px-4 flex items-center justify-between gap-3 transition-colors cursor-pointer",
-                  isSelected
-                    ? "bg-[var(--s2)]"
-                    : "hover:bg-[var(--s1)] active:bg-[var(--s2)]"
-                )}
+                conversationId={conv.id}
+                contactName={name}
+                onReply={() =>
+                  onSelectConversation(
+                    conv.id,
+                    name,
+                    conv.recipient_id || conv.recipient_username || "",
+                    conv.platform || "instagram"
+                  )
+                }
               >
-                {/* Avatar + Channel Badge + Names */}
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="relative shrink-0">
-                    <div className="size-10 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[12px] font-semibold text-[var(--t1)]">
-                      {initials}
-                    </div>
-                    {/* 18px Channel Badge */}
-                    <div className="absolute -bottom-0.5 -end-0.5">
-                      <ChannelBadge channel={channel} size="sm" className="w-[18px] h-[18px] border border-[var(--bg)]" />
-                    </div>
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <h3 className="text-[14px] font-semibold text-[var(--t1)] truncate leading-tight">
-                        {name}
-                      </h3>
-                    </div>
-                    <p className="text-[12.5px] text-[var(--t3)] truncate leading-normal mt-0.5" dir="auto">
-                      {conv.last_message_text || conv.last_message_preview || "No message yet"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Right: Timestamp + Unread Blue Dot */}
-                <div className="flex flex-col items-end justify-center gap-1.5 shrink-0 ps-2">
-                  <span className="font-mono text-[11px] text-[var(--t3)] tabular-nums leading-none">
-                    {timeAgo}
-                  </span>
-                  {isUnread ? (
-                    <span
-                      className="size-2 rounded-full bg-[var(--blue)] shadow-xs"
-                      aria-label="Unread message"
-                    />
-                  ) : (
-                    <span className="size-2 opacity-0" aria-hidden="true" />
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onSelectConversation(conv.id, name, conv.recipient_id || conv.recipient_username || "", conv.platform || "instagram")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      onSelectConversation(conv.id, name, conv.recipient_id || conv.recipient_username || "", conv.platform || "instagram")
+                    }
+                  }}
+                  className={cn(
+                    "min-h-[72px] h-[72px] px-4 flex items-center justify-between gap-3 transition-colors cursor-pointer",
+                    isSelected
+                      ? "bg-[var(--s2)]"
+                      : "hover:bg-[var(--s1)] active:bg-[var(--s2)]"
                   )}
+                >
+                  {/* Avatar + Channel Badge + Names */}
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="relative shrink-0">
+                      <div className="size-10 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[12px] font-semibold text-[var(--t1)]">
+                        {initials}
+                      </div>
+                      {/* 18px Channel Badge */}
+                      <div className="absolute -bottom-0.5 -end-0.5">
+                        <ChannelBadge channel={channel} size="sm" className="w-[18px] h-[18px] border border-[var(--bg)]" />
+                      </div>
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="text-[14px] font-semibold text-[var(--t1)] truncate leading-tight">
+                          {name}
+                        </h3>
+                      </div>
+                      <p className="text-[12.5px] text-[var(--t3)] truncate leading-normal mt-0.5" dir="auto">
+                        {conv.last_message_text || conv.last_message_preview || "No message yet"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right: Timestamp + Unread Blue Dot */}
+                  <div className="flex flex-col items-end justify-center gap-1.5 shrink-0 ps-2">
+                    <span className="font-mono text-[11px] text-[var(--t3)] tabular-nums leading-none">
+                      {timeAgo}
+                    </span>
+                    {isUnread ? (
+                      <span
+                        className="size-2 rounded-full bg-[var(--blue)] shadow-xs"
+                        aria-label="Unread message"
+                      />
+                    ) : (
+                      <span className="size-2 opacity-0" aria-hidden="true" />
+                    )}
+                  </div>
                 </div>
-              </div>
+              </ConversationContextMenu>
             )
           })
         )}

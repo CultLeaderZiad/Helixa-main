@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { Sidebar } from "@/components/layout/sidebar"
+import { SidebarTree, IconRail, MobileTabBar, MobileDrawer } from "@/components/nav"
 import { TopBar } from "@/components/layout/TopBar"
-import { MobileTabBar, MobileDrawer } from "@/components/mobile"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { Loader2, Menu } from "lucide-react"
 import { TrialBanner } from "@/components/layout/TrialBanner"
@@ -13,10 +12,30 @@ import { CommandPalette } from "@/components/ui/CommandPalette"
 import { BrandLogo } from "@/components/ui/BrandLogo"
 import { BRAND } from "@/lib/brand"
 
-function MobileTabBarWrapper({ onOpenDrawer }: { onOpenDrawer: () => void }) {
+function MobileTabBarWrapper({
+    username,
+    email,
+    plan,
+    userRole,
+    onLogout,
+}: {
+    username?: string
+    email?: string | null
+    plan?: string | null
+    userRole?: string | null
+    onLogout?: () => void
+}) {
     const pathname = usePathname()
     if (pathname?.startsWith('/dashboard/billing')) return null
-    return <MobileTabBar onOpenDrawer={onOpenDrawer} />
+    return (
+        <MobileTabBar
+            username={username}
+            email={email}
+            plan={plan}
+            userRole={userRole}
+            onLogout={onLogout}
+        />
+    )
 }
 
 export default function DashboardLayout({
@@ -133,11 +152,9 @@ export default function DashboardLayout({
 
             {/* Tablet Icon Rail (64px fixed: 768px - 1023px) */}
             <div className="hidden md:flex lg:hidden w-[64px] flex-col fixed inset-y-0 start-0 z-40">
-                <Sidebar
+                <IconRail
                     className="h-full w-[64px]"
-                    collapsed={true}
-                    username={username || "Workspace"}
-                    profilePic={profilePic}
+                    username={username || "Workspace owner"}
                     email={email}
                     userRole={role}
                     plan={plan}
@@ -145,12 +162,11 @@ export default function DashboardLayout({
                 />
             </div>
 
-            {/* Desktop Sidebar (240px fixed: ≥1024px) */}
-            <div className="hidden lg:flex lg:w-[240px] lg:flex-col lg:fixed lg:inset-y-0 lg:start-0 z-40">
-                <Sidebar
-                    className="h-full w-[240px]"
-                    collapsed={false}
-                    username={username || "Workspace"}
+            {/* Desktop SidebarTree (260px fixed: ≥1024px) */}
+            <div className="hidden lg:flex lg:w-[260px] lg:flex-col lg:fixed lg:inset-y-0 lg:start-0 z-40">
+                <SidebarTree
+                    className="h-full w-[260px]"
+                    username={username || "Workspace owner"}
                     profilePic={profilePic}
                     email={email}
                     userRole={role}
@@ -160,7 +176,7 @@ export default function DashboardLayout({
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col md:ps-[64px] lg:ps-[240px] min-w-0 min-h-[100dvh]">
+            <div className="flex-1 flex flex-col md:ps-[64px] lg:ps-[260px] min-w-0 min-h-[100dvh]">
                 {/* Mobile Top Bar (52px, rendered on all pages except inbox & billing which provide dedicated mobile headers) */}
                 {!pathname?.startsWith('/dashboard/inbox') && !pathname?.startsWith('/dashboard/billing') && (
                     <header className="md:hidden h-[52px] border-b border-[var(--line)] bg-[var(--s1)] flex items-center justify-between px-4 sticky top-0 z-30">
@@ -214,7 +230,13 @@ export default function DashboardLayout({
             </div>
 
             {/* Mobile Tab Bar (<768px, hidden on pages with sticky CTA like billing or chat conversation) */}
-            <MobileTabBarWrapper onOpenDrawer={() => setMobileDrawerOpen(true)} />
+            <MobileTabBarWrapper
+                username={username || "Workspace owner"}
+                email={email}
+                plan={plan}
+                userRole={role}
+                onLogout={logout}
+            />
 
             {/* Mobile Navigation Drawer */}
             <MobileDrawer
@@ -223,6 +245,7 @@ export default function DashboardLayout({
                 username={username || "Workspace owner"}
                 email={email}
                 userRole={role}
+                plan={plan}
                 onLogout={logout}
             />
         </div>
