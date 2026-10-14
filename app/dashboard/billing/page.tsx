@@ -187,9 +187,7 @@ function BillingPageContent() {
   const selectedMethodLabel =
     selectedPaymentMethod === "vodafone_cash"
       ? "Vodafone Cash"
-      : selectedPaymentMethod === "card"
-      ? "Credit or debit card"
-      : "Tap · GCC cards"
+      : "Email payment request"
 
   return (
     <>
@@ -252,7 +250,7 @@ function BillingPageContent() {
             Billing
           </h1>
           <p className="text-[12.5px] text-[var(--t3)]">
-            One subscription for the agency. Pay by card or Vodafone Cash.
+            One subscription for the agency. Pay by Vodafone Cash or email payment request.
           </p>
         </div>
 

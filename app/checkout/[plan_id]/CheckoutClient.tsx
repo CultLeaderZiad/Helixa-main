@@ -6,14 +6,25 @@ import { Loader2, ArrowRight, Clock, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import CopyButton from "@/components/ui/CopyButton"
 import { brand, BRAND } from "@/lib/brand"
-import { VisaIcon, MastercardIcon } from "@/components/icons/PaymentIcons"
 
 export default function CheckoutClient({ plan, methods, user, cycle }: { plan: any, methods: any[], user: any, cycle?: string }) {
-  const [selectedMethod, setSelectedMethod] = useState<string | null>(
-    methods.length > 0 ? methods[0].method : null
-  )
+  const availableMethods = [
+    {
+      method: "vodafone_cash",
+      display_name: "Vodafone Cash",
+      instructions: "Transfer the amount directly to our Vodafone Cash wallet and submit your transaction reference.",
+    },
+    {
+      method: "email",
+      display_name: "Email Payment Request",
+      instructions: "Receive an official invoice and payment instructions sent directly to your email address.",
+    },
+  ]
+
+  const [selectedMethod, setSelectedMethod] = useState<string>("vodafone_cash")
   const [transactionRef, setTransactionRef] = useState("")
   const [clientName, setClientName] = useState("")
+  const [clientEmail, setClientEmail] = useState(user?.email || "")
   const [clientPhone, setClientPhone] = useState("")
   const [countryCode, setCountryCode] = useState("20")
   const [hasQuestions, setHasQuestions] = useState(false)
@@ -22,8 +33,8 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
   const [success, setSuccess] = useState(false)
   const [submittedRef, setSubmittedRef] = useState("")
 
-  const selected = methods.find((m) => m.method === selectedMethod)
-  const isStripe = selectedMethod === "stripe"
+  const selected = availableMethods.find((m) => m.method === selectedMethod)
+  const isEmail = selectedMethod === "email"
 
   const isYearlyCycle = cycle === "yearly"
   const amountToCharge = isYearlyCycle ? Number(plan.price_yearly) : Number(plan.price_usd)
@@ -49,24 +60,32 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
     setLoading(true)
 
     try {
-      if (isStripe) {
-        // Stripe collects the payer's name/contact on its hosted page — we don't
-        // collect them here (data minimization): nothing server-side reads them.
-        const res = await fetch("/api/stripe/checkout", {
+      if (isEmail) {
+        if (!clientEmail.trim()) {
+          throw new Error("Please enter your email address")
+        }
+        const ref = `EMAIL-${Date.now().toString(36).toUpperCase()}`
+        const res = await fetch("/api/payments/submit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ planType })
+          body: JSON.stringify({
+            transaction_reference: ref,
+            amount: amountToCharge,
+            payment_method: "email",
+            plan_id: plan.id,
+            note: `Email request: ${clientEmail.trim()} | Name: ${clientName.trim() || user?.email || "Customer"}${clientPhone ? ` | Phone: +${countryCode}${clientPhone.trim()}` : ""}`,
+          }),
         })
         const data = await res.json()
-        if (data.url) {
-          window.location.href = data.url
-        } else {
-          throw new Error(data.error || "Failed to create checkout session")
+        if (!data.success) {
+          throw new Error(data.error || "Failed to submit payment request")
         }
+        setSubmittedRef(ref)
+        setSuccess(true)
       } else {
         // Manual / Vodafone Cash — submit proof for admin review
         if (!transactionRef.trim()) {
-          throw new Error("Please enter your transaction reference")
+          throw new Error("Please enter your Vodafone Cash transaction reference")
         }
         if (!clientName.trim() || !clientPhone.trim()) {
           throw new Error("Please fill in your name and phone number")
@@ -78,9 +97,9 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
           body: JSON.stringify({
             transaction_reference: transactionRef.trim(),
             amount: amountToCharge,
-            payment_method: selectedMethod,
+            payment_method: "vodafone_cash",
             plan_id: plan.id,
-            note: `${clientName.trim()} | ${countryCode}${clientPhone.trim()}`,
+            note: `${clientName.trim()} | +${countryCode}${clientPhone.trim()}`,
           })
         })
         const data = await res.json()
@@ -141,15 +160,18 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
         </p>
       </div>
 
-      {!isStripe && (
       <div className="space-y-4 p-6 bg-white/[0.02] border border-white/10 rounded-2xl">
         <h3 className="text-lg font-bold">Your Information</h3>
-        <p className="text-xs text-neutral-400">We use your name and phone number only to verify your manual payment and contact you if the reference can't be matched.</p>
-        
+        <p className="text-xs text-neutral-400">
+          {isEmail
+            ? "We use your details to generate your invoice and send payment instructions directly to your email."
+            : "We use your name and phone number to verify your manual Vodafone Cash transfer."}
+        </p>
+
         <div className="space-y-4">
           <div>
             <label htmlFor="checkout-name" className="block text-sm font-medium text-neutral-300 mb-2">
-              Full Name
+              Full Name *
             </label>
             <input
               id="checkout-name"
@@ -162,9 +184,26 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
             />
           </div>
 
+          {isEmail && (
+            <div>
+              <label htmlFor="checkout-email" className="block text-sm font-medium text-neutral-300 mb-2">
+                Email Address *
+              </label>
+              <input
+                id="checkout-email"
+                type="email"
+                value={clientEmail}
+                onChange={(e) => setClientEmail(e.target.value)}
+                placeholder="name@company.com"
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-neutral-500 outline-none focus:border-[#e5a93c]/50"
+                required
+              />
+            </div>
+          )}
+
           <div>
             <label htmlFor="checkout-phone" className="block text-sm font-medium text-neutral-300 mb-2">
-              Phone Number
+              Phone Number {isEmail ? "(optional)" : "*"}
             </label>
             <div className="flex gap-2">
               <select
@@ -173,11 +212,11 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
                 onChange={(e) => setCountryCode(e.target.value)}
                 className="w-32 px-2 py-3 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-[#e5a93c]/50 cursor-pointer appearance-none text-center"
               >
-                <option value="20">🇪🇬 Egypt</option>
+                <option value="20">🇪🇬 Egypt (+20)</option>
+                <option value="966">🇸🇦 Saudi (+966)</option>
+                <option value="971">🇦🇪 UAE (+971)</option>
                 <option value="1">🇺🇸 USA (+1)</option>
                 <option value="44">🇬🇧 UK (+44)</option>
-                <option value="971">🇦🇪 UAE (+971)</option>
-                <option value="966">🇸🇦 Saudi (+966)</option>
               </select>
               <input
                 id="checkout-phone"
@@ -186,7 +225,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
                 onChange={(e) => setClientPhone(e.target.value)}
                 placeholder="Phone number"
                 className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-neutral-500 outline-none focus:border-[#e5a93c]/50"
-                required
+                required={!isEmail}
               />
             </div>
           </div>
@@ -204,7 +243,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
             <div className="mt-4 p-5 border border-white/10 rounded-xl bg-[#03010A] animate-in fade-in slide-in-from-top-2">
               <h4 className="text-[#e5a93c] font-bold mb-2">Contact Support</h4>
               <p className="text-sm text-neutral-400 mb-4">
-                We're here to help! Please reach out to our team directly for any questions before you finalize your plan.
+                We&apos;re here to help! Please reach out to our team directly for any questions before you finalize your plan.
               </p>
               <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-3 text-neutral-300">
@@ -234,12 +273,11 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
           )}
         </div>
       </div>
-      )}
 
       <div className="space-y-4">
         <h3 className="text-lg font-bold">Select Payment Method</h3>
-        <div className="grid gap-4">
-          {methods.map((m) => (
+        <div className="grid gap-3">
+          {availableMethods.map((m) => (
             <div
               key={m.method}
               onClick={() => setSelectedMethod(m.method)}
@@ -253,18 +291,14 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
             >
               <div className="flex items-center justify-between">
                 <span className="font-bold">{m.display_name}</span>
-                {m.method === "vodafone_cash" && (
-                  <img src="/vodafone-cash.svg" alt="Vodafone Cash" className="h-6 w-auto" />
-                )}
-                {m.method === "stripe" && (
-                  <div className="flex items-center gap-1.5">
-                    <img src="/stripe.svg" alt="Stripe" className="h-6 w-auto rounded-[4px]" />
-                    <VisaIcon size={28} className="rounded-[3px]" />
-                    <MastercardIcon size={28} className="rounded-[3px]" />
+                {m.method === "vodafone_cash" ? (
+                  <div className="h-7 px-2 py-0.5 rounded bg-white flex items-center justify-center shrink-0 shadow-xs">
+                    <img src="/vodafone-cash.png" alt="Vodafone Cash" className="h-5 w-auto object-contain" />
                   </div>
-                )}
-                {m.method === "paymob" && (
-                  <img src="/paymob.svg" alt="Paymob" className="h-6 w-auto rounded-[4px]" />
+                ) : (
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#e5a93c]/20 text-[#e5a93c] border border-[#e5a93c]/30 text-xs font-mono font-bold">
+                    <span>EMAIL INVOICE</span>
+                  </div>
                 )}
               </div>
               {m.instructions && (
@@ -275,10 +309,10 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
         </div>
       </div>
 
-      {!isStripe && selected && (
+      {!isEmail && (
         <div className="space-y-4">
           <div className="p-4 bg-white/5 border border-[#e5a93c]/30 rounded-xl">
-            <h4 className="font-bold text-[#e5a93c] mb-2">Payment Instructions</h4>
+            <h4 className="font-bold text-[#e5a93c] mb-2">Vodafone Cash Transfer Details</h4>
             <p className="text-sm text-neutral-300 mb-2">
               Please transfer exactly <strong className="text-white text-base">${amountToCharge}</strong> to the following Vodafone Cash number:
             </p>
@@ -295,26 +329,42 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
             <ul className="list-disc pl-5 space-y-1.5 text-xs leading-relaxed">
               <li>Activation is manual: our team verifies your transfer and activates your plan, typically within <strong className="text-white">24–48 hours</strong>.</li>
               <li>Submit the transaction reference exactly as it appears in your Vodafone Cash SMS.</li>
-              <li>If the reference cannot be matched (wrong amount, wrong number, invalid or duplicate submission), we will contact you on the phone number above. If it cannot be resolved, the submission is rejected and the transferred amount is <strong className="text-white">refunded to the sending wallet</strong>.</li>
-              <li>This purchase does not auto-renew — you'll need to submit a new payment when the period ends.</li>
+              <li>If the reference cannot be matched (wrong amount, wrong number, invalid or duplicate submission), we will contact you on the phone number above. If it cannot be resolved, the transferred amount is <strong className="text-white">refunded to the sending wallet</strong>.</li>
+              <li>This purchase does not auto-renew — you&apos;ll need to submit a new payment when the period ends.</li>
               <li>Refund terms: see the <Link href="/refund" className="text-[#e5a93c] hover:underline">Refund &amp; Cancellation Policy</Link>.</li>
             </ul>
           </div>
           
           <div className="space-y-2">
             <label htmlFor="checkout-txref" className="block text-sm font-medium text-neutral-300">
-              Transaction Reference / Wallet Number
+              Transaction Reference / Wallet Number *
             </label>
             <input
               id="checkout-txref"
               type="text"
               value={transactionRef}
               onChange={(e) => setTransactionRef(e.target.value)}
-              placeholder="e.g. Transaction Ref or Wallet ID"
+              placeholder="e.g. 123456789 or Wallet ID"
               className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-neutral-500 outline-none focus:border-[#e5a93c]/50"
               required
             />
           </div>
+        </div>
+      )}
+
+      {isEmail && (
+        <div className="p-4 border border-[#e5a93c]/30 rounded-xl bg-white/[0.02] space-y-3 text-sm text-neutral-300">
+          <h4 className="font-bold text-[#e5a93c] flex items-center gap-2">
+            Email Payment Request Terms
+          </h4>
+          <p className="text-xs leading-relaxed text-neutral-300">
+            Once submitted, we will immediately send an itemized invoice for <strong className="text-white">${amountToCharge}</strong> to <strong className="text-[#e5a93c]">{clientEmail || "your email"}</strong> with payment instructions.
+          </p>
+          <ul className="list-disc pl-5 space-y-1 text-xs text-neutral-400">
+            <li>Review the invoice in your email inbox.</li>
+            <li>Follow the transfer instructions and reply with payment proof.</li>
+            <li>Our team activates your account immediately upon receipt.</li>
+          </ul>
         </div>
       )}
 
@@ -331,25 +381,30 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
             I agree to the{" "}
             <Link href="/terms" target="_blank" className="text-[#e5a93c] hover:underline">Terms of Service</Link>,{" "}
             <Link href="/refund" target="_blank" className="text-[#e5a93c] hover:underline">Refund &amp; Cancellation Policy</Link>, and{" "}
-            <Link href="/privacy" target="_blank" className="text-[#e5a93c] hover:underline">Privacy Policy</Link>.{" "}
-            {plan.billing_cycle === "monthly" && "I understand this subscription renews automatically and how to cancel."}
+            <Link href="/privacy" target="_blank" className="text-[#e5a93c] hover:underline">Privacy Policy</Link>.
           </span>
         </label>
         <p className="flex items-start gap-2 text-[11px] text-neutral-500 mt-3 leading-relaxed">
           <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-neutral-500" />
           {plan.billing_cycle === "monthly"
-            ? "Renews automatically until canceled. Cancel anytime from Billing & Subscription — your plan stays active until the end of the paid period."
-            : "One-time payment. No recurring charges. 14-day full refund window applies."}
+            ? "Your subscription is billed per period. No automatic charge without your confirmation."
+            : "One-time payment. No recurring charges. 14-day refund window applies."}
         </p>
       </div>
 
       <button
         onClick={handleCheckout}
         disabled={loading || !selectedMethod}
-        aria-label={isStripe ? "Continue to secure Stripe payment" : "Submit Vodafone Cash payment for review"}
+        aria-label={isEmail ? "Send Payment Request to Email" : "Submit Vodafone Cash payment for review"}
         className="w-full flex items-center justify-center gap-2 bg-[#e5a93c] hover:bg-[#d4952b] text-black font-bold py-4 rounded-xl disabled:opacity-50 transition-all cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e5a93c]"
       >
-        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isStripe ? "Continue to Payment" : "Submit Payment for Review")}
+        {loading ? (
+          <Loader2 className="w-5 h-5 animate-spin" />
+        ) : isEmail ? (
+          "Send Payment Request to Email"
+        ) : (
+          "Submit Payment for Review"
+        )}
         {!loading && <ArrowRight className="w-5 h-5" />}
       </button>
     </div>

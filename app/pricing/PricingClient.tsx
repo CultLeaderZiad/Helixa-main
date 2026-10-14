@@ -96,7 +96,7 @@ export default function PricingClient({ plans }: { plans: any[] }) {
           {t.pricingTitle || "Simple, transparent pricing"}
         </h1>
         <p className="text-neutral-400 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed">
-          {t.pricingSubtitle || "Start for free, then choose a plan that fits your needs. We offer automated billing via Stripe or manual payments via Vodafone Cash."}
+          {t.pricingSubtitle || "Start for free, then choose a plan that fits your needs. We offer payments via Vodafone Cash or Email payment request."}
         </p>
       </div>
 

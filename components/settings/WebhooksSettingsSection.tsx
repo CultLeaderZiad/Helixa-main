@@ -81,7 +81,7 @@ export function WebhooksSettingsSection() {
                 {[
                   { key: "leadCaptured", label: "contact.created", desc: "Triggered whenever an Instagram or TikTok follower provides contact info." },
                   { key: "messageReceived", label: "message.inbound", desc: "Triggered for every customer comment or DM received." },
-                  { key: "orderCompleted", label: "order.paid", desc: "Triggered when a customer pays via Vodafone Cash, Stripe, or Paymob." },
+                  { key: "orderCompleted", label: "order.paid", desc: "Triggered when a customer pays via Vodafone Cash or Email request." },
                 ].map((ev) => (
                   <label key={ev.key} className="flex items-start gap-2.5 p-2.5 rounded-[6px] border border-[var(--line)] bg-[var(--s1)] cursor-pointer hover:bg-[var(--s2)]/40 transition-colors">
                     <input

@@ -2,7 +2,8 @@
 
 import React from "react"
 import { cn } from "@/lib/utils"
-import { VodafoneIcon } from "@/components/icons/PaymentIcons"
+import { EmailPaymentIcon } from "@/components/icons/PaymentIcons"
+import { Mail } from "lucide-react"
 
 export interface PaymentOption {
   id: string
@@ -24,23 +25,16 @@ const DEFAULT_METHODS: PaymentOption[] = [
   {
     id: "vodafone_cash",
     name: "Vodafone Cash",
-    subline: "Mobile wallet · Paymob",
+    subline: "Mobile wallet · Instant transfer",
     badgeText: "VF",
-    badgeColor: "bg-[#E60000] text-white",
+    badgeColor: "bg-white text-black border border-[var(--line2)]",
   },
   {
-    id: "card",
-    name: "Credit or debit card",
-    subline: "Visa, Mastercard, Meeza",
-    badgeText: "CARD",
-    badgeColor: "bg-[var(--s3)] text-[var(--t2)] border border-[var(--line2)]",
-  },
-  {
-    id: "tap",
-    name: "Tap · GCC cards",
-    subline: "mada, KNET, Apple Pay",
-    badgeText: "TAP",
-    badgeColor: "bg-[var(--s3)] text-[var(--t2)] border border-[var(--line2)]",
+    id: "email",
+    name: "Email Payment Request",
+    subline: "Invoice & instructions sent to email",
+    badgeText: "EMAIL",
+    badgeColor: "bg-[var(--goldbg)] text-[var(--gold)] border border-[var(--goldline)]",
   },
 ]
 
@@ -98,12 +92,18 @@ export function PaymentMethodList({
               {/* Badge */}
               <div
                 className={cn(
-                  "w-7 h-7 rounded-[6px] font-mono text-[10px] font-bold flex items-center justify-center shrink-0",
+                  "w-7 h-7 rounded-[6px] font-mono text-[10px] font-bold flex items-center justify-center shrink-0 overflow-hidden",
                   item.badgeColor || "bg-[var(--s3)] text-[var(--t1)]"
                 )}
               >
                 {item.id === "vodafone_cash" ? (
-                  <VodafoneIcon size={20} />
+                  <img
+                    src="/vodafone-cash.png"
+                    alt="Vodafone Cash"
+                    className="h-4 w-auto object-contain"
+                  />
+                ) : item.id === "email" ? (
+                  <Mail className="w-3.5 h-3.5 text-[var(--gold)]" />
                 ) : (
                   <span>{item.badgeText}</span>
                 )}

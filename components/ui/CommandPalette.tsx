@@ -142,7 +142,7 @@ const NAV_ITEMS: CommandItem[] = [
     icon: CreditCard,
     href: "/dashboard/billing",
     group: "navigation",
-    keywords: ["plan", "payment", "subscription", "vodafone", "paymob"],
+    keywords: ["plan", "payment", "subscription", "vodafone", "email"],
   },
   {
     id: "nav-settings",

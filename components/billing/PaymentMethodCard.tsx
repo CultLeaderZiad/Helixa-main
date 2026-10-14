@@ -1,13 +1,13 @@
 "use client"
 
 import React, { useState, useRef } from "react"
-import { Check, Upload, CreditCard, Wallet, ExternalLink, ArrowRight, Image as ImageIcon } from "lucide-react"
+import { Check, Upload, Mail, ArrowRight } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { CopyButton } from "@/components/ui/CopyButton"
 import { brand } from "@/lib/brand"
 import Link from "next/link"
-import { VodafoneIcon, StripeIcon, PaymobIcon } from "@/components/icons/PaymentIcons"
+import { VodafoneCashBadge, EmailPaymentIcon } from "@/components/icons/PaymentIcons"
 
 export interface PaymentMethodCardProps {
   amount?: string
@@ -22,10 +22,14 @@ export function PaymentMethodCard({
   currentPlanId = "agency",
   pendingReference,
 }: PaymentMethodCardProps) {
-  const [selectedMethod, setSelectedMethod] = useState<"vodafone" | "card" | "paymob">("vodafone")
+  const [selectedMethod, setSelectedMethod] = useState<"vodafone" | "email">("vodafone")
   const [isDragging, setIsDragging] = useState(false)
   const [uploadedReceipt, setUploadedReceipt] = useState<string | null>(null)
-  const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [emailInput, setEmailInput] = useState("")
+  const [clientName, setClientName] = useState("")
+  const [emailNote, setEmailNote] = useState("")
+  const [emailLoading, setEmailLoading] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Masked display: "010 •••• 2994"
@@ -64,27 +68,36 @@ export function PaymentMethodCard({
     }
   }
 
-  const handleCardCheckout = async (provider: "stripe" | "paymob") => {
-    setCheckoutLoading(true)
+  const handleEmailRequest = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!emailInput.trim()) {
+      toast.error("Please enter your email address")
+      return
+    }
+    setEmailLoading(true)
     try {
-      const res = await fetch("/api/billing/checkout", {
+      const res = await fetch("/api/payments/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          planId: currentPlanId,
-          provider,
+          payment_method: "email",
+          plan_id: currentPlanId,
+          amount: 1, // trigger submission record
+          transaction_reference: `EMAIL-REQ-${Date.now().toString(36).toUpperCase()}`,
+          note: `Email payment request: ${emailInput.trim()} | Name: ${clientName.trim() || "N/A"}${emailNote ? ` | Note: ${emailNote.trim()}` : ""}`,
         }),
       })
-      const data = await res.json()
-      if (res.ok && data.url) {
-        window.location.href = data.url
+      const data = await res.json().catch(() => ({}))
+      if (res.ok || data.success) {
+        setEmailSent(true)
+        toast.success("Payment request sent to your email!")
       } else {
-        toast.error(data.error || "Unable to initiate payment session")
+        toast.error(data.error || "Failed to submit payment request")
       }
     } catch {
-      toast.error("Network error while creating checkout session")
+      toast.error("Network error while submitting payment request")
     } finally {
-      setCheckoutLoading(false)
+      setEmailLoading(false)
     }
   }
 
@@ -95,8 +108,8 @@ export function PaymentMethodCard({
         Payment method
       </h3>
 
-      {/* 3 Provider Cards */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* 2 Supported Provider Options: Vodafone Cash & Email Request */}
+      <div className="grid grid-cols-2 gap-3">
         {/* Vodafone Cash */}
         <button
           type="button"
@@ -108,53 +121,39 @@ export function PaymentMethodCard({
               : "border-[var(--line)] bg-[var(--s2)] hover:border-[var(--line2)] text-[var(--t3)]"
           )}
         >
-          <div className="flex items-center gap-1.5">
-            <VodafoneIcon size={24} className="shrink-0" />
-            <span className="font-semibold text-[11.5px] text-[var(--t1)] truncate">
+          <div className="flex items-center gap-2">
+            <div className="h-6 px-1.5 py-0.5 rounded bg-white flex items-center justify-center shrink-0 shadow-xs">
+              <img
+                src="/vodafone-cash.png"
+                alt="Vodafone Cash"
+                className="h-4 w-auto object-contain"
+              />
+            </div>
+            <span className="font-semibold text-[12px] text-[var(--t1)] truncate">
               Vodafone Cash
             </span>
           </div>
-          <span className="text-[10px] text-[var(--t3)] font-mono">Egypt · manual</span>
+          <span className="text-[10px] text-[var(--t3)] font-mono">Egypt · wallet transfer</span>
         </button>
 
-        {/* Card (Stripe) */}
+        {/* Email Payment Request */}
         <button
           type="button"
-          onClick={() => setSelectedMethod("card")}
+          onClick={() => setSelectedMethod("email")}
           className={cn(
             "rounded-lg border p-2.5 text-left transition-colors cursor-pointer flex flex-col justify-between h-[68px]",
-            selectedMethod === "card"
+            selectedMethod === "email"
               ? "border-[var(--goldline)] bg-[var(--goldbg)]"
               : "border-[var(--line)] bg-[var(--s2)] hover:border-[var(--line2)] text-[var(--t3)]"
           )}
         >
-          <div className="flex items-center gap-1.5">
-            <StripeIcon size={24} className="shrink-0" />
-            <span className="font-semibold text-[11.5px] text-[var(--t1)] truncate">
-              Card (Stripe)
+          <div className="flex items-center gap-2">
+            <EmailPaymentIcon size={24} className="shrink-0" />
+            <span className="font-semibold text-[12px] text-[var(--t1)] truncate">
+              Email Request
             </span>
           </div>
-          <span className="text-[10px] text-[var(--t3)] font-mono">Stripe · auto-renew</span>
-        </button>
-
-        {/* Paymob */}
-        <button
-          type="button"
-          onClick={() => setSelectedMethod("paymob")}
-          className={cn(
-            "rounded-lg border p-2.5 text-left transition-colors cursor-pointer flex flex-col justify-between h-[68px]",
-            selectedMethod === "paymob"
-              ? "border-[var(--goldline)] bg-[var(--goldbg)]"
-              : "border-[var(--line)] bg-[var(--s2)] hover:border-[var(--line2)] text-[var(--t3)]"
-          )}
-        >
-          <div className="flex items-center gap-1.5">
-            <PaymobIcon size={24} className="shrink-0" />
-            <span className="font-semibold text-[11.5px] text-[var(--t1)] truncate">
-              Paymob
-            </span>
-          </div>
-          <span className="text-[10px] text-[var(--t3)] font-mono">Wallets, cards</span>
+          <span className="text-[10px] text-[var(--t3)] font-mono">Invoice sent to email</span>
         </button>
       </div>
 
@@ -299,75 +298,109 @@ export function PaymentMethodCard({
         </div>
       )}
 
-      {/* Card (Stripe) Tab Content */}
-      {selectedMethod === "card" && (
-        <div className="rounded-xl border border-[var(--line)] bg-[var(--s2)] p-5 space-y-4">
-          <div className="flex items-start gap-3">
-            <CreditCard className="w-5 h-5 text-[var(--t3)] shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="text-[12.5px] text-[var(--t1)] font-medium">
-                Credit &amp; Debit cards
-              </p>
+      {/* Email Payment Request Tab Content */}
+      {selectedMethod === "email" && (
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--s2)] p-4 space-y-3.5">
+          {emailSent ? (
+            <div className="p-4 rounded-lg bg-[var(--greenbg)] border border-[var(--green)] space-y-2 text-center">
+              <div className="w-8 h-8 rounded-full bg-[var(--green)] text-black flex items-center justify-center mx-auto">
+                <Check className="w-5 h-5" />
+              </div>
+              <h4 className="text-[13px] font-semibold text-[var(--t1)]">
+                Payment Request Sent!
+              </h4>
               <p className="text-[11.5px] text-[var(--t3)] leading-relaxed">
-                Cards are billed automatically each month via Stripe with secure 3D-Secure authentication.
+                An invoice and payment instructions have been sent to{" "}
+                <span className="font-mono text-[var(--t1)]">{emailInput}</span>.
+                Please check your inbox to complete the payment.
               </p>
+              <button
+                type="button"
+                onClick={() => setEmailSent(false)}
+                className="text-[11px] text-[var(--gold2)] hover:underline mt-1"
+              >
+                Send another request
+              </button>
             </div>
-          </div>
+          ) : (
+            <form onSubmit={handleEmailRequest} className="space-y-3">
+              <div className="flex items-start gap-2.5">
+                <Mail className="w-4 h-4 text-[var(--gold)] shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="text-[12.5px] text-[var(--t1)] font-semibold">
+                    Request Invoice &amp; Payment Link
+                  </p>
+                  <p className="text-[11px] text-[var(--t3)] leading-relaxed">
+                    We&apos;ll email you an itemized invoice for {amount} along with manual transfer instructions.
+                  </p>
+                </div>
+              </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-[var(--line)]">
-            <button
-              type="button"
-              disabled={checkoutLoading}
-              onClick={() => handleCardCheckout("stripe")}
-              className="h-[32px] px-4 rounded-[6px] bg-[var(--t1)] text-black font-semibold text-[12px] hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-1.5"
-            >
-              <span>Pay {amount} by card</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+              <div className="space-y-2 pt-1">
+                <div>
+                  <label htmlFor="pmc-email" className="block text-[10.5px] font-mono text-[var(--t3)] mb-1">
+                    Your Email Address *
+                  </label>
+                  <input
+                    id="pmc-email"
+                    type="email"
+                    required
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    placeholder="name@company.com"
+                    className="w-full h-[34px] px-3 rounded-lg bg-[var(--s1)] border border-[var(--line2)] text-[12px] text-[var(--t1)] placeholder-[var(--t3)] focus:border-[var(--goldline)] focus:outline-none"
+                  />
+                </div>
 
-            <Link
-              href="/privacy"
-              className="text-[11px] text-[var(--t3)] hover:text-[var(--t2)] underline transition-colors"
-            >
-              Refund policy
-            </Link>
-          </div>
-        </div>
-      )}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label htmlFor="pmc-name" className="block text-[10.5px] font-mono text-[var(--t3)] mb-1">
+                      Full Name
+                    </label>
+                    <input
+                      id="pmc-name"
+                      type="text"
+                      value={clientName}
+                      onChange={(e) => setClientName(e.target.value)}
+                      placeholder="Your name"
+                      className="w-full h-[34px] px-3 rounded-lg bg-[var(--s1)] border border-[var(--line2)] text-[12px] text-[var(--t1)] placeholder-[var(--t3)] focus:border-[var(--goldline)] focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="pmc-note" className="block text-[10.5px] font-mono text-[var(--t3)] mb-1">
+                      Note / Reference
+                    </label>
+                    <input
+                      id="pmc-note"
+                      type="text"
+                      value={emailNote}
+                      onChange={(e) => setEmailNote(e.target.value)}
+                      placeholder="Optional notes"
+                      className="w-full h-[34px] px-3 rounded-lg bg-[var(--s1)] border border-[var(--line2)] text-[12px] text-[var(--t1)] placeholder-[var(--t3)] focus:border-[var(--goldline)] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
 
-      {/* Paymob Tab Content */}
-      {selectedMethod === "paymob" && (
-        <div className="rounded-xl border border-[var(--line)] bg-[var(--s2)] p-5 space-y-4">
-          <div className="flex items-start gap-3">
-            <Wallet className="w-5 h-5 text-[var(--t3)] shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="text-[12.5px] text-[var(--t1)] font-medium">
-                Egyptian Wallets &amp; Local Cards
-              </p>
-              <p className="text-[11.5px] text-[var(--t3)] leading-relaxed">
-                Paymob supports Meeza cards, mobile wallets (Vodafone, Orange, Etisalat, WE), and domestic Egyptian debit cards.
-              </p>
-            </div>
-          </div>
+              <div className="flex items-center justify-between pt-2 border-t border-[var(--line)]">
+                <button
+                  type="submit"
+                  disabled={emailLoading}
+                  className="h-[32px] px-4 rounded-[6px] bg-[var(--gold)] text-black font-semibold text-[12px] hover:bg-[var(--gold2)] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <span>{emailLoading ? "Sending request…" : `Send request for ${amount}`}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
 
-          <div className="flex items-center justify-between pt-2 border-t border-[var(--line)]">
-            <button
-              type="button"
-              disabled={checkoutLoading}
-              onClick={() => handleCardCheckout("paymob")}
-              className="h-[32px] px-4 rounded-[6px] bg-[var(--t1)] text-black font-semibold text-[12px] hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-1.5"
-            >
-              <span>Pay {amount} with Paymob</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-
-            <Link
-              href="/privacy"
-              className="text-[11px] text-[var(--t3)] hover:text-[var(--t2)] underline transition-colors"
-            >
-              Refund policy
-            </Link>
-          </div>
+                <Link
+                  href="/terms"
+                  className="text-[11px] text-[var(--t3)] hover:text-[var(--t2)] underline transition-colors"
+                >
+                  Payment terms
+                </Link>
+              </div>
+            </form>
+          )}
         </div>
       )}
     </div>

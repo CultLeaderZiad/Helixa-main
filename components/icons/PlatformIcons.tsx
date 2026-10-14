@@ -62,52 +62,39 @@ export function WhatsAppIcon({ size = 20, className = "", ...props }: IconProps)
   )
 }
 
-/** Official Facebook Brand Icon */
+/** Official Facebook Brand Icon (User provided brand mark) */
 export function FacebookIcon({ size = 20, className = "", ...props }: IconProps) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      width={size}
-      height={size}
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
+    <img
+      src="/facebook.png"
+      alt="Facebook"
       className={className}
-      {...props}
-    >
-      <circle cx="12" cy="12" r="12" fill="#1877F2" />
-      <path
-        d="M14.73 12.07h-1.9v7.93h-3.27v-7.93H8.08V9.3h1.48V7.47c0-2.02 1.2-3.14 3.04-3.14.88 0 1.8.16 1.8.16v1.98h-1.01c-1 0-1.31.62-1.31 1.26v1.57h2.23l-.36 2.77z"
-        fill="#FFFFFF"
-      />
-    </svg>
+      style={{
+        width: typeof size === "number" ? `${size}px` : size,
+        height: typeof size === "number" ? `${size}px` : size,
+        objectFit: "contain",
+        display: "inline-block",
+      }}
+      {...(props as any)}
+    />
   )
 }
 
-/** Official Messenger Brand Icon (Meta Gradient speech bubble with lightning bolt) */
+/** Official Messenger Brand Icon (User provided brand mark) */
 export function MessengerIcon({ size = 20, className = "", ...props }: IconProps) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      width={size}
-      height={size}
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
+    <img
+      src="/messenger.png"
+      alt="Messenger"
       className={className}
-      {...props}
-    >
-      <defs>
-        <linearGradient id="msg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#00B2FF" />
-          <stop offset="50%" stopColor="#006AFF" />
-          <stop offset="100%" stopColor="#A033FF" />
-        </linearGradient>
-      </defs>
-      <circle cx="12" cy="12" r="12" fill="url(#msg-grad)" />
-      <path
-        d="M6.5 11.85c0-3.12 2.46-5.65 5.5-5.65s5.5 2.53 5.5 5.65c0 3.12-2.46 5.65-5.5 5.65-.58 0-1.14-.09-1.66-.26l-2.07.65.65-1.85c-1.46-1.01-2.42-2.49-2.42-4.19zm6.06-.82l-1.63 1.74-2.22-1.22c-.2-.11-.45-.04-.56.16-.04.07-.05.15-.03.23l1.1 2.54c.08.19.3.29.49.21.07-.03.13-.08.18-.14l1.63-1.74 2.22 1.22c.2.11.45.04.56-.16.04-.07.05-.15.03-.23l-1.1-2.54a.386.386 0 00-.49-.21.39.39 0 00-.18.14z"
-        fill="#FFFFFF"
-      />
-    </svg>
+      style={{
+        width: typeof size === "number" ? `${size}px` : size,
+        height: typeof size === "number" ? `${size}px` : size,
+        objectFit: "contain",
+        display: "inline-block",
+      }}
+      {...(props as any)}
+    />
   )
 }
 

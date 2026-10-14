@@ -21,9 +21,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Choose a paid plan." }, { status: 400 })
   }
   const provider =
-    body.provider === "paymob" || body.provider === "tap" || body.provider === "vodafone_cash"
+    body.provider === "email" || body.provider === "email_request"
+      ? "email"
+      : body.provider === "paymob" || body.provider === "tap" || body.provider === "vodafone_cash"
       ? body.provider
-      : "stripe"
+      : "vodafone_cash"
   const amountCents = planPriceCents(plan.id, interval)
   const origin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
   const description = `${BRAND.name} ${plan.name} (${interval})`
@@ -34,6 +36,15 @@ export async function POST(request: NextRequest) {
       amountCents,
       currency: "usd",
       instructions: "Transfer the amount with Vodafone Cash and submit the receipt on the billing page. An admin confirms it.",
+    })
+  }
+
+  if (provider === "email") {
+    return NextResponse.json({
+      provider,
+      amountCents,
+      currency: "usd",
+      instructions: "Payment request sent to your email. Check your inbox for invoice and transfer details.",
     })
   }
 

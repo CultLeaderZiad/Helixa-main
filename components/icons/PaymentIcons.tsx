@@ -29,15 +29,40 @@ export function VodafoneIcon({ size = 24, className = "", ...props }: PaymentIco
 }
 
 /** Official Vodafone Cash Full Badge / Logo with crisp contrast */
-export function VodafoneCashBadge({ className = "", height = 28 }: { className?: string; height?: number }) {
+export function VodafoneCashBadge({ className = "", height = 26 }: { className?: string; height?: number }) {
   return (
-    <div className={`inline-flex items-center gap-2 px-2 py-1 rounded-[6px] bg-[#E60000] text-white shadow-xs select-none ${className}`}>
-      <VodafoneIcon size={height - 8} className="shrink-0" />
-      <div className="flex items-baseline gap-1 font-sans">
-        <span className="font-bold tracking-tight text-[12px] lowercase leading-none text-white">vodafone</span>
-        <span className="font-semibold text-[10.5px] uppercase tracking-wider text-white/90 leading-none">cash</span>
-      </div>
+    <div
+      className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded-[5px] bg-white text-black shadow-xs select-none border border-[var(--line2)] ${className}`}
+      style={{ height: `${height}px` }}
+    >
+      <img
+        src="/vodafone-cash.png"
+        alt="Vodafone Cash"
+        style={{ height: `${height - 6}px`, width: "auto", objectFit: "contain" }}
+        className="shrink-0"
+      />
     </div>
+  )
+}
+
+/** Email Payment Request Icon */
+export function EmailPaymentIcon({ size = 24, className = "", ...props }: PaymentIconProps) {
+  return (
+    <svg
+      viewBox="0 0 32 32"
+      width={size}
+      height={size}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      {...props}
+    >
+      <rect width="32" height="32" rx="8" fill="#D6AE5C" />
+      <path
+        d="M8 11a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H10a2 2 0 01-2-2V11zm2 0l6 4.5L22 11H10zm12 2.2l-5.4 4.05a1 1 0 01-1.2 0L10 13.2V21h12v-7.8z"
+        fill="#000000"
+      />
+    </svg>
   )
 }
 

@@ -18,11 +18,11 @@ const FAQ_ITEMS_EN = [
   },
   {
     q: "How does billing work?",
-    a: "We offer two main payment methods:\n\n• Stripe: Pay securely with a credit card for instant access and automatic monthly renewals.\n• Vodafone Cash: A manual payment option specifically for users in Egypt. You submit a transaction reference number, and our team will manually review and approve your payment to activate your plan."
+    a: "We offer two main payment methods:\n\n• Vodafone Cash: A payment option for users in Egypt. Transfer to our business wallet number, submit your transaction reference number, and our team will review and approve your payment to activate your plan.\n• Email Payment Request: Request an official invoice and payment instructions sent directly to your email address."
   },
   {
     q: "What happens if my payment isn't renewed?",
-    a: "If your Stripe payment fails or your Vodafone Cash subscription expires without a manual renewal, your account will transition to an 'expired' state. Your data will be preserved, but your automations will stop firing until you renew."
+    a: "If your subscription expires without a renewal or approved payment submission, your account will transition to an 'expired' state. Your data will be preserved, but your automations will stop firing until you renew."
   },
   {
     q: "Which platforms are supported?",
@@ -41,7 +41,7 @@ const FAQ_ITEMS_AR = [
   },
   {
     q: "كيف تتم عملية الدفع والاشتراك؟",
-    a: "نوفر وسيلتين رئيسيتين للدفع:\n\n• Stripe: دفع آمن بالبطاقات الائتمانية مع تفعيل فوري وتجديد تلقائي.\n• فودافون كاش: وسيلة دفع محلية للمستخدمين داخل مصر، حيث يمكنك إرسال رقم مرجع التحويل ليقوم فريقنا بمراجعته وتفعيل خطتك مباشرة."
+    a: "نوفر وسيلتين رئيسيتين للدفع:\n\n• فودافون كاش: وسيلة دفع محلية للمستخدمين داخل مصر، حيث يمكنك إرسال رقم مرجع التحويل ليقوم فريقنا بمراجعته وتفعيل خطتك مباشرة.\n• طلب دفع عبر البريد الإلكتروني: يمكنك طلب فاتورة رسمية وتفاصيل الدفع لتصلك مباشرة على بريدك الإلكتروني لإتمام التحويل."
   },
   {
     q: "ماذا يحدث إذا لم يتم تجديد اشتراكي؟",
