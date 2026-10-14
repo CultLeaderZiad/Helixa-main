@@ -6,6 +6,7 @@ import { useInstagramSession } from "@/hooks/use-instagram-session"
 import { ConversationList } from "@/components/inbox/ConversationList"
 import { ChatWindow } from "@/components/inbox/ChatWindow"
 import { CustomerCopilotRail } from "@/components/inbox/CustomerCopilotRail"
+import { MobileInboxView } from "@/components/mobile"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmptyState"
@@ -26,6 +27,13 @@ function InboxContent() {
   const [isRailOpenMobile, setIsRailOpenMobile] = useState<boolean>(false)
   const [isMobileScreen, setIsMobileScreen] = useState<boolean>(false)
 
+  // Fetch real conversations for mobile inbox view
+  const { data: convData, isLoading: convLoading } = useSWR(
+    userId ? `/api/inbox/conversations?userId=${userId}` : null,
+    fetcher
+  )
+  const rawConversations = Array.isArray(convData) ? convData : []
+
   // Track responsive screen size for bottom sheet vs side drawer
   useEffect(() => {
     const updateSize = () => {
@@ -40,15 +48,6 @@ function InboxContent() {
   useEffect(() => {
     if (cParam) {
       setSelectedConversationId(cParam)
-      if (cParam === "mock-ahmed") {
-        setSelectedRecipientName("Ahmed Hassan")
-        setSelectedRecipientId("102")
-        setSelectedPlatform("whatsapp")
-      } else if (cParam === "mock-mariam") {
-        setSelectedRecipientName("Mariam Khaled")
-        setSelectedRecipientId("mariam.k")
-        setSelectedPlatform("instagram")
-      }
     } else {
       // If no query parameter and on phone, clear selected so List view is displayed
       if (typeof window !== "undefined" && window.innerWidth < 768) {
@@ -83,7 +82,7 @@ function InboxContent() {
 
   // Contact context query for selected contact
   const { data: contactContext, mutate: mutateContact } = useSWR(
-    selectedRecipientId && !selectedConversationId?.startsWith("mock-")
+    selectedRecipientId
       ? `/api/contacts?externalId=${encodeURIComponent(selectedRecipientId)}&channel=${encodeURIComponent(
           channel
         )}&conversationId=${encodeURIComponent(selectedConversationId || "")}`
@@ -91,10 +90,7 @@ function InboxContent() {
     fetcher
   )
 
-  const botPaused =
-    selectedConversationId === "mock-ahmed"
-      ? true
-      : Boolean(contactContext?.contact?.bot_paused)
+  const botPaused = Boolean(contactContext?.contact?.bot_paused)
 
   const handleToggleBot = async () => {
     const contactId = contactContext?.contact?.id
@@ -104,7 +100,7 @@ function InboxContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bot_paused: !botPaused }),
       }).catch(() => {})
-    } else if (selectedRecipientId && !selectedConversationId?.startsWith("mock-")) {
+    } else if (selectedRecipientId) {
       await fetch("/api/contacts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -137,12 +133,27 @@ function InboxContent() {
 
   return (
     <div className="h-[100dvh] md:h-[calc(100vh-52px)] flex bg-[var(--bg)] overflow-hidden w-full relative">
-      {/* Column 1: Conversations List (<768: visible if no c selected; >=768: always 300px fixed column) */}
+      {/* Column 1: Conversations List */}
+      {/* Mobile (<768px): MobileInboxView matching 03-inbox-tabbar.png when no conversation is selected */}
       <div
         className={cn(
-          "w-full md:w-[300px] shrink-0 h-full",
-          selectedConversationId ? "hidden md:flex flex-col" : "flex flex-col"
+          "w-full shrink-0 h-full md:hidden",
+          selectedConversationId ? "hidden" : "flex flex-col"
         )}
+      >
+        <MobileInboxView
+          conversations={rawConversations}
+          loading={convLoading}
+          activeConversationId={selectedConversationId}
+          onSelectConversation={(id, name, recipientId, platform) => {
+            handleSelect(id, name || "Customer", recipientId || "", platform || "instagram")
+          }}
+        />
+      </div>
+
+      {/* Desktop (>=768px): Standard 300px ConversationList */}
+      <div
+        className="hidden md:flex w-[300px] shrink-0 h-full flex-col border-e border-[var(--line)]"
       >
         <ConversationList
           userId={userId}

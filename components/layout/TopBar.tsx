@@ -47,7 +47,7 @@ const settingsSectionMap: Record<string, string> = {
 }
 
 export function TopBar({
-  workspaceName = "Mirage Digital",
+  workspaceName = "Workspace",
   actions,
   className,
 }: TopBarProps) {

@@ -27,14 +27,14 @@ export function ApiKeysSettingsSection() {
     {
       id: "1",
       name: "Zapier & Make Automations",
-      prefix: "hlx_live_9a7f••••••••",
+      prefix: "cyx_live_9a7f••••••••",
       createdAt: "Sep 14, 2026",
       lastUsed: "2h ago",
     },
     {
       id: "2",
       name: "Custom Agency ERP Sync",
-      prefix: "hlx_live_4e2b••••••••",
+      prefix: "cyx_live_4e2b••••••••",
       createdAt: "Aug 29, 2026",
       lastUsed: "Yesterday",
     },
@@ -49,13 +49,13 @@ export function ApiKeysSettingsSection() {
     if (!newKeyName) return
 
     const randomSuffix = Math.random().toString(36).substring(2, 14) + Math.random().toString(36).substring(2, 14)
-    const secret = `hlx_live_${randomSuffix}`
+    const secret = `cyx_live_${randomSuffix}`
     setGeneratedKey(secret)
 
     const newKey: ApiKeyItem = {
       id: String(Date.now()),
       name: newKeyName,
-      prefix: `hlx_live_${randomSuffix.substring(0, 4)}••••••••`,
+      prefix: `cyx_live_${randomSuffix.substring(0, 4)}••••••••`,
       createdAt: "Just now",
       lastUsed: "Never",
     }

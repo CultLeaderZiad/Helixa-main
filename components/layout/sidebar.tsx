@@ -119,15 +119,16 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "flex flex-col w-[240px] bg-[var(--s1)] border-e border-[var(--line)] select-none text-[var(--t1)]",
+        "flex flex-col bg-[var(--s1)] border-e border-[var(--line)] select-none text-[var(--t1)] transition-all",
+        collapsed ? "w-[64px] items-center" : "w-[240px]",
         className
       )}
       {...props}
     >
       {/* Brand Header */}
-      <div className="px-4 pt-4 pb-3 flex items-center justify-between">
+      <div className={cn("pt-4 pb-3 flex items-center", collapsed ? "justify-center px-2" : "justify-between px-4")}>
         <BrandLogo variant={collapsed ? "mark" : "wordmark"} size="sm" href="/dashboard" />
-        {plan && (
+        {!collapsed && plan && (
           <span className="text-[10.5px] font-medium px-1.5 py-0.5 rounded-[4px] bg-[var(--s2)] border border-[var(--line2)] text-[var(--t2)] capitalize">
             {plan.toLowerCase()}
           </span>
@@ -135,30 +136,55 @@ export function Sidebar({
       </div>
 
       {/* Workspace Switcher */}
-      <WorkspaceSwitcher />
+      {!collapsed ? (
+        <WorkspaceSwitcher />
+      ) : (
+        <div className="py-1 flex justify-center">
+          <div className="size-8 rounded-[8px] bg-[var(--s2)] border border-[var(--line2)] flex items-center justify-center font-mono text-[11px] font-bold text-[var(--t1)]" title={username}>
+            {userInitial}
+          </div>
+        </div>
+      )}
 
       {/* Search / Jump Row */}
-      <div className="px-3 pb-3">
-        <button
-          type="button"
-          onClick={() => {
-            const event = new KeyboardEvent("keydown", { key: "k", metaKey: true })
-            window.dispatchEvent(event)
-          }}
-          className="w-full h-8 px-2.5 rounded-[6px] bg-[var(--s2)] border border-[var(--line)] text-start flex items-center justify-between text-[12px] text-[var(--t3)] hover:border-[var(--line2)] hover:text-[var(--t2)] transition-colors cursor-pointer outline-none focus-visible:outline-2 focus-visible:outline-[var(--t1)]"
-        >
-          <span className="flex items-center gap-2">
-            <Search className="size-3.5 shrink-0" />
-            <span>Search or jump to...</span>
-          </span>
-          <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded-[4px] bg-[var(--s3)] border border-[var(--line2)] text-[var(--t3)]">
-            ⌘K
-          </kbd>
-        </button>
-      </div>
+      {!collapsed ? (
+        <div className="px-3 pb-3">
+          <button
+            type="button"
+            onClick={() => {
+              const event = new KeyboardEvent("keydown", { key: "k", metaKey: true })
+              window.dispatchEvent(event)
+            }}
+            className="w-full h-8 px-2.5 rounded-[6px] bg-[var(--s2)] border border-[var(--line)] text-start flex items-center justify-between text-[12px] text-[var(--t3)] hover:border-[var(--line2)] hover:text-[var(--t2)] transition-colors cursor-pointer outline-none focus-visible:outline-2 focus-visible:outline-[var(--t1)]"
+          >
+            <span className="flex items-center gap-2">
+              <Search className="size-3.5 shrink-0" />
+              <span>Search or jump to...</span>
+            </span>
+            <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded-[4px] bg-[var(--s3)] border border-[var(--line2)] text-[var(--t3)]">
+              ⌘K
+            </kbd>
+          </button>
+        </div>
+      ) : (
+        <div className="py-2 flex justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              const event = new KeyboardEvent("keydown", { key: "k", metaKey: true })
+              window.dispatchEvent(event)
+            }}
+            title="Search (⌘K)"
+            aria-label="Search (⌘K)"
+            className="size-8 rounded-[6px] bg-[var(--s2)] border border-[var(--line)] flex items-center justify-center text-[var(--t3)] hover:text-[var(--t1)] hover:border-[var(--line2)] transition-colors cursor-pointer"
+          >
+            <Search className="size-4 shrink-0" />
+          </button>
+        </div>
+      )}
 
       {/* Navigation List */}
-      <nav className="flex-1 px-2.5 space-y-0.5 overflow-y-auto overflow-x-hidden">
+      <nav className={cn("flex-1 space-y-1 overflow-y-auto overflow-x-hidden", collapsed ? "w-full px-2" : "px-2.5 space-y-0.5")}>
         {CORE_NAV.map(({ href, icon: Icon, label, badge, isAi }) => {
           const isAiAgentActive =
             href === "/dashboard/ai-engine" &&
@@ -175,14 +201,17 @@ export function Sidebar({
               key={href}
               href={href}
               onClick={onNavigate}
+              title={collapsed ? label : undefined}
+              aria-label={collapsed ? label : undefined}
               className={cn(
-                "group relative flex items-center justify-between h-[32px] px-2.5 rounded-[6px] text-[13px] transition-colors outline-none focus-visible:outline-2 focus-visible:outline-[var(--t1)]",
+                "group relative flex items-center rounded-[6px] text-[13px] transition-colors outline-none focus-visible:outline-2 focus-visible:outline-[var(--t1)]",
+                collapsed ? "justify-center h-[36px] w-full" : "justify-between h-[32px] px-2.5",
                 active
                   ? "bg-[var(--s3)] text-[var(--t1)] font-medium border-s-2 border-s-[var(--gold)]"
                   : "text-[var(--t2)] hover:text-[var(--t1)] hover:bg-[var(--s3)]/60"
               )}
             >
-              <span className="flex items-center gap-2.5 min-w-0">
+              <span className={cn("flex items-center min-w-0", collapsed ? "justify-center" : "gap-2.5")}>
                 <Icon
                   className={cn(
                     "size-4 shrink-0 transition-colors",
@@ -196,24 +225,31 @@ export function Sidebar({
                   )}
                   strokeWidth={active ? 2.2 : 1.8}
                 />
-                <span className="truncate">{label}</span>
+                {!collapsed && <span className="truncate">{label}</span>}
               </span>
 
-              {badge !== undefined && (
+              {!collapsed && badge !== undefined && (
                 <span className="px-1.5 py-0.5 text-[11px] font-mono rounded-full bg-[var(--s3)] border border-[var(--line2)] text-[var(--t2)]">
                   {badge}
                 </span>
+              )}
+              {collapsed && badge !== undefined && (
+                <span className="absolute top-1 end-1 size-2 rounded-full bg-[var(--blue)]" />
               )}
             </Link>
           )
         })}
 
         {/* WORKSPACE group label */}
-        <div className="pt-4 pb-1 px-2.5">
-          <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--t4)]">
-            WORKSPACE
-          </p>
-        </div>
+        {!collapsed ? (
+          <div className="pt-4 pb-1 px-2.5">
+            <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--t4)]">
+              WORKSPACE
+            </p>
+          </div>
+        ) : (
+          <div className="my-2 border-t border-[var(--line)]" />
+        )}
 
         {WORKSPACE_NAV.map(({ href, icon: Icon, label }) => {
           const active = pathname === href || pathname.startsWith(href)
@@ -222,8 +258,11 @@ export function Sidebar({
               key={href}
               href={href}
               onClick={onNavigate}
+              title={collapsed ? label : undefined}
+              aria-label={collapsed ? label : undefined}
               className={cn(
-                "group relative flex items-center gap-2.5 h-[32px] px-2.5 rounded-[6px] text-[13px] transition-colors outline-none focus-visible:outline-2 focus-visible:outline-[var(--t1)]",
+                "group relative flex items-center rounded-[6px] text-[13px] transition-colors outline-none focus-visible:outline-2 focus-visible:outline-[var(--t1)]",
+                collapsed ? "justify-center h-[36px] w-full" : "gap-2.5 h-[32px] px-2.5",
                 active
                   ? "bg-[var(--s3)] text-[var(--t1)] font-medium border-s-2 border-s-[var(--gold)]"
                   : "text-[var(--t2)] hover:text-[var(--t1)] hover:bg-[var(--s3)]/60"
@@ -236,79 +275,94 @@ export function Sidebar({
                 )}
                 strokeWidth={active ? 2.2 : 1.8}
               />
-              <span className="truncate">{label}</span>
+              {!collapsed && <span className="truncate">{label}</span>}
             </Link>
           )
         })}
 
         {userRole === "admin" && (
           <>
-            <div className="pt-4 pb-1 px-2.5">
-              <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--t4)]">
-                ADMIN
-              </p>
-            </div>
+            {!collapsed ? (
+              <div className="pt-4 pb-1 px-2.5">
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--t4)]">
+                  ADMIN
+                </p>
+              </div>
+            ) : (
+              <div className="my-2 border-t border-[var(--line)]" />
+            )}
             <Link
               href="/dashboard/admin"
               onClick={onNavigate}
+              title={collapsed ? "Admin overview" : undefined}
+              aria-label={collapsed ? "Admin overview" : undefined}
               className={cn(
-                "flex items-center gap-2.5 h-[32px] px-2.5 rounded-[6px] text-[13px] transition-colors",
+                "flex items-center rounded-[6px] text-[13px] transition-colors",
+                collapsed ? "justify-center h-[36px] w-full" : "gap-2.5 h-[32px] px-2.5",
                 pathname === "/dashboard/admin"
                   ? "bg-[var(--s3)] text-[var(--t1)] font-medium border-s-2 border-s-[var(--gold)]"
                   : "text-[var(--t2)] hover:text-[var(--t1)] hover:bg-[var(--s3)]/60"
               )}
             >
               <Shield className="size-4 shrink-0 text-[var(--t3)]" />
-              <span>Admin overview</span>
+              {!collapsed && <span>Admin overview</span>}
             </Link>
           </>
         )}
       </nav>
 
       {/* Footer / Usage / User Section */}
-      <div className="p-3 border-t border-[var(--line)] space-y-3 shrink-0">
-        {/* What's new link row */}
-        <Link
-          href="/dashboard/updates"
-          onClick={onNavigate}
-          className="flex items-center justify-between px-2.5 py-1.5 rounded-[6px] border border-dashed border-[var(--line2)] text-[12px] text-[var(--t2)] hover:text-[var(--t1)] hover:bg-[var(--s2)] transition-colors group"
-        >
-          <span className="flex items-center gap-2">
-            <span className="size-1.5 rounded-full bg-[var(--gold)] shrink-0" />
-            <span>What&apos;s new</span>
-          </span>
-          <ChevronRight className="size-3 text-[var(--t3)] group-hover:text-[var(--t2)] transition-transform group-hover:translate-x-0.5" />
-        </Link>
+      <div className={cn("border-t border-[var(--line)] shrink-0", collapsed ? "p-2 w-full flex flex-col items-center gap-2" : "p-3 space-y-3 w-full")}>
+        {!collapsed && (
+          <>
+            {/* What's new link row */}
+            <Link
+              href="/dashboard/updates"
+              onClick={onNavigate}
+              className="flex items-center justify-between px-2.5 py-1.5 rounded-[6px] border border-dashed border-[var(--line2)] text-[12px] text-[var(--t2)] hover:text-[var(--t1)] hover:bg-[var(--s2)] transition-colors group"
+            >
+              <span className="flex items-center gap-2">
+                <span className="size-1.5 rounded-full bg-[var(--gold)] shrink-0" />
+                <span>What&apos;s new</span>
+              </span>
+              <ChevronRight className="size-3 text-[var(--t3)] group-hover:text-[var(--t2)] transition-transform group-hover:translate-x-0.5" />
+            </Link>
 
-        {/* Plan Usage Meter */}
-        <div className="p-2.5 rounded-[8px] bg-[var(--s2)] border border-[var(--line)] space-y-1.5">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="text-[var(--t2)]">AI replies</span>
-            <span className="font-mono text-[var(--t1)] tabular-nums">
-              {usedReplies.toLocaleString()} / {maxReplies >= 1000 ? `${maxReplies / 1000}k` : maxReplies}
-            </span>
-          </div>
-          {/* Progress bar */}
-          <div className="h-1.5 w-full rounded-full bg-[var(--s4)] overflow-hidden">
-            <div
-              className="h-full bg-[var(--gold)] rounded-full transition-all duration-300"
-              style={{ width: `${Math.max(usagePercent, 2)}%` }}
-            />
-          </div>
-          <p className="text-[10.5px] text-[var(--t3)] truncate">
-            {planName} plan
-          </p>
-        </div>
+            {/* Plan Usage Meter */}
+            <div className="p-2.5 rounded-[8px] bg-[var(--s2)] border border-[var(--line)] space-y-1.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[var(--t2)]">AI replies</span>
+                <span className="font-mono text-[var(--t1)] tabular-nums">
+                  {usedReplies.toLocaleString()} / {maxReplies >= 1000 ? `${maxReplies / 1000}k` : maxReplies}
+                </span>
+              </div>
+              {/* Progress bar */}
+              <div className="h-1.5 w-full rounded-full bg-[var(--s4)] overflow-hidden">
+                <div
+                  className="h-full bg-[var(--gold)] rounded-full transition-all duration-300"
+                  style={{ width: `${Math.max(usagePercent, 2)}%` }}
+                />
+              </div>
+              <p className="text-[10.5px] text-[var(--t3)] truncate">
+                {planName} plan
+              </p>
+            </div>
+          </>
+        )}
 
         {/* User Account Row with Popover */}
-        <div className="relative" ref={userMenuRef}>
+        <div className={cn("relative", collapsed ? "w-full flex justify-center" : "w-full")} ref={userMenuRef}>
           <button
             type="button"
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="w-full flex items-center justify-between p-2 rounded-[8px] bg-[var(--s2)] border border-[var(--line)] hover:border-[var(--line2)] transition-colors text-start cursor-pointer outline-none focus-visible:outline-2 focus-visible:outline-[var(--t1)]"
+            aria-label="User account menu"
+            className={cn(
+              "rounded-[8px] bg-[var(--s2)] border border-[var(--line)] hover:border-[var(--line2)] transition-colors cursor-pointer outline-none focus-visible:outline-2 focus-visible:outline-[var(--t1)]",
+              collapsed ? "size-9 flex items-center justify-center p-0" : "w-full flex items-center justify-between p-2 text-start"
+            )}
           >
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="size-7 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center shrink-0 overflow-hidden">
+            {collapsed ? (
+              <div className="size-7 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center overflow-hidden">
                 {profilePic ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={profilePic} alt={username} className="size-full object-cover" />
@@ -316,21 +370,37 @@ export function Sidebar({
                   <span className="text-[11px] font-bold text-[var(--t1)]">{userInitial}</span>
                 )}
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[12px] font-semibold text-[var(--t1)] truncate leading-tight">
-                  {username}
-                </p>
-                <p className="text-[10px] text-[var(--t3)] truncate leading-tight mt-0.5">
-                  {email || "Workspace admin"}
-                </p>
-              </div>
-            </div>
-            <MoreHorizontal className="size-3.5 text-[var(--t3)] shrink-0" />
+            ) : (
+              <>
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="size-7 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center shrink-0 overflow-hidden">
+                    {profilePic ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={profilePic} alt={username} className="size-full object-cover" />
+                    ) : (
+                      <span className="text-[11px] font-bold text-[var(--t1)]">{userInitial}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[12px] font-semibold text-[var(--t1)] truncate leading-tight">
+                      {username}
+                    </p>
+                    <p className="text-[10px] text-[var(--t3)] truncate leading-tight mt-0.5">
+                      {email || "Workspace admin"}
+                    </p>
+                  </div>
+                </div>
+                <MoreHorizontal className="size-3.5 text-[var(--t3)] shrink-0" />
+              </>
+            )}
           </button>
 
           {/* User Popover Menu */}
           {userMenuOpen && (
-            <div className="absolute start-0 end-0 bottom-full mb-1.5 z-50 rounded-[8px] bg-[var(--s1)] border border-[var(--line2)] shadow-2xl p-1 space-y-0.5">
+            <div className={cn(
+              "absolute bottom-full mb-1.5 z-50 rounded-[8px] bg-[var(--s1)] border border-[var(--line2)] shadow-2xl p-1 space-y-0.5",
+              collapsed ? "start-full ms-2 w-48" : "start-0 end-0"
+            )}>
               {BRAND.emails.support && (
                 <a
                   href={`mailto:${BRAND.emails.support}`}

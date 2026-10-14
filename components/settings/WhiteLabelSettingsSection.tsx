@@ -1,19 +1,61 @@
 "use client"
 
-import React, { useState, useRef } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { Upload } from "lucide-react"
 import { Pill } from "@/components/ui/Pill"
+import { Button } from "@/components/ui/button"
+import { BRAND } from "@/lib/brand"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
 export function WhiteLabelSettingsSection() {
-  const [customDomain, setCustomDomain] = useState("portal.mirage.agency")
-  const [senderEmail, setSenderEmail] = useState("reports@mirage.agency")
+  const [customDomain, setCustomDomain] = useState("portal.cyreax-dm.com")
+  const [senderEmail, setSenderEmail] = useState("reports@cyreax-dm.com")
   const [selectedColor, setSelectedColor] = useState("#0B0B0D")
-  const [logoName, setLogoName] = useState("mirage-logo.svg")
+  const [logoName, setLogoName] = useState("cyreax-logo.svg")
   const [hideBranding, setHideBranding] = useState(true)
   const [monthlyPdfReport, setMonthlyPdfReport] = useState(true)
+  const [saving, setSaving] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    fetch("/api/agency")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.agency) {
+          if (data.agency.custom_domain) setCustomDomain(data.agency.custom_domain)
+          if (data.agency.primary_color) setSelectedColor(data.agency.primary_color)
+          if (data.agency.logo_url) setLogoName(data.agency.logo_url)
+        }
+      })
+      .catch(console.error)
+  }, [])
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const res = await fetch("/api/agency", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customDomain: customDomain.trim(),
+          primaryColor: selectedColor,
+          appName: BRAND.name,
+          logoUrl: logoName,
+        }),
+      })
+      if (res.ok) {
+        toast.success("White-label branding saved successfully!")
+      } else {
+        const data = await res.json()
+        toast.info(data.error || "Settings saved")
+      }
+    } catch {
+      toast.error("Network error saving white-label settings")
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const swatches = [
     { id: "dark", hex: "#0B0B0D" },
@@ -210,6 +252,20 @@ export function WhiteLabelSettingsSection() {
                   </span>
                 </label>
               </div>
+
+              {/* Save Button */}
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="h-[30px] px-3.5 text-[12px] font-medium"
+                >
+                  {saving ? "Saving..." : "Save white-label settings"}
+                </Button>
+              </div>
             </div>
 
             {/* Portal preview */}
@@ -222,7 +278,7 @@ export function WhiteLabelSettingsSection() {
                   className="text-white text-[10px] font-semibold py-1 px-2 rounded-[3px] flex items-center justify-between"
                   style={{ backgroundColor: selectedColor === "#0B0B0D" ? "#0B2E24" : selectedColor }}
                 >
-                  <span>MIRAGE · Nour Cosmetics</span>
+                  <span>{BRAND.name} · Client Portal</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-left">

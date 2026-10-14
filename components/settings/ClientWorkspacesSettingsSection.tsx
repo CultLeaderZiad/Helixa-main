@@ -1,20 +1,45 @@
 "use client"
 
-import React from "react"
+import React, { useState, useEffect } from "react"
 import { Layers, Plus, ExternalLink } from "lucide-react"
 import { Pill } from "@/components/ui/Pill"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
-const clientWorkspacesList = [
-  { id: "1", name: "Nour Cosmetics", handle: "@nourcosmetics", channels: 3, status: "active", tier: "Growth" },
-  { id: "2", name: "Falak Fitness", handle: "@falakfitness", channels: 2, status: "active", tier: "Growth" },
-  { id: "3", name: "Cairo Roastery", handle: "@cairoroastery", channels: 4, status: "active", tier: "Growth" },
-  { id: "4", name: "Urban Kicks Egypt", handle: "@urbankicks", channels: 2, status: "active", tier: "Growth" },
-  { id: "5", name: "Sakan Real Estate", handle: "@sakan_egypt", channels: 3, status: "active", tier: "Growth" },
+interface WorkspaceItem {
+  id: string
+  name: string
+  handle: string
+  channels?: number
+  status?: string
+}
+
+const defaultWorkspacesList: WorkspaceItem[] = [
+  { id: "1", name: "Primary Workspace", handle: "@primary", channels: 3, status: "active" },
 ]
 
 export function ClientWorkspacesSettingsSection() {
+  const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>(defaultWorkspacesList)
+
+  useEffect(() => {
+    fetch("/api/workspaces")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data?.workspaces) && data.workspaces.length > 0) {
+          setWorkspaces(
+            data.workspaces.map((w: any) => ({
+              id: w.id,
+              name: w.name,
+              handle: `@${w.name.toLowerCase().replace(/\s+/g, "_")}`,
+              channels: 1,
+              status: "active",
+            }))
+          )
+        }
+      })
+      .catch(console.error)
+  }, [])
+
   return (
     <div className="space-y-8 select-none">
       <div className="space-y-1">
@@ -33,7 +58,7 @@ export function ClientWorkspacesSettingsSection() {
               Workspaces
             </h3>
             <p className="text-[11.5px] text-[var(--t3)] leading-relaxed">
-              14 of 10 client workspaces used (4 extra billed on monthly invoice).
+              {workspaces.length} client workspace{workspaces.length !== 1 ? "s" : ""} active.
             </p>
             <Button asChild variant="primary" size="sm" className="h-[28px] text-[11.5px] gap-1">
               <Link href="/dashboard/billing">
@@ -55,7 +80,7 @@ export function ClientWorkspacesSettingsSection() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--line)]">
-                  {clientWorkspacesList.map((ws) => (
+                  {workspaces.map((ws) => (
                     <tr key={ws.id} className="hover:bg-[var(--s2)]/50 transition-colors">
                       <td className="py-3 px-4">
                         <span className="font-medium text-[12.5px] text-[var(--t1)] block">

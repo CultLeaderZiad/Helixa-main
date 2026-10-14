@@ -59,17 +59,17 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Set the webhook
-    const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || ""
+    const originHeader = request.headers.get("x-forwarded-proto") === "https" && request.headers.get("x-forwarded-host")
+      ? `https://${request.headers.get("x-forwarded-host")}`
+      : ""
+    const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || originHeader || "https://cyreax-dm.vercel.app"
     let validatedAppUrl = rawAppUrl.trim().replace(/^['"]+|['"]+$/g, '').replace(/\/+$/, '')
+    if (!validatedAppUrl.startsWith("http://") && !validatedAppUrl.startsWith("https://")) {
+      validatedAppUrl = `https://${validatedAppUrl}`
+    }
     
     // Deep fix: skip webhook if testing on localhost since Telegram blocks HTTP webhooks
     const isLocal = validatedAppUrl.includes("localhost") || validatedAppUrl.startsWith("http://")
-
-    if (!isLocal && !validatedAppUrl.startsWith("https://")) {
-      return NextResponse.json({ 
-        error: `Server configuration error: NEXT_PUBLIC_APP_URL must start with 'https://' for Telegram webhooks. Current value: '${rawAppUrl}'` 
-      }, { status: 500 })
-    }
 
     // Token is in the path as Telegram's security measure
     const webhookUrl = `${validatedAppUrl}/api/telegram/webhook/${botToken}`

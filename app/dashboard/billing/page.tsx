@@ -1,13 +1,17 @@
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 import useSWR from "swr"
 import { CurrentPlanCard } from "@/components/billing/CurrentPlanCard"
 import { PaymentMethodCard } from "@/components/billing/PaymentMethodCard"
 import { PlansComparisonRow } from "@/components/billing/PlansComparisonRow"
 import { RecentPaymentsTable } from "@/components/billing/RecentPaymentsTable"
+import { UsageAlertChip, PlanCard, PaymentMethodList, StickyCTA } from "@/components/mobile"
+import { useWorkspaceUsage } from "@/hooks/use-workspace-usage"
 import { Button } from "@/components/ui/button"
-import { AlertCircle, Loader2 } from "lucide-react"
+import { AlertCircle, Loader2, ChevronLeft, ChevronDown } from "lucide-react"
 import { toast } from "sonner"
 import { fetcher } from "@/lib/fetcher"
 
@@ -53,7 +57,11 @@ function BillingLoadingSkeleton() {
 }
 
 function BillingPageContent() {
+  const router = useRouter()
   const [selectedCurrency, setSelectedCurrency] = useState<"EGP" | "SAR" | "USD">("EGP")
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("vodafone_cash")
+  const [isUpgrading, setIsUpgrading] = useState(false)
+  const { usage } = useWorkspaceUsage()
 
   // Listen to currency change & invoices event from TopBar
   useEffect(() => {
@@ -171,44 +179,110 @@ function BillingPageContent() {
 
   const renewsText = `Renews ${formattedRenewal} · ${renewsPrice} / mo`
 
+  const handleContinuePayment = () => {
+    setIsUpgrading(true)
+    router.push(`/checkout/agency?method=${selectedPaymentMethod}`)
+  }
+
+  const selectedMethodLabel =
+    selectedPaymentMethod === "vodafone_cash"
+      ? "Vodafone Cash"
+      : selectedPaymentMethod === "card"
+      ? "Credit or debit card"
+      : "Tap · GCC cards"
+
   return (
-    <div className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6 overflow-y-auto scrollbar-thin scrollbar-thumb-[var(--line2)] select-none">
-      {/* Header */}
-      <div className="space-y-1">
-        <h1 className="text-[20px] font-bold text-[var(--t1)] tracking-tight">
-          Billing
-        </h1>
-        <p className="text-[12.5px] text-[var(--t3)]">
-          One subscription for the agency. Pay by card or Vodafone Cash.
-        </p>
+    <>
+      {/* Mobile Billing View (<768px) matching 01-billing.png */}
+      <div className="md:hidden flex flex-col min-h-screen bg-[var(--bg)] text-[var(--t1)] pb-36">
+        {/* Mobile Header: 52px */}
+        <header className="h-[52px] px-4 flex items-center justify-between border-b border-[var(--line)] bg-[var(--s1)] sticky top-0 z-20">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-1.5 text-[15px] font-semibold text-[var(--t1)] hover:text-[var(--gold)] transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 text-[var(--t2)]" />
+            <span>Billing</span>
+          </Link>
+          <div className="flex items-center gap-1 text-[13px] text-[var(--t2)] font-medium">
+            <span>{usage?.workspace.name || "Workspace"}</span>
+            <ChevronDown className="w-3.5 h-3.5 text-[var(--t3)]" />
+          </div>
+        </header>
+
+        <div className="p-4 space-y-5">
+          {/* Usage Alert Chip */}
+          <UsageAlertChip />
+
+          {/* CURRENT PLAN */}
+          <div className="space-y-2">
+            <h2 className="text-[11px] font-mono uppercase tracking-[0.06em] text-[var(--t3)] font-semibold">
+              CURRENT PLAN
+            </h2>
+            <PlanCard />
+          </div>
+
+          {/* PAY WITH */}
+          <div className="space-y-2">
+            <h2 className="text-[11px] font-mono uppercase tracking-[0.06em] text-[var(--t3)] font-semibold">
+              PAY WITH
+            </h2>
+            <PaymentMethodList
+              selectedId={selectedPaymentMethod}
+              onSelect={setSelectedPaymentMethod}
+            />
+          </div>
+        </div>
+
+        {/* Sticky CTA */}
+        <StickyCTA
+          targetPlanTitle="Upgrade to Agency"
+          priceText="EGP 3,900/mo"
+          methodName={selectedMethodLabel}
+          loading={isUpgrading}
+          onClick={handleContinuePayment}
+        />
       </div>
 
-      {/* Top Grid: Current Plan & Payment Method (1fr / 1fr, gap-6) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-        <CurrentPlanCard
-          planName={planName}
-          status={status}
-          renewsText={renewsText}
-          trialEndsAt={formattedTrialEnd}
+      {/* Desktop Billing View (≥768px, untouched) */}
+      <div className="hidden md:block flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6 overflow-y-auto scrollbar-thin scrollbar-thumb-[var(--line2)] select-none">
+        {/* Header */}
+        <div className="space-y-1">
+          <h1 className="text-[20px] font-bold text-[var(--t1)] tracking-tight">
+            Billing
+          </h1>
+          <p className="text-[12.5px] text-[var(--t3)]">
+            One subscription for the agency. Pay by card or Vodafone Cash.
+          </p>
+        </div>
+
+        {/* Top Grid: Current Plan & Payment Method (1fr / 1fr, gap-6) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+          <CurrentPlanCard
+            planName={planName}
+            status={status}
+            renewsText={renewsText}
+            trialEndsAt={formattedTrialEnd}
+            currency={selectedCurrency}
+            onCancelSubscription={() => mutate()}
+          />
+          <PaymentMethodCard
+            amount={totalChargeAmount}
+            currency={selectedCurrency}
+            currentPlanId={data?.plan?.id || "agency"}
+          />
+        </div>
+
+        {/* Plans Row (Full Width) */}
+        <PlansComparisonRow
           currency={selectedCurrency}
-          onCancelSubscription={() => mutate()}
+          currentPlanId="agency-growth"
         />
-        <PaymentMethodCard
-          amount={totalChargeAmount}
-          currency={selectedCurrency}
-          currentPlanId={data?.plan?.id || "agency"}
-        />
+
+        {/* Recent Payments Table (Full Width) */}
+        <RecentPaymentsTable currency={selectedCurrency} />
       </div>
-
-      {/* Plans Row (Full Width) */}
-      <PlansComparisonRow
-        currency={selectedCurrency}
-        currentPlanId="agency-growth"
-      />
-
-      {/* Recent Payments Table (Full Width) */}
-      <RecentPaymentsTable currency={selectedCurrency} />
-    </div>
+    </>
   )
 }
 

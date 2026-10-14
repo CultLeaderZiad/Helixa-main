@@ -147,7 +147,7 @@ export async function createPaymobLink(input: PaymentLinkRequest, config: Paymob
         first_name: name[0] || "Customer",
         street: "NA",
         building: "NA",
-        phone_number: input.customer?.phone || "+201000000000",
+        phone_number: input.customer?.phone || "NA",
         shipping_method: "PKG",
         postal_code: "NA",
         city: "NA",

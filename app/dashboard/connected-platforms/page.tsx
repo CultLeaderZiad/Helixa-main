@@ -51,7 +51,7 @@ function ChannelsPageContent() {
       {/* Top Actions Bar */}
       <div className="h-[52px] border-b border-[var(--line)] px-6 flex items-center justify-between bg-[var(--s1)] shrink-0 z-10">
         <div className="flex items-center gap-2">
-          <span className="text-[12px] text-[var(--t3)] font-medium">Nour Cosmetics</span>
+          <span className="text-[12px] text-[var(--t3)] font-medium">{BRAND.name}</span>
           <span className="text-[12px] text-[var(--t4)]">/</span>
           <span className="text-[12px] text-[var(--t1)] font-semibold">Channels</span>
         </div>
@@ -85,19 +85,21 @@ function ChannelsPageContent() {
             </p>
           </div>
 
-          <Pill variant="green" dot>
-            4 connected · 0 errors
+          <Pill variant={connections.length > 0 ? "green" : "neutral"} dot={connections.length > 0}>
+            {connections.length} connected · 0 errors
           </Pill>
         </div>
 
         {/* 6 Channel Cards Grid */}
         <ChannelCards
           connections={connections}
-          onConnectInstagram={() => toast.info("Instagram OAuth connection active")}
-          onConnectFacebook={() => toast.info("Opening Facebook & Messenger dialog")}
-          onConnectWhatsApp={() => toast.info("Opening WhatsApp Cloud API Embedded Signup")}
-          onConnectTikTok={() => toast.info("Opening TikTok login window")}
-          onConnectTelegram={() => toast.info("Enter BotFather token to connect bot")}
+          onRefresh={mutateConnections}
+          onConnectInstagram={() => {
+            window.location.href = "/api/instagram/auth"
+          }}
+          onConnectFacebook={() => {
+            window.location.href = "/api/facebook/auth"
+          }}
         />
 
         {/* Bottom Banner 1: Let the client connect it */}
@@ -111,7 +113,7 @@ function ChannelsPageContent() {
                 Let the client connect it
               </h4>
               <p className="text-[11.5px] text-[var(--t3)]">
-                Send Nour Cosmetics a secure link. They log in to Meta or TikTok themselves; no passwords shared with your team. Link expires in 72h.
+                Send your client a secure link. They log in to Meta or TikTok themselves; no passwords shared with your team. Link expires in 72h.
               </p>
             </div>
           </div>

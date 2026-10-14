@@ -1,17 +1,23 @@
 "use client"
 
-import { useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Sidebar } from "@/components/layout/sidebar"
-import { MobileNav } from "@/components/layout/mobile-nav"
 import { TopBar } from "@/components/layout/TopBar"
+import { MobileTabBar, MobileDrawer } from "@/components/mobile"
 import { useInstagramSession } from "@/hooks/use-instagram-session"
-import { Loader2 } from "lucide-react"
+import { Loader2, Menu } from "lucide-react"
 import { TrialBanner } from "@/components/layout/TrialBanner"
 import { UsageNotice } from "@/components/layout/UsageNotice"
 import { CommandPalette } from "@/components/ui/CommandPalette"
 import { BrandLogo } from "@/components/ui/BrandLogo"
 import { BRAND } from "@/lib/brand"
+
+function MobileTabBarWrapper({ onOpenDrawer }: { onOpenDrawer: () => void }) {
+    const pathname = usePathname()
+    if (pathname?.startsWith('/dashboard/billing')) return null
+    return <MobileTabBar onOpenDrawer={onOpenDrawer} />
+}
 
 export default function DashboardLayout({
     children,
@@ -39,6 +45,7 @@ export default function DashboardLayout({
 
     const router = useRouter()
     const pathname = usePathname()
+    const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
 
     useEffect(() => {
         if (typeof document !== "undefined") {
@@ -120,15 +127,30 @@ export default function DashboardLayout({
     }
 
     return (
-        <div className="flex min-h-screen bg-[var(--bg)] text-[var(--t1)]">
+        <div className="flex min-h-[100dvh] bg-[var(--bg)] text-[var(--t1)]">
             {/* ⌘K Command Palette (global) */}
             <CommandPalette />
 
-            {/* Desktop Sidebar (240px fixed) */}
-            <div className="hidden md:flex md:w-[240px] md:flex-col md:fixed md:inset-y-0 md:start-0 z-40">
+            {/* Tablet Icon Rail (64px fixed: 768px - 1023px) */}
+            <div className="hidden md:flex lg:hidden w-[64px] flex-col fixed inset-y-0 start-0 z-40">
                 <Sidebar
-                    className="h-full"
-                    username={username || "Creator"}
+                    className="h-full w-[64px]"
+                    collapsed={true}
+                    username={username || "Workspace"}
+                    profilePic={profilePic}
+                    email={email}
+                    userRole={role}
+                    plan={plan}
+                    onLogout={logout}
+                />
+            </div>
+
+            {/* Desktop Sidebar (240px fixed: ≥1024px) */}
+            <div className="hidden lg:flex lg:w-[240px] lg:flex-col lg:fixed lg:inset-y-0 lg:start-0 z-40">
+                <Sidebar
+                    className="h-full w-[240px]"
+                    collapsed={false}
+                    username={username || "Workspace"}
                     profilePic={profilePic}
                     email={email}
                     userRole={role}
@@ -138,12 +160,19 @@ export default function DashboardLayout({
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col md:ps-[240px] min-w-0">
-                {/* Mobile Header (rendered on all pages except inbox which provides its own dedicated 56px sticky header) */}
-                {!pathname?.startsWith('/dashboard/inbox') && (
+            <div className="flex-1 flex flex-col md:ps-[64px] lg:ps-[240px] min-w-0 min-h-[100dvh]">
+                {/* Mobile Top Bar (52px, rendered on all pages except inbox & billing which provide dedicated mobile headers) */}
+                {!pathname?.startsWith('/dashboard/inbox') && !pathname?.startsWith('/dashboard/billing') && (
                     <header className="md:hidden h-[52px] border-b border-[var(--line)] bg-[var(--s1)] flex items-center justify-between px-4 sticky top-0 z-30">
                         <div className="flex items-center gap-2.5">
-                            <MobileNav username={username || "Creator"} profilePic={profilePic} email={email} userRole={role} onLogout={logout} />
+                            <button
+                                type="button"
+                                onClick={() => setMobileDrawerOpen(true)}
+                                aria-label="Open navigation drawer"
+                                className="w-8 h-8 rounded-[6px] text-[var(--t2)] hover:text-[var(--t1)] hover:bg-[var(--s2)] flex items-center justify-center transition-colors cursor-pointer"
+                            >
+                                <Menu className="w-5 h-5" />
+                            </button>
                             <BrandLogo variant="mark" size="sm" />
                             <span className="font-semibold text-[14px] text-[var(--t1)]">{BRAND.name}</span>
                         </div>
@@ -158,7 +187,11 @@ export default function DashboardLayout({
                 <main
                     id="main-content"
                     className={`flex-1 relative z-10 ${
-                        pathname?.startsWith('/dashboard/inbox') ? 'overflow-hidden' : 'overflow-auto'
+                        pathname?.startsWith('/dashboard/inbox')
+                            ? 'overflow-hidden'
+                            : pathname?.startsWith('/dashboard/billing')
+                            ? 'overflow-auto pb-28 md:pb-0'
+                            : 'overflow-auto pb-[calc(56px+env(safe-area-inset-bottom,0px))] md:pb-0'
                     }`}
                 >
                     {!trialExempt && <TrialBanner plan={plan || ""} trialEndsAt={trialEndsAt} />}
@@ -179,6 +212,19 @@ export default function DashboardLayout({
                     {children}
                 </main>
             </div>
+
+            {/* Mobile Tab Bar (<768px, hidden on pages with sticky CTA like billing or chat conversation) */}
+            <MobileTabBarWrapper onOpenDrawer={() => setMobileDrawerOpen(true)} />
+
+            {/* Mobile Navigation Drawer */}
+            <MobileDrawer
+                isOpen={mobileDrawerOpen}
+                onClose={() => setMobileDrawerOpen(false)}
+                username={username || "Workspace owner"}
+                email={email}
+                userRole={role}
+                onLogout={logout}
+            />
         </div>
     )
 }

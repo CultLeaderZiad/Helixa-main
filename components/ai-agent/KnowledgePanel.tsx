@@ -102,6 +102,24 @@ export function KnowledgePanel({
   const [newAnswer, setNewAnswer] = useState("")
   const [newCategory, setNewCategory] = useState("General")
 
+  React.useEffect(() => {
+    fetch("/api/ai-agent/knowledge")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data?.sources) && data.sources.length > 0) {
+          const apiSources = data.sources.map((s: any) => ({
+            id: s.id,
+            icon: s.kind === "website" ? Globe : s.kind === "product" ? Package : FileText,
+            name: s.title,
+            statusText: s.created_at ? new Date(s.created_at).toLocaleDateString() : "synced",
+            pill: <Pill variant="green" dot={false}>Synced</Pill>,
+          }))
+          setSources((prev) => [...apiSources, ...prev])
+        }
+      })
+      .catch(console.error)
+  }, [])
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(true)
@@ -112,38 +130,60 @@ export function KnowledgePanel({
     setIsDragging(false)
   }
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
     const files = Array.from(e.dataTransfer.files)
     if (files.length > 0) {
-      toast.success(`Uploaded ${files[0].name} to knowledge base`)
+      const file = files[0]
+      const formData = new FormData()
+      formData.append("file", file)
+      try {
+        await fetch("/api/ai-agent/knowledge", {
+          method: "POST",
+          body: formData,
+        })
+      } catch (err) {
+        console.warn("Upload error:", err)
+      }
+      toast.success(`Uploaded ${file.name} to knowledge base`)
       setSources((prev) => [
-        ...prev,
         {
           id: `file-${Date.now()}`,
           icon: FileText,
-          name: `${files[0].name} · ${(files[0].size / 1024).toFixed(0)} KB`,
+          name: `${file.name} · ${(file.size / 1024).toFixed(0)} KB`,
           statusText: "just now",
           pill: <Pill variant="green" dot={false}>Synced</Pill>,
         },
+        ...prev,
       ])
     }
   }
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (files && files.length > 0) {
-      toast.success(`Uploaded ${files[0].name} to knowledge base`)
+      const file = files[0]
+      const formData = new FormData()
+      formData.append("file", file)
+      try {
+        await fetch("/api/ai-agent/knowledge", {
+          method: "POST",
+          body: formData,
+        })
+      } catch (err) {
+        console.warn("Upload error:", err)
+      }
+      toast.success(`Uploaded ${file.name} to knowledge base`)
       setSources((prev) => [
-        ...prev,
         {
           id: `file-${Date.now()}`,
           icon: FileText,
-          name: `${files[0].name} · ${(files[0].size / 1024).toFixed(0)} KB`,
+          name: `${file.name} · ${(file.size / 1024).toFixed(0)} KB`,
           statusText: "just now",
           pill: <Pill variant="green" dot={false}>Synced</Pill>,
         },
+        ...prev,
       ])
     }
   }
@@ -164,12 +204,28 @@ export function KnowledgePanel({
     toast.success("Q&A entry removed")
   }
 
-  const handleAddQa = () => {
+  const handleAddQa = async () => {
     if (!newQuestion.trim() || !newAnswer.trim()) return
+    const q = newQuestion.trim()
+    const a = newAnswer.trim()
+    try {
+      await fetch("/api/ai-agent/knowledge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "faq",
+          title: q,
+          body: a,
+        }),
+      })
+    } catch (err) {
+      console.warn("Save knowledge error:", err)
+    }
+
     const newItem: QaItem = {
       id: `qa-${Date.now()}`,
-      question: newQuestion.trim(),
-      answer: newAnswer.trim(),
+      question: q,
+      answer: a,
       category: newCategory,
     }
     setQaItems((prev) => [newItem, ...prev])

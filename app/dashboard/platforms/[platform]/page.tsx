@@ -26,6 +26,7 @@ import ConnectPlatformEmptyState from "@/components/dashboard/ConnectPlatformEmp
 import TikTokDmSettings from "@/components/dashboard/TikTokDmSettings"
 import { toast } from "sonner"
 import type { Automation } from "@/lib/types"
+import { ChannelBadge } from "@/components/ui/ChannelBadge"
 
 const PLATFORM_CONFIG: Record<string, { name: string; color: string; icon: string; description: string }> = {
   instagram: {
@@ -180,6 +181,7 @@ export default function PlatformDashboardPage() {
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
+          <ChannelBadge channel={platform} size="lg" className="w-10 h-10" />
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-white">{config.name}</h1>
             <p className="text-neutral-400 text-sm">{config.description}</p>
@@ -204,11 +206,7 @@ export default function PlatformDashboardPage() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-full ${colors.bg} flex items-center justify-center ${colors.text}`}>
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-                <path d={config.icon} />
-              </svg>
-            </div>
+            <ChannelBadge channel={platform} size="lg" className="w-12 h-12" />
             <div>
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">{config.name} Dashboard</h1>
               <p className="text-neutral-400 text-sm">{config.description}</p>
@@ -285,6 +283,33 @@ export default function PlatformDashboardPage() {
           <p className="mt-4 text-xs text-neutral-400 leading-relaxed">
             Copy the embed snippet from Connected Platforms. Visitors poll this server. They never receive another visitor&apos;s messages.
           </p>
+        )}
+        {platform === "telegram" && (
+          <div className="mt-4 space-y-2">
+            <p className="text-xs text-neutral-400 leading-relaxed">
+              Telegram bot automations listen to incoming user messages, commands (e.g. <code>/start</code>, <code>/help</code>), and question keywords. Replies and AI Agent conversations stream instantly via Telegram Webhooks.
+            </p>
+            <div className="flex items-center gap-2 pt-1 flex-wrap">
+              <Link
+                href="/dashboard/automations?platform=telegram&intent=telegram_welcome"
+                className="text-xs px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white transition-colors"
+              >
+                + Welcome message (/start)
+              </Link>
+              <Link
+                href="/dashboard/automations?platform=telegram&intent=telegram_faq"
+                className="text-xs px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white transition-colors"
+              >
+                + FAQ responder
+              </Link>
+              <Link
+                href="/dashboard/ai-engine"
+                className="text-xs px-2.5 py-1.5 rounded-lg bg-[#e5a93c]/20 hover:bg-[#e5a93c]/30 text-[#e5a93c] transition-colors"
+              >
+                Configure AI Agent for Telegram
+              </Link>
+            </div>
+          </div>
         )}
         <div className="space-y-3">
           {platformConnections.map((conn: any) => (

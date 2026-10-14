@@ -12,6 +12,7 @@ import { UnansweredQuestions } from "@/components/ai-agent/UnansweredQuestions"
 import { AnalyticsDashboardView } from "@/components/dashboard/AnalyticsDashboardView"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { BRAND } from "@/lib/brand"
 
 type TabKey = "agents" | "knowledge" | "insights" | "models"
 
@@ -56,7 +57,7 @@ function AiAgentContent() {
       {/* Top Actions Bar */}
       <div className="h-[52px] border-b border-[var(--line)] px-6 flex items-center justify-between bg-[var(--s1)] shrink-0 z-10">
         <div className="flex items-center gap-2">
-          <span className="text-[12px] text-[var(--t3)] font-medium">Nour Cosmetics</span>
+          <span className="text-[12px] text-[var(--t3)] font-medium">{BRAND.name}</span>
           <span className="text-[12px] text-[var(--t4)]">/</span>
           <span className="text-[12px] text-[var(--t1)] font-semibold">AI Agent</span>
         </div>

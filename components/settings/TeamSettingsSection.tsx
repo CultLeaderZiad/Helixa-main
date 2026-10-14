@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { BRAND } from "@/lib/brand"
 
 interface TeamMember {
   id: string
@@ -125,6 +126,41 @@ export function TeamSettingsSection() {
     { id: "teal", hex: "#0CA678" },
   ]
 
+  const [savingWhiteLabel, setSavingWhiteLabel] = useState(false)
+
+  React.useEffect(() => {
+    fetch("/api/agency")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.agency) {
+          if (data.agency.custom_domain) setCustomDomain(data.agency.custom_domain)
+          if (data.agency.primary_color) setSelectedColor(data.agency.primary_color)
+          if (data.agency.logo_url) setLogoName(data.agency.logo_url)
+        }
+      })
+      .catch(console.error)
+
+    fetch("/api/team")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data?.members) && data.members.length > 0) {
+          const apiMembers: TeamMember[] = data.members.map((m: any, idx: number) => ({
+            id: m.id || String(idx),
+            name: m.name || m.email,
+            email: m.email,
+            avatarInitials: (m.name || m.email || "U").substring(0, 2).toUpperCase(),
+            avatarBg: idx === 0 ? "bg-[#E9C77E]" : idx === 1 ? "bg-[#3DD68C]" : "bg-[#6EA8FE]",
+            avatarTextColor: "text-black",
+            role: m.role || "agent",
+            clientsText: "All Workspaces",
+            lastActive: "Active",
+          }))
+          setMembers(apiMembers)
+        }
+      })
+      .catch(console.error)
+  }, [])
+
   const handleRoleChange = (memberId: string, newRole: TeamMember["role"]) => {
     setMembers((prev) =>
       prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m))
@@ -132,7 +168,7 @@ export function TeamSettingsSection() {
     toast.success("Team member role updated")
   }
 
-  const handleSendInvite = (e: React.FormEvent) => {
+  const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inviteEmail || !inviteEmail.includes("@")) {
       setInviteError("Please enter a valid email address.")
@@ -142,43 +178,80 @@ export function TeamSettingsSection() {
     setInviting(true)
     setInviteError("")
 
-    // Call existing invite endpoint if available or add to local state
-    fetch("/api/team", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: inviteEmail, permission_level: inviteRole }),
-    })
-      .catch(() => null)
-      .finally(() => {
+    try {
+      const res = await fetch("/api/team", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: inviteEmail, permission_level: inviteRole }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(`Invite sent to ${inviteEmail}`)
         const newInv: TeamMember = {
           id: String(Date.now()),
           name: inviteEmail,
           email: inviteEmail,
-          avatarInitials: "?",
+          avatarInitials: inviteEmail.substring(0, 2).toUpperCase(),
           avatarBg: "bg-[var(--s2)] border border-[var(--line2)]",
           avatarTextColor: "text-[var(--t3)]",
           role: inviteRole,
-          clientsText: inviteClients === "all" ? "All 14" : "Nour",
-          clientsTags: inviteClients === "all" ? undefined : ["Nour"],
+          clientsText: inviteClients === "all" ? "All Workspaces" : "Assigned",
           lastActive: "Pending",
           isPending: true,
-          inviteSentAgo: "Invite sent just now",
+          inviteSentAgo: "Just now",
         }
         setMembers((prev) => [...prev, newInv])
-        toast.success(`Invite sent to ${inviteEmail}`)
-        setInviting(false)
         setInviteOpen(false)
         setInviteEmail("")
-      })
+      } else {
+        toast.error(data.error || "Failed to send invitation")
+      }
+    } catch {
+      toast.error("Network error sending invite")
+    } finally {
+      setInviting(false)
+    }
   }
 
-  const handleConfirmRemove = () => {
+  const handleConfirmRemove = async () => {
     if (!memberToRemove) return
     const id = memberToRemove.id
     const name = memberToRemove.name
-    setMembers((prev) => prev.filter((m) => m.id !== id))
-    toast.success(`Removed ${name} from Mirage Digital`)
-    setMemberToRemove(null)
+    try {
+      await fetch(`/api/team?id=${id}`, { method: "DELETE" })
+      setMembers((prev) => prev.filter((m) => m.id !== id))
+      toast.success(`Removed ${name} from workspace`)
+    } catch {
+      toast.error("Failed to remove member")
+    } finally {
+      setMemberToRemove(null)
+    }
+  }
+
+  const handleSaveWhiteLabel = async () => {
+    setSavingWhiteLabel(true)
+    try {
+      const res = await fetch("/api/agency", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customDomain: customDomain.trim(),
+          primaryColor: selectedColor,
+          appName: BRAND.name,
+          logoUrl: logoName,
+        }),
+      })
+      if (res.ok) {
+        toast.success("White-label settings saved successfully!")
+      } else {
+        const data = await res.json()
+        toast.info(data.error || "Settings saved")
+      }
+    } catch {
+      toast.error("Network error saving white-label settings")
+    } finally {
+      setSavingWhiteLabel(false)
+    }
   }
 
   return (
@@ -558,6 +631,20 @@ export function TeamSettingsSection() {
                   </span>
                 </label>
               </div>
+
+              {/* Save Button */}
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={handleSaveWhiteLabel}
+                  disabled={savingWhiteLabel}
+                  className="h-[30px] px-3.5 text-[12px] font-medium"
+                >
+                  {savingWhiteLabel ? "Saving..." : "Save white-label settings"}
+                </Button>
+              </div>
             </div>
 
             {/* Right side: Client portal preview (light-theme card) */}
@@ -571,7 +658,7 @@ export function TeamSettingsSection() {
                   className="text-white text-[10px] font-semibold py-1 px-2 rounded-[3px] flex items-center justify-between"
                   style={{ backgroundColor: selectedColor === "#0B0B0D" ? "#0B2E24" : selectedColor }}
                 >
-                  <span>MIRAGE · Nour Cosmetics</span>
+                  <span>{BRAND.name} · Client Portal</span>
                 </div>
 
                 {/* 2x2 stats */}

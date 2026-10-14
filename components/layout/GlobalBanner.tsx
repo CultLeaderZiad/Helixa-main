@@ -19,12 +19,9 @@ export function GlobalBanner() {
   const [banner, setBanner] = useState<BannerState | null>(null)
   const [isVisible, setIsVisible] = useState(false)
 
-  // Do not render banner on dashboard pages
-  if (pathname?.startsWith("/dashboard")) {
-    return null
-  }
-
   useEffect(() => {
+    if (pathname?.startsWith("/dashboard")) return
+    if (typeof window === "undefined") return
     // Check if dismissed in this session
     if (sessionStorage.getItem("banner_dismissed") === "true") return
 
@@ -38,9 +35,12 @@ export function GlobalBanner() {
         }
       })
       .catch(err => console.error("Failed to load banner", err))
-  }, [])
+  }, [pathname])
 
-  if (!banner || !banner.isActive) return null
+  // Do not render banner on dashboard pages or if inactive
+  if (pathname?.startsWith("/dashboard") || !banner || !banner.isActive) {
+    return null
+  }
 
   const handleDismiss = () => {
     setIsVisible(false)

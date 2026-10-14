@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { CopyButton } from "@/components/ui/CopyButton"
 import { brand } from "@/lib/brand"
 import Link from "next/link"
+import { VodafoneIcon, StripeIcon, PaymobIcon } from "@/components/icons/PaymentIcons"
 
 export interface PaymentMethodCardProps {
   amount?: string
@@ -108,12 +109,7 @@ export function PaymentMethodCard({
           )}
         >
           <div className="flex items-center gap-1.5">
-            <span
-              className="w-7 h-7 rounded-[6px] bg-[#E60000] text-white flex items-center justify-center font-bold text-[11px] shrink-0"
-              aria-label="Vodafone Cash Logo"
-            >
-              VF
-            </span>
+            <VodafoneIcon size={24} className="shrink-0" />
             <span className="font-semibold text-[11.5px] text-[var(--t1)] truncate">
               Vodafone Cash
             </span>
@@ -133,14 +129,9 @@ export function PaymentMethodCard({
           )}
         >
           <div className="flex items-center gap-1.5">
-            <span
-              className="w-7 h-7 rounded-[6px] bg-[#635BFF] text-white flex items-center justify-center font-bold text-[11px] shrink-0"
-              aria-label="Stripe Card Logo"
-            >
-              S
-            </span>
+            <StripeIcon size={24} className="shrink-0" />
             <span className="font-semibold text-[11.5px] text-[var(--t1)] truncate">
-              Card
+              Card (Stripe)
             </span>
           </div>
           <span className="text-[10px] text-[var(--t3)] font-mono">Stripe · auto-renew</span>
@@ -158,12 +149,7 @@ export function PaymentMethodCard({
           )}
         >
           <div className="flex items-center gap-1.5">
-            <span
-              className="w-7 h-7 rounded-[6px] bg-[#0070F3] text-white flex items-center justify-center font-bold text-[11px] shrink-0"
-              aria-label="Paymob Logo"
-            >
-              P
-            </span>
+            <PaymobIcon size={24} className="shrink-0" />
             <span className="font-semibold text-[11.5px] text-[var(--t1)] truncate">
               Paymob
             </span>

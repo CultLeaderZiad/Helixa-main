@@ -6,6 +6,7 @@ import { Loader2, ArrowRight, Clock, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import CopyButton from "@/components/ui/CopyButton"
 import { brand, BRAND } from "@/lib/brand"
+import { VisaIcon, MastercardIcon } from "@/components/icons/PaymentIcons"
 
 export default function CheckoutClient({ plan, methods, user, cycle }: { plan: any, methods: any[], user: any, cycle?: string }) {
   const [selectedMethod, setSelectedMethod] = useState<string | null>(
@@ -14,7 +15,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
   const [transactionRef, setTransactionRef] = useState("")
   const [clientName, setClientName] = useState("")
   const [clientPhone, setClientPhone] = useState("")
-  const [countryCode, setCountryCode] = useState("+20")
+  const [countryCode, setCountryCode] = useState("20")
   const [hasQuestions, setHasQuestions] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -172,11 +173,11 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
                 onChange={(e) => setCountryCode(e.target.value)}
                 className="w-32 px-2 py-3 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-[#e5a93c]/50 cursor-pointer appearance-none text-center"
               >
-                <option value="+20">🇪🇬 +20</option>
-                <option value="+1">🇺🇸 +1</option>
-                <option value="+44">🇬🇧 +44</option>
-                <option value="+971">🇦🇪 +971</option>
-                <option value="+966">🇸🇦 +966</option>
+                <option value="20">🇪🇬 Egypt</option>
+                <option value="1">🇺🇸 USA (+1)</option>
+                <option value="44">🇬🇧 UK (+44)</option>
+                <option value="971">🇦🇪 UAE (+971)</option>
+                <option value="966">🇸🇦 Saudi (+966)</option>
               </select>
               <input
                 id="checkout-phone"
@@ -253,7 +254,17 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
               <div className="flex items-center justify-between">
                 <span className="font-bold">{m.display_name}</span>
                 {m.method === "vodafone_cash" && (
-                  <img src="/vodafone-cash.svg" alt="Vodafone Cash" className="h-6" />
+                  <img src="/vodafone-cash.svg" alt="Vodafone Cash" className="h-6 w-auto" />
+                )}
+                {m.method === "stripe" && (
+                  <div className="flex items-center gap-1.5">
+                    <img src="/stripe.svg" alt="Stripe" className="h-6 w-auto rounded-[4px]" />
+                    <VisaIcon size={28} className="rounded-[3px]" />
+                    <MastercardIcon size={28} className="rounded-[3px]" />
+                  </div>
+                )}
+                {m.method === "paymob" && (
+                  <img src="/paymob.svg" alt="Paymob" className="h-6 w-auto rounded-[4px]" />
                 )}
               </div>
               {m.instructions && (
@@ -299,7 +310,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
               type="text"
               value={transactionRef}
               onChange={(e) => setTransactionRef(e.target.value)}
-              placeholder="e.g. 01012345678 or Transaction ID"
+              placeholder="e.g. Transaction Ref or Wallet ID"
               className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-neutral-500 outline-none focus:border-[#e5a93c]/50"
               required
             />

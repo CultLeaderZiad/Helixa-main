@@ -48,6 +48,91 @@ interface ChatWindowProps {
   onOpenContextRail?: () => void
 }
 
+const PLATFORM_THEMES: Record<
+  string,
+  {
+    name: string
+    badge: ChannelType
+    color: string
+    subtitle: string
+    placeholder: string
+    focusBorder: string
+    sendBg: string
+    sendText: string
+  }
+> = {
+  instagram: {
+    name: "Instagram",
+    badge: "instagram",
+    color: "#E1306C",
+    subtitle: "Instagram DM · 24h Meta Window",
+    placeholder: "Reply on Instagram DM…",
+    focusBorder: "focus-within:border-pink-500/40",
+    sendBg: "bg-[var(--t1)] text-[#09090B]",
+    sendText: "text-[#09090B]",
+  },
+  whatsapp: {
+    name: "WhatsApp",
+    badge: "whatsapp",
+    color: "#25D366",
+    subtitle: "WhatsApp Business · Cloud API",
+    placeholder: "Reply on WhatsApp…",
+    focusBorder: "focus-within:border-emerald-500/40",
+    sendBg: "bg-[#25D366] text-[#09090B]",
+    sendText: "text-[#09090B]",
+  },
+  telegram: {
+    name: "Telegram",
+    badge: "telegram",
+    color: "#229ED9",
+    subtitle: "Telegram Bot Direct · Real-time",
+    placeholder: "Send Telegram message (supports Markdown)…",
+    focusBorder: "focus-within:border-cyan-500/40",
+    sendBg: "bg-[#229ED9] text-white",
+    sendText: "text-white",
+  },
+  facebook: {
+    name: "Messenger",
+    badge: "messenger",
+    color: "#0084FF",
+    subtitle: "Facebook Messenger · Page conversation",
+    placeholder: "Reply on Messenger…",
+    focusBorder: "focus-within:border-blue-500/40",
+    sendBg: "bg-[#0084FF] text-white",
+    sendText: "text-white",
+  },
+  messenger: {
+    name: "Messenger",
+    badge: "messenger",
+    color: "#0084FF",
+    subtitle: "Facebook Messenger · Page conversation",
+    placeholder: "Reply on Messenger…",
+    focusBorder: "focus-within:border-blue-500/40",
+    sendBg: "bg-[#0084FF] text-white",
+    sendText: "text-white",
+  },
+  tiktok: {
+    name: "TikTok",
+    badge: "tiktok",
+    color: "#FE2C55",
+    subtitle: "TikTok Business Messaging",
+    placeholder: "Reply on TikTok…",
+    focusBorder: "focus-within:border-rose-500/40",
+    sendBg: "bg-[var(--t1)] text-[#09090B]",
+    sendText: "text-[#09090B]",
+  },
+  webchat: {
+    name: "WebChat",
+    badge: "webchat",
+    color: "#F5A623",
+    subtitle: "Website Live Visitor Session",
+    placeholder: "Reply to website visitor…",
+    focusBorder: "focus-within:border-amber-500/40",
+    sendBg: "bg-[var(--gold)] text-black",
+    sendText: "text-black",
+  },
+}
+
 function isArabicText(text: string): boolean {
   return /[\u0600-\u06FF]/.test(text)
 }
@@ -75,6 +160,8 @@ export function ChatWindow({
   const isAr = language === "ar"
 
   const channel = platform === "facebook" ? "messenger" : platform.toLowerCase()
+  const platformKey = channel || "instagram"
+  const platformTheme = PLATFORM_THEMES[platformKey] || PLATFORM_THEMES.instagram
 
   // Real messages query
   const {
@@ -83,7 +170,7 @@ export function ChatWindow({
     isLoading: loading,
     error: messagesError,
   } = useSWR(
-    conversationId && !conversationId.startsWith("mock-")
+    conversationId
       ? `/api/inbox/messages?conversationId=${conversationId}`
       : null,
     fetcher
@@ -99,7 +186,7 @@ export function ChatWindow({
 
   // Contact context query (if not passed from parent)
   const { data: fetchedContactContext, mutate: internalMutateContact } = useSWR(
-    !externalContactContext && recipientId && !conversationId?.startsWith("mock-")
+    !externalContactContext && recipientId
       ? `/api/contacts?externalId=${encodeURIComponent(recipientId)}&channel=${encodeURIComponent(
           channel
         )}&conversationId=${encodeURIComponent(conversationId || "")}`
@@ -109,13 +196,8 @@ export function ChatWindow({
   const contactContext = externalContactContext || fetchedContactContext
   const mutateContact = externalMutateContact || internalMutateContact
 
-  const isAhmedConversation =
-    conversationId === "mock-ahmed" ||
-    recipientName?.toLowerCase().includes("ahmed") ||
-    recipientId === "102"
-
   const windowStatus = contactContext?.window?.status as string | undefined
-  const [internalBotPaused, setInternalBotPaused] = useState<boolean>(isAhmedConversation)
+  const [internalBotPaused, setInternalBotPaused] = useState<boolean>(false)
   const botPaused =
     contactContext?.contact?.bot_paused !== undefined
       ? Boolean(contactContext?.contact?.bot_paused)
@@ -172,7 +254,7 @@ export function ChatWindow({
 
   // Realtime Supabase subscription
   useEffect(() => {
-    if (!conversationId || conversationId.startsWith("mock-")) return
+    if (!conversationId) return
 
     const supabase = getSupabaseBrowserClient()
     const realtimeChannel = supabase
@@ -233,21 +315,7 @@ export function ChatWindow({
 
   // Send message handler
   const handleSendMessage = async (text: string = inputText) => {
-    if (!text.trim() || !recipientId || !userId) return
-
-    // If it's a mock conversation, optimistically add
-    if (conversationId?.startsWith("mock-")) {
-      setSending(true)
-      setTimeout(() => {
-        setInputText("")
-        setSending(false)
-        toast.success("Reply sent")
-        if (textareaRef.current) {
-          textareaRef.current.style.height = "auto"
-        }
-      }, 400)
-      return
-    }
+    if (!text.trim() || !recipientId || !userId || !conversationId) return
 
     setSending(true)
     setSendError("")
@@ -355,7 +423,7 @@ export function ChatWindow({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bot_paused: nextState }),
       }).catch(() => {})
-    } else if (recipientId && !conversationId?.startsWith("mock-")) {
+    } else if (recipientId) {
       await fetch("/api/contacts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -370,6 +438,55 @@ export function ChatWindow({
     if (mutateContact) mutateContact()
     toast.success(nextState ? "AI Agent paused for this contact" : "AI Agent resumed")
   }
+
+  // HOOKS MUST RUN UNCONDITIONALLY BEFORE ANY RETURN STATEMENT (Fixes React Error #310)
+  const resolvedDisplayName = useMemo(() => {
+    if (!recipientName && !recipientId) return "Customer"
+    return getDisplayName(
+      {
+        display_name: recipientName,
+        recipient_id: recipientId,
+        platform: channel,
+      },
+      isAr ? "ar" : "en"
+    )
+  }, [recipientName, recipientId, channel, isAr])
+
+  const initials = resolvedDisplayName
+    .replace(/[@_.]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() || "")
+    .join("") || "C"
+
+  // 24h Meta window countdown
+  const lastInboundMsg = useMemo(() => {
+    return [...messages].reverse().find((m) => m.direction === "in" || m.is_from_instagram)
+  }, [messages])
+
+  const countdown = useMemo(() => {
+    if (channel === "telegram" || channel === "webchat") {
+      return { formatted: "Direct messaging", isClosed: false, isWarning: false, hours: 24, minutes: 0 }
+    }
+    if (windowStatus === "closed") {
+      return { formatted: "Window closed", isClosed: true, isWarning: false, hours: 0, minutes: 0 }
+    }
+    const lastTime =
+      contactContext?.window?.last_inbound_at ||
+      lastInboundMsg?.created_at ||
+      null
+    if (!lastTime) {
+      return { formatted: "24h Window active", isClosed: false, isWarning: false, hours: 24, minutes: 0 }
+    }
+    return getWindowCountdown(lastTime)
+  }, [windowStatus, contactContext?.window?.last_inbound_at, lastInboundMsg?.created_at, channel])
+
+  // Copilot suggestions
+  const copilotSuggestion = useMemo(() => {
+    if (copilotDismissed || !contactContext?.suggestion) return null
+    return contactContext.suggestion
+  }, [copilotDismissed, contactContext?.suggestion])
 
   if (!conversationId) {
     return (
@@ -386,72 +503,6 @@ export function ChatWindow({
       </div>
     )
   }
-
-  const resolvedDisplayName = useMemo(() => {
-    if (isAhmedConversation) return "Ahmed Hassan"
-    return getDisplayName(
-      {
-        display_name: recipientName,
-        recipient_id: recipientId,
-        platform: channel,
-      },
-      isAr ? "ar" : "en"
-    )
-  }, [recipientName, recipientId, channel, isAhmedConversation, isAr])
-
-  const initials = isAhmedConversation
-    ? "AH"
-    : resolvedDisplayName
-        .replace(/[@_.]+/g, " ")
-        .trim()
-        .split(/\s+/)
-        .slice(0, 2)
-        .map((w) => w[0]?.toUpperCase() || "")
-        .join("") || "C"
-
-  // 24h Meta window countdown
-  const lastInboundMsg = useMemo(() => {
-    return [...messages].reverse().find((m) => m.direction === "in" || m.is_from_instagram)
-  }, [messages])
-
-  const countdown = useMemo(() => {
-    if (isAhmedConversation) {
-      // Exactly matches 08-mobile-inbox.png: "WhatsApp · 3h 12m left"
-      return {
-        formatted: "3h 12m left",
-        isClosed: false,
-        isWarning: true,
-        hours: 3,
-        minutes: 12,
-      }
-    }
-    if (windowStatus === "closed") {
-      return { formatted: "Window closed", isClosed: true, isWarning: false, hours: 0, minutes: 0 }
-    }
-    const lastTime =
-      contactContext?.window?.last_inbound_at ||
-      lastInboundMsg?.created_at ||
-      (conversationId ? new Date(Date.now() - 79 * 60 * 1000).toISOString() : null)
-    return getWindowCountdown(lastTime)
-  }, [windowStatus, contactContext?.window?.last_inbound_at, lastInboundMsg?.created_at, conversationId, isAhmedConversation])
-
-  // Copilot suggestions
-  const copilotSuggestion = useMemo(() => {
-    if (copilotDismissed) return null
-    if (isAhmedConversation) {
-      return {
-        intent: "wants pickup tomorrow",
-        text: "أكيد! حجزتلك الطقم، تقدر تستلمه بكرة من ١١ الصبح.",
-      }
-    }
-    if (conversationId === "mock-mariam" || recipientName?.toLowerCase().includes("mariam")) {
-      return {
-        intent: "shipping question & payment link",
-        text: "التوصيل لمدينة نصر 45 جنيه ويوصل خلال يوم عمل واحد يا فندم 🌸",
-      }
-    }
-    return null
-  }, [copilotDismissed, isAhmedConversation, conversationId, recipientName])
 
   return (
     <div className="flex-1 flex flex-col h-[100dvh] md:h-full bg-[var(--bg)] overflow-hidden relative">
@@ -476,16 +527,9 @@ export function ChatWindow({
             onClick={onOpenContextRail}
             className="flex items-center gap-2.5 min-w-0 text-start hover:opacity-90 transition-opacity cursor-pointer group"
           >
-            {/* 40px Avatar (matches 08-mobile-inbox.png soft mint circle AH) */}
+            {/* 40px Avatar */}
             <div className="relative shrink-0">
-              <div
-                className={cn(
-                  "size-10 rounded-full border border-[var(--line2)] flex items-center justify-center font-mono text-[13px] font-semibold",
-                  isAhmedConversation
-                    ? "bg-[#B4E5D4] text-[#0D2D24]"
-                    : "bg-[var(--s3)] text-[var(--t1)]"
-                )}
-              >
+              <div className="size-10 rounded-full border border-[var(--line2)] bg-[var(--s3)] text-[var(--t1)] flex items-center justify-center font-mono text-[13px] font-semibold">
                 {initials}
               </div>
             </div>
@@ -497,18 +541,12 @@ export function ChatWindow({
               </h1>
               <div className="flex items-center gap-1.5 text-[12px] text-[var(--t3)] leading-tight mt-0.5">
                 <ChannelBadge
-                  channel={isAhmedConversation ? "whatsapp" : channel}
+                  channel={platformTheme.badge}
                   size="sm"
                   className="size-3.5 rounded-full shrink-0"
                 />
                 <span className="truncate">
-                  {isAhmedConversation
-                    ? "WhatsApp"
-                    : channel === "whatsapp"
-                    ? "WhatsApp"
-                    : channel === "messenger"
-                    ? "Messenger"
-                    : "Instagram"}
+                  {platformTheme.name}
                   {" · "}
                   <span
                     className={
@@ -602,133 +640,25 @@ export function ChatWindow({
               Retry
             </button>
           </div>
-        ) : isAhmedConversation && messages.length === 0 ? (
-          /* Realistic thread matching 08-mobile-inbox.png exactly */
-          <div className="space-y-4">
-            {/* Date separator pill: "Today · Nour Cosmetics" */}
-            <div className="flex justify-center my-1.5">
-              <div className="inline-flex items-center px-3.5 py-1 rounded-full bg-[var(--s2)] border border-[var(--line)] text-[11.5px] text-[var(--t3)] font-medium">
-                Today · Nour Cosmetics
-              </div>
-            </div>
-
-            {/* Message 1 (Incoming): Ahmed · 10:41 */}
-            <div className="flex flex-col items-start max-w-[82%]">
-              <span className="font-mono text-[11px] text-[var(--t3)] mb-1 px-1">
-                Ahmed · 10:41
-              </span>
-              <div
-                dir="rtl"
-                className="rounded-2xl rounded-tl-xs px-4 py-2.5 text-[15px] leading-[1.6] bg-[var(--s3)] text-[var(--t1)] border border-[var(--line)] font-arabic"
-              >
-                صباح الخير، في فرع في الشيخ زايد؟
-              </div>
-            </div>
-
-            {/* Message 2 (Outgoing AI Agent): AI Agent · 10:41 */}
-            <div className="flex flex-col items-end ml-auto max-w-[82%]">
-              <span className="font-mono text-[11px] text-[var(--t3)] flex items-center gap-1 mb-1 px-1">
-                AI Agent · 10:41
-              </span>
-              <div
-                dir="rtl"
-                className="rounded-2xl rounded-tr-xs px-4 py-2.5 text-[15px] leading-[1.6] bg-[var(--goldbg)] text-[var(--t1)] border border-[var(--goldline)] font-arabic"
-              >
-                صباح النور يا أحمد! أيوه، فرعنا في أركان بلازا، الدور الأرضي، مفتوح من ١١ الصبح لـ ١١ بالليل.
-              </div>
-            </div>
-
-            {/* Message 3 (Incoming): Ahmed · 10:44 */}
-            <div className="flex flex-col items-start max-w-[82%]">
-              <span className="font-mono text-[11px] text-[var(--t3)] mb-1 px-1">
-                Ahmed · 10:44
-              </span>
-              <div
-                dir="rtl"
-                className="rounded-2xl rounded-tl-xs px-4 py-2.5 text-[15px] leading-[1.6] bg-[var(--s3)] text-[var(--t1)] border border-[var(--line)] font-arabic"
-              >
-                تمام، وينفع أحجز الطقم وأستلمه من الفرع بكرة؟
-              </div>
-            </div>
-
-            {/* Event pill: "AI handed off · reservation request" */}
-            <div className="flex justify-center my-2">
-              <div className="inline-flex items-center px-3.5 py-1 rounded-full bg-[var(--s2)] border border-[var(--line)] text-[11.5px] text-[var(--t3)]">
-                AI handed off · reservation request
-              </div>
-            </div>
-          </div>
         ) : messages.length === 0 ? (
-          /* Mariam Glow Kit demo thread from screen 02 */
-          <div className="space-y-4">
-            <div className="flex justify-center my-1.5">
-              <div className="inline-flex items-center px-3.5 py-1 rounded-full bg-[var(--s2)] border border-[var(--line)] text-[11.5px] text-[var(--t3)] font-medium">
-                Today · Nour Cosmetics
+          /* Real authentic empty conversation state for the selected platform */
+          <div className="flex-1 flex flex-col items-center justify-center py-16 px-4 text-center select-none my-auto">
+            <div className="size-14 rounded-full bg-[var(--s2)] border border-[var(--line2)] flex items-center justify-center font-mono text-base font-semibold text-[var(--t1)] mb-3 relative">
+              {initials}
+              <div className="absolute -bottom-1 -end-1">
+                <ChannelBadge channel={platformTheme.badge} size="sm" className="size-4 rounded-full border border-[var(--bg)]" />
               </div>
             </div>
-
-            {/* 1. Inbound Customer Message */}
-            <div className="flex flex-col items-start max-w-[82%]">
-              <span className="font-mono text-[11px] text-[var(--t3)] mb-1 px-1">
-                {resolvedDisplayName} · 10:02
-              </span>
-              <div
-                dir="rtl"
-                className="rounded-2xl rounded-tl-xs px-4 py-2.5 text-[15px] leading-[1.6] bg-[var(--s3)] text-[var(--t1)] border border-[var(--line)] font-arabic"
-              >
-                السلام عليكم، السيروم ده ينفع للبشرة الحساسة؟ وبكام؟
-              </div>
-            </div>
-
-            {/* 2. Outbound AI Agent Message */}
-            <div className="flex flex-col items-end ml-auto max-w-[82%]">
-              <span className="font-mono text-[11px] text-[var(--t3)] flex items-center gap-1 mb-1 px-1">
-                AI Agent · 10:02
-              </span>
-              <div
-                dir="rtl"
-                className="rounded-2xl rounded-tr-xs px-4 py-2.5 text-[15px] leading-[1.6] bg-[var(--goldbg)] text-[var(--t1)] border border-[var(--goldline)] space-y-3 font-arabic"
-              >
-                <p>
-                  وعليكم السلام يا مريم 🌸 أيوة، السيروم خالي من العطور ومناسب للبشرة الحساسة. سعره <bdi dir="ltr">450</bdi> جنيه، ولو أخدتي <bdi dir="ltr">Glow Kit</bdi> بـ <bdi dir="ltr">1350</bdi> بتوفري <bdi dir="ltr">200</bdi> جنيه.
-                </p>
-
-                <div dir="ltr" className="rounded-lg border border-[var(--goldline)] bg-[var(--s2)]/90 p-2.5 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-md bg-[var(--goldbg)] border border-[var(--goldline)] flex items-center justify-center shrink-0">
-                    <Package className="w-5 h-5 text-[var(--gold)]" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-[12px] text-[var(--t1)] truncate">
-                      Glow Kit · 3 items
-                    </div>
-                    <div className="flex items-center gap-2 text-[11px] font-mono text-[var(--t3)] mt-0.5">
-                      <span className="text-[var(--gold2)] font-medium">EGP 1,350</span>
-                      <span>·</span>
-                      <span className="text-[var(--green)]">in stock</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 3. Inbound Customer Message */}
-            <div className="flex flex-col items-start max-w-[82%]">
-              <span className="font-mono text-[11px] text-[var(--t3)] mb-1 px-1">
-                {resolvedDisplayName} · 10:05
-              </span>
-              <div
-                dir="rtl"
-                className="rounded-2xl rounded-tl-xs px-4 py-2.5 text-[15px] leading-[1.6] bg-[var(--s3)] text-[var(--t1)] border border-[var(--line)] font-arabic"
-              >
-                حلو جداً، والتوصيل لمدينة نصر بكام وبياخد قد ايه؟
-              </div>
-            </div>
-
-            {/* 4. System Handoff Pill */}
-            <div className="flex justify-center my-2">
-              <div className="inline-flex items-center px-3.5 py-1 rounded-full bg-[var(--s2)] border border-[var(--line)] text-[11.5px] text-[var(--t3)]">
-                AI paused: shipping question · assigned to Ziad
-              </div>
+            <h4 className="text-[14px] font-semibold text-[var(--t1)]">
+              {resolvedDisplayName}
+            </h4>
+            <p className="text-[12px] text-[var(--t3)] mt-0.5 flex items-center gap-1.5 justify-center">
+              <span>{platformTheme.name}</span>
+              <span>·</span>
+              <span>{platformTheme.subtitle}</span>
+            </p>
+            <div className="mt-4 px-3.5 py-2 rounded-full bg-[var(--s2)] border border-[var(--line)] text-[11.5px] text-[var(--t3)] max-w-sm">
+              No messages exchanged yet in this conversation. Type a message below to start chatting.
             </div>
           </div>
         ) : (
@@ -754,7 +684,7 @@ export function ChatWindow({
                   {isAi
                     ? `AI Agent ${timeStr ? `· ${timeStr}` : ""}`
                     : isMe
-                    ? `Ziad Sabry ${timeStr ? `· ${timeStr}` : ""}`
+                    ? `${(msg as any).sender_username || "You"} ${timeStr ? `· ${timeStr}` : ""}`
                     : `${resolvedDisplayName} ${timeStr ? `· ${timeStr}` : ""}`}
                 </span>
                 <div
@@ -971,7 +901,10 @@ export function ChatWindow({
           </button>
 
           {/* Pill Input (radius 22, --s2, auto-grows up to 5 lines then scrolls) */}
-          <div className="flex-1 min-w-0 rounded-[22px] bg-[var(--s2)] border border-[var(--line)] px-4 py-2.5 focus-within:border-[var(--line2)] focus-within:bg-[var(--s3)] transition-colors flex items-center">
+          <div className={cn(
+            "flex-1 min-w-0 rounded-[22px] bg-[var(--s2)] border border-[var(--line)] px-4 py-2.5 transition-colors flex items-center",
+            platformTheme.focusBorder
+          )}>
             <textarea
               ref={textareaRef}
               rows={1}
@@ -983,25 +916,29 @@ export function ChatWindow({
                   handleSendMessage()
                 }
               }}
-              placeholder={isAr || isAhmedConversation ? "اكتب رد…" : "Write a reply…"}
+              placeholder={isAr ? "اكتب رد…" : platformTheme.placeholder}
               className="w-full bg-transparent text-[15px] text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none resize-none leading-normal font-arabic max-h-[120px] scrollbar-none"
               dir="auto"
               disabled={sending || whatsappClosed}
             />
           </div>
 
-          {/* 44px Circular Primary Send Button (off-white, dark icon) */}
+          {/* 44px Circular Primary Send Button */}
           <button
             type="button"
             onClick={() => handleSendMessage()}
             disabled={sending || whatsappClosed || !inputText.trim()}
-            aria-label="Send"
-            className="w-11 h-11 rounded-full bg-[var(--t1)] text-[#09090B] hover:bg-white active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-all cursor-pointer shrink-0 shadow-sm"
+            aria-label={`Send via ${platformTheme.name}`}
+            className={cn(
+              "w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer shrink-0 shadow-sm active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed",
+              platformTheme.sendBg,
+              platformTheme.sendText
+            )}
           >
             {sending ? (
-              <Loader2 className="w-4 h-4 animate-spin text-[#09090B]" />
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <Send className="w-4 h-4 text-[#09090B]" />
+              <Send className="w-4 h-4" />
             )}
           </button>
         </div>
@@ -1020,7 +957,7 @@ export function ChatWindow({
             </button>
             <button
               type="button"
-              onClick={() => setInputText((prev) => prev + " 🌸")}
+              onClick={() => setInputText((prev) => prev + " 👋")}
               className="p-1.5 rounded-[5px] text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--s3)] transition-colors cursor-pointer"
               title="Insert emoji"
               aria-label="Insert emoji"
@@ -1030,12 +967,12 @@ export function ChatWindow({
             <button
               type="button"
               onClick={() => {
-                setInputText((prev) => prev + (prev ? " " : "") + "Glow Kit (EGP 1,350)")
+                setInputText((prev) => prev + (prev ? "\n" : "") + "Payment link: ")
                 textareaRef.current?.focus()
               }}
               className="p-1.5 rounded-[5px] text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--s3)] transition-colors cursor-pointer"
-              title="Insert product"
-              aria-label="Insert product"
+              title="Insert payment link"
+              aria-label="Insert payment link"
             >
               <ShoppingCart className="w-3.5 h-3.5" />
             </button>

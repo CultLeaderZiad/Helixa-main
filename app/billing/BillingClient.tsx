@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Shield, Zap, Star, AlertCircle, ArrowUpRight, CheckCircle, XCircle } from "lucide-react"
 import { toast } from "sonner"
 import { brand } from "@/lib/brand"
+import { VodafoneIcon } from "@/components/icons/PaymentIcons"
 
 
 type PlanType = "trial" | "monthly" | "one_time" | "expired"
@@ -230,7 +231,10 @@ export default function BillingPage() {
                 >
                   <XCircle className="w-5 h-5" />
                 </button>
-                <h3 className="text-xl font-bold mb-4">Pay via Vodafone Cash</h3>
+                <div className="flex items-center gap-2.5 mb-4">
+                  <VodafoneIcon size={28} className="shrink-0" />
+                  <h3 className="text-xl font-bold">Pay via Vodafone Cash</h3>
+                </div>
                 <p className="text-neutral-400 text-sm mb-6">
                   Please transfer <strong className="text-white">${showVCForm === "monthly" ? 15 : 199}</strong> (or equivalent in EGP) to:
                   <br /><span className="text-xl text-[#e60000] font-bold mt-2 inline-block">{brand.vodafoneCashNumber}</span>
@@ -312,7 +316,8 @@ export default function BillingPage() {
                       onClick={() => setShowVCForm("monthly")}
                       className="w-full border border-[#e60000]/30 text-[#e60000] font-mono text-sm font-bold py-3 rounded-xl hover:bg-[#e60000]/10 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      Pay via Vodafone Cash
+                      <VodafoneIcon size={18} className="shrink-0" />
+                      <span>Pay via Vodafone Cash</span>
                     </button>
                   </div>
                 </div>
@@ -364,7 +369,8 @@ export default function BillingPage() {
                       onClick={() => setShowVCForm("one_time")}
                       className="w-full border border-[#e60000]/30 text-[#e60000] font-mono text-sm font-bold py-3 rounded-xl hover:bg-[#e60000]/10 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      Pay via Vodafone Cash
+                      <VodafoneIcon size={18} className="shrink-0" />
+                      <span>Pay via Vodafone Cash</span>
                     </button>
                   </div>
                 </div>

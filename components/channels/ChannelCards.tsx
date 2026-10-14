@@ -36,7 +36,14 @@ interface Connection {
   id: string
   platform: string
   page_id?: string
+  external_account_id?: string
+  account_name?: string
+  username?: string
+  reconnect_required?: boolean
+  status?: string
+  phone_number_id?: string
   metadata?: any
+  [key: string]: any
 }
 
 interface ChannelCardsProps {
@@ -47,6 +54,7 @@ interface ChannelCardsProps {
   onConnectTikTok?: () => void
   onConnectTelegram?: () => void
   onDisconnect?: (id: string) => void
+  onRefresh?: () => void
 }
 
 export function ChannelCards({
@@ -57,8 +65,18 @@ export function ChannelCards({
   onConnectTikTok,
   onConnectTelegram,
   onDisconnect,
+  onRefresh,
 }: ChannelCardsProps) {
   const router = useRouter()
+
+  // Dynamic connection filtering
+  const igConnection = connections.find((c) => c.platform === "instagram")
+  const fbConnections = connections.filter(
+    (c) => c.platform === "facebook" || c.platform === "messenger"
+  )
+  const waConnections = connections.filter((c) => c.platform === "whatsapp")
+  const tgConnection = connections.find((c) => c.platform === "telegram")
+  const tiktokConnection = connections.find((c) => c.platform === "tiktok")
 
   // WhatsApp setup options
   const [whatsappSetupMethod, setWhatsappSetupMethod] = useState<"embedded" | "token">("embedded")
@@ -87,7 +105,26 @@ export function ChannelCards({
   const [widgetColor, setWidgetColor] = useState("#C9974C")
   const [widgetGreeting, setWidgetGreeting] = useState("Hello! How can we help you today?")
 
-  const scriptCode = `<script src="https://cdn.cyreax.com/w.js" data-id="nour_8f2"></script>`
+  const scriptCode = `<script src="${BRAND.appUrl}/widget.js" data-id="cyreax_client"></script>`
+
+  // Disconnect handler
+  const handleDisconnect = async (id: string, name: string) => {
+    if (onDisconnect) {
+      onDisconnect(id)
+      return
+    }
+    try {
+      const res = await fetch(`/api/user/connections?id=${id}`, { method: "DELETE" })
+      if (res.ok) {
+        toast.success(`Disconnected ${name}`)
+        onRefresh?.()
+      } else {
+        toast.error("Failed to disconnect")
+      }
+    } catch {
+      toast.error("Network error disconnecting")
+    }
+  }
 
   // Connect WhatsApp handler
   const handleSaveWhatsApp = async () => {
@@ -115,9 +152,12 @@ export function ChannelCards({
       if (res.ok) {
         toast.success("WhatsApp Business connected successfully!")
         setWhatsappModalOpen(false)
+        setWhatsappPhoneNumberId("")
+        setWhatsappToken("")
+        setWhatsappWabaId("")
+        onRefresh?.()
       } else {
-        toast.info(data.error || "Submitted WhatsApp connection request")
-        setWhatsappModalOpen(false)
+        toast.error(data.error || "Failed to connect WhatsApp")
       }
     } catch {
       toast.error("Failed to connect WhatsApp")
@@ -146,6 +186,7 @@ export function ChannelCards({
         setTelegramModalOpen(false)
         setTelegramDisconnected(false)
         setTelegramToken("")
+        onRefresh?.()
       } else {
         toast.error(data.error || "Failed to validate Telegram bot token")
       }
@@ -172,49 +213,80 @@ export function ChannelCards({
                   <p className="text-[11.5px] text-[var(--t3)]">Comments, DMs, stories</p>
                 </div>
               </div>
-              <Pill variant="green" dot>
-                Live
-              </Pill>
+              {igConnection ? (
+                <Pill variant="green" dot>
+                  Live
+                </Pill>
+              ) : (
+                <Pill variant="neutral" dot={false}>
+                  Not connected
+                </Pill>
+              )}
             </div>
 
-            {/* Connected Account */}
-            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[10.5px] font-semibold text-[var(--t1)]">
-                  N
+            {/* Connected Account or Empty State */}
+            {igConnection ? (
+              <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[10.5px] font-semibold text-[var(--t1)] shrink-0">
+                    {(igConnection.metadata?.username || "I")[0].toUpperCase()}
+                  </div>
+                  <span className="text-[12px] font-medium text-[var(--t1)] truncate">
+                    @{igConnection.metadata?.username || "instagram_user"}
+                  </span>
                 </div>
-                <span className="text-[12px] font-medium text-[var(--t1)]">
-                  @nour.cosmetics
+                <span className="font-mono text-[11px] text-[var(--t3)] tabular-nums shrink-0">
+                  Active
                 </span>
               </div>
-              <span className="font-mono text-[11px] text-[var(--t3)] tabular-nums">
-                48.2k
-              </span>
-            </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-[var(--line2)] p-2.5 text-center text-[11.5px] text-[var(--t3)]">
+                No Instagram account connected. Connect to automate comments & DMs.
+              </div>
+            )}
 
             {/* Token Health */}
-            <div className="text-[11px] text-[var(--t3)] font-mono flex items-center gap-1.5 flex-wrap">
-              <span>Last event 12s ago</span>
-              <span>·</span>
-              <span>
-                Token <strong className="text-[var(--amber)] font-medium">expires in 6d</strong>
-              </span>
-            </div>
+            {igConnection && (
+              <div className="text-[11px] text-[var(--t3)] font-mono flex items-center gap-1.5 flex-wrap">
+                <span>Webhook active</span>
+                <span>·</span>
+                <span>
+                  {igConnection.reconnect_required ? (
+                    <strong className="text-red-400 font-medium">Reconnect required</strong>
+                  ) : (
+                    <strong className="text-emerald-400 font-medium">Token valid</strong>
+                  )}
+                </span>
+              </div>
+            )}
           </div>
 
-          {/* Footer Actions: gold "Reconnect now" (the one gold button on the page) */}
+          {/* Footer Actions */}
           <div className="flex items-center gap-2 pt-2 border-t border-[var(--line)]">
-            <Button
-              variant="gold"
-              size="sm"
-              onClick={() => {
-                toast.success("Instagram token refreshed. Valid for 60 days.")
-              }}
-              className="h-[28px] px-3 text-[11.5px] gap-1.5 font-semibold"
-            >
-              <RefreshCw className="w-3 h-3" />
-              <span>Reconnect now</span>
-            </Button>
+            {igConnection ? (
+              <Button
+                variant="gold"
+                size="sm"
+                onClick={() => {
+                  window.location.href = "/api/instagram/auth"
+                }}
+                className="h-[28px] px-3 text-[11.5px] gap-1.5 font-semibold"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>Reconnect</span>
+              </Button>
+            ) : (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  window.location.href = "/api/instagram/auth"
+                }}
+                className="h-[28px] px-3 text-[11.5px] gap-1.5 font-semibold"
+              >
+                <span>Connect Instagram</span>
+              </Button>
+            )}
 
             <Button
               variant="secondary"
@@ -241,43 +313,52 @@ export function ChannelCards({
                   <p className="text-[11.5px] text-[var(--t3)]">Page comments and Messenger</p>
                 </div>
               </div>
-              <Pill variant="green" dot>
-                Live
-              </Pill>
+              {fbConnections.length > 0 ? (
+                <Pill variant="green" dot>
+                  Live
+                </Pill>
+              ) : (
+                <Pill variant="neutral" dot={false}>
+                  Not connected
+                </Pill>
+              )}
             </div>
 
-            {/* Connected Pages */}
-            <div className="space-y-1.5">
-              <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2 flex items-center justify-between">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-5 h-5 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[9.5px] font-semibold text-[var(--t1)] shrink-0">
-                    N
+            {/* Connected Pages or Empty State */}
+            {fbConnections.length > 0 ? (
+              <div className="space-y-1.5 max-h-[110px] overflow-y-auto">
+                {fbConnections.map((page) => (
+                  <div
+                    key={page.id}
+                    className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-5 h-5 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[9.5px] font-semibold text-[var(--t1)] shrink-0">
+                        {(page.metadata?.name || page.page_id || "F")[0].toUpperCase()}
+                      </div>
+                      <span className="text-[11.5px] font-medium text-[var(--t1)] truncate">
+                        {page.metadata?.name || `Page ${page.page_id}`}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <ChannelBadge channel="facebook" size="sm" className="w-4 h-4 rounded-full" />
+                      <ChannelBadge channel="messenger" size="sm" className="w-4 h-4 rounded-full" />
+                      <button
+                        onClick={() => handleDisconnect(page.id, page.metadata?.name || "Facebook Page")}
+                        title="Disconnect page"
+                        className="text-[10px] text-[var(--t4)] hover:text-red-400 p-0.5 ml-1 transition-colors"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
-                  <span className="text-[11.5px] font-medium text-[var(--t1)] truncate">
-                    Nour Cosmetics EG
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <ChannelBadge channel="facebook" size="sm" className="w-4 h-4 rounded-full" />
-                  <ChannelBadge channel="messenger" size="sm" className="w-4 h-4 rounded-full" />
-                </div>
+                ))}
               </div>
-
-              <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2 flex items-center justify-between">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-5 h-5 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[9.5px] font-semibold text-[var(--t1)] shrink-0">
-                    N
-                  </div>
-                  <span className="text-[11.5px] font-medium text-[var(--t1)] truncate">
-                    Nour Cosmetics KSA
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <ChannelBadge channel="facebook" size="sm" className="w-4 h-4 rounded-full" />
-                  <ChannelBadge channel="messenger" size="sm" className="w-4 h-4 rounded-full" />
-                </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-[var(--line2)] p-2.5 text-center text-[11.5px] text-[var(--t3)]">
+                No Facebook pages connected. Connect a page to start automating comments and Messenger.
               </div>
-            </div>
+            )}
           </div>
 
           {/* Footer Actions */}
@@ -295,12 +376,10 @@ export function ChannelCards({
             <Button
               variant="secondary"
               size="sm"
-              onClick={() =>
-                window.open("https://business.facebook.com/latest/settings/pages", "_blank")
-              }
+              onClick={() => router.push("/dashboard/platforms/facebook")}
               className="h-[28px] px-2.5 text-[11.5px] font-medium"
             >
-              Business Manager pages
+              Manage
             </Button>
           </div>
         </div>
@@ -319,81 +398,104 @@ export function ChannelCards({
                   <p className="text-[11.5px] text-[var(--t3)]">Cloud API · templates</p>
                 </div>
               </div>
-              <Pill variant="neutral" dot={false}>
-                Not connected
-              </Pill>
+              {waConnections.length > 0 ? (
+                <Pill variant="green" dot>
+                  Live
+                </Pill>
+              ) : (
+                <Pill variant="neutral" dot={false}>
+                  Not connected
+                </Pill>
+              )}
             </div>
 
-            {/* Setup Option Tiles */}
-            <div className="grid grid-cols-2 gap-2 text-[11px]">
-              <div
-                onClick={() => setWhatsappSetupMethod("embedded")}
-                className={cn(
-                  "rounded-lg border p-2 space-y-0.5 cursor-pointer transition-colors",
-                  whatsappSetupMethod === "embedded"
-                    ? "border-[var(--goldline)] bg-[var(--goldbg)]/20"
-                    : "border-[var(--line)] bg-[var(--s2)] hover:border-[var(--line2)]"
-                )}
-              >
-                <div className="font-semibold text-[var(--t1)]">Embedded Signup</div>
-                <p className="text-[var(--t3)] leading-tight text-[10px]">
-                  Log in with Meta, pick or create a number. About 3 minutes.
-                </p>
+            {/* Connected Numbers or Setup Options */}
+            {waConnections.length > 0 ? (
+              <div className="space-y-1.5 max-h-[110px] overflow-y-auto">
+                {waConnections.map((wa) => (
+                  <div
+                    key={wa.id}
+                    className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <ChannelBadge channel="whatsapp" size="sm" className="w-4 h-4 shrink-0" />
+                      <span className="text-[11.5px] font-medium text-[var(--t1)] truncate font-mono">
+                        {wa.metadata?.display_phone_number || wa.page_id}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleDisconnect(wa.id, wa.page_id || "WhatsApp number")}
+                      title="Disconnect number"
+                      className="text-[10px] text-[var(--t4)] hover:text-red-400 p-0.5 transition-colors"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
               </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div
+                  onClick={() => setWhatsappSetupMethod("embedded")}
+                  className={cn(
+                    "rounded-lg border p-2 space-y-0.5 cursor-pointer transition-colors",
+                    whatsappSetupMethod === "embedded"
+                      ? "border-[var(--goldline)] bg-[var(--goldbg)]/20"
+                      : "border-[var(--line)] bg-[var(--s2)] hover:border-[var(--line2)]"
+                  )}
+                >
+                  <div className="font-semibold text-[var(--t1)]">Embedded Signup</div>
+                  <p className="text-[var(--t3)] leading-tight text-[10px]">
+                    Log in with Meta, pick or create a number.
+                  </p>
+                </div>
 
-              <div
-                onClick={() => setWhatsappSetupMethod("token")}
-                className={cn(
-                  "rounded-lg border p-2 space-y-0.5 cursor-pointer transition-colors",
-                  whatsappSetupMethod === "token"
-                    ? "border-[var(--goldline)] bg-[var(--goldbg)]/20"
-                    : "border-[var(--line)] bg-[var(--s2)] hover:border-[var(--line2)]"
-                )}
-              >
-                <div className="font-semibold text-[var(--t1)]">System-user token</div>
-                <p className="text-[var(--t3)] leading-tight text-[10px]">
-                  For agencies that already manage the WABA in Business Manager.
-                </p>
+                <div
+                  onClick={() => setWhatsappSetupMethod("token")}
+                  className={cn(
+                    "rounded-lg border p-2 space-y-0.5 cursor-pointer transition-colors",
+                    whatsappSetupMethod === "token"
+                      ? "border-[var(--goldline)] bg-[var(--goldbg)]/20"
+                      : "border-[var(--line)] bg-[var(--s2)] hover:border-[var(--line2)]"
+                  )}
+                >
+                  <div className="font-semibold text-[var(--t1)]">System-user token</div>
+                  <p className="text-[var(--t3)] leading-tight text-[10px]">
+                    Meta Business Suite API token with WABA ID.
+                  </p>
+                </div>
               </div>
-            </div>
-
-            {/* 4-Step Stepper Strip */}
-            <div className="font-mono text-[9.5px] text-[var(--t4)] flex items-center justify-between px-0.5">
-              <span>① Log in</span>
-              <span>›</span>
-              <span>② Number</span>
-              <span>›</span>
-              <span>③ Verify</span>
-              <span>›</span>
-              <span>④ Meta billing</span>
-            </div>
+            )}
           </div>
 
           {/* Footer Actions */}
-          <div className="space-y-1.5 pt-2 border-t border-[var(--line)]">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => setWhatsappModalOpen(true)}
-                className="h-[28px] px-3 text-[11.5px] font-medium"
-              >
-                Connect WhatsApp
-              </Button>
+          <div className="flex items-center gap-2 pt-2 border-t border-[var(--line)]">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => setWhatsappModalOpen(true)}
+              className="h-[28px] px-3 text-[11.5px] font-medium"
+            >
+              {waConnections.length > 0 ? "Add number" : "Connect WhatsApp"}
+            </Button>
 
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setWhatsappReqsOpen(true)}
-                className="h-[28px] px-2.5 text-[11.5px] font-medium"
-              >
-                Requirements
-              </Button>
-            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => router.push("/dashboard/platforms/whatsapp")}
+              className="h-[28px] px-2.5 text-[11.5px] font-medium"
+            >
+              Manage
+            </Button>
 
-            <p className="text-[10px] text-[var(--t3)] leading-tight">
-              Meta requires a payment method on the WhatsApp account to send service messages.
-            </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setWhatsappReqsOpen(true)}
+              className="h-[28px] px-2 text-[11px] font-medium"
+            >
+              Guide
+            </Button>
           </div>
         </div>
 
@@ -409,15 +511,35 @@ export function ChannelCards({
                   <p className="text-[11.5px] text-[var(--t3)]">Comment replies, comment-to-DM</p>
                 </div>
               </div>
-              <Pill variant="blue" dot={false}>
-                Beta
-              </Pill>
+              {tiktokConnection ? (
+                <Pill variant="green" dot>
+                  Live
+                </Pill>
+              ) : (
+                <Pill variant="blue" dot={false}>
+                  Beta
+                </Pill>
+              )}
             </div>
 
-            {/* Region Policy Body Copy */}
-            <p className="text-[11.5px] text-[var(--t3)] leading-relaxed">
-              Messaging depends on TikTok's regional approval. We check this account's region when you connect and show what's available.
-            </p>
+            {/* Region Policy Body Copy or Connected State */}
+            {tiktokConnection ? (
+              <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2 flex items-center justify-between">
+                <span className="text-[12px] font-medium text-[var(--t1)]">
+                  @{tiktokConnection.metadata?.username || "tiktok_account"}
+                </span>
+                <button
+                  onClick={() => handleDisconnect(tiktokConnection.id, "TikTok account")}
+                  className="text-[10px] text-[var(--t4)] hover:text-red-400 p-0.5 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <p className="text-[11.5px] text-[var(--t3)] leading-relaxed">
+                Messaging depends on TikTok's regional approval. We check this account's region when you connect and show what's available.
+              </p>
+            )}
           </div>
 
           {/* Footer Actions */}
@@ -437,10 +559,19 @@ export function ChannelCards({
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => setTiktokRegionModalOpen(true)}
+              onClick={() => router.push("/dashboard/platforms/tiktok")}
               className="h-[28px] px-2.5 text-[11.5px] font-medium"
             >
-              Region details
+              Manage
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setTiktokRegionModalOpen(true)}
+              className="h-[28px] px-2 text-[11px] font-medium"
+            >
+              Details
             </Button>
           </div>
         </div>
@@ -457,46 +588,42 @@ export function ChannelCards({
                   <p className="text-[11.5px] text-[var(--t3)]">Bot DMs and channel broadcasts</p>
                 </div>
               </div>
-              {telegramDisconnected ? (
-                <Pill variant="neutral" dot={false}>
-                  Not connected
-                </Pill>
-              ) : (
+              {tgConnection && !telegramDisconnected ? (
                 <Pill variant="green" dot>
                   Live
+                </Pill>
+              ) : (
+                <Pill variant="neutral" dot={false}>
+                  Not connected
                 </Pill>
               )}
             </div>
 
             {/* Connected Bot or Empty State */}
-            {telegramDisconnected ? (
-              <div className="rounded-lg border border-dashed border-[var(--line2)] p-2.5 text-center text-[11.5px] text-[var(--t3)]">
-                No bot connected. Add your bot token to start receiving messages.
-              </div>
-            ) : (
+            {tgConnection && !telegramDisconnected ? (
               <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="w-6 h-6 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[10.5px] font-semibold text-[var(--t1)] shrink-0">
                     B
                   </div>
                   <span className="text-[12px] font-medium text-[var(--t1)] truncate">
-                    @NourCosmeticsBot
+                    @{tgConnection.metadata?.username || tgConnection.page_id || "TelegramBot"}
                   </span>
                 </div>
 
                 <HoldToConfirm
                   label="Hold to disconnect"
                   confirmingLabel="Disconnecting..."
-                  undoMessage="Telegram bot disconnected. Automations stopped."
+                  undoMessage="Telegram bot disconnected."
                   onConfirm={() => {
-                    setTelegramDisconnected(true)
-                  }}
-                  onUndo={() => {
-                    setTelegramDisconnected(false)
-                    toast.success("Restored @NourCosmeticsBot connection")
+                    handleDisconnect(tgConnection.id, tgConnection.metadata?.username || "Telegram bot")
                   }}
                   className="h-[26px] px-2 text-[10.5px] shrink-0"
                 />
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-[var(--line2)] p-2.5 text-center text-[11.5px] text-[var(--t3)]">
+                No bot connected. Add your bot token to start receiving messages.
               </div>
             )}
           </div>
@@ -516,10 +643,19 @@ export function ChannelCards({
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => window.open("https://t.me/BotFather", "_blank")}
-              className="h-[28px] px-2.5 text-[11.5px] font-medium gap-1"
+              onClick={() => router.push("/dashboard/platforms/telegram")}
+              className="h-[28px] px-2.5 text-[11.5px] font-medium"
             >
-              <span>Token from @BotFather</span>
+              Manage
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => window.open("https://t.me/BotFather", "_blank")}
+              className="h-[28px] px-2 text-[11px] font-medium gap-1"
+            >
+              <span>@BotFather</span>
               <ExternalLink className="w-3 h-3 text-[var(--t3)]" />
             </Button>
           </div>
@@ -534,7 +670,7 @@ export function ChannelCards({
                 <ChannelBadge channel="webchat" size="md" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[var(--t1)]">Website chat</h3>
-                  <p className="text-[11.5px] text-[var(--t3)]">Widget for nourcosmetics.com</p>
+                  <p className="text-[11.5px] text-[var(--t3)]">Embeddable web chat widget</p>
                 </div>
               </div>
               <Pill variant="green" dot>
@@ -559,16 +695,25 @@ export function ChannelCards({
               onClick={() => setWidgetModalOpen(true)}
               className="h-[28px] px-2.5 text-[11.5px] font-medium"
             >
-              Customize widget
+              Customize
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => router.push("/dashboard/platforms/webchat")}
+              className="h-[28px] px-2.5 text-[11.5px] font-medium"
+            >
+              Manage
             </Button>
 
             <Button
               variant="secondary"
               size="sm"
               onClick={() => setWidgetGuideOpen(true)}
-              className="h-[28px] px-2.5 text-[11.5px] font-medium"
+              className="h-[28px] px-2 text-[11px] font-medium"
             >
-              Install guide
+              Guide
             </Button>
           </div>
         </div>
@@ -637,6 +782,13 @@ export function ChannelCards({
                   className="w-full h-8 bg-[var(--s2)] border border-[var(--line)] rounded-[6px] px-2.5 text-xs text-[var(--t1)] focus:outline-none"
                 />
               </div>
+
+              <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 space-y-1 text-[11px] text-[var(--t3)]">
+                <div className="font-semibold text-[var(--t1)]">How to get your credentials:</div>
+                <div>1. Go to <a href="https://developers.facebook.com/apps" target="_blank" rel="noreferrer" className="text-[var(--gold)] underline">Meta for Developers</a> → Your App → WhatsApp → API Setup.</div>
+                <div>2. Copy your <strong className="text-[var(--t1)]">Phone number ID</strong> & <strong className="text-[var(--t1)]">WhatsApp Business Account ID</strong>.</div>
+                <div>3. In Business Settings → System Users, generate a token with <code className="bg-[var(--s3)] px-1 rounded text-[10px]">whatsapp_business_messaging</code>.</div>
+              </div>
             </div>
           )}
 
@@ -656,7 +808,7 @@ export function ChannelCards({
               disabled={whatsappConnecting}
               className="h-[28px] text-xs font-medium"
             >
-              {whatsappConnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Connect"}
+              {whatsappConnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Connect WhatsApp"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -799,7 +951,11 @@ export function ChannelCards({
               size="sm"
               onClick={() => {
                 setFacebookModalOpen(false)
-                toast.success("Opening Meta page selector window...")
+                if (onConnectFacebook) {
+                  onConnectFacebook()
+                } else {
+                  window.location.href = "/api/facebook/auth"
+                }
               }}
               className="h-[28px] text-xs font-medium"
             >

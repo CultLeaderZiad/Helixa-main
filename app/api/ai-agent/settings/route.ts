@@ -39,5 +39,18 @@ export async function PUT(request: NextRequest) {
     if (isMissingTable(saved.error)) return NextResponse.json({ error: "Run the phase 6 migration first" }, { status: 503 })
     return NextResponse.json({ error: "Failed to save settings" }, { status: 500 })
   }
+  // Sync to users table so ingress pipeline picks it up immediately
+  try {
+    await session.supabase
+      .from("users")
+      .update({
+        ai_enabled: row.enabled,
+        ai_context: row.persona || null,
+      })
+      .eq("id", session.userId)
+  } catch (syncErr) {
+    console.warn("[ai-agent/settings] Could not sync user ai_enabled column:", syncErr)
+  }
+
   return NextResponse.json({ settings: settingsFromRow(saved.data) })
 }

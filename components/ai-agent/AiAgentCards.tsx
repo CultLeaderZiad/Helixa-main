@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Bot, ShoppingCart, Star, Plus } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Pill } from "@/components/ui/Pill"
@@ -83,8 +83,31 @@ export function AiAgentCards({
   const [editName, setEditName] = useState("")
   const [editScope, setEditScope] = useState("")
 
-  const handleToggle = (id: string, checked: boolean) => {
-    const previous = agents.find((a) => a.id === id)?.isActive
+  useEffect(() => {
+    fetch("/api/ai-agent/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.settings) {
+          const isEnabled = Boolean(data.settings.enabled)
+          setAgents((prev) =>
+            prev.map((a) =>
+              a.id === "sales-assistant"
+                ? {
+                    ...a,
+                    isActive: isEnabled,
+                    status: isEnabled ? "live" : "paused",
+                    name: data.settings.personaName || a.name,
+                    scope: data.settings.persona || a.scope,
+                  }
+                : a
+            )
+          )
+        }
+      })
+      .catch(console.error)
+  }, [])
+
+  const handleToggle = async (id: string, checked: boolean) => {
     setAgents((prev) =>
       prev.map((a) =>
         a.id === id
@@ -96,7 +119,20 @@ export function AiAgentCards({
           : a
       )
     )
-    toast.success(checked ? "Agent activated" : "Agent paused")
+    try {
+      const res = await fetch("/api/ai-agent/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: checked }),
+      })
+      if (res.ok) {
+        toast.success(checked ? "Agent activated and live" : "Agent paused")
+      } else {
+        toast.error("Failed to update AI Agent status")
+      }
+    } catch {
+      toast.error("Network error updating AI Agent")
+    }
   }
 
   const handleOpenEdit = (agent: AgentItem) => {
@@ -105,14 +141,31 @@ export function AiAgentCards({
     setEditScope(agent.scope)
   }
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingAgent) return
+    try {
+      const res = await fetch("/api/ai-agent/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          personaName: editName,
+          persona: editScope,
+          enabled: editingAgent.isActive,
+        }),
+      })
+      if (res.ok) {
+        toast.success("Agent settings updated")
+      } else {
+        toast.info("Agent settings saved locally")
+      }
+    } catch {
+      toast.info("Agent settings saved locally")
+    }
     setAgents((prev) =>
       prev.map((a) =>
         a.id === editingAgent.id ? { ...a, name: editName, scope: editScope } : a
       )
     )
-    toast.success("Agent settings updated")
     setEditingAgent(null)
   }
 

@@ -62,6 +62,7 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
+  viewportFit: "cover",
 }
 
 const fontVariables = [_geist.variable, _geistMono.variable, _notoSansArabic.variable, _cairo.variable].filter(Boolean).join(' ')

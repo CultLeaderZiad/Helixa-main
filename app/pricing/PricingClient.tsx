@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import { toast } from "sonner"
+import { ChannelBadge } from "@/components/ui/ChannelBadge"
 
 export default function PricingClient({ plans }: { plans: any[] }) {
   const { t, language } = useLanguage()
@@ -77,16 +78,12 @@ export default function PricingClient({ plans }: { plans: any[] }) {
   const renderPlatformIcons = (plan: any) => {
     const p = plan?.platforms || { instagram: true, facebook: true, whatsapp: false, telegram: false, tiktok: false }
     return (
-      <div className="flex items-center gap-3 mt-6 pt-6 border-t border-white/10">
-        {p.instagram && <img src="/instagram.svg" alt="Instagram" className="w-5 h-5 opacity-100" title="Instagram" />}
-        {p.facebook && <img src="/facebook.svg" alt="Facebook" className="w-5 h-5 opacity-100" title="Facebook" />}
-        {p.whatsapp && <img src="/whatsapp.svg" alt="WhatsApp" className="w-5 h-5 opacity-100" title="WhatsApp" />}
-        {p.telegram && <img src="/telegram.svg" alt="Telegram" className="w-5 h-5 opacity-100" title="Telegram" />}
-        {p.tiktok && (
-          <div className="relative group flex items-center justify-center" title="TikTok (Coming Soon)">
-            <img src="/tiktok.svg" alt="TikTok" className="w-5 h-5 opacity-30 invert" />
-          </div>
-        )}
+      <div className="flex items-center gap-2 mt-6 pt-6 border-t border-white/10">
+        {p.instagram && <ChannelBadge channel="instagram" size="sm" title="Instagram" />}
+        {p.facebook && <ChannelBadge channel="facebook" size="sm" title="Facebook" />}
+        {p.whatsapp && <ChannelBadge channel="whatsapp" size="sm" title="WhatsApp" />}
+        {p.telegram && <ChannelBadge channel="telegram" size="sm" title="Telegram" />}
+        {p.tiktok && <ChannelBadge channel="tiktok" size="sm" title="TikTok" />}
       </div>
     )
   }

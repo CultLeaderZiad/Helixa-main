@@ -306,24 +306,9 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
   }, [initialIntent, hasParsedInitialIntent])
 
   useEffect(() => {
-    fetch("/api/user/connections")
-      .then(res => res.json())
-      .then(data => {
-        if (data.connections && data.connections.length > 0) {
-          const platforms = data.connections.map((c: any) => c.platform)
-          const available = new Set<string>(["instagram"])
-          if (platforms.includes("messenger")) available.add("messenger")
-          if (platforms.includes("facebook")) available.add("facebook")
-          if (platforms.includes("telegram")) available.add("telegram")
-          if (platforms.includes("whatsapp")) available.add("whatsapp")
-          if (platforms.includes("tiktok")) available.add("tiktok")
-          if (platforms.includes("webchat")) available.add("webchat")
-          if (editRule?.platform) available.add(editRule.platform)
-          if (defaultPlatform) available.add(defaultPlatform)
-          setAvailablePlatforms(Array.from(available))
-        }
-      })
-      .catch(console.error)
+    // All supported channels are always available to create automations for
+    const allPlatforms = ["instagram", "facebook", "messenger", "telegram", "whatsapp", "tiktok", "webchat"]
+    setAvailablePlatforms(allPlatforms)
   }, [editRule, defaultPlatform])
 
   const handleResolveMediaUrl = async () => {

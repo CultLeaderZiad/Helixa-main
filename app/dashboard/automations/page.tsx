@@ -33,6 +33,7 @@ import { toast } from "sonner"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import { cn } from "@/lib/utils"
+import { BRAND } from "@/lib/brand"
 
 function AutomationsPageContent() {
   const router = useRouter()
@@ -320,7 +321,7 @@ function AutomationsPageContent() {
       {/* Top Actions Bar */}
       <div className="h-[52px] border-b border-[var(--line)] px-6 flex items-center justify-between bg-[var(--s1)] shrink-0 z-10">
         <div className="flex items-center gap-2">
-          <span className="text-[12px] text-[var(--t3)] font-medium">Nour Cosmetics</span>
+          <span className="text-[12px] text-[var(--t3)] font-medium">{BRAND.name}</span>
           <span className="text-[12px] text-[var(--t4)]">/</span>
           <span className="text-[12px] text-[var(--t1)] font-semibold">Automations</span>
         </div>
@@ -399,7 +400,7 @@ function AutomationsPageContent() {
                 }
                 editRule={editRule}
                 initialIntent={searchParams?.get("intent") || undefined}
-                defaultPlatform="instagram"
+                defaultPlatform={selectedChannel !== "all" ? selectedChannel : "instagram"}
                 onSuccess={() => {
                   mutateAutomations()
                   setShowCreateForm(false)

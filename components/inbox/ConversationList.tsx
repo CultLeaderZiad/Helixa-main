@@ -89,18 +89,21 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
     })
   }, [rawConversations, selectedChannel, searchQuery])
 
-  // Computed tab counts
+  // Computed tab counts from real conversations
   const counts = useMemo(() => {
-    const total = rawConversations.length > 0 ? rawConversations.length : 24
+    const open = rawConversations.filter((c: any) => !c.is_archived && c.status !== "closed").length
+    const mine = rawConversations.filter((c: any) => c.assigned_to === userId).length
+    const unassigned = rawConversations.filter((c: any) => !c.assigned_to).length
+    const ai = rawConversations.filter((c: any) => c.ai_handled || c.status === "ai").length
     return {
-      open: total,
-      mine: 6,
-      unassigned: 9,
-      ai: 41,
+      open,
+      mine,
+      unassigned,
+      ai,
     }
-  }, [rawConversations])
+  }, [rawConversations, userId])
 
-  // Auto-select first conversation on desktop load (no placeholder)
+  // Auto-select first conversation on desktop load if available
   useEffect(() => {
     if (typeof window !== "undefined" && window.innerWidth >= 768 && !selectedId) {
       if (filteredConversations.length > 0) {
@@ -108,12 +111,9 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
         onSelect(
           first.id,
           first.recipient_username,
-          first.recipient_id.toString(),
+          first.recipient_id ? first.recipient_id.toString() : first.id,
           first.platform || "instagram"
         )
-      } else {
-        // Mock fallback row selection if database is currently empty
-        onSelect("mock-mariam", "Mariam Khaled", "mariam.k", "instagram")
       }
     }
   }, [filteredConversations, selectedId, onSelect])
@@ -200,93 +200,7 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
     )
   }
 
-  // Realistic fallback rows matching 02-inbox.png mockup
-  const displayItems =
-    filteredConversations.length > 0
-      ? filteredConversations
-      : [
-          {
-            id: "mock-mariam",
-            recipient_username: "Mariam Khaled",
-            recipient_id: 101,
-            platform: "instagram",
-            last_message_preview: "تمام، ابعتيلي لينك الدفع لو سمحتي",
-            created_at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-            last_message_at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-          },
-          {
-            id: "mock-ahmed",
-            recipient_username: "Ahmed Hassan",
-            recipient_id: 102,
-            platform: "whatsapp",
-            last_message_preview: "في فرع في الشيخ زايد؟",
-            created_at: new Date(Date.now() - 6 * 60 * 1000).toISOString(),
-            last_message_at: new Date(Date.now() - 6 * 60 * 1000).toISOString(),
-          },
-          {
-            id: "mock-nick",
-            recipient_username: "nick_saraev",
-            recipient_id: 103,
-            platform: "instagram",
-            last_message_preview: "hope you're having fun building cool st...",
-            created_at: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
-            last_message_at: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
-          },
-          {
-            id: "mock-sara",
-            recipient_username: "Sara Al-Otaibi",
-            recipient_id: 104,
-            platform: "facebook",
-            last_message_preview: "أبغى أطلب ٣ حبات، كم الشحن للرياض؟",
-            created_at: new Date(Date.now() - 22 * 60 * 1000).toISOString(),
-            last_message_at: new Date(Date.now() - 22 * 60 * 1000).toISOString(),
-          },
-          {
-            id: "mock-iguser",
-            recipient_username: "31206",
-            recipient_id: 31206,
-            platform: "instagram",
-            last_message_preview: 'Tapped button "Get the price"',
-            created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-            last_message_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-          },
-          {
-            id: "mock-liam",
-            recipient_username: "liamjohnston.ai",
-            recipient_id: 106,
-            platform: "tiktok",
-            last_message_preview: "super curious to know cus it helps me ...",
-            created_at: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
-            last_message_at: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
-          },
-          {
-            id: "mock-youssef",
-            recipient_username: "Youssef Tarek",
-            recipient_id: 107,
-            platform: "telegram",
-            last_message_preview: "شكراً، وصل الطلب 🙏",
-            created_at: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
-            last_message_at: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
-          },
-          {
-            id: "mock-reem",
-            recipient_username: "Reem Nabil",
-            recipient_id: 108,
-            platform: "whatsapp",
-            last_message_preview: "ممكن أدفع فودافون كاش؟",
-            created_at: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
-            last_message_at: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
-          },
-          {
-            id: "mock-omar",
-            recipient_username: "Omar Mostafa",
-            recipient_id: 109,
-            platform: "facebook",
-            last_message_preview: "Is the kit available in Alexandria stores?",
-            created_at: new Date(Date.now() - 8 * 3600 * 1000).toISOString(),
-            last_message_at: new Date(Date.now() - 8 * 3600 * 1000).toISOString(),
-          },
-        ]
+  const displayItems = filteredConversations
 
   return (
     <div className="flex flex-col h-full border-e border-[var(--line)] bg-[var(--bg)] w-full md:w-[300px] shrink-0 select-none overflow-hidden">
@@ -467,15 +381,12 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
             const timeStr = formatRelativeTime(conv.last_message_at || conv.created_at)
             const previewText = formatMessagePreview(conv.last_message_preview, isAr ? "ar" : "en")
 
-            // Status badges matching 02-inbox.png mockup
-            const hasUnread = idx === 1 || idx === 3
-            const isAiDrafting = idx === 0
-            const isWindowClosing = idx === 1
-            const isAssignedLina = idx === 2
-            const isGulfLead = idx === 3
-            const isFlowGlow = idx === 4
-            const isResolvedAi = idx === 6
-            const isAiHandling = idx === 7
+            // Real conversation status badges
+            const hasUnread = Boolean((conv as any).unread_count && (conv as any).unread_count > 0)
+            const isAiHandling = Boolean((conv as any).ai_handled || (conv as any).status === "ai")
+            const isBotPaused = Boolean((conv as any).bot_paused)
+            const tags = Array.isArray((conv as any).tags) ? (conv as any).tags : []
+            const assignedTo = (conv as any).assigned_to === userId ? "Assigned to you" : (conv as any).assigned_to_name
 
             return (
               <div
@@ -549,49 +460,31 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
                     {previewText}
                   </p>
 
-                  {/* Bottom Line: Meta Pills */}
+                  {/* Bottom Line: Real Meta Pills */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    {isAiDrafting && (
-                      <>
-                        <Pill variant="amber" icon={<Sparkles className="w-2.5 h-2.5" />}>
-                          AI drafting
-                        </Pill>
-                        <Tag>serum</Tag>
-                      </>
-                    )}
-                    {isWindowClosing && (
-                      <Pill variant="amber" icon={<Clock className="w-2.5 h-2.5" />}>
-                        Window 3h 12m
-                      </Pill>
-                    )}
-                    {isAssignedLina && (
-                      <span className="text-[10.5px] px-1.5 py-0.5 rounded-[4px] bg-[var(--s3)] border border-[var(--line2)] text-[var(--t2)] font-mono">
-                        Lina M.
-                      </span>
-                    )}
-                    {isGulfLead && (
-                      <>
-                        <Pill variant="blue">Gulf dialect</Pill>
-                        <Pill variant="green">Lead</Pill>
-                      </>
-                    )}
-                    {isFlowGlow && (
-                      <Tag>Flow: Glow kit</Tag>
-                    )}
-                    {isResolvedAi && (
-                      <Pill variant="green" icon={<Check className="w-2.5 h-2.5" />}>
-                        Resolved by AI
-                      </Pill>
-                    )}
                     {isAiHandling && (
                       <Pill variant="green" icon={<Sparkles className="w-2.5 h-2.5" />}>
-                        AI handling
+                        AI active
                       </Pill>
                     )}
+                    {isBotPaused && (
+                      <Pill variant="amber">
+                        AI paused
+                      </Pill>
+                    )}
+                    {assignedTo && (
+                      <span className="text-[10.5px] px-1.5 py-0.5 rounded-[4px] bg-[var(--s3)] border border-[var(--line2)] text-[var(--t2)] font-mono">
+                        {assignedTo}
+                      </span>
+                    )}
+                    {tags.map((t: string) => (
+                      <Tag key={t}>{t}</Tag>
+                    ))}
                   </div>
                 </div>
               </div>
             )
+
           })
         )}
       </div>

@@ -177,6 +177,7 @@ function initSession(igOauth: boolean, router: ReturnType<typeof useRouter>) {
             userId: savedId,
             username: savedName,
             profilePic: localStorage.getItem("ig_profile_pic"),
+            ...(savedAccountId ? { isLoading: false } : {}),
         })
     } catch {
         // localStorage unavailable - non-fatal
